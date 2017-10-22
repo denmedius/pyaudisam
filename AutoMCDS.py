@@ -9,7 +9,8 @@ import pandas as pd
 # Détection du dossier d'install. de Distance
 mcdsExe = 'MCDS.exe'
 possVers = [7, 6]
-possPaths = [os.path.join('C:\\', 'Program files (x86)'), os.path.join('C:', 'Program files')]
+possPaths = [os.path.join('C:\\', 'Program files (x86)'),
+             os.path.join('C:', 'Program files')]
 print('Recherche {} ...'.format(mcdsExe))
 for path in possPaths:
     for ver in possVers:
@@ -90,9 +91,12 @@ def buildInputFile(dataFileName='mcds-data.txt'):
     VarN=Empirical;
     End;
 
-    """.format(output=outFileName, log=logFileName, stats=statsFileName, bootstrap=bootFileName,
-               optSurvType='Point', optDistType='Radial', optDistUnit='Meter', optAreaUnit='Hectare', optCVInterv=95,
-               dataFields='STR_LABEL, STR_AREA, SMP_LABEL, SMP_EFFORT, DISTANCE', dataFileName=dataFileName,
+    """.format(output=outFileName, log=logFileName,
+               stats=statsFileName, bootstrap=bootFileName,
+               optSurvType='Point', optDistType='Radial',
+               optDistUnit='Meter', optAreaUnit='Hectare', optCVInterv=95,
+               dataFields='STR_LABEL, STR_AREA, SMP_LABEL, SMP_EFFORT, DISTANCE',
+               dataFileName=dataFileName,
                estKeyFn='HNORMAL', estAdjustFn='COSINE', estCriterion='AIC')
 
     with open(cmdFileName, 'w') as cmdFile:
