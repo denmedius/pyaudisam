@@ -26,7 +26,7 @@ Descripteur = namedtuple('Descripteur', ['ordre', 'nom'])
 # Descripteurs des types de manifestations sonores.
 _KDTypesManifs = \
     odict([('ch', Descripteur(ordre=0, nom='Chant')), 
-           ('crch', Descripteur(ordre=1, nom='Chants ou cris')),
+           ('crch', Descripteur(ordre=1, nom='Chants (ou cris ?)')),
            ('t',  Descripteur(ordre=2, nom='Tambour')),
            ('m', Descripteur(ordre=3, nom='Martellement')),
            ('cr', Descripteur(ordre=4, nom='Cris'))])
@@ -211,180 +211,211 @@ def _planGeneralites(html2Parse, tag2List='h3'):
     return htmlToc
 
 # Styles CSS
-_KStylesCss = \
-"""
-html, body {
- margin: 0;
- padding: 0;
-}
-body {
- background-color: #e8efd1;
- font-family: Arial, Helvetica, sans-serif;
- font-size: 100%;
-}
-h1 {
- font-size: 480%; 
- color: #244c0c; 
- text-align: center;
-}
-h2 {
- font-size: 240%; 
- color: #244c0c; 
-}
-h3 {
- font-size: 160%; 
- color: #244c0c;
-}
-h4 {
- font-size: 120%; 
- color: #244c0c; 
-}
-h5 {
- font-size: 100%; 
- color: #244c0c; 
-}
-h6 {
- font-size: 80%; 
- color: #244c0c; 
-}
-p {
- color: #244c0c; 
-}
-ul,ol,li,td {
- color: #244c0c; 
-}
-a:link {
- color: #2f7404;
- font-weight: bold;
- text-decoration:underline;
-}
-a:visited {
- color: #379000;
- font-weight:bold;
- text-decoration:underline;
-}
-a:active,
-a:hover {
- color: #bd5a35;
- text-decoration:underline;
-}
+_KStylesCss = """
+    html, body {
+     margin: 0;
+     padding: 0;
+    }
+    body {
+     background-color: #e8efd1;
+     font-family: Arial, Helvetica, sans-serif;
+     font-size: 100%;
+    }
+    h1 {
+     font-size: 480%; 
+     color: #244c0c; 
+     text-align: center;
+    }
+    h2 {
+     font-size: 240%; 
+     color: #244c0c; 
+    }
+    h3 {
+     font-size: 160%; 
+     color: #244c0c;
+    }
+    h4 {
+     font-size: 120%; 
+     color: #244c0c; 
+    }
+    h5 {
+     font-size: 100%; 
+     color: #244c0c; 
+    }
+    h6 {
+     font-size: 80%; 
+     color: #244c0c; 
+    }
+    p {
+     color: #244c0c; 
+    }
+    ul,ol,li,td {
+     color: #244c0c; 
+    }
+    a:link {
+     color: #2f7404;
+     font-weight: bold;
+     text-decoration:underline;
+    }
+    a:visited {
+     color: #379000;
+     font-weight:bold;
+     text-decoration:underline;
+    }
+    a:active,
+    a:hover {
+     color: #bd5a35;
+     text-decoration:underline;
+    }
 
-table a:link {
- color: #244c0c;
- font-weight: bold;
- text-decoration:none;
-}
-table a:visited {
- color: #546122;
- font-weight:bold;
- text-decoration:none;
-}
-table a:active,
-table a:hover {
- color: #bd5a35;
- text-decoration:underline;
-}
+    table a:link {
+     color: #244c0c;
+     font-weight: bold;
+     text-decoration:none;
+    }
+    table a:visited {
+     color: #546122;
+     font-weight:bold;
+     text-decoration:none;
+    }
+    table a:active,
+    table a:hover {
+     color: #bd5a35;
+     text-decoration:underline;
+    }
 
-table {
- font-family:Arial, Helvetica, sans-serif;
- color:#244c0c;
- text-shadow: 1px 1px 0px #fff;
- background:#eaebec;
- margin: 15px 8px 0 8px;
- border: #ccc 1px solid;
+    table {
+     font-family:Arial, Helvetica, sans-serif;
+     color:#244c0c;
+     text-shadow: 1px 1px 0px #fff;
+     background:#eaebec;
+     margin: 15px 8px 0 8px;
+     border: #ccc 1px solid;
 
- -moz-border-radius:3px;
- -webkit-border-radius:3px;
- border-radius:3px;
+     -moz-border-radius:3px;
+     -webkit-border-radius:3px;
+     border-radius:3px;
 
- -moz-box-shadow: 0 1px 2px #d1d1d1;
- -webkit-box-shadow: 0 1px 2px #d1d1d1;
- box-shadow: 0 1px 2px #d1d1d1;
-}
-table th {
- text-align: left;
- padding: 0 8px 0 8px;
- border-top: 1px solid #f9fbf3;
- border-bottom: 1px solid #dee5ca;
+     -moz-box-shadow: 0 1px 2px #d1d1d1;
+     -webkit-box-shadow: 0 1px 2px #d1d1d1;
+     box-shadow: 0 1px 2px #d1d1d1;
+    }
+    table th {
+     text-align: left;
+     padding: 0 8px 0 8px;
+     border-top: 1px solid #f9fbf3;
+     border-bottom: 1px solid #dee5ca;
 
- background: #bcc380;
- background: -webkit-gradient(linear, left top, left bottom, from(#bcc380), to(#e4eac8));
- background: -moz-linear-gradient(top, #bcc380, #e4eac8);
-}
-table th:first-child {
- text-align: left;
- padding-left: 10px;
-}
-table tr:first-child th:first-child {
- -moz-border-radius-topleft:3px;
- -webkit-border-top-left-radius:3px;
- border-top-left-radius:3px;
-}
-table tr:first-child th:last-child {
- -moz-border-radius-topright:3px;
- -webkit-border-top-right-radius:3px;
- border-top-right-radius:3px;
-}
-table tr {
- text-align: left;
- padding: 0 12px 0 0;
-}
-table td:first-child {
- text-align: left;
- padding-left: 10px;
- border-left: 0;
-}
-table td {
- padding: 8px 8px 8px 10px;
- border-top: 1px solid #ffffff;
- border-bottom: 1px solid #dee5ca;
- border-left: 1px solid #dee5ca;
+     background: #bcc380;
+     background: -webkit-gradient(linear, left top, left bottom, from(#bcc380), to(#e4eac8));
+     background: -moz-linear-gradient(top, #bcc380, #e4eac8);
+    }
+    table th:first-child {
+     text-align: left;
+     padding-left: 10px;
+    }
+    table tr:first-child th:first-child {
+     -moz-border-radius-topleft:3px;
+     -webkit-border-top-left-radius:3px;
+     border-top-left-radius:3px;
+    }
+    table tr:first-child th:last-child {
+     -moz-border-radius-topright:3px;
+     -webkit-border-top-right-radius:3px;
+     border-top-right-radius:3px;
+    }
+    table tr {
+     text-align: left;
+     padding: 0 12px 0 0;
+    }
+    table td:first-child {
+     text-align: left;
+     padding-left: 10px;
+     border-left: 0;
+    }
+    table td {
+     padding: 8px 8px 8px 10px;
+     border-top: 1px solid #ffffff;
+     border-bottom: 1px solid #dee5ca;
+     border-left: 1px solid #dee5ca;
 
- background: #f9fbf3;
- background: -webkit-gradient(linear, left top, left bottom, from(#f8f9f6), to(#f9fbf3));
- background: -moz-linear-gradient(top,  #f8f9f6,  #f9fbf3);
-}
-table tr.even td {
- background: #f6f6f6;
- background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f6f6f6));
- background: -moz-linear-gradient(top,  #f8f8f8,  #f6f6f6);
-}
-table tr:last-child td {
- border-bottom:0;
-}
-table tr:last-child td:first-child {
- -moz-border-radius-bottomleft:3px;
- -webkit-border-bottom-left-radius:3px;
- border-bottom-left-radius:3px;
-}
-table tr:last-child td:last-child {
- -moz-border-radius-bottomright:3px;
- -webkit-border-bottom-right-radius:3px;
- border-bottom-right-radius:3px;
-}
-table tr:hover td {
- background: #f3f4eb;
- background: -webkit-gradient(linear, left top, left bottom, from(#f3f4eb), to(#eeefe9));
- background: -moz-linear-gradient(top, #f3f4eb, #eeefe9); 
-}
+     background: #f9fbf3;
+     background: -webkit-gradient(linear, left top, left bottom, from(#f8f9f6), to(#f9fbf3));
+     background: -moz-linear-gradient(top,  #f8f9f6,  #f9fbf3);
+    }
+    table tr.even td {
+     background: #f6f6f6;
+     background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f6f6f6));
+     background: -moz-linear-gradient(top,  #f8f8f8,  #f6f6f6);
+    }
+    table tr:last-child td {
+     border-bottom:0;
+    }
+    table tr:last-child td:first-child {
+     -moz-border-radius-bottomleft:3px;
+     -webkit-border-bottom-left-radius:3px;
+     border-bottom-left-radius:3px;
+    }
+    table tr:last-child td:last-child {
+     -moz-border-radius-bottomright:3px;
+     -webkit-border-bottom-right-radius:3px;
+     border-bottom-right-radius:3px;
+    }
+    table tr:hover td {
+     background: #f3f4eb;
+     background: -webkit-gradient(linear, left top, left bottom, from(#f3f4eb), to(#eeefe9));
+     background: -moz-linear-gradient(top, #f3f4eb, #eeefe9); 
+    }
+    #toTopBtn {
+      display: none;
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      z-index: 99;
+      border: none;
+      border-radius: 10px;
+      outline: none;
+      opacity: .25;
+      background-color: white;
+      cursor: pointer;
+    }
+    #toTopBtn:hover {
+      opacity: .75;
+    }
 """
 
 # Javascripts
-_KScriptsJs = \
-"""
-// Show or hide some element (id) through :
-// * a Show link (<a id="<id>+'s'" ...),
-// * a Hide link embedded into the element.
-function show(id)
-{
-  document.getElementById(id).style.display = "block";
-  document.getElementById(id+'s').style.display = "none";
-}
-function hide(id)
-{
-  document.getElementById(id).style.display = "none";
-  document.getElementById(id+'s').style.display = "block";
-}
+_KScriptsJs = """
+    // Show or hide some element (id) through :
+    // * a Show link (<a id="<id>+'s'" ...),
+    // * a Hide link embedded into the element.
+    function show(id)
+    {
+      document.getElementById(id).style.display = "block";
+      document.getElementById(id+'s').style.display = "none";
+    }
+    function hide(id)
+    {
+      document.getElementById(id).style.display = "none";
+      document.getElementById(id+'s').style.display = "block";
+    }
+
+    // Back to top floating button managment
+    // When the user scrolls down100 px from the top of the document, show the button
+    window.onscroll = function()
+    {
+        if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100)
+            document.getElementById("toTopBtn").style.display = "block";
+        else
+            document.getElementById("toTopBtn").style.display = "none";
+    }
+
+    // When the user clicks on the button, scroll to the top of the document
+    function scrollToTop()
+    {
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+    }
 """
 
 # Modèle jinja2 de page pour un groupe d'espèces.
@@ -459,7 +490,7 @@ _KHtmlGroupeEspeces = """
           {{generalites}}
         </div>
 
-        <h2 id="détails">Détails par espèce</h2>
+        <h2 id="détails">Détails sonores par espèce</h2>
         <div style="margin-left: 10px">
         
           <p>Pour chaque espèce, et chacun de ses types de manifestation sonore (cri, chant, tambour, martellement, ...),
@@ -472,15 +503,16 @@ _KHtmlGroupeEspeces = """
               <li>la liste des autres espèces présentes en arrière plan, à deviner d'abord (quiz !)
                   avant de cliquer sur le petit oeil : chaque espèce est signalée par un code à 5 ou 6 lettres
                   (3 premières lettres du genre et 3 premières de l'espèce en général, 
-                   sauf 'Sp' quand l'espèce est inconnue),</li>
+                   mais 'Sp' quand l'espèce est inconnue) ; espèces en gros par ordre d'apparition,
+                   sauf les autres espèces du groupe, à la fin de la liste,</li>
               <li>le lien vers la page de l'enregistrement source
                   sur <a href="https://www.xeno-canto.org/">xeno-canto.org</a>.</li>
           </ul>
-          <p>Et pour vos sorties sur le terrain, un <a href="{{dossierAttache}}/{{tableauSynth}}">tableau de synthèse</a>
+          <p>Et pour vos sorties sur le terrain, un <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>
              résumant ce qu'il y a retenir pour chaque espèce, et permettant de les comparer d'un seul coup d'oeil.</p>
              
-          <p>N.B. Je n'ai pas, faute de temps, coupé ou remonté les enregistrements sources (ils sont pris tels quels),
-             ce qui aurait permis d'être plus précis en désignant plus clairement chaque manifestation sonore ciblée ;
+          <p>N.B. Faute de temps, je n'ai pas coupé ou remonté les enregistrements sources (ils sont pris tels quels),
+             ce qui aurait permis d'isoler plus précisément chaque manifestation sonore ciblée ;
              à vous de la retrouver : la plupart du temps, c'est la première, mais parfois non ; dans ce cas,
              fiez-vous à la colonne 'Description', qui liste ces manifestations dans l'ordre d'apparition
              (Cf. glossaire pour leurs noms de code : cr, ch, crch et t).</p>
@@ -547,14 +579,14 @@ _KHtmlGroupeEspeces = """
           
         </div>
 
-        <h2 id="comparaisons">Comparaisons en vis à vis</h2>
+        <h2 id="comparaisons">Comparaisons sonores en vis à vis</h2>
         <div style="margin-left: 10px">
         
           <p>Rien de neuf ici, mais pour chaque type de manifestation sonore (cris, chants, tambour, ...)
              une présentation en vis à vis des mêmes échantillons sonores pour chaque espèce,
-             pour pouvoir les comparer plus facilement.</p>
+             avec les mêmes informations, pour pouvoir les comparer plus facilement.</p>
         
-          <p>Rappel : <a href="{{dossierAttache}}/{{tableauSynth}}">tableau de synthèse</a>.</p>
+          <p>Rappel : <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>.</p>
 
           {% for typMnf in typesManifs %}
             <h3 id="{{typMnf.id}}">{{typMnf.nom}}</h3>
@@ -638,10 +670,11 @@ _KHtmlGroupeEspeces = """
             <li>rep : réponse, se répondent</li>
             <li>pose : posé (= pas en vol !)</li>
             <li>vol : en vol</li>
-            <li>age : agé (pour un poussin = en fin d'élevage)</li>
+            <li>age : âgé (pour un poussin = en fin d'élevage)</li>
             <li>elec : électrique</li>
+            <li>fele : fêlé</li>
             <li>accel : accéléré</li>
-            <li>type : typique</li>
+            <li>tous : tous (les types de cris, par ex.)</li>
             <li>prob : probable</li>
             <li>poss : possible</li>
             <li>deter : enregistrement déterioré par un traitement numérique quelconque (Cf. fph, debruit, ou autre),
@@ -660,12 +693,13 @@ _KHtmlGroupeEspeces = """
         <div style="margin-left: 10px">
         
           <p>Ce document est publié sous la licence
-             <strong><a href="http://creativecommons.fr/licences/">Creative Commons BY NC SA</a></strong>
-             <a href="http://creativecommons.fr/licences/">
+             <strong><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
+             Creative Commons BY NC SA 4.0</a></strong>
+             <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
                <img height="20" src="{{dossierAttache}}/by-nc-sa.eu.svg" alt="Creative Commons BY NC SA"/>
              </a>
-             par <a href="http://jpmeuret.free.fr/">Jean-Philippe Meuret</a>
-             <a href="http://www.lpo-auvergne.org">LPO Auvergne</a> (X heures de travail).</p>
+             par <a href="http://jpmeuret.free.fr/" target="_blank">Jean-Philippe Meuret</a>,
+             <a href="http://www.lpo-auvergne.org" target="_blank">LPO Auvergne</a> (X heures de travail).</p>
           <p>Vous pouvez (et même devez ;-) le diffuser sans en demander l'autorisation, à qui vous voulez,
              dans sa forme originale ou après modifications, par extraits ou dans son intégralité, pourvu que :</p>
           <ul>
@@ -673,17 +707,17 @@ _KHtmlGroupeEspeces = """
               <li>la diffusion n'ait pas un but commercial : NC,
               <li>la diffusion se fasse avec la même licence (CC BY NC SA) : SA.
           </ul>
-          <p>Attention cependant aux licences potentiellement plus restrictives des sons intégrés ou liés au document,
-             issus en totalité (ou presque) de <a href="https://www.xeno-canto.org/">xeno-canto.org</a>
-             (Voir ci-dessus le lien associé à chaque son pour sa source exacte et son auteur).</p>
+          <p>Attention cependant aux licences potentiellement plus restrictives des sons liés au présent document,
+             issus en totalité de <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a>
+             (Voir ci-dessus le lien associé à chaque enregistrement pour sa source exacte et son auteur).</p>
              
         </div>
 
         <h2 id="remerciements">Remerciements</h2>
         <div style="margin-left: 10px">
         
-          <p>La très grande majorité (sinon tous) des enregistrements utilisés ici
-             provient du site <a href="https://www.xeno-canto.org/">xeno-canto.org</a> :
+          <p>Tous les enregistrements utilisés ici
+             proviennent du site <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a> :
              un très grand merci aux ornithologues qui ont bien voulu partager leurs trouvailles
              et ainsi rendre cette publication possible.</p>
              
@@ -695,22 +729,26 @@ _KHtmlGroupeEspeces = """
         <div style="margin-left: 10px">
         
           <p>Les icônes de petits yeux utilisées ci-dessus sont l'oeuvre de
-             <a href="https://fontawesome.com/">Font Awesome</a>,
+             <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
              et sont distribuées selon la licence
-             <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> ;
+             <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a> ;
              seule leur couleur - noire à l'origine - a été modifiée (en vert).</p>
           {{attributions}}
         </div>
         
         <h6>
-            Page générée via <a href="https://www.python.org/">Python 3</a>,
-            <a href="https://pandas.pydata.org/">Pandas</a>,
-            et <a href="http://jinja.pocoo.org/">Jinja 2</a>
-            dans <a href="http://jupyter.org/">Jupyter Notebook</a>,
+            Page générée via <a href="https://www.python.org/" target="_blank">Python 3</a>,
+            <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>
+            et <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
+            dans <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>,
             le {{genDateTime}}.
         </h6>
 
       </div>
+
+      <button onclick="scrollToTop()" id="toTopBtn" title="Remonter" alt="Remonter">
+        <img width="64" height="64" src="./sources-2018-pics/fa-angle-up.svg"/>
+      </button>
 
     </body>
 """
@@ -718,9 +756,8 @@ _KHtmlGroupeEspeces = """
 # Fonction principale de générationde la page.
 def buildHtmlPage(titre, sousTitre, description, motsClef,
                   especes, generalites, specificites, glossaire, remerciements,
-                  attributions, tableauSynth, images,
-                  urlDossierSons, dossierSons, dossierAttache,
-                  prefixeFicCible):
+                  attributions, images, urlDossierSons, dossierSons, dossierAttache,
+                  ficTableauSynth=None, prefixeFicCible='chants'):
     
     dfSonsPics = _lireDossierSons(cheminDossier=dossierSons, dEspeces=especes)
 
@@ -731,7 +768,7 @@ def buildHtmlPage(titre, sousTitre, description, motsClef,
                           typesManifs=_arbreTypesManifs(dfSonsPics, urlDossierSons=urlDossierSons),
                           generalites=generalites, planGeneralites=_planGeneralites(generalites),
                           glossaireSpecifique=glossaire, remerciements=remerciements,
-                          attributions=attributions, tableauSynth=tableauSynth,
+                          attributions=attributions, ficTableauSynth=ficTableauSynth,
                           dossierAttache=dossierAttache, images=images,
                           stylesCss=_KStylesCss, scriptsJs=_KScriptsJs,
                           genDateTime=dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
