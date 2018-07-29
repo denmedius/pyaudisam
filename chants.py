@@ -20,16 +20,17 @@ import pandas as pd
 import lxml.html
 
 
-# Descriteur générique.
-Descripteur = namedtuple('Descripteur', ['ordre', 'nom'])
+# Descriteurs.
+DescripteurManif = namedtuple('Descripteur', ['ordre', 'nom'])
+DescripteurEspece = namedtuple('Descripteur', ['ordre', 'nom', 'latin'])
 
 # Descripteurs des types de manifestations sonores.
 _KDTypesManifs = \
-    odict([('ch', Descripteur(ordre=0, nom='Chant')), 
-           ('crch', Descripteur(ordre=1, nom='Chants (ou cris ?)')),
-           ('t',  Descripteur(ordre=2, nom='Tambour')),
-           ('m', Descripteur(ordre=3, nom='Martellement')),
-           ('cr', Descripteur(ordre=4, nom='Cris'))])
+    odict([('ch', DescripteurManif(ordre=0, nom='Chant')), 
+           ('crch', DescripteurManif(ordre=1, nom='Chants (ou cris ?)')),
+           ('t',  DescripteurManif(ordre=2, nom='Tambour')),
+           ('m', DescripteurManif(ordre=3, nom='Martellement')),
+           ('cr', DescripteurManif(ordre=4, nom='Cris'))])
 
 # En sortie, autant de listes (de champs) que de types de manifestation sonores détéctés
 def _extraireSon(cheminFichier):
@@ -119,7 +120,7 @@ def _lireDossierSons(cheminDossier, dEspeces):
 
 
     dfSons['ordEspece'] = dfSons.espece.apply(lambda esp: 99 if esp not in dEspeces else dEspeces[esp].ordre)
-    dfSons.espece = dfSons.espece.apply(lambda esp: 'Pic inconnu' if esp not in dEspeces else dEspeces[esp].nom)
+    dfSons.espece = dfSons.espece.apply(lambda esp: 'PicInconnu' if esp not in dEspeces else esp)
 
     dfSons['ordTypManif'] = \
         dfSons.typManif.apply(lambda typ: 99 if typ not in _KDTypesManifs else _KDTypesManifs[typ].ordre)
@@ -143,7 +144,7 @@ def _arbreEspeces(dfSons, dEspeces, dSpecifsEspeces, urlDossierSons=None):
     for esp, descEsp in dEspeces.items():
         nomEsp = descEsp.nom
         dSpecifsEsp = dSpecifsEspeces[esp]
-        dfSonsEsp = dfSons[dfSons.espece == nomEsp]
+        dfSonsEsp = dfSons[dfSons.espece == esp]
         typManifs = list()
         for typManif, descTypManif in _KDTypesManifs.items():
             nomTypManif = descTypManif.nom
@@ -160,12 +161,12 @@ def _arbreEspeces(dfSons, dEspeces, dSpecifsEspeces, urlDossierSons=None):
                 continue
             specTypManif = dSpecifsEsp['manifs'].get(typManif, '').strip() or '<p>Pas de commentaire particulier.</p>'
             typManifs.append(dict(id=typManif, nom=descTypManif.nom, specifs=specTypManif, sons=sons))
-        especes.append(dict(id=esp, nom=nomEsp, specifs=dSpecifsEsp['specifs'], typManifs=typManifs))
+        especes.append(dict(id=esp, nom=nomEsp, latin=descEsp.latin, specifs=dSpecifsEsp['specifs'], typManifs=typManifs))
     
     return especes
 
 # Conversion DataFrame en arbre/liste pour génération page HTML "comparaison des espèces" via jinja2
-def _arbreTypesManifs(dfSons, urlDossierSons=None):
+def _arbreTypesManifs(dfSons, dEspeces, urlDossierSons=None):
 
     typManifs = list()
     for typManif in dfSons.typManif.unique():
@@ -193,7 +194,9 @@ def _arbreTypesManifs(dfSons, urlDossierSons=None):
             for indEsp in range(len(especes)):
                 sons[especes[indEsp]] = espSons[indEsp][indSon]
             sonsEsps.append(sons)
-        typManifs.append(dict(nom=typManif, especes=list(especes), sons=sonsEsps))
+        typManifs.append(dict(nom=typManif, 
+                              especes=[dict(id=esp, nom=dEspeces[esp].nom, latin=dEspeces[esp].latin) for esp in especes],
+                              sons=sonsEsps))
     
     return typManifs
 
@@ -456,8 +459,9 @@ _KHtmlGroupeEspeces = """
                       {{planGeneralites}}
                     <li><a href="#détails">Détails par espèce</a></li>
                     <ol style="list-style-type: decimal">
+                    <li><a href="#glossaire">Glossaire / Abréviations</a></li>
                     {% for esp in especes %}
-                        <li><a href="#{{esp.id}}">{{esp.nom}}</a></li>
+                        <li><a href="#{{esp.id}}">{{esp.nom}}</a> <i>({{esp.latin}})</i></li>
                         <ol style="list-style-type: lower-latin">
                         {% for typMnf in esp.typManifs %}
                             <li><a href="#{{esp.id}}{{typMnf.id}}">{{typMnf.nom}}</a></li>
@@ -472,9 +476,9 @@ _KHtmlGroupeEspeces = """
                     {% endfor %}
                     </ol>
                     <li><a href="#quiz">Quiz sur concerts naturels</a></li>
-                    <li><a href="#glossaire">Glossaire / Abréviations</a></li>
                     <li><a href="#licence">Licence / Auteur</a></li>
                     <li><a href="#remerciements">Remerciements</a></li>
+                    <li><a href="#attributions">Emprunts / Attributions</a></li>
                 </ol>
               </div>
             </td>
@@ -499,9 +503,10 @@ _KHtmlGroupeEspeces = """
               <li>un lecteur audio pour l'écouter en direct,</li>
               <li>une description rapide, à base d'adjectifs et de qualificatifs abrégés, sans accents ...
                   et/ou d'onomatopées
-                  (Cf. <a href="#glossaire">glossaire</a> pour la signification des abréviations),</li>
+                  (Cf. <a href="#glossaire">glossaire</a> ci-dessous pour la signification des abréviations),</li>
               <li>la liste des autres espèces présentes en arrière plan, à deviner d'abord (quiz !)
-                  avant de cliquer sur le petit oeil : chaque espèce est signalée par un code à 5 ou 6 lettres
+                  avant de cliquer sur le petit oeil <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/> :
+                  chaque espèce est signalée par un code à 5 ou 6 lettres
                   (3 premières lettres du genre et 3 premières de l'espèce en général, 
                    mais 'Sp' quand l'espèce est inconnue) ; espèces en gros par ordre d'apparition,
                    sauf les autres espèces du groupe, à la fin de la liste,</li>
@@ -516,14 +521,61 @@ _KHtmlGroupeEspeces = """
              à vous de la retrouver : la plupart du temps, c'est la première, mais parfois non ; dans ce cas,
              fiez-vous à la colonne 'Description', qui liste ces manifestations dans l'ordre d'apparition
              (Cf. glossaire pour leurs noms de code : cr, ch, crch et t).</p>
-        
+          
+          <h3 id="glossaire">Glossaire / Abréviations</h3>
+          <div style="margin-left: 10px">
+            <ul>
+              <li>ch : chant(s)</li>
+              <li>cr : cri(s)</li>
+              <li>crch : cri(s) similaire(s) au(x) chant(s) et/ou réciproquement,
+                         on ne sait pas décider si c'est un chant ou des cris</li>
+              <li>t : tambour (pour les pics, et les grands singes ;-)</li>
+              <li>m : martellement(s)</li>
+              <li>ailes : bruit d'ailes, à l'envol ou au passage</li>
+              <li>inq : inquiétude</li>
+              <li>al : alarme</li>
+              <li>par : parade</li>
+              <li>pours : poursuite</li>
+              <li>agress : agressif, agression</li>
+              <li>intim : intime (couple)</li>
+              <li>alim : alimentaire</li>
+              <li>pul : pulli = poussins (au nid si nidicoles)</li>
+              <li>jvq : juvénile volant quémandant</li>
+              <li>juv : juvénile</li>
+              <li>ad : adulte</li>
+              <li>cp : couple</li>
+              <li>ind, indiv : individu</li>
+              <li>typ : typique, représentatif de l'espèce (pour un cri, un chant, un tambour)</li>
+              <li>imit : imite</li>
+              <li>rep : réponse, se répondent</li>
+              <li>pose : posé (= pas en vol !)</li>
+              <li>vol : en vol</li>
+              <li>age : âgé (pour un poussin = en fin d'élevage)</li>
+              <li>elec : électrique</li>
+              <li>fele : fêlé</li>
+              <li>accel : accéléré</li>
+              <li>tous : tous (les types de cris, par ex.)</li>
+              <li>prob : probable</li>
+              <li>poss : possible</li>
+              <li>deter : enregistrement déterioré par un traitement numérique quelconque (Cf. fph, debruit, ou autre),
+                          qui empêche ou complique la reconnaissance d'une ou plusieurs espèces, par ex.</li>
+              <li>debruit : enregistrement duquel on a soustrait une estimation du "bruit de fond"
+                  (au mieux générateur de silences étranges, souvent assez déteriorant)</li>
+              <li>fph : enregistrement filtré passe-haut (basses fréquences supprimées ou atténuées)</li>
+              <li>doppler : effet Doppler (la hauteur des sons émis par un oiseau en rapprochement augmente,
+                                           et quand il s'éloigne, elle diminue)</li>
+              {{glossaireSpecifique}}
+            </ul>
+            
+          </div>
+
           {% for esp in especes %}
-            <h3 id="{{esp.id}}">{{esp.nom}}</h3>
+            <h3 id="{{esp.id}}">{{esp.nom}} <i>({{esp.latin}})</i></h3>
             <div style="margin-left: 10px">
             
               {{esp.specifs}}
               {% for typMnf in esp.typManifs %}
-                <h4 id="{{esp.id}}{{typMnf.id}}">{{typMnf.nom}} du {{esp.nom}}</h4>
+                <h4 id="{{esp.id}}{{typMnf.id}}">{{typMnf.nom}} du {{esp.nom}} <i>({{esp.latin}})</i></h4>
                 <div style="margin-left: 10px">
                 
                   {{typMnf.specifs}}
@@ -594,7 +646,12 @@ _KHtmlGroupeEspeces = """
               <thead>
                 <tr>
                 {% for esp in typMnf.especes %}
-                  <th><h3 style="margin: 10px 10px 10px 5px">{{esp}}</h3></th>
+                  <th><h3 style="margin: 10px 10px 10px 5px">{{esp.nom}}</h3></th>
+                {% endfor %}
+                </tr>
+                <tr>
+                {% for esp in typMnf.especes %}
+                  <td><i>({{esp.latin}})</i></td>
                 {% endfor %}
                 </tr>
               </thead>
@@ -603,28 +660,30 @@ _KHtmlGroupeEspeces = """
                   <tr> 
                     {% for esp in typMnf.especes %}
                       <td>
-                        {% if typMnf.sons[iSon][esp].fichier %}
+                        {% if typMnf.sons[iSon][esp.id].fichier %}
                           <audio controls>
-                            <source src="{{typMnf.sons[iSon][esp].url}}" type="audio/mp3" preload="none"/>
+                            <source src="{{typMnf.sons[iSon][esp.id].url}}" type="audio/mp3" preload="none"/>
                           </audio>
-                          <p>{{typMnf.sons[iSon][esp].desc}}</p>
-                          {% if typMnf.sons[iSon][esp].autres %}
+                          <p>{{typMnf.sons[iSon][esp.id].desc}}</p>
+                          {% if typMnf.sons[iSon][esp.id].autres %}
                             <div>
-                              <a href="javascript:show('c{{typMnf.sons[iSon][esp].id}}')"
-                                 id="c{{typMnf.sons[iSon][esp].id}}s">
+                              <a href="javascript:show('c{{typMnf.sons[iSon][esp.id].id}}')"
+                                 id="c{{typMnf.sons[iSon][esp.id].id}}s">
                                 <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/></a>
-                              <div id="c{{typMnf.sons[iSon][esp].id}}" style="display: none">
-                                <a href="javascript:hide('c{{typMnf.sons[iSon][esp].id}}')">
+                              <div id="c{{typMnf.sons[iSon][esp.id].id}}" style="display: none">
+                                <a href="javascript:hide('c{{typMnf.sons[iSon][esp.id].id}}')">
                                   <img height="16" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Cacher"/>
                                 </a>
-                                <span>{{typMnf.sons[iSon][esp].autres}}</span>
+                                <span>{{typMnf.sons[iSon][esp.id].autres}}</span>
                               </div>
                             </div>
                           {% else %}
                             <img height="16" style="opacity: 0" src="{{dossierAttache}}/fa-eye-regular.svg"/>
                           {% endif %}
                           <p style="text-align: right">
-                            <a href='{{typMnf.sons[iSon][esp].lienXC}}' target='_blank'>{{typMnf.sons[iSon][esp].idXC}}</a>
+                            <a href='{{typMnf.sons[iSon][esp.id].lienXC}}' target='_blank'>
+                              {{typMnf.sons[iSon][esp.id].idXC}}
+                            </a>
                           </p>
                         {% endif %}
                       </td>
@@ -644,62 +703,17 @@ _KHtmlGroupeEspeces = """
         
         </div>
 
-        <h2 id="glossaire">Glossaire / Abréviations</h2>
-        <div style="margin-left: 10px">
-          <ul>
-            <li>ch : chant(s)</li>
-            <li>cr : cri(s)</li>
-            <li>crch : cri(s) similaire(s) au(x) chant(s) et/ou réciproquement,
-                       on ne sait pas décider si c'est un chant ou des cris</li>
-            <li>t : tambour (pour les pics, et les grands singes ;-)</li>
-            <li>m : martellement(s)</li>
-            <li>ailes : bruit d'ailes, à l'envol ou au passage</li>
-            <li>inq : inquiétude</li>
-            <li>al : alarme</li>
-            <li>par : parade</li>
-            <li>pours : poursuite</li>
-            <li>intim : intime (couple)</li>
-            <li>pul : pulli = poussins (au nid si nidicoles)</li>
-            <li>jvq : juvénile volant quémandant</li>
-            <li>juv : juvénile</li>
-            <li>ad : adulte</li>
-            <li>cp : couple</li>
-            <li>ind, indiv : individu</li>
-            <li>typ : typique, représentatif de l'espèce (pour un cri, un chant, un tambour)</li>
-            <li>imit : imite</li>
-            <li>rep : réponse, se répondent</li>
-            <li>pose : posé (= pas en vol !)</li>
-            <li>vol : en vol</li>
-            <li>age : âgé (pour un poussin = en fin d'élevage)</li>
-            <li>elec : électrique</li>
-            <li>fele : fêlé</li>
-            <li>accel : accéléré</li>
-            <li>tous : tous (les types de cris, par ex.)</li>
-            <li>prob : probable</li>
-            <li>poss : possible</li>
-            <li>deter : enregistrement déterioré par un traitement numérique quelconque (Cf. fph, debruit, ou autre),
-                        qui empêche ou complique la reconnaissance d'une ou plusieurs espèces, par ex.</li>
-            <li>debruit : enregistrement duquel on a soustrait une estimation du "bruit de fond"
-                (au mieux générateur de silences étranges, souvent assez déteriorant)</li>
-            <li>fph : enregistrement filtré passe-haut (basses fréquences supprimées ou atténuées)</li>
-            <li>doppler : effet Doppler (la hauteur des sons émis par un oiseau en rapprochement augmente,
-                                         et quand il s'éloigne, elle diminue)</li>
-            {{glossaireSpecifique}}
-          </ul>
-          
-        </div>
-
         <h2 id="licence">Licence / Auteur</h2>
         <div style="margin-left: 10px">
         
           <p>Ce document est publié sous la licence
-             <strong><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
-             Creative Commons BY NC SA 4.0</a></strong>
+             <b><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
+             Creative Commons BY NC SA 4.0</a></b>
              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
                <img height="20" src="{{dossierAttache}}/by-nc-sa.eu.svg" alt="Creative Commons BY NC SA"/>
              </a>
              par <a href="http://jpmeuret.free.fr/" target="_blank">Jean-Philippe Meuret</a>,
-             <a href="http://www.lpo-auvergne.org" target="_blank">LPO Auvergne</a> (X heures de travail).</p>
+             <a href="http://www.lpo-auvergne.org" target="_blank">LPO Auvergne</a> ({{effort}} heures de travail).</p>
           <p>Vous pouvez (et même devez ;-) le diffuser sans en demander l'autorisation, à qui vous voulez,
              dans sa forme originale ou après modifications, par extraits ou dans son intégralité, pourvu que :</p>
           <ul>
@@ -725,10 +739,11 @@ _KHtmlGroupeEspeces = """
                       
         </div>
         
-        <h2 id="licence">Emprunts / Attributions</h2>
+        <h2 id="attributions">Emprunts / Attributions</h2>
         <div style="margin-left: 10px">
         
-          <p>Les icônes de petits yeux utilisées ci-dessus sont l'oeuvre de
+          <p>Les icônes des petits yeux 'Cacher / Montrer les espèces d'arrière plan'
+             et le chevron vertical du bouton de retour en haut de page sont l'oeuvre de
              <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
              et sont distribuées selon la licence
              <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a> ;
@@ -740,14 +755,16 @@ _KHtmlGroupeEspeces = """
             Page générée via <a href="https://www.python.org/" target="_blank">Python 3</a>,
             <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>
             et <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
-            dans <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>,
+            dans <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>
+            (sources : <a href="./chants.py" target="_blank">chants.py</a>
+             et <a href="./{{notebook}}" target="_blank">{{notebook}}</a>),
             le {{genDateTime}}.
         </h6>
 
       </div>
 
       <button onclick="scrollToTop()" id="toTopBtn" title="Remonter" alt="Remonter">
-        <img width="64" height="64" src="./sources-2018-pics/fa-angle-up.svg"/>
+        <img width="64" height="64" src="{{dossierAttache}}/fa-angle-up.svg"/>
       </button>
 
     </body>
@@ -755,27 +772,26 @@ _KHtmlGroupeEspeces = """
 
 # Fonction principale de générationde la page.
 def buildHtmlPage(titre, sousTitre, description, motsClef,
-                  especes, generalites, specificites, glossaire, remerciements,
+                  especes, generalites, specificites, glossaire, remerciements, effort,
                   attributions, images, urlDossierSons, dossierSons, dossierAttache,
-                  ficTableauSynth=None, prefixeFicCible='chants'):
+                  ficTableauSynth=None, notebook='Chants.ipynb', prefixeFicCible='chants'):
     
-    dfSonsPics = _lireDossierSons(cheminDossier=dossierSons, dEspeces=especes)
+    dfSons = _lireDossierSons(cheminDossier=dossierSons, dEspeces=especes)
 
     html = jinja2.Template(_KHtmlGroupeEspeces) \
                   .render(titre=titre, sousTitre=sousTitre, description=description, motsClef=motsClef,
-                          especes=_arbreEspeces(dfSonsPics, especes, specificites,
+                          especes=_arbreEspeces(dfSons, especes, specificites,
                                                 urlDossierSons=urlDossierSons),
-                          typesManifs=_arbreTypesManifs(dfSonsPics, urlDossierSons=urlDossierSons),
+                          typesManifs=_arbreTypesManifs(dfSons, especes, urlDossierSons=urlDossierSons),
                           generalites=generalites, planGeneralites=_planGeneralites(generalites),
                           glossaireSpecifique=glossaire, remerciements=remerciements,
                           attributions=attributions, ficTableauSynth=ficTableauSynth,
-                          dossierAttache=dossierAttache, images=images,
-                          stylesCss=_KStylesCss, scriptsJs=_KScriptsJs,
+                          dossierAttache=dossierAttache, images=images, effort=effort,
+                          stylesCss=_KStylesCss, scriptsJs=_KScriptsJs, notebook=notebook,
                           genDateTime=dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
 
     chemFicCible = os.path.join('.', '{}{}.html'.format(prefixeFicCible, '.local' if urlDossierSons else ''))
     with codecs.open(chemFicCible, mode='w', encoding='utf-8-sig') as ficCible:
         ficCible.write(html)
         
-    return chemFicCible, dfSonsPics
-    
+    return chemFicCible, dfSons
