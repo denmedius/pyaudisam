@@ -29,7 +29,7 @@ _KDTypesManifs = \
     odict([('ch', DescripteurManif(ordre=0, nom='Chant')), 
            ('crch', DescripteurManif(ordre=1, nom='Chants (ou cris ?)')),
            ('t',  DescripteurManif(ordre=2, nom='Tambour')),
-           ('m', DescripteurManif(ordre=3, nom='Martellement')),
+           ('m', DescripteurManif(ordre=3, nom='Martellements')),
            ('cr', DescripteurManif(ordre=4, nom='Cris'))])
 
 # En sortie, autant de listes (de champs) que de types de manifestation sonores détéctés
@@ -457,7 +457,7 @@ _KHtmlGroupeEspeces = """
                 <ol style="list-style-type: upper-roman">
                     <li><a href="#généralités">Généralités</a></li>
                       {{planGeneralites}}
-                    <li><a href="#détails">Détails par espèce</a></li>
+                    <li><a href="#détails">Détails sonores par espèce</a></li>
                     <ol style="list-style-type: decimal">
                     <li><a href="#glossaire">Glossaire / Abréviations</a></li>
                     {% for esp in especes %}
