@@ -22,7 +22,7 @@ import lxml.html
 
 # Descriteurs.
 DescripteurManif = namedtuple('Descripteur', ['ordre', 'nom'])
-DescripteurEspece = namedtuple('Descripteur', ['ordre', 'nom', 'latin'])
+DescripteurEspece = namedtuple('Descripteur', ['ordre', 'nom', 'latin', 'genre'])
 
 # Descripteurs des types de manifestations sonores.
 _KDTypesManifs = \
@@ -76,6 +76,21 @@ def _extraireSon(cheminFichier):
 # extraireSon('PicVert-cr-t-doux-parade-intime-cp-XC310864.mp3'),
 # extraireSon('PicVert-ch-calme-long-avecPicEpeMesBlePinArbLorEurTroMigCorNoiEtoSan-XC216202.mp3'))
 
+def _ordreDescManif(sSon):
+    
+    # Autres manifs en dernier dernier.
+    if not sSon.descManif.startswith(sSon.typManif):
+        return 3
+    # Manifs atypiques en dernier.
+    elif sSon.descManif.find(' atyp') > 0:
+        return 2
+    # Manifs typiques en premier.
+    elif sSon.descManif.find(' typ') > 0:
+        return 0
+    # Les autres au milieu.
+    else:
+        return 1
+
 def _decouperAutreEspeces(autresEsp):
     
     decAutEsp = list()
@@ -124,9 +139,7 @@ def _lireDossierSons(cheminDossier, dEspeces):
 
     dfSons['ordTypManif'] = \
         dfSons.typManif.apply(lambda typ: 99 if typ not in _KDTypesManifs else _KDTypesManifs[typ].ordre)
-    dfSons['ordDescManif'] = \
-        dfSons.apply(lambda sSon: 2 if not sSon.descManif.startswith(sSon.typManif) \
-                                    else 0 if sSon.descManif.startswith(sSon.typManif + ' typ') else 1, axis=1)
+    dfSons['ordDescManif'] = dfSons.apply(_ordreDescManif, axis=1)
     dfSons.typManif = \
         dfSons.typManif.apply(lambda typ: 'Manif. sonore inconnue' if typ not in _KDTypesManifs \
                                                                    else _KDTypesManifs[typ].nom)
@@ -161,7 +174,8 @@ def _arbreEspeces(dfSons, dEspeces, dSpecifsEspeces, urlDossierSons=None):
                 continue
             specTypManif = dSpecifsEsp['manifs'].get(typManif, '').strip() or '<p>Pas de commentaire particulier.</p>'
             typManifs.append(dict(id=typManif, nom=descTypManif.nom, specifs=specTypManif, sons=sons))
-        especes.append(dict(id=esp, nom=nomEsp, latin=descEsp.latin, specifs=dSpecifsEsp['specifs'], typManifs=typManifs))
+        especes.append(dict(id=esp, nom=nomEsp, latin=descEsp.latin, genre=descEsp.genre,
+                            specifs=dSpecifsEsp['specifs'], typManifs=typManifs))
     
     return especes
 
@@ -195,7 +209,8 @@ def _arbreTypesManifs(dfSons, dEspeces, urlDossierSons=None):
                 sons[especes[indEsp]] = espSons[indEsp][indSon]
             sonsEsps.append(sons)
         typManifs.append(dict(nom=typManif, 
-                              especes=[dict(id=esp, nom=dEspeces[esp].nom, latin=dEspeces[esp].latin) for esp in especes],
+                              especes=[dict(id=esp, nom=dEspeces[esp].nom, latin=dEspeces[esp].latin,
+                                            genre=dEspeces[esp].genre) for esp in especes],
                               sons=sonsEsps))
     
     return typManifs
@@ -451,7 +466,7 @@ _KHtmlGroupeEspeces = """
         
         <table>
           <tr>
-            <td style="width: 50%">
+            <td>
               <h2>Plan</h2>
               <div style="margin-left: 10px">
                 <ol style="list-style-type: upper-roman">
@@ -483,8 +498,10 @@ _KHtmlGroupeEspeces = """
               </div>
             </td>
             <td style="align: right">
-              <img src="{{dossierAttache}}/{{images.tocImg.img}}"/>
-              <h6 style="text-align: right; margin: 0 0 0 0; padding: 0 0 0 0">{{images.tocImg.legend}}</h6>
+              {% for tocImg in images.tocImg %}
+                <img src="{{dossierAttache}}/{{tocImg.img}}"/>
+                <h6 style="text-align: right; margin: 0 0 0 0; padding: 0 0 0 0">{{tocImg.legend}}</h6>
+              {% endfor %}
             </td>
           </tr>
         </table>
@@ -505,9 +522,10 @@ _KHtmlGroupeEspeces = """
                   et/ou d'onomatopées
                   (Cf. <a href="#glossaire">glossaire</a> ci-dessous pour la signification des abréviations),</li>
               <li>la liste des autres espèces présentes en arrière plan, à deviner d'abord (quiz !)
-                  avant de cliquer sur le petit oeil <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/> :
+                  avant de cliquer sur le petit oeil
+                  <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/> :
                   chaque espèce est signalée par un code à 5 ou 6 lettres
-                  (3 premières lettres du genre et 3 premières de l'espèce en général, 
+                  (3 premières lettres du genre français et 3 premières de l'espèce en général, 
                    mais 'Sp' quand l'espèce est inconnue) ; espèces en gros par ordre d'apparition,
                    sauf les autres espèces du groupe, à la fin de la liste,</li>
               <li>le lien vers la page de l'enregistrement source
@@ -518,29 +536,36 @@ _KHtmlGroupeEspeces = """
              
           <p>N.B. Faute de temps, je n'ai pas coupé ou remonté les enregistrements sources (ils sont pris tels quels),
              ce qui aurait permis d'isoler plus précisément chaque manifestation sonore ciblée ;
-             à vous de la retrouver : la plupart du temps, c'est la première, mais parfois non ; dans ce cas,
-             fiez-vous à la colonne 'Description', qui liste ces manifestations dans l'ordre d'apparition
-             (Cf. glossaire pour leurs noms de code : cr, ch, crch et t).</p>
+             à vous de la retrouver : la plupart du temps, c'est la première qu'on entend, mais parfois non ;
+             dans ce cas, fiez-vous à la colonne 'Description', qui liste ces manifestations dans l'ordre d'apparition
+             (Cf. glossaire pour leur nom de code : cr, ch, crch et t).</p>
           
           <h3 id="glossaire">Glossaire / Abréviations</h3>
           <div style="margin-left: 10px">
+            <p>Signification des codes et abréviations utilisés dans la colonne "Description" des tableaux ci-après.</p>
             <ul>
               <li>ch : chant(s)</li>
               <li>cr : cri(s)</li>
               <li>crch : cri(s) similaire(s) au(x) chant(s) et/ou réciproquement,
-                         on ne sait pas décider si c'est un chant ou des cris</li>
+                         on ne sait pas décider si c'est un chant ou des cris,
+                         ou bien c'est un mélange des 2 (plusieurs individus)</li>
               <li>t : tambour (pour les pics, et les grands singes ;-)</li>
               <li>m : martellement(s)</li>
               <li>ailes : bruit d'ailes, à l'envol ou au passage</li>
+              <li>comm : communautaire, en groupe</li>
               <li>inq : inquiétude</li>
               <li>al : alarme</li>
+              <li>extr : extrème (pour une alarme, par ex.)</li>
               <li>par : parade</li>
               <li>pours : poursuite</li>
               <li>agress : agressif, agression</li>
               <li>intim : intime (couple)</li>
               <li>alim : alimentaire</li>
+              <li>gagn : gagnage = en train de se nourrir</li>
+              <li>dort : dortoir</li>
               <li>pul : pulli = poussins (au nid si nidicoles)</li>
               <li>jvq : juvénile volant quémandant</li>
+              <li>jq : juvénile quémandant</li>
               <li>juv : juvénile</li>
               <li>ad : adulte</li>
               <li>cp : couple</li>
@@ -551,7 +576,10 @@ _KHtmlGroupeEspeces = """
               <li>pose : posé (= pas en vol !)</li>
               <li>vol : en vol</li>
               <li>age : âgé (pour un poussin = en fin d'élevage)</li>
+              <li>liq : liquide</li>
               <li>elec : électrique</li>
+              <li>roule : roulé</li>
+              <li>vibr : vibré, vibration</li>
               <li>fele : fêlé</li>
               <li>accel : accéléré</li>
               <li>tous : tous (les types de cris, par ex.)</li>
@@ -575,7 +603,16 @@ _KHtmlGroupeEspeces = """
             
               {{esp.specifs}}
               {% for typMnf in esp.typManifs %}
-                <h4 id="{{esp.id}}{{typMnf.id}}">{{typMnf.nom}} du {{esp.nom}} <i>({{esp.latin}})</i></h4>
+                <h4 id="{{esp.id}}{{typMnf.id}}">
+                  {{typMnf.nom}}
+                  {% if esp.genre == 'm' %}
+                    du
+                  {% else %}
+                    de la
+                  {% endif %}
+                  {{esp.nom}}
+                  <i>({{esp.latin}})</i>
+                </h4>
                 <div style="margin-left: 10px">
                 
                   {{typMnf.specifs}}
@@ -634,7 +671,7 @@ _KHtmlGroupeEspeces = """
         <h2 id="comparaisons">Comparaisons sonores en vis à vis</h2>
         <div style="margin-left: 10px">
         
-          <p>Rien de neuf ici, mais pour chaque type de manifestation sonore (cris, chants, tambour, ...)
+          <p>Rien de neuf ici, mais pour chaque type de manifestation sonore (cris, chants, tambour, ...),
              une présentation en vis à vis des mêmes échantillons sonores pour chaque espèce,
              avec les mêmes informations, pour pouvoir les comparer plus facilement.</p>
         
@@ -717,13 +754,17 @@ _KHtmlGroupeEspeces = """
           <p>Vous pouvez (et même devez ;-) le diffuser sans en demander l'autorisation, à qui vous voulez,
              dans sa forme originale ou après modifications, par extraits ou dans son intégralité, pourvu que :</p>
           <ul>
-              <li>vous en citiez l'auteur initial (voir ci-dessus) : BY,
-              <li>la diffusion n'ait pas un but commercial : NC,
-              <li>la diffusion se fasse avec la même licence (CC BY NC SA) : SA.
+              <li>vous en citiez l'auteur initial (voir ci-dessus) : BY,</li>
+              <li>la diffusion n'ait pas un but commercial : NC,</li>
+              <li>la diffusion se fasse avec la même licence (CC BY NC SA) : SA.</li>
           </ul>
-          <p>Attention cependant aux licences potentiellement plus restrictives des sons liés au présent document,
-             issus en totalité de <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a>
-             (Voir ci-dessus le lien associé à chaque enregistrement pour sa source exacte et son auteur).</p>
+          <p>Attention cependant aux licences potentiellement plus restrictives :</p>
+          <ul>
+              <li>des sons liés au présent document, issus en totalité de
+                  <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a>
+                  (Voir ci-dessus le lien associé à chaque enregistrement pour sa source exacte et son auteur),</li>
+              <li>des photos et dessins d'illustration (Voir légende associée à chacun).</li>
+          </ul>
              
         </div>
 
