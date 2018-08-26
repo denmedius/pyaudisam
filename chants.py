@@ -80,14 +80,17 @@ def _ordreDescManif(sSon):
     
     # Autres manifs en dernier dernier.
     if not sSon.descManif.startswith(sSon.typManif):
-        return 3
+        return 4
     # Manifs atypiques en dernier.
     elif sSon.descManif.find(' atyp') > 0:
-        return 2
+        return 3
     # Manifs typiques en premier.
     elif sSon.descManif.find(' typ') > 0:
         return 0
-    # Les autres au milieu.
+    # Ch comm après les autres.
+    elif sSon.descManif.find(' comm') > 0:
+        return 2
+    # Les autres avant.
     else:
         return 1
 
@@ -514,8 +517,11 @@ _KHtmlGroupeEspeces = """
         <h2 id="détails">Détails sonores par espèce</h2>
         <div style="margin-left: 10px">
         
-          <p>Pour chaque espèce, et chacun de ses types de manifestation sonore (cri, chant, tambour, martellement, ...),
-             on trouve ici des échantillons sonores aussi typiques que possible, avec dans l'ordre, pour chacun d'eux :</p>
+          <p>Après rappel de quelques particularités de l'espèce (abondance, milieux de prédilection, statut en Auvergne,
+             régime alimentaire, biologie de reproduction, moeurs particulières, identification visuelle, ... etc),
+             on trouvera ci après pour chacune, et pour chacun de ses types de manifestation sonore
+             (cri, chant, tambour, martellement, ...), des échantillons sonores aussi typiques que possible,
+             avec dans l'ordre, pour chacun d'eux :</p>
           <ul>
               <li>un lecteur audio pour l'écouter en direct,</li>
               <li>une description rapide, à base d'adjectifs et de qualificatifs abrégés, sans accents ...
@@ -602,6 +608,7 @@ _KHtmlGroupeEspeces = """
             <div style="margin-left: 10px">
             
               {{esp.specifs}}
+              
               {% for typMnf in esp.typManifs %}
                 <h4 id="{{esp.id}}{{typMnf.id}}">
                   {{typMnf.nom}}
@@ -621,7 +628,10 @@ _KHtmlGroupeEspeces = """
                       <thead>
                         <tr>
                           <th><h3 style="margin: 10px 10px 10px 5px">Enregistrement</h3></th>
-                          <th><h3 style="margin: 10px 10px 10px 5px">Description</h3></th>
+                          <th>
+                            <h3 style="margin: 10px 10px 10px 5px">Description (<a href="#glossaire">?</a>)</h3>
+                            
+                          </th>
                           <th><h3 style="margin: 10px 10px 10px 5px">Autres espèces</h3></th>
                           <th><h3 style="margin: 10px 10px 10px 5px">Source</h3></th>
                         </tr>
@@ -701,7 +711,7 @@ _KHtmlGroupeEspeces = """
                           <audio controls>
                             <source src="{{typMnf.sons[iSon][esp.id].url}}" type="audio/mp3" preload="none"/>
                           </audio>
-                          <p>{{typMnf.sons[iSon][esp.id].desc}}</p>
+                          <p>{{typMnf.sons[iSon][esp.id].desc}} (<a href="#glossaire">?</a>)</p>
                           {% if typMnf.sons[iSon][esp.id].autres %}
                             <div>
                               <a href="javascript:show('c{{typMnf.sons[iSon][esp.id].id}}')"
