@@ -540,9 +540,9 @@ _KHtmlGroupeEspeces = """
           <p>Et pour vos sorties sur le terrain, un <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>
              résumant ce qu'il y a retenir pour chaque espèce, et permettant de les comparer d'un seul coup d'oeil.</p>
              
-          <p>N.B. Faute de temps, je n'ai pas coupé ou remonté les enregistrements sources (ils sont pris tels quels),
-             ce qui aurait permis d'isoler plus précisément chaque manifestation sonore ciblée ;
-             à vous de la retrouver : la plupart du temps, c'est la première qu'on entend, mais parfois non ;
+          <p>N.B. Faute de temps, les enregistrements sources n'ont pas été coupés et / ou remontés,
+             ce qui aurait permis d'isoler plus précisément les manifestations sonores ciblées ;
+             à vous de les retrouver : la plupart du temps, c'est la première qu'on entend, mais parfois non ;
              dans ce cas, fiez-vous à la colonne 'Description', qui liste ces manifestations dans l'ordre d'apparition
              (Cf. glossaire pour leur nom de code : cr, ch, crch et t).</p>
           
