@@ -32,6 +32,12 @@ _KDTypesManifs = \
            ('m', DescripteurManif(ordre=3, nom='Martellements')),
            ('cr', DescripteurManif(ordre=4, nom='Cris'))])
 
+def _idTypeManif(nom):
+    for idTM, descTM in _KDTypesManifs.items():
+        if nom == descTM.nom:
+            return idTM
+    return None
+
 # En sortie, autant de listes (de champs) que de types de manifestation sonores détéctés
 def _extraireSon(cheminFichier):
     
@@ -211,7 +217,7 @@ def _arbreTypesManifs(dfSons, dEspeces, urlDossierSons=None):
             for indEsp in range(len(especes)):
                 sons[especes[indEsp]] = espSons[indEsp][indSon]
             sonsEsps.append(sons)
-        typManifs.append(dict(nom=typManif, 
+        typManifs.append(dict(id=_idTypeManif(typManif), nom=typManif, 
                               especes=[dict(id=esp, nom=dEspeces[esp].nom, latin=dEspeces[esp].latin,
                                             genre=dEspeces[esp].genre) for esp in especes],
                               sons=sonsEsps))
@@ -482,7 +488,7 @@ _KHtmlGroupeEspeces = """
                         <li><a href="#{{esp.id}}">{{esp.nom}}</a> <i>({{esp.latin}})</i></li>
                         <ol style="list-style-type: lower-latin">
                         {% for typMnf in esp.typManifs %}
-                            <li><a href="#{{esp.id}}{{typMnf.id}}">{{typMnf.nom}}</a></li>
+                            <li><a href="#{{esp.id}}.{{typMnf.id}}">{{typMnf.nom}}</a></li>
                         {% endfor %}
                         </ol>
                     {% endfor %}
@@ -490,7 +496,7 @@ _KHtmlGroupeEspeces = """
                     <li><a href="#comparaisons">Comparaisons en vis à vis</a></li>
                     <ol style="list-style-type: lower-latin">
                     {% for typMnf in typesManifs %}
-                        <li><a href="#{{typMnf.id}}">{{typMnf.nom}}</a></li>
+                        <li><a href="#Comp.{{typMnf.id}}">{{typMnf.nom}}</a></li>
                     {% endfor %}
                     </ol>
                     <li><a href="#quiz">Quiz sur concerts naturels</a></li>
@@ -519,8 +525,9 @@ _KHtmlGroupeEspeces = """
         
           <p>Après rappel de quelques particularités de l'espèce (abondance, milieux de prédilection, statut en Auvergne,
              régime alimentaire, biologie de reproduction, moeurs particulières, identification visuelle, ... etc),
-             on trouvera ci après pour chacune, et pour chacun de ses types de manifestation sonore
-             (cri, chant, tambour, martellement, ...), des échantillons sonores aussi typiques que possible,
+             on trouvera ci-après pour chacune d'elle, et pour chacun de ses types de manifestation sonore
+             (cri, chant, et même tambour, martellement, pour les pics ...),
+             des échantillons sonores aussi typiques que possible,
              avec dans l'ordre, pour chacun d'eux :</p>
           <ul>
               <li>un lecteur audio pour l'écouter en direct,</li>
@@ -535,20 +542,27 @@ _KHtmlGroupeEspeces = """
                    mais 'Sp' quand l'espèce est inconnue) ; espèces en gros par ordre d'apparition,
                    sauf les autres espèces du groupe, à la fin de la liste,</li>
               <li>le lien vers la page de l'enregistrement source
-                  sur <a href="https://www.xeno-canto.org/">xeno-canto.org</a>.</li>
+                  sur <a href="https://www.xeno-canto.org/">xeno-canto.org</a>,
+                  qui vous permettra entre autre de télécharger l'enregistrement sur votre ordinateur
+                  si vous voulez le décortiquer tranquillement (via <a href="http://audacity.fr/">Audacity</a> par exemple),
+                  ou d'obtenir quelques informations sur son auteur, ou le lieu où il a été "mis en boîte" par exemple.</li>
           </ul>
+          {% if ficTableauSynth %}
           <p>Et pour vos sorties sur le terrain, un <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>
              résumant ce qu'il y a retenir pour chaque espèce, et permettant de les comparer d'un seul coup d'oeil.</p>
+          {% endif %}
              
           <p>N.B. Faute de temps, les enregistrements sources n'ont pas été coupés et / ou remontés,
              ce qui aurait permis d'isoler plus précisément les manifestations sonores ciblées ;
              à vous de les retrouver : la plupart du temps, c'est la première qu'on entend, mais parfois non ;
              dans ce cas, fiez-vous à la colonne 'Description', qui liste ces manifestations dans l'ordre d'apparition
-             (Cf. glossaire pour leur nom de code : cr, ch, crch et t).</p>
+             (Cf. glossaire pour leur nom de code : cr, ch, crch, t, m).</p>
           
           <h3 id="glossaire">Glossaire / Abréviations</h3>
           <div style="margin-left: 10px">
-            <p>Signification des codes et abréviations utilisés dans la colonne "Description" des tableaux ci-après.</p>
+            <p>Signification des codes et abréviations utilisés dans la colonne "Description" des tableaux ci-après
+               (N.B. Cliquez sur les '?' présents dans cette colonne pour revenir directement ici
+                si vous avez un trou de mémoire ;-).</p>
             <ul>
               <li>ch : chant(s)</li>
               <li>cr : cri(s)</li>
@@ -565,6 +579,7 @@ _KHtmlGroupeEspeces = """
               <li>par : parade</li>
               <li>pours : poursuite</li>
               <li>agress : agressif, agression</li>
+              <li>disp : dispute</li>
               <li>intim : intime (couple)</li>
               <li>alim : alimentaire</li>
               <li>gagn : gagnage = en train de se nourrir</li>
@@ -610,7 +625,7 @@ _KHtmlGroupeEspeces = """
               {{esp.specifs}}
               
               {% for typMnf in esp.typManifs %}
-                <h4 id="{{esp.id}}{{typMnf.id}}">
+                <h4 id="{{esp.id}}.{{typMnf.id}}">
                   {{typMnf.nom}}
                   {% if esp.genre == 'm' %}
                     du
@@ -685,10 +700,12 @@ _KHtmlGroupeEspeces = """
              une présentation en vis à vis des mêmes échantillons sonores pour chaque espèce,
              avec les mêmes informations, pour pouvoir les comparer plus facilement.</p>
         
-          <p>Rappel : <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>.</p>
+          {% if ficTableauSynth %}
+            <p>Rappel : <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>.</p>
+          {% endif %}
 
           {% for typMnf in typesManifs %}
-            <h3 id="{{typMnf.id}}">{{typMnf.nom}}</h3>
+            <h3 id="Comp.{{typMnf.id}}">{{typMnf.nom}}</h3>
             <table cellspacing='0'> 
               <thead>
                 <tr>
