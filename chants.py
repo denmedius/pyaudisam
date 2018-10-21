@@ -530,7 +530,9 @@ _KHtmlGroupeEspeces = """
              des échantillons sonores aussi typiques que possible,
              avec dans l'ordre, pour chacun d'eux :</p>
           <ul>
-              <li>un lecteur audio pour l'écouter en direct,</li>
+              <li>un lecteur audio pour l'écouter en direct (attention : soyez patient, car selon votre navigateur,
+                   ou la vitesse de votre connexion internet, il se peut que vous deviez attendre
+                   un petit moment avant de pouvoir jouer tous les enregistrements),</li>
               <li>une description rapide, à base d'adjectifs et de qualificatifs abrégés, sans accents ...
                   et/ou d'onomatopées
                   (Cf. <a href="#glossaire">glossaire</a> ci-dessous pour la signification des abréviations),</li>
@@ -544,7 +546,8 @@ _KHtmlGroupeEspeces = """
               <li>le lien vers la page de l'enregistrement source
                   sur <a href="https://www.xeno-canto.org/">xeno-canto.org</a>,
                   qui vous permettra entre autre de télécharger l'enregistrement sur votre ordinateur
-                  si vous voulez le décortiquer tranquillement (via <a href="http://audacity.fr/">Audacity</a> par exemple),
+                  si vous voulez le décortiquer tranquillement
+                  (via <a href="http://audacity.fr/" target="_blank">Audacity</a> par exemple),
                   ou d'obtenir quelques informations sur son auteur, ou le lieu où il a été "mis en boîte" par exemple.</li>
           </ul>
           {% if ficTableauSynth %}
