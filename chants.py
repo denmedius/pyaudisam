@@ -239,606 +239,629 @@ def _planGeneralites(html2Parse, tag2List='h3'):
 
 # Styles CSS
 _KStylesCss = """
-    html, body {
-     margin: 0;
-     padding: 0;
-    }
-    body {
-     background-color: #e8efd1;
-     font-family: Arial, Helvetica, sans-serif;
-     font-size: 100%;
-    }
-    h1 {
-     font-size: 480%; 
-     color: #244c0c; 
-     text-align: center;
-    }
-    h2 {
-     font-size: 240%; 
-     color: #244c0c; 
-    }
-    h3 {
-     font-size: 160%; 
-     color: #244c0c;
-    }
-    h4 {
-     font-size: 120%; 
-     color: #244c0c; 
-    }
-    h5 {
-     font-size: 100%; 
-     color: #244c0c; 
-    }
-    h6 {
-     font-size: 80%; 
-     color: #244c0c; 
-    }
-    p {
-     color: #244c0c; 
-    }
-    ul,ol,li,td {
-     color: #244c0c; 
-    }
-    a:link {
-     color: #2f7404;
-     font-weight: bold;
-     text-decoration:underline;
-    }
-    a:visited {
-     color: #379000;
-     font-weight:bold;
-     text-decoration:underline;
-    }
-    a:active,
-    a:hover {
-     color: #bd5a35;
-     text-decoration:underline;
-    }
+html, body {
+ margin: 0;
+ padding: 0;
+}
+body {
+ background-color: #e8efd1;
+ font-family: Arial, Helvetica, sans-serif;
+ font-size: 100%;
+}
+h1 {
+ font-size: 480%; 
+ color: #244c0c; 
+ text-align: center;
+}
+h2 {
+ font-size: 240%; 
+ color: #244c0c; 
+}
+h3 {
+ font-size: 160%; 
+ color: #244c0c;
+}
+h4 {
+ font-size: 120%; 
+ color: #244c0c; 
+}
+h5 {
+ font-size: 100%; 
+ color: #244c0c; 
+}
+h6 {
+ font-size: 80%; 
+ color: #244c0c; 
+}
+p {
+ color: #244c0c; 
+}
+ul,ol,li,td {
+ color: #244c0c; 
+}
+a:link {
+ color: #2f7404;
+ font-weight: bold;
+ text-decoration:underline;
+}
+a:visited {
+ color: #379000;
+ font-weight:bold;
+ text-decoration:underline;
+}
+a:active,
+a:hover {
+ color: #bd5a35;
+ text-decoration:underline;
+}
 
-    table a:link {
-     color: #244c0c;
-     font-weight: bold;
-     text-decoration:none;
-    }
-    table a:visited {
-     color: #546122;
-     font-weight:bold;
-     text-decoration:none;
-    }
-    table a:active,
-    table a:hover {
-     color: #bd5a35;
-     text-decoration:underline;
-    }
+table a:link {
+ color: #244c0c;
+ font-weight: bold;
+ text-decoration:none;
+}
+table a:visited {
+ color: #546122;
+ font-weight:bold;
+ text-decoration:none;
+}
+table a:active,
+table a:hover {
+ color: #bd5a35;
+ text-decoration:underline;
+}
 
-    table {
-     font-family:Arial, Helvetica, sans-serif;
-     color:#244c0c;
-     text-shadow: 1px 1px 0px #fff;
-     background:#eaebec;
-     margin: 15px 8px 0 8px;
-     border: #ccc 1px solid;
+table {
+ font-family:Arial, Helvetica, sans-serif;
+ color:#244c0c;
+ text-shadow: 1px 1px 0px #fff;
+ background:#eaebec;
+ margin: 15px 8px 0 8px;
+ border: #ccc 1px solid;
 
-     -moz-border-radius:3px;
-     -webkit-border-radius:3px;
-     border-radius:3px;
+ -moz-border-radius:3px;
+ -webkit-border-radius:3px;
+ border-radius:3px;
 
-     -moz-box-shadow: 0 1px 2px #d1d1d1;
-     -webkit-box-shadow: 0 1px 2px #d1d1d1;
-     box-shadow: 0 1px 2px #d1d1d1;
-    }
-    table th {
-     text-align: left;
-     padding: 0 8px 0 8px;
-     border-top: 1px solid #f9fbf3;
-     border-bottom: 1px solid #dee5ca;
+ -moz-box-shadow: 0 1px 2px #d1d1d1;
+ -webkit-box-shadow: 0 1px 2px #d1d1d1;
+ box-shadow: 0 1px 2px #d1d1d1;
+}
+table th {
+ text-align: left;
+ padding: 0 8px 0 8px;
+ border-top: 1px solid #f9fbf3;
+ border-bottom: 1px solid #dee5ca;
 
-     background: #bcc380;
-     background: -webkit-gradient(linear, left top, left bottom, from(#bcc380), to(#e4eac8));
-     background: -moz-linear-gradient(top, #bcc380, #e4eac8);
-    }
-    table th:first-child {
-     text-align: left;
-     padding-left: 10px;
-    }
-    table tr:first-child th:first-child {
-     -moz-border-radius-topleft:3px;
-     -webkit-border-top-left-radius:3px;
-     border-top-left-radius:3px;
-    }
-    table tr:first-child th:last-child {
-     -moz-border-radius-topright:3px;
-     -webkit-border-top-right-radius:3px;
-     border-top-right-radius:3px;
-    }
-    table tr {
-     text-align: left;
-     padding: 0 12px 0 0;
-    }
-    table td:first-child {
-     text-align: left;
-     padding-left: 10px;
-     border-left: 0;
-    }
-    table td {
-     padding: 8px 8px 8px 10px;
-     border-top: 1px solid #ffffff;
-     border-bottom: 1px solid #dee5ca;
-     border-left: 1px solid #dee5ca;
+ background: #bcc380;
+ background: -webkit-gradient(linear, left top, left bottom, from(#bcc380), to(#e4eac8));
+ background: -moz-linear-gradient(top, #bcc380, #e4eac8);
+}
+table th:first-child {
+ text-align: left;
+ padding-left: 10px;
+}
+table tr:first-child th:first-child {
+ -moz-border-radius-topleft:3px;
+ -webkit-border-top-left-radius:3px;
+ border-top-left-radius:3px;
+}
+table tr:first-child th:last-child {
+ -moz-border-radius-topright:3px;
+ -webkit-border-top-right-radius:3px;
+ border-top-right-radius:3px;
+}
+table tr {
+ text-align: left;
+ padding: 0 12px 0 0;
+}
+table td:first-child {
+ text-align: left;
+ padding-left: 10px;
+ border-left: 0;
+}
+table td {
+ padding: 8px 8px 8px 10px;
+ border-top: 1px solid #ffffff;
+ border-bottom: 1px solid #dee5ca;
+ border-left: 1px solid #dee5ca;
 
-     background: #f9fbf3;
-     background: -webkit-gradient(linear, left top, left bottom, from(#f8f9f6), to(#f9fbf3));
-     background: -moz-linear-gradient(top,  #f8f9f6,  #f9fbf3);
-    }
-    table tr.even td {
-     background: #f6f6f6;
-     background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f6f6f6));
-     background: -moz-linear-gradient(top,  #f8f8f8,  #f6f6f6);
-    }
-    table tr:last-child td {
-     border-bottom:0;
-    }
-    table tr:last-child td:first-child {
-     -moz-border-radius-bottomleft:3px;
-     -webkit-border-bottom-left-radius:3px;
-     border-bottom-left-radius:3px;
-    }
-    table tr:last-child td:last-child {
-     -moz-border-radius-bottomright:3px;
-     -webkit-border-bottom-right-radius:3px;
-     border-bottom-right-radius:3px;
-    }
-    table tr:hover td {
-     background: #f3f4eb;
-     background: -webkit-gradient(linear, left top, left bottom, from(#f3f4eb), to(#eeefe9));
-     background: -moz-linear-gradient(top, #f3f4eb, #eeefe9); 
-    }
-    #toTopBtn {
-      display: none;
-      position: fixed;
-      bottom: 15px;
-      right: 15px;
-      z-index: 99;
-      border: none;
-      border-radius: 10px;
-      outline: none;
-      opacity: .25;
-      background-color: white;
-      cursor: pointer;
-    }
-    #toTopBtn:hover {
-      opacity: .75;
-    }
+ background: #f9fbf3;
+ background: -webkit-gradient(linear, left top, left bottom, from(#f8f9f6), to(#f9fbf3));
+ background: -moz-linear-gradient(top,  #f8f9f6,  #f9fbf3);
+}
+table tr.even td {
+ background: #f6f6f6;
+ background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f6f6f6));
+ background: -moz-linear-gradient(top,  #f8f8f8,  #f6f6f6);
+}
+table tr:last-child td {
+ border-bottom:0;
+}
+table tr:last-child td:first-child {
+ -moz-border-radius-bottomleft:3px;
+ -webkit-border-bottom-left-radius:3px;
+ border-bottom-left-radius:3px;
+}
+table tr:last-child td:last-child {
+ -moz-border-radius-bottomright:3px;
+ -webkit-border-bottom-right-radius:3px;
+ border-bottom-right-radius:3px;
+}
+table tr:hover td {
+ background: #f3f4eb;
+ background: -webkit-gradient(linear, left top, left bottom, from(#f3f4eb), to(#eeefe9));
+ background: -moz-linear-gradient(top, #f3f4eb, #eeefe9); 
+}
+#toTopBtn {
+  display: none;
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  z-index: 99;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  opacity: .25;
+  background-color: white;
+  cursor: pointer;
+}
+#toTopBtn:hover {
+  opacity: .75;
+}
+div.chapter {
+  -moz-border-radius:8px;
+  -webkit-border-radius:8px;
+  border-radius:8px;
+  padding: 1px 5px 1px 5px;
+}
+div.chapter:hover {
+ background:#e3eac9;
+}
 """
 
 # Javascripts
 _KScriptsJs = """
-    // Show or hide some element (id) through :
-    // * a Show link (<a id="<id>+'s'" ...),
-    // * a Hide link embedded into the element.
-    function show(id)
-    {
-      document.getElementById(id).style.display = "block";
-      document.getElementById(id+'s').style.display = "none";
-    }
-    function hide(id)
-    {
-      document.getElementById(id).style.display = "none";
-      document.getElementById(id+'s').style.display = "block";
-    }
+// Show or hide some element (id) through :
+// * a Show link (<a id="<id>+'s'" ...),
+// * a Hide link embedded into the element.
+function show(id)
+{
+  document.getElementById(id).style.display = "block";
+  document.getElementById(id+'s').style.display = "none";
+}
+function hide(id)
+{
+  document.getElementById(id).style.display = "none";
+  document.getElementById(id+'s').style.display = "block";
+}
 
-    // Back to top floating button managment
-    // When the user scrolls down100 px from the top of the document, show the button
-    window.onscroll = function()
-    {
-        if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100)
-            document.getElementById("toTopBtn").style.display = "block";
-        else
-            document.getElementById("toTopBtn").style.display = "none";
-    }
+// Back to top floating button managment
+// When the user scrolls down100 px from the top of the document, show the button
+window.onscroll = function()
+{
+    if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100)
+        document.getElementById("toTopBtn").style.display = "block";
+    else
+        document.getElementById("toTopBtn").style.display = "none";
+}
 
-    // When the user clicks on the button, scroll to the top of the document
-    function scrollToTop()
-    {
-        document.body.scrollTop = 0;
-        document.documentElement.scrollTop = 0;
-    }
+// When the user clicks on the button, scroll to the top of the document
+function scrollToTop()
+{
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+}
 """
 
 # Modèle jinja2 de page pour un groupe d'espèces.
 _KHtmlGroupeEspeces = """
-    <!DOCTYPE HTML>
-    <head>
-        <meta charset="utf-8">
-        <title>{{titre}}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <meta name="author" content="Jean-Philippe Meuret"/>
-        <meta name="copyright" content="Jean-Philippe Meuret 2018"/>
-        <meta name="license" content="CC BY NC SA"/>
-        <meta name="description" content="{{title}}"/>
-        <meta name="keywords" content="chant, cri, oiseau, ornithologie, oreille, identification, {{keywords}}"/>
-        <meta name="datetime" contents="{{genDateTime}}"/>
-        <style type="text/css" media="screen">
-          {{stylesCss}}
-        </style>
-        <script>
-          {{scriptsJs}}
-        </script>
-    </head>
+<!DOCTYPE HTML>
+<head>
+    <meta charset="utf-8">
+    <title>{{titre}}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="author" content="Jean-Philippe Meuret"/>
+    <meta name="copyright" content="Jean-Philippe Meuret 2018"/>
+    <meta name="license" content="CC BY NC SA"/>
+    <meta name="description" content="{{title}}"/>
+    <meta name="keywords" content="chant, cri, oiseau, ornithologie, oreille, identification, {{keywords}}"/>
+    <meta name="datetime" contents="{{genDateTime}}"/>
+    <style type="text/css" media="screen">
+      {{stylesCss}}
+    </style>
+    <script>
+      {{scriptsJs}}
+    </script>
+</head>
 
-    <body>
+<body>
+
+  <h1>{{titre}}</h1>
+  <h3 style="text-align: center">{{sousTitre}}</h3>
     
-      <h1>{{titre}}</h1>
-      <h3 style="text-align: center">{{sousTitre}}</h3>
-        
-      <div style="margin-left: 15px">
-        
-        <table>
-          <tr>
-            <td>
-              <h2>Plan</h2>
-              <div style="margin-left: 10px">
-                <ol style="list-style-type: upper-roman">
-                    <li><a href="#généralités">Généralités</a></li>
-                      {{planGeneralites}}
-                    <li><a href="#détails">Détails sonores par espèce</a></li>
-                    <ol style="list-style-type: decimal">
-                    <li><a href="#glossaire">Glossaire / Abréviations</a></li>
-                    {% for esp in especes %}
-                        <li><a href="#{{esp.id}}">{{esp.nom}}</a> <i>({{esp.latin}})</i></li>
-                        <ol style="list-style-type: lower-latin">
-                        {% for typMnf in esp.typManifs %}
-                            <li><a href="#{{esp.id}}.{{typMnf.id}}">{{typMnf.nom}}</a></li>
-                        {% endfor %}
-                        </ol>
-                    {% endfor %}
-                    </ol>
-                    <li><a href="#comparaisons">Comparaisons en vis à vis</a></li>
-                    <ol style="list-style-type: lower-latin">
-                    {% for typMnf in typesManifs %}
-                        <li><a href="#Comp.{{typMnf.id}}">{{typMnf.nom}}</a></li>
-                    {% endfor %}
-                    </ol>
-                    <li><a href="#quiz">Quiz sur concerts naturels</a></li>
-                    <li><a href="#licence">Licence / Auteur</a></li>
-                    <li><a href="#remerciements">Remerciements</a></li>
-                    <li><a href="#attributions">Emprunts / Attributions</a></li>
-                </ol>
-              </div>
-            </td>
-            <td style="align: right">
-              {% for tocImg in images.tocImg %}
-                <img src="{{dossierAttache}}/{{tocImg.img}}"/>
-                <h6 style="text-align: right; margin: 0 0 0 0; padding: 0 0 0 0">{{tocImg.legend}}</h6>
-              {% endfor %}
-            </td>
-          </tr>
-        </table>
-
-        <h2 id="généralités">Généralités</h2>
-        <div style="margin-left: 10px">
-          {{generalites}}
-        </div>
-
-        <h2 id="détails">Détails sonores par espèce</h2>
-        <div style="margin-left: 10px">
-        
-          <p>Après rappel de quelques particularités de l'espèce (abondance, milieux de prédilection, statut en Auvergne,
-             régime alimentaire, biologie de reproduction, moeurs particulières, identification visuelle, ... etc),
-             on trouvera ci-après pour chacune d'elle, et pour chacun de ses types de manifestation sonore
-             (cri, chant, et même tambour, martellement, pour les pics ...),
-             des échantillons sonores aussi typiques que possible,
-             avec dans l'ordre, pour chacun d'eux :</p>
-          <ul>
-              <li>un lecteur audio pour l'écouter en direct (attention : soyez patient, car selon votre navigateur,
-                   ou la vitesse de votre connexion internet, il se peut que vous deviez attendre
-                   un petit moment avant de pouvoir jouer tous les enregistrements),</li>
-              <li>une description rapide, à base d'adjectifs et de qualificatifs abrégés, sans accents ...
-                  et/ou d'onomatopées
-                  (Cf. <a href="#glossaire">glossaire</a> ci-dessous pour la signification des abréviations),</li>
-              <li>la liste des autres espèces présentes en arrière plan, à deviner d'abord (quiz !)
-                  avant de cliquer sur le petit oeil
-                  <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/> :
-                  chaque espèce est signalée par un code à 5 ou 6 lettres
-                  (3 premières lettres du genre français et 3 premières de l'espèce en général, 
-                   mais 'Sp' quand l'espèce est inconnue) ; espèces en gros par ordre d'apparition,
-                   sauf les autres espèces du groupe, à la fin de la liste,</li>
-              <li>le lien vers la page de l'enregistrement source
-                  sur <a href="https://www.xeno-canto.org/">xeno-canto.org</a>,
-                  qui vous permettra entre autre de télécharger l'enregistrement sur votre ordinateur
-                  si vous voulez le décortiquer tranquillement
-                  (via <a href="http://audacity.fr/" target="_blank">Audacity</a> par exemple),
-                  ou d'obtenir quelques informations sur son auteur, ou le lieu où il a été "mis en boîte" par exemple.</li>
-          </ul>
-          {% if ficTableauSynth %}
-          <p>Et pour vos sorties sur le terrain, un <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>
-             résumant ce qu'il y a retenir pour chaque espèce, et permettant de les comparer d'un seul coup d'oeil.</p>
-          {% endif %}
-             
-          <p>N.B. Faute de temps, les enregistrements sources n'ont pas été coupés et / ou remontés,
-             ce qui aurait permis d'isoler plus précisément les manifestations sonores ciblées ;
-             à vous de les retrouver : la plupart du temps, c'est la première qu'on entend, mais parfois non ;
-             dans ce cas, fiez-vous à la colonne 'Description', qui liste ces manifestations dans l'ordre d'apparition
-             (Cf. glossaire pour leur nom de code : cr, ch, crch, t, m).</p>
-          
-          <h3 id="glossaire">Glossaire / Abréviations</h3>
+  <div style="margin-left: 15px">
+    
+    <table>
+      <tr>
+        <td>
+          <h2>Plan</h2>
           <div style="margin-left: 10px">
-            <p>Signification des codes et abréviations utilisés dans la colonne "Description" des tableaux ci-après
-               (N.B. Cliquez sur les '?' présents dans cette colonne pour revenir directement ici
-                si vous avez un trou de mémoire ;-).</p>
-            <ul>
-              <li>ch : chant(s)</li>
-              <li>cr : cri(s)</li>
-              <li>crch : cri(s) similaire(s) au(x) chant(s) et/ou réciproquement,
-                         on ne sait pas décider si c'est un chant ou des cris,
-                         ou bien c'est un mélange des 2 (plusieurs individus)</li>
-              <li>t : tambour (pour les pics, et les grands singes ;-)</li>
-              <li>m : martellement(s)</li>
-              <li>ailes : bruit d'ailes, à l'envol ou au passage</li>
-              <li>comm : communautaire, en groupe</li>
-              <li>inq : inquiétude</li>
-              <li>al : alarme</li>
-              <li>extr : extrème (pour une alarme, par ex.)</li>
-              <li>par : parade</li>
-              <li>pours : poursuite</li>
-              <li>agress : agressif, agression</li>
-              <li>disp : dispute</li>
-              <li>intim : intime (couple)</li>
-              <li>alim : alimentaire</li>
-              <li>gagn : gagnage = en train de se nourrir</li>
-              <li>dort : dortoir</li>
-              <li>pul : pulli = poussins (au nid si nidicoles)</li>
-              <li>jvq : juvénile volant quémandant</li>
-              <li>jq : juvénile quémandant</li>
-              <li>juv : juvénile</li>
-              <li>ad : adulte</li>
-              <li>cp : couple</li>
-              <li>ind, indiv : individu</li>
-              <li>typ : typique, représentatif de l'espèce (pour un cri, un chant, un tambour)</li>
-              <li>imit : imite</li>
-              <li>rep : réponse, se répondent</li>
-              <li>pose : posé (= pas en vol !)</li>
-              <li>vol : en vol</li>
-              <li>age : âgé (pour un poussin = en fin d'élevage)</li>
-              <li>liq : liquide</li>
-              <li>elec : électrique</li>
-              <li>roule : roulé</li>
-              <li>vibr : vibré, vibration</li>
-              <li>fele : fêlé</li>
-              <li>accel : accéléré</li>
-              <li>tous : tous (les types de cris, par ex.)</li>
-              <li>prob : probable</li>
-              <li>poss : possible</li>
-              <li>deter : enregistrement déterioré par un traitement numérique quelconque (Cf. fph, debruit, ou autre),
-                          qui empêche ou complique la reconnaissance d'une ou plusieurs espèces, par ex.</li>
-              <li>debruit : enregistrement duquel on a soustrait une estimation du "bruit de fond"
-                  (au mieux générateur de silences étranges, souvent assez déteriorant)</li>
-              <li>fph : enregistrement filtré passe-haut (basses fréquences supprimées ou atténuées)</li>
-              <li>doppler : effet Doppler (la hauteur des sons émis par un oiseau en rapprochement augmente,
-                                           et quand il s'éloigne, elle diminue)</li>
-              {{glossaireSpecifique}}
-            </ul>
-            
-          </div>
-
-          {% for esp in especes %}
-            <h3 id="{{esp.id}}">{{esp.nom}} <i>({{esp.latin}})</i></h3>
-            <div style="margin-left: 10px">
-            
-              {{esp.specifs}}
-              
-              {% for typMnf in esp.typManifs %}
-                <h4 id="{{esp.id}}.{{typMnf.id}}">
-                  {{typMnf.nom}}
-                  {% if esp.genre == 'm' %}
-                    du
-                  {% else %}
-                    de la
-                  {% endif %}
-                  {{esp.nom}}
-                  <i>({{esp.latin}})</i>
-                </h4>
-                <div style="margin-left: 10px">
-                
-                  {{typMnf.specifs}}
-                  {% if typMnf.sons %}
-                    <table cellspacing='0'> 
-                      <thead>
-                        <tr>
-                          <th><h3 style="margin: 10px 10px 10px 5px">Enregistrement</h3></th>
-                          <th>
-                            <h3 style="margin: 10px 10px 10px 5px">Description (<a href="#glossaire">?</a>)</h3>
-                            
-                          </th>
-                          <th><h3 style="margin: 10px 10px 10px 5px">Autres espèces</h3></th>
-                          <th><h3 style="margin: 10px 10px 10px 5px">Source</h3></th>
-                        </tr>
-                       </thead>
-                       <tbody>
-                         {% for son in typMnf.sons %}
-                           <tr> 
-                             <td>
-                               <audio controls>
-                                 <source src="{{son.url}}" type="audio/mp3" preload="none"/>
-                               </audio>
-                             </td>
-                             <td>{{son.desc}}</td>
-                             <td>
-                               {% if son.autres %}
-                                 <div>
-                                   <a href="javascript:show('d{{son.id}}')" id="d{{son.id}}s">
-                                     <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/></a>
-                                   <div id="d{{son.id}}" style="display: none">
-                                     <a href="javascript:hide('d{{son.id}}')">
-                                       <img height="16" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Cacher"/>
-                                     </a>
-                                     <span>{{son.autres}}</span>
-                                   </div>
-                                 </div>
-                               {% endif %}
-                             </td>
-                             <td><a href='{{son.lienXC}}' target='_blank'>{{son.idXC}}</a></td>
-                             <!-- <td>{{son.fichier}}</td> -->
-                           </tr>
-                         {% endfor %}
-                       </tbody>
-                     </table>
-                  {% else %}
-                  <p>Aucun échantillon sonore trouvé, désolé :-(</p>
-                  {% endif %}
-                
-                </div>
-              
-              {% endfor %}
-            </div>
-              
-          {% endfor %}
-          
-        </div>
-
-        <h2 id="comparaisons">Comparaisons sonores en vis à vis</h2>
-        <div style="margin-left: 10px">
-        
-          <p>Rien de neuf ici, mais pour chaque type de manifestation sonore (cris, chants, tambour, ...),
-             une présentation en vis à vis des mêmes échantillons sonores pour chaque espèce,
-             avec les mêmes informations, pour pouvoir les comparer plus facilement.</p>
-        
-          {% if ficTableauSynth %}
-            <p>Rappel : <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>.</p>
-          {% endif %}
-
-          {% for typMnf in typesManifs %}
-            <h3 id="Comp.{{typMnf.id}}">{{typMnf.nom}}</h3>
-            <table cellspacing='0'> 
-              <thead>
-                <tr>
-                {% for esp in typMnf.especes %}
-                  <th><h3 style="margin: 10px 10px 10px 5px">{{esp.nom}}</h3></th>
-                {% endfor %}
-                </tr>
-                <tr>
-                {% for esp in typMnf.especes %}
-                  <td><i>({{esp.latin}})</i></td>
-                {% endfor %}
-                </tr>
-              </thead>
-              <tbody>
-                {% for iSon in range(typMnf.sons|length) %}
-                  <tr> 
-                    {% for esp in typMnf.especes %}
-                      <td>
-                        {% if typMnf.sons[iSon][esp.id].fichier %}
-                          <audio controls>
-                            <source src="{{typMnf.sons[iSon][esp.id].url}}" type="audio/mp3" preload="none"/>
-                          </audio>
-                          <p>{{typMnf.sons[iSon][esp.id].desc}} (<a href="#glossaire">?</a>)</p>
-                          {% if typMnf.sons[iSon][esp.id].autres %}
-                            <div>
-                              <a href="javascript:show('c{{typMnf.sons[iSon][esp.id].id}}')"
-                                 id="c{{typMnf.sons[iSon][esp.id].id}}s">
-                                <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/></a>
-                              <div id="c{{typMnf.sons[iSon][esp.id].id}}" style="display: none">
-                                <a href="javascript:hide('c{{typMnf.sons[iSon][esp.id].id}}')">
-                                  <img height="16" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Cacher"/>
-                                </a>
-                                <span>{{typMnf.sons[iSon][esp.id].autres}}</span>
-                              </div>
-                            </div>
-                          {% else %}
-                            <img height="16" style="opacity: 0" src="{{dossierAttache}}/fa-eye-regular.svg"/>
-                          {% endif %}
-                          <p style="text-align: right">
-                            <a href='{{typMnf.sons[iSon][esp.id].lienXC}}' target='_blank'>
-                              {{typMnf.sons[iSon][esp.id].idXC}}
-                            </a>
-                          </p>
-                        {% endif %}
-                      </td>
+            <ol style="list-style-type: upper-roman">
+                <li><a href="#généralités">Généralités</a></li>
+                  {{planGeneralites}}
+                <li><a href="#détails">Détails sonores par espèce</a></li>
+                <ol style="list-style-type: decimal">
+                <li><a href="#glossaire">Glossaire / Abréviations</a></li>
+                {% for esp in especes %}
+                    <li><a href="#{{esp.id}}">{{esp.nom}}</a> <i>({{esp.latin}})</i></li>
+                    <ol style="list-style-type: lower-latin">
+                    {% for typMnf in esp.typManifs %}
+                        <li><a href="#{{esp.id}}.{{typMnf.id}}">{{typMnf.nom}}</a></li>
                     {% endfor %}
-                  </tr>
+                    </ol>
                 {% endfor %}
-              </tbody>
-            </table> 
+                </ol>
+                <li><a href="#comparaisons">Comparaisons en vis à vis</a></li>
+                <ol style="list-style-type: lower-latin">
+                {% for typMnf in typesManifs %}
+                    <li><a href="#Comp.{{typMnf.id}}">{{typMnf.nom}}</a></li>
+                {% endfor %}
+                </ol>
+                <li><a href="#quizz">Quizz sur concerts naturels</a></li>
+                <li><a href="#licence">Licence / Auteur</a></li>
+                <li><a href="#remerciements">Remerciements</a></li>
+                <li><a href="#attributions">Emprunts / Attributions</a></li>
+            </ol>
+          </div>
+        </td>
+        <td style="align: right">
+          {% for tocImg in images.tocImg %}
+            <img src="{{dossierAttache}}/{{tocImg.img}}"/>
+            <h6 style="text-align: right; margin: 0 0 0 0; padding: 0 0 0 0">{{tocImg.legend}}</h6>
           {% endfor %}
-        
-        </div>
+        </td>
+      </tr>
+    </table>
 
-        <h2 id="quiz">Quiz sur concerts naturels</h2>
-        <div style="margin-left: 10px">
-        
-          <p>En construction : patience ...</p>
-        
-        </div>
+    <h2 id="généralités">Généralités</h2>
+    <div class="chapter" style="margin-left: 10px">
+      {{generalites}}
+    </div>
 
-        <h2 id="licence">Licence / Auteur</h2>
-        <div style="margin-left: 10px">
+    <h2 id="détails">Détails sonores par espèce</h2>
+    <div style="margin-left: 10px">
+    
+      <div class="chapter">
+      
+        <p>Après rappel de quelques particularités de l'espèce (abondance, milieux de prédilection, statut en Auvergne,
+           régime alimentaire, biologie de reproduction, moeurs particulières, identification visuelle, ... etc),
+           on trouvera ci-après pour chacune d'elle, et pour chacun de ses types de manifestation sonore
+           (cri, chant, et même tambour, martellement, pour les pics ...),
+           des échantillons sonores aussi typiques que possible,
+           avec dans l'ordre, pour chacun d'eux :</p>
+        <ul>
+            <li>un lecteur audio pour l'écouter en direct (attention : soyez patient, car selon votre navigateur,
+                 ou la vitesse de votre connexion internet, il se peut que vous deviez attendre
+                 un petit moment avant de pouvoir jouer tous les enregistrements),</li>
+            <li>une description rapide, à base d'adjectifs et de qualificatifs abrégés, sans accents ...
+                et/ou d'onomatopées
+                (Cf. <a href="#glossaire">glossaire</a> ci-dessous pour la signification des abréviations),</li>
+            <li>la liste des autres espèces présentes en arrière plan, à deviner d'abord (quiz !)
+                avant de cliquer sur le petit oeil
+                <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/> :
+                chaque espèce est signalée par un code à 5 ou 6 lettres
+                (3 premières lettres du genre français et 3 premières de l'espèce en général, 
+                 mais 'Sp' quand l'espèce est inconnue) ; espèces en gros par ordre d'apparition,
+                 sauf les autres espèces du groupe, à la fin de la liste,</li>
+            <li>le lien vers la page de l'enregistrement source
+                sur <a href="https://www.xeno-canto.org/">xeno-canto.org</a>,
+                qui vous permettra entre autre de télécharger l'enregistrement sur votre ordinateur
+                si vous voulez le décortiquer tranquillement
+                (via <a href="http://audacity.fr/" target="_blank">Audacity</a> par exemple),
+                ou d'obtenir quelques informations sur son auteur, ou le lieu où il a été "mis en boîte" par exemple.</li>
+        </ul>
+        {% if ficTableauSynth %}
+        <p>Et pour vos sorties sur le terrain, un <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>
+           résumant ce qu'il y a retenir pour chaque espèce, et permettant de les comparer d'un seul coup d'oeil.</p>
+        {% endif %}
+           
+        <p>N.B. Faute de temps, les enregistrements sources n'ont pas été coupés et / ou remontés,
+           ce qui aurait permis d'isoler plus précisément les manifestations sonores ciblées ;
+           à vous de les retrouver : la plupart du temps, c'est la première qu'on entend, mais parfois non ;
+           dans ce cas, fiez-vous à la colonne 'Description', qui liste ces manifestations dans l'ordre d'apparition
+           (Cf. glossaire pour leur nom de code : cr, ch, crch, t, m).</p>
+           
+      </div>
+      
+      <h3 id="glossaire">Glossaire / Abréviations</h3>
+      <div class="chapter" style="margin-left: 10px">
+        <p>Signification des codes et abréviations utilisés dans la colonne "Description" des tableaux ci-après
+           (N.B. Cliquez sur les '?' présents dans cette colonne pour revenir directement ici
+            si vous avez un trou de mémoire ;-).</p>
+        <ul>
+          <li>ch : chant(s)</li>
+          <li>cr : cri(s)</li>
+          <li>crch : cri(s) similaire(s) au(x) chant(s) et/ou réciproquement,
+                     on ne sait pas décider si c'est un chant ou des cris,
+                     ou bien c'est un mélange des 2 (plusieurs individus)</li>
+          <li>t : tambour (pour les pics, et les grands singes ;-)</li>
+          <li>m : martellement(s)</li>
+          <li>ailes : bruit d'ailes, à l'envol ou au passage</li>
+          <li>comm : communautaire, en groupe</li>
+          <li>inq : inquiétude</li>
+          <li>al : alarme</li>
+          <li>extr : extrème (pour une alarme, par ex.)</li>
+          <li>par : parade</li>
+          <li>pours : poursuite</li>
+          <li>agress : agressif, agression</li>
+          <li>disp : dispute</li>
+          <li>intim : intime (couple)</li>
+          <li>alim : alimentaire</li>
+          <li>gagn : gagnage = en train de se nourrir</li>
+          <li>dort : dortoir</li>
+          <li>pul : pulli = poussins (au nid si nidicoles)</li>
+          <li>jvq : juvénile volant quémandant</li>
+          <li>jq : juvénile quémandant</li>
+          <li>juv : juvénile</li>
+          <li>ad : adulte</li>
+          <li>cp : couple</li>
+          <li>ind, indiv : individu</li>
+          <li>typ : typique, représentatif de l'espèce (pour un cri, un chant, un tambour)</li>
+          <li>imit : imite</li>
+          <li>rep : réponse, se répondent</li>
+          <li>pose : posé (= pas en vol !)</li>
+          <li>vol : en vol</li>
+          <li>age : âgé (pour un poussin = en fin d'élevage)</li>
+          <li>liq : liquide</li>
+          <li>elec : électrique</li>
+          <li>roule : roulé</li>
+          <li>vibr : vibré, vibration</li>
+          <li>fele : fêlé</li>
+          <li>accel : accéléré</li>
+          <li>tous : tous (les types de cris, par ex.)</li>
+          <li>prob : probable</li>
+          <li>poss : possible</li>
+          <li>deter : enregistrement déterioré par un traitement numérique quelconque (Cf. fph, debruit, ou autre),
+                      qui empêche ou complique la reconnaissance d'une ou plusieurs espèces, par ex.</li>
+          <li>debruit : enregistrement duquel on a soustrait une estimation du "bruit de fond"
+              (au mieux générateur de silences étranges, souvent assez déteriorant)</li>
+          <li>fph : enregistrement filtré passe-haut (basses fréquences supprimées ou atténuées)</li>
+          <li>doppler : effet Doppler (la hauteur des sons émis par un oiseau en rapprochement augmente,
+                                       et quand il s'éloigne, elle diminue)</li>
+          {{glossaireSpecifique}}
+        </ul>
         
-          <p>Ce document est publié sous la licence
-             <b><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
-             Creative Commons BY NC SA 4.0</a></b>
-             <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
-               <img height="20" src="{{dossierAttache}}/by-nc-sa.eu.svg" alt="Creative Commons BY NC SA"/>
-             </a>
-             par <a href="http://jpmeuret.free.fr/" target="_blank">Jean-Philippe Meuret</a>,
-             <a href="http://www.lpo-auvergne.org" target="_blank">LPO Auvergne</a> ({{effort}} heures de travail).</p>
-          <p>Vous pouvez (et même devez ;-) le diffuser sans en demander l'autorisation, à qui vous voulez,
-             dans sa forme originale ou après modifications, par extraits ou dans son intégralité, pourvu que :</p>
-          <ul>
-              <li>vous en citiez l'auteur initial (voir ci-dessus) : BY,</li>
-              <li>la diffusion n'ait pas un but commercial : NC,</li>
-              <li>la diffusion se fasse avec la même licence (CC BY NC SA) : SA.</li>
-          </ul>
-          <p>Attention cependant aux licences potentiellement plus restrictives :</p>
-          <ul>
-              <li>des sons liés au présent document, issus en totalité de
-                  <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a>
-                  (Voir ci-dessus le lien associé à chaque enregistrement pour sa source exacte et son auteur),</li>
-              <li>des photos et dessins d'illustration (Voir légende associée à chacun).</li>
-          </ul>
-             
-        </div>
-
-        <h2 id="remerciements">Remerciements</h2>
-        <div style="margin-left: 10px">
-        
-          <p>Tous les enregistrements utilisés ici
-             proviennent du site <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a> :
-             un très grand merci aux ornithologues qui ont bien voulu partager leurs trouvailles
-             et ainsi rendre cette publication possible.</p>
-             
-          {{remerciements}}
-                      
-        </div>
-        
-        <h2 id="attributions">Emprunts / Attributions</h2>
-        <div style="margin-left: 10px">
-        
-          <p>Les icônes des petits yeux 'Cacher / Montrer les espèces d'arrière plan'
-             et le chevron vertical du bouton de retour en haut de page sont l'oeuvre de
-             <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
-             et sont distribuées selon la licence
-             <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a> ;
-             seule leur couleur - noire à l'origine - a été modifiée (en vert).</p>
-          {{attributions}}
-        </div>
-        
-        <h6>
-            Page générée via <a href="https://www.python.org/" target="_blank">Python 3</a>,
-            <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>
-            et <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
-            dans <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>
-            (sources : <a href="./chants.py" target="_blank">chants.py</a>
-             et <a href="./{{notebook}}" target="_blank">{{notebook}}</a>),
-            le {{genDateTime}}.
-        </h6>
-
       </div>
 
-      <button onclick="scrollToTop()" id="toTopBtn" title="Remonter" alt="Remonter">
-        <img width="64" height="64" src="{{dossierAttache}}/fa-angle-up.svg"/>
-      </button>
+      {% for esp in especes %}
+        <h3 id="{{esp.id}}">{{esp.nom}} <i>({{esp.latin}})</i></h3>
+        <div style="margin-left: 10px">
+        
+          <div class="chapter">
+            {{esp.specifs}}
+          </div>
+          
+          {% for typMnf in esp.typManifs %}
+            <h4 id="{{esp.id}}.{{typMnf.id}}">
+              {{typMnf.nom}}
+              {% if esp.genre == 'm' %}
+                du
+              {% else %}
+                de la
+              {% endif %}
+              {{esp.nom}}
+              <i>({{esp.latin}})</i>
+            </h4>
+            <div class="chapter" style="margin-left: 10px">
+            
+              {{typMnf.specifs}}
+              {% if typMnf.sons %}
+                <table cellspacing='0'> 
+                  <thead>
+                    <tr>
+                      <th><h3 style="margin: 10px 10px 10px 5px">Enregistrement</h3></th>
+                      <th>
+                        <h3 style="margin: 10px 10px 10px 5px">Description (<a href="#glossaire">?</a>)</h3>
+                        
+                      </th>
+                      <th><h3 style="margin: 10px 10px 10px 5px">Autres espèces</h3></th>
+                      <th><h3 style="margin: 10px 10px 10px 5px">Source</h3></th>
+                    </tr>
+                   </thead>
+                   <tbody>
+                     {% for son in typMnf.sons %}
+                       <tr> 
+                         <td>
+                           <audio controls>
+                             <source src="{{son.url}}" type="audio/mp3" preload="none"/>
+                           </audio>
+                         </td>
+                         <td>{{son.desc}}</td>
+                         <td>
+                           {% if son.autres %}
+                             <div>
+                               <a href="javascript:show('d{{son.id}}')" id="d{{son.id}}s">
+                                 <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/></a>
+                               <div id="d{{son.id}}" style="display: none">
+                                 <a href="javascript:hide('d{{son.id}}')">
+                                   <img height="16" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Cacher"/>
+                                 </a>
+                                 <span>{{son.autres}}</span>
+                               </div>
+                             </div>
+                           {% endif %}
+                         </td>
+                         <td><a href='{{son.lienXC}}' target='_blank'>{{son.idXC}}</a></td>
+                         <!-- <td>{{son.fichier}}</td> -->
+                       </tr>
+                     {% endfor %}
+                   </tbody>
+                 </table>
+              {% else %}
+              <p>Aucun échantillon sonore trouvé, désolé :-(</p>
+              {% endif %}
+            
+            </div>
+          
+          {% endfor %}
+        </div>
+          
+      {% endfor %}
+      
+    </div>
 
-    </body>
+    <h2 id="comparaisons">Comparaisons sonores en vis à vis</h2>
+    <div style="margin-left: 10px">
+    
+      <div class="chapter">
+      
+        <p>Rien de neuf ici, mais pour chaque type de manifestation sonore (cris, chants, tambour, ...),
+           une présentation en vis à vis des mêmes échantillons sonores pour chaque espèce,
+           avec les mêmes informations, pour pouvoir les comparer plus facilement.</p>
+           
+        {% if ficTableauSynth %}
+          <p>Rappel : <a href="{{dossierAttache}}/{{ficTableauSynth}}">tableau de synthèse</a>.</p>
+        {% endif %}
+
+      </div>
+    
+      {% for typMnf in typesManifs %}
+        <h3 id="Comp.{{typMnf.id}}">{{typMnf.nom}}</h3>
+        <table cellspacing='0'> 
+          <thead>
+            <tr>
+            {% for esp in typMnf.especes %}
+              <th><h3 style="margin: 10px 10px 10px 5px">{{esp.nom}}</h3></th>
+            {% endfor %}
+            </tr>
+            <tr>
+            {% for esp in typMnf.especes %}
+              <td><i>({{esp.latin}})</i></td>
+            {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for iSon in range(typMnf.sons|length) %}
+              <tr> 
+                {% for esp in typMnf.especes %}
+                  <td>
+                    {% if typMnf.sons[iSon][esp.id].fichier %}
+                      <audio controls>
+                        <source src="{{typMnf.sons[iSon][esp.id].url}}" type="audio/mp3" preload="none"/>
+                      </audio>
+                      <p>{{typMnf.sons[iSon][esp.id].desc}} (<a href="#glossaire">?</a>)</p>
+                      {% if typMnf.sons[iSon][esp.id].autres %}
+                        <div>
+                          <a href="javascript:show('c{{typMnf.sons[iSon][esp.id].id}}')"
+                             id="c{{typMnf.sons[iSon][esp.id].id}}s">
+                            <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"/></a>
+                          <div id="c{{typMnf.sons[iSon][esp.id].id}}" style="display: none">
+                            <a href="javascript:hide('c{{typMnf.sons[iSon][esp.id].id}}')">
+                              <img height="16" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Cacher"/>
+                            </a>
+                            <span>{{typMnf.sons[iSon][esp.id].autres}}</span>
+                          </div>
+                        </div>
+                      {% else %}
+                        <img height="16" style="opacity: 0" src="{{dossierAttache}}/fa-eye-regular.svg"/>
+                      {% endif %}
+                      <p style="text-align: right">
+                        <a href='{{typMnf.sons[iSon][esp.id].lienXC}}' target='_blank'>
+                          {{typMnf.sons[iSon][esp.id].idXC}}
+                        </a>
+                      </p>
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table> 
+      {% endfor %}
+    
+    </div>
+
+    <h2 id="quizz">Quizz sur concerts naturels</h2>
+    <div class="chapter" style="margin-left: 10px">
+    
+      <p>Des quizz progressifs et détaillés sont publiés sur des pages dédiées.</p>
+    
+      <p>Elles sont référencées sur <a href="http://jpmeuret.free.fr/nature.html" target="_blank">
+         ma page "Nature"</a> (chercher le mot "quiz").</p>
+    
+    </div>
+
+    <h2 id="licence">Licence / Auteur</h2>
+    <div class="chapter" style="margin-left: 10px">
+    
+      <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
+        <img height="48" src="{{dossierAttache}}/by-nc-sa.eu.svg" alt="Creative Commons BY NC SA 4.0"/>
+      </a>
+  
+      <p>Ce document est publié sous la licence
+         <b><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
+         Creative Commons BY NC SA 4.0</a></b>
+         par <a href="http://jpmeuret.free.fr/" target="_blank">Jean-Philippe Meuret</a>,
+         <a href="http://www.lpo-auvergne.org" target="_blank">LPO Auvergne</a> ({{effort}} heures de travail).</p>
+      <p>Vous pouvez (et même devez ;-) le diffuser sans en demander l'autorisation, à qui vous voulez,
+         dans sa forme originale ou après modifications, par extraits ou dans son intégralité, pourvu que :</p>
+      <ul>
+          <li>vous en citiez l'auteur initial (voir ci-dessus) : BY,</li>
+          <li>la diffusion n'ait pas un but commercial : NC,</li>
+          <li>la diffusion se fasse avec la même licence (CC BY NC SA) : SA.</li>
+      </ul>
+      <p>Attention cependant aux licences potentiellement plus restrictives :</p>
+      <ul>
+          <li>des sons liés au présent document, issus en totalité de
+              <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a>
+              (Voir ci-dessus le lien associé à chaque enregistrement pour sa source exacte et son auteur),</li>
+          <li>des photos et dessins d'illustration (Voir légende associée à chacun).</li>
+      </ul>
+         
+    </div>
+
+    <h2 id="remerciements">Remerciements</h2>
+    <div class="chapter" style="margin-left: 10px">
+    
+      <p>Tous les enregistrements utilisés ici
+         proviennent du site <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a> :
+         un très grand merci aux ornithologues qui ont bien voulu partager leurs trouvailles
+         et ainsi rendre cette publication possible.</p>
+         
+      {{remerciements}}
+                  
+    </div>
+    
+    <h2 id="attributions">Emprunts / Attributions</h2>
+    <div class="chapter" style="margin-left: 10px">
+    
+      <p>Les icônes des petits yeux 'Cacher / Montrer les espèces d'arrière plan'
+         et le chevron vertical du bouton de retour en haut de page sont l'oeuvre de
+         <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
+         et sont distribuées selon la licence
+         <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a> ;
+         seule leur couleur - noire à l'origine - a été modifiée (en vert).</p>
+      {{attributions}}
+    </div>
+    
+    <h6>
+        Page générée via <a href="https://www.python.org/" target="_blank">Python 3</a>,
+        <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>
+        et <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
+        dans <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>
+        (sources : <a href="./chants.py" target="_blank">chants.py</a>
+         et <a href="./{{notebook}}" target="_blank">{{notebook}}</a>),
+        le {{genDateTime}}.
+    </h6>
+
+  </div>
+
+  <button onclick="scrollToTop()" id="toTopBtn" title="Remonter" alt="Remonter">
+    <img width="64" height="64" src="{{dossierAttache}}/fa-angle-up.svg"/>
+  </button>
+
+</body>
 """
 
 # Fonction principale de générationde la page.
@@ -849,6 +872,16 @@ def buildHtmlPage(titre, sousTitre, description, motsClef,
     
     dfSons = _lireDossierSons(cheminDossier=dossierSons, dEspeces=especes)
 
+    # Première passe dans les textes.
+    generalites = jinja2.Template(generalites).render(dossierAttache=dossierAttache)
+    for esp in specificites:
+        specificites[esp]['specifs'] = \
+            jinja2.Template(specificites[esp]['specifs']).render(dossierAttache=dossierAttache)
+        for manif in specificites[esp]['manifs']:
+            specificites[esp]['manifs'][manif] = \
+                jinja2.Template(specificites[esp]['manifs'][manif]).render(dossierAttache=dossierAttache)
+
+    # Dernière passe finale.
     html = jinja2.Template(_KHtmlGroupeEspeces) \
                   .render(titre=titre, sousTitre=sousTitre, description=description, motsClef=motsClef,
                           especes=_arbreEspeces(dfSons, especes, specificites,
