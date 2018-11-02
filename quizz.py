@@ -22,51 +22,9 @@ import lxml.html
 
 
 # Descripteurs.
-DescripteurQuiz = namedtuple('DescripteurQuiz', ['id', 'titre', 'publier', 'exercices', 'anecdotes'])
 DescripteurEtape = namedtuple('DescripteurEtape', ['index', 'id', 'titre'])
 
-class DescripteurEnregistrement(object):
-    
-    def __init__(self, index, id, titre, auteur, licence, fichierSon, dossierSons):
-        
-        self.index = index
-        self.id = id
-        self.titre = titre
-        self.auteur = auteur
-        self.licence = licence
-        self.fichierSon = fichierSon
-        self.idSon, self.siteSon = self._sourceSon()
-        self.urlTchSon, self.urlPageSon = self._urlsSon(dossierSons)
-
-    _KXcNumPattern = re.compile('.*-XC([0-9]+)[-\.]')
-    def _sourceSon(self):
-        
-        idSon, siteSon = None, None
-        
-        mo = self._KXcNumPattern.match(self.fichierSon)
-        if mo:
-            idSon = mo.group(1)
-            siteSon = 'XC' # TODO: Suuport autres sources que XC ?
-        
-        return idSon, siteSon
-    
-    _KXcNumPattern = re.compile('.*-XC([0-9]+)[-\.]')
-    def _urlsSon(self, dossierSons):
-        
-        # Publi. locale par défaut
-        urlTchSon = dossierSons + '/' + self.fichierSon
-        urlPageSon = None
-        
-        if self.siteSon == 'XC': # TODO: Support autres sources que XC ?
-            urlPageSon = 'https://www.xeno-canto.org/' + self.idSon
-        
-        # Mais si publi. sur l'internet demandée, et son xeno-canto non modifié ...
-        if dossierSons == '.' and self.idSon:
-            if self.siteSon == 'XC': # TODO: Support autres sources que XC ?
-                if self.fichierSon.find('-extrait') < 0:
-                    urlTchSon = urlPageSon + '/download'
-        
-        return urlTchSon, urlPageSon
+class Descripteur(object):
     
     def _rootIndentMD(self, mdText):
         
@@ -95,6 +53,70 @@ class DescripteurEnregistrement(object):
             
         return mdText
 
+class DescripteurQuizz(Descripteur):
+    
+    def __init__(self, id, titre, intro, publier, exercices, anecdotes):
+        
+        self.id = id
+        self.titre = titre
+        self.intro = self._rootIndentMD(intro)
+        self.publier = publier
+        self.exercices = exercices
+        self.anecdotes = anecdotes
+
+class DescripteurEnregistrement(Descripteur):
+    
+    def __init__(self, index, id, titre, auteur, licence, fichierSon, dossierSons):
+        
+        self.index = index
+        self.id = id
+        self.titre = titre
+        self.auteur = auteur
+        self.licence = licence
+        self.fichierSon = fichierSon
+        self.idSon, self.siteSon = self._sourceSon()
+        self.urlTchSon, self.urlPageSon = self._urlsSon(dossierSons)
+
+    _KXcNumPattern = re.compile('.*-XC([0-9]+)[-\.]')
+    def _sourceSon(self):
+        
+        idSon, siteSon = None, None
+        
+        mo = self._KXcNumPattern.match(self.fichierSon)
+        if mo:
+            idSon = mo.group(1)
+            siteSon = 'XC' # TODO: Support autres sources que XC ?
+        
+        return idSon, siteSon
+    
+    _KXcNumPattern = re.compile('.*-XC([0-9]+)[-\.]')
+    def _urlsSon(self, dossierSons):
+        
+        # Publi. locale par défaut
+        urlTchSon = dossierSons + '/' + self.fichierSon
+        urlPageSon = None
+        
+        if self.siteSon == 'XC': # TODO: Support autres sources que XC ?
+            urlPageSon = 'https://www.xeno-canto.org/' + self.idSon
+        
+        # Mais si publi. sur l'internet demandée, et son xeno-canto non modifié ...
+        if dossierSons == '.' and self.idSon:
+            if self.siteSon == 'XC': # TODO: Support autres sources que XC ?
+                if self.fichierSon.find('-extrait') < 0:
+                    urlTchSon = urlPageSon + '/download'
+        
+        return urlTchSon, urlPageSon
+    
+    def lecteurHtml(self, dossierSons):
+        
+        return """<span>
+                  <audio controls>
+                    <source src="{dos}/{fic}" type="audio/mpeg" />
+                  </audio>
+                  <a style="font-size: 125%" href="{url}" target="_blank">{url}</a>
+                  </span>
+               """.format(dos=dossierSons, fic=self.fichierSon, url=self.urlPageSon)
+    
 class DescripteurExercice(DescripteurEnregistrement):
     
     def __init__(self, index, id, titre, lieu, date, heure, altitude, auteur, licence,
@@ -117,190 +139,6 @@ class DescripteurAnecdote(DescripteurEnregistrement):
         super().__init__(index, id, titre, auteur, licence, fichierSon, dossierSons)
         
         self.texte = self._rootIndentMD(texte)
-        
-# Styles CSS
-_KStylesCss = """
-html, body, div {
- margin: 0;
- padding: 0;
-}
-body {
- background-color: #e8efd1;
- font-family: Arial, Helvetica, sans-serif;
- font-size: 100%;
-}
-h1 {
- font-size: 480%; 
- color: #244c0c; 
- text-align: center;
-}
-h2 {
- font-size: 240%; 
- color: #244c0c; 
- padding-top: 30px
-}
-h3 {
- font-size: 160%; 
- color: #244c0c;
-}
-h4 {
- font-size: 120%; 
- color: #244c0c; 
-}
-h5 {
- font-size: 100%; 
- color: #244c0c; 
-}
-h6 {
- font-size: 80%; 
- color: #244c0c; 
-}
-p {
- color: #244c0c; 
-}
-ul,ol,li,td {
- color: #244c0c; 
-}
-a:link {
- color: #2f7404;
- font-weight: bold;
- text-decoration:underline;
-}
-a:visited {
- color: #379000;
- font-weight:bold;
- text-decoration:underline;
-}
-a:active,
-a:hover {
- color: #bd5a35;
- text-decoration:underline;
-}
-
-table a:link {
- color: #244c0c;
- font-weight: bold;
- text-decoration:none;
-}
-table a:visited {
- color: #546122;
- font-weight:bold;
- text-decoration:none;
-}
-table a:active,
-table a:hover {
- color: #bd5a35;
- text-decoration:underline;
-}
-
-table {
- font-family:Arial, Helvetica, sans-serif;
- color:#244c0c;
- text-shadow: 1px 1px 0px #fff;
- background:#eaebec;
- margin: 15px 8px 0 8px;
- border: #ccc 1px solid;
-
- -moz-border-radius:3px;
- -webkit-border-radius:3px;
- border-radius:3px;
-
- -moz-box-shadow: 0 1px 2px #d1d1d1;
- -webkit-box-shadow: 0 1px 2px #d1d1d1;
- box-shadow: 0 1px 2px #d1d1d1;
-}
-table th {
- text-align: left;
- padding: 0 8px 0 8px;
- border-top: 1px solid #f9fbf3;
- border-bottom: 1px solid #dee5ca;
-
- background: #bcc380;
- background: -webkit-gradient(linear, left top, left bottom, from(#bcc380), to(#e4eac8));
- background: -moz-linear-gradient(top, #bcc380, #e4eac8);
-}
-table th:first-child {
- text-align: left;
- padding-left: 10px;
-}
-table tr:first-child th:first-child {
- -moz-border-radius-topleft:3px;
- -webkit-border-top-left-radius:3px;
- border-top-left-radius:3px;
-}
-table tr:first-child th:last-child {
- -moz-border-radius-topright:3px;
- -webkit-border-top-right-radius:3px;
- border-top-right-radius:3px;
-}
-table tr {
- text-align: left;
- padding: 0 12px 0 0;
-}
-table td:first-child {
- text-align: left;
- padding-left: 10px;
- border-left: 0;
-}
-table td {
- padding: 8px 8px 8px 10px;
- border-top: 1px solid #ffffff;
- border-bottom: 1px solid #dee5ca;
- border-left: 1px solid #dee5ca;
-
- background: #f9fbf3;
- background: -webkit-gradient(linear, left top, left bottom, from(#f8f9f6), to(#f9fbf3));
- background: -moz-linear-gradient(top,  #f8f9f6,  #f9fbf3);
-}
-table tr.even td {
- background: #f6f6f6;
- background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f6f6f6));
- background: -moz-linear-gradient(top,  #f8f8f8,  #f6f6f6);
-}
-table tr:last-child td {
- border-bottom:0;
-}
-table tr:last-child td:first-child {
- -moz-border-radius-bottomleft:3px;
- -webkit-border-bottom-left-radius:3px;
- border-bottom-left-radius:3px;
-}
-table tr:last-child td:last-child {
- -moz-border-radius-bottomright:3px;
- -webkit-border-bottom-right-radius:3px;
- border-bottom-right-radius:3px;
-}
-table tr:hover td {
- background: #f3f4eb;
- background: -webkit-gradient(linear, left top, left bottom, from(#f3f4eb), to(#eeefe9));
- background: -moz-linear-gradient(top, #f3f4eb, #eeefe9); 
-}
-#toTopBtn {
-  display: none;
-  position: fixed;
-  bottom: 15px;
-  right: 15px;
-  z-index: 99;
-  border: none;
-  border-radius: 10px;
-  outline: none;
-  opacity: .25;
-  background-color: white;
-  cursor: pointer;
-}
-#toTopBtn:hover {
-  opacity: .75;
-}
-div.chapter {
-  -moz-border-radius:8px;
-  -webkit-border-radius:8px;
-  border-radius:8px;
-  padding: 1px 5px 1px 5px;
-}
-div.chapter:hover {
- background:#e3eac9;
-}
-"""
 
 # Javascripts
 _KTopJsScript = """
@@ -351,7 +189,7 @@ window.onload=function(){
   // based on https://gist.github.com/paulirish/1343518
   (function(){
       [].forEach.call( document.querySelectorAll('[markdown-text]'), function fn(elem){
-          elem.innerHTML = (new showdown.Converter()).makeHtml(unescapeHTML(elem.innerHTML));
+          elem.innerHTML = (new showdown.Converter({'strikethrough':'true'})).makeHtml(unescapeHTML(elem.innerHTML));
       });
   }());
 }
@@ -370,9 +208,7 @@ _KHtmlQuizz = """
     <meta name="description" content="{{title}}"/>
     <meta name="keywords" content="chant, cri, oiseau, ornithologie, oreille, identification, quiz, {{keywords}}"/>
     <meta name="datetime" contents="{{genDateTime}}"/>
-    <style type="text/css" media="screen">
-      {{stylesCss}}
-    </style>
+    <link rel="stylesheet" type="text/css" href="{{dossierAttache}}/quizz.css">
     <script type="text/javascript" src="{{dossierAttache}}/showdown.min.js"></script>
     <script>
       {{topJsScript}}
@@ -443,6 +279,10 @@ _KHtmlQuizz = """
 
       <h2 id="{{quiz.id}}">{{quiz.titre}}</h2>
       <div style="margin-left: 10px">
+
+    <div markdown-text class="chapter">
+{{quiz.intro}}
+    </div>
 
         {% for etape in etapes %}
         
@@ -700,7 +540,7 @@ def buildHtmlPage(titre, sousTitre, description, motsClef, preambule, quizz, eta
                           preambule=preambule, quizz=quizz, etapes=etapes,
                           remerciements=remerciements, attributions=attributions,
                           dossierAttache=dossierAttache, dossierSons=dossierSons, images=images, effort=effort,
-                          stylesCss=_KStylesCss, topJsScript=_KTopJsScript, botJsScript=_KBotJsScript,
+                          topJsScript=_KTopJsScript, botJsScript=_KBotJsScript,
                           notebook=notebook, genDateTime=dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
 
     chemFicCible = os.path.join('.', '{}{}.html'.format(prefixeFicCible, '.local' if dossierSons != '.' else ''))
