@@ -53,6 +53,14 @@ class Descripteur(object):
             
         return mdText
 
+    def _substVars(self, mdText, **vars):
+        
+        for name, value in vars.items():
+            
+            mdText = mdText.replace('{{'+name+'}}', str(value))
+        
+        return mdText
+        
 class DescripteurQuizz(Descripteur):
     
     def __init__(self, id, titre, intro, publier, exercices, anecdotes):
@@ -120,7 +128,7 @@ class DescripteurEnregistrement(Descripteur):
 class DescripteurExercice(DescripteurEnregistrement):
     
     def __init__(self, index, id, titre, lieu, date, heure, altitude, auteur, licence,
-                       fichierSon, dossierSons, duree, milieux, etapes):
+                       fichierSon, dossierSons, dossierAttache, duree, milieux, etapes):
         
         super().__init__(index, id, titre, auteur, licence, fichierSon, dossierSons)
         
@@ -130,15 +138,18 @@ class DescripteurExercice(DescripteurEnregistrement):
         self.altitude = altitude
         self.duree = duree
         self.milieux = self._rootIndentMD(milieux)
-        self.etapes = { id : self._rootIndentMD(text) for id, text in etapes.items() }
+        dVars = dict(dossierSons=dossierSons, dossierAttache=dossierAttache)
+        self.etapes = { id : self._substVars(self._rootIndentMD(text), **dVars) \
+                       for id, text in etapes.items() }
         
 class DescripteurAnecdote(DescripteurEnregistrement):
     
-    def __init__(self, index, id, titre, auteur, licence, fichierSon, dossierSons, texte):
+    def __init__(self, index, id, titre, auteur, licence, fichierSon, dossierSons, dossierAttache, texte):
         
         super().__init__(index, id, titre, auteur, licence, fichierSon, dossierSons)
         
-        self.texte = self._rootIndentMD(texte)
+        dVars = dict(dossierSons=dossierSons, dossierAttache=dossierAttache)
+        self.texte = self._substVars(self._rootIndentMD(texte), **dVars)
 
 # Javascripts
 _KTopJsScript = """
@@ -325,7 +336,7 @@ _KHtmlQuizz = """
                 <h4 id="{{quiz.id}}.{{exr.id}}" style="margin-bottom: 0">{{exr.index}}. {{exr.titre}}</h4>
                 <div class="chapter" style="margin-left: 10px"> <!-- contenu exercice -->
   
-                  <p>{{exr.lieu}} (altitude {{exr.altitude}} m), {{exr.date}} ({{exr.duree}})</p>
+                  <p>{{exr.lieu}} (altitude {{exr.altitude}} m), {{exr.date}} ({{exr.duree}}).</p>
   
                   <div markdown-text>
 {{exr.milieux}}
@@ -534,7 +545,7 @@ seule leur couleur - noire à l'origine - a été modifiée (en vert).
 def buildHtmlPage(titre, sousTitre, description, motsClef, preambule, quizz, etapes, remerciements, effort,
                   attributions, images, dossierSons, dossierAttache,
                   notebook='Quizz.ipynb', prefixeFicCible='quizz'):
-    preambule = jinja2.Template(preambule).render(dossierAttache=dossierAttache)
+    preambule = jinja2.Template(preambule).render(dossierAttache=dossierAttache, dossierSons=dossierSons)
     html = jinja2.Template(_KHtmlQuizz) \
                   .render(titre=titre, sousTitre=sousTitre, description=description, motsClef=motsClef,
                           preambule=preambule, quizz=quizz, etapes=etapes,
