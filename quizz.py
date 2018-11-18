@@ -117,13 +117,16 @@ class DescripteurEnregistrement(Descripteur):
     
     def lecteurHtml(self, dossierSons):
         
-        return """<span>
+        return jinja2.Template("""
+                <span>
                   <audio controls>
-                    <source src="{dos}/{fic}" type="audio/mpeg" />
+                    <source src="{{dos}}/{{fic}}" type="audio/mpeg" />
                   </audio>
-                  <a style="font-size: 125%" href="{url}" target="_blank">{url}</a>
-                  </span>
-               """.format(dos=dossierSons, fic=self.fichierSon, url=self.urlPageSon)
+                  {% if url %}
+                    <a style="font-size: 125%" href="{{url}}" target="_blank">{{url}}</a>
+                  {% endif %}
+                </span>
+               """).render(dos=dossierSons, fic=self.fichierSon, url=self.urlPageSon)
     
 class DescripteurExercice(DescripteurEnregistrement):
     
@@ -265,7 +268,7 @@ _KHtmlQuizz = """
                 </ol>
               {% endfor %}
               <li><a href="#licence">Licence / Auteur</a></li>
-              <li><a href="#remerciements">Remerciements</a></li>
+              <li><a href="#re*ements">Remerciements</a></li>
               <li><a href="#attributions">Emprunts / Attributions</a></li>
             </ol>
           </div>
