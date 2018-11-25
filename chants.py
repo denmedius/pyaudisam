@@ -5,6 +5,9 @@
 # A partir :
 #  * d'un dossier de fichiers sons bien nommés
 #  * de textes HTML de description du groupe d'espèces, des espèces elles-mêmes et de leurs manifestations sonores.
+#
+# Auteur : Jean-Philippe Meuret (http://jpmeuret.free.fr/nature.html)
+# Licence : CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr)
 
 import os
 import codecs
