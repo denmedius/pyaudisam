@@ -4,6 +4,9 @@
 #
 # A partir de textes markdown d'annonce (question), d'indices et de solution (réponse),
 # pour chaque exercice = 1 enregistrement sonore (MP3) et son contexte (date, lieu, auteur, ...)
+#
+# Auteur : Jean-Philippe Meuret (http://jpmeuret.free.fr/nature.html)
+# Licence : CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr)
 
 import os
 import sys
@@ -154,7 +157,37 @@ class DescripteurAnecdote(DescripteurEnregistrement):
         dVars = dict(dossierSons=dossierSons, dossierAttache=dossierAttache)
         self.texte = self._substVars(self._rootIndentMD(texte), **dVars)
 
-# Javascripts
+# Appelle de l'API Xeno-Canto avec un numéro d'enregistrement
+# et affiche et renvoie qq infos à copier & coller dans le NB,
+# ainsi qu'un lecteur audio et un lien cliquable vers la page de l'enregistrement.
+# Usage: HTML(infosEnregXC(nr=416636))
+def infosEnregXC(nr):
+    
+    rep = requests.get(url='http://www.xeno-canto.org/api/2/recordings', 
+                       params=dict(query='nr:{}'.format(nr)))
+    rep.raise_for_status()
+    dRep = rep.json()
+
+    assert len(dRep['recordings']) == 1
+    dRec = dRep['recordings'][0]
+
+    dRec.update(alt=9999, dur=9999)
+    spRec = dRec['rec'].split()
+    dRec.update(id_rec='???????', ab_rec=spRec[0][0]+''.join(spRec[1:]))
+    dRec.update(date_c=dRec['date'].replace('-', ''), 
+                time_c=('0' if len(dRec['time']) < 5 else '') + dRec['time'].replace(':', ''))
+    dRec.update(date=dt.datetime.strptime(dRec['date'], '%Y-%m-%d').strftime('%w %b %Y'))
+    print("""
+  lieu="{loc}", altitude={alt},
+  date="{date}", heure="{time}", duree="{dur}",
+  auteur="<a href=\\\"https://www.xeno-canto.org/contributor/{id_rec}\\\" target=\\\"_blank\\\">{rec}</a>",
+  licence="<a href=\\\"https:{lic}\\\" target=\\\"_blank\\\">CC BY-NC-??</a>",
+  fichierSon="XXIdEnreg-XXPays-{ab_rec}-{date_c}-{time_c}-XC{id}-mono-vbr5.mp3", # Nom fic. dans ./enregistrements
+    """.format(**dRec))
+
+    return 'Lien direct <a href="{url}">{url}</a>'.format(url=dRec['url'])
+
+# Code javascript intégré.
 _KTopJsScript = """
 // Show or hide some element (id) through :
 // * a Show link (<a id="<id>+'s'" ...),
