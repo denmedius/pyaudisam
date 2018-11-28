@@ -66,14 +66,15 @@ class Descripteur(object):
         
 class DescripteurQuizz(Descripteur):
     
-    def __init__(self, id, titre, intro, publier, exercices, anecdotes):
+    def __init__(self, id, titre, intro, publier, exercices, anecdotes, effort):
         
         self.id = id
-        self.titre = titre
-        self.intro = self._rootIndentMD(intro)
-        self.publier = publier
-        self.exercices = exercices
-        self.anecdotes = anecdotes
+        self.titre = titre # texte (+ HTML)
+        self.intro = self._rootIndentMD(intro) # texte Markdown
+        self.publier = publier # { étape (infra, lancement, indices2) : booléen }
+        self.exercices = exercices # [ DescripteurExercice(...) ]
+        self.anecdotes = anecdotes # [ DescripteurAnecdote(...) ]
+        self.effort = effort # { étape (infra, lancement, indices2, reponse, anecdotes) : nb heures passées }
 
 class DescripteurEnregistrement(Descripteur):
     
@@ -81,10 +82,10 @@ class DescripteurEnregistrement(Descripteur):
         
         self.index = index
         self.id = id
-        self.titre = titre
-        self.auteur = auteur
-        self.licence = licence
-        self.fichierSon = fichierSon
+        self.titre = titre # texte (+ HTML)
+        self.auteur = auteur # texte (+ HTML)
+        self.licence = licence # texte (+ HTML)
+        self.fichierSon = fichierSon # nom fichier son (format mp3) dans ./enregistrements
         self.idSon, self.siteSon = self._sourceSon()
         self.urlTchSon, self.urlPageSon = self._urlsSon(dossierSons)
 
@@ -138,12 +139,12 @@ class DescripteurExercice(DescripteurEnregistrement):
         
         super().__init__(index, id, titre, auteur, licence, fichierSon, dossierSons)
         
-        self.lieu = lieu
-        self.date = date
-        self.heure = heure
-        self.altitude = altitude
-        self.duree = duree
-        self.milieux = self._rootIndentMD(milieux)
+        self.lieu = lieu # Texte (+ HTML)
+        self.date = date # Texte
+        self.heure = heure # Texte
+        self.altitude = altitude # Entier (m)
+        self.duree = duree # Texte libre
+        self.milieux = self._rootIndentMD(milieux) # Texte Markdown
         dVars = dict(dossierSons=dossierSons, dossierAttache=dossierAttache)
         self.etapes = { id : self._substVars(self._rootIndentMD(text), **dVars) \
                        for id, text in etapes.items() }
@@ -156,6 +157,7 @@ class DescripteurAnecdote(DescripteurEnregistrement):
         
         dVars = dict(dossierSons=dossierSons, dossierAttache=dossierAttache)
         self.texte = self._substVars(self._rootIndentMD(texte), **dVars)
+
 
 # Appelle de l'API Xeno-Canto avec un numéro d'enregistrement
 # et affiche et renvoie qq infos à copier & coller dans le NB,
@@ -186,6 +188,7 @@ def infosEnregXC(nr):
     """.format(**dRec))
 
     return 'Lien direct <a href="{url}">{url}</a>'.format(url=dRec['url'])
+
 
 # Code javascript intégré.
 _KTopJsScript = """
@@ -284,7 +287,7 @@ _KHtmlQuizz = """
                       {% if quiz.publier[etape.id] %}
                         <a href="#{{quiz.id}}.{{etape.id}}">{{etape.titre}}</a>
                       {% else %}
-                        {{etape.titre}} (... pour bientôt)
+                        {{etape.titre}} ... pas encore :-)
                       {% endif %}
                     </li>
                   {% endfor %}
