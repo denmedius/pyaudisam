@@ -250,15 +250,15 @@ _KHtmlQuizz = """
 <!DOCTYPE HTML>
 <head>
     <meta charset="utf-8">
-    <title>{{titre}}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, shrink-to-fit=no"/>
     <meta name="author" content="Jean-Philippe Meuret"/>
     <meta name="copyright" content="Jean-Philippe Meuret 2018"/>
     <meta name="license" content="CC BY NC SA"/>
     <meta name="description" content="{{title}}"/>
-    <meta name="keywords" content="chant, cri, oiseau, ornithologie, oreille, identification, quiz, {{keywords}}"/>
+    <meta name="keywords" content="oiseau, chant, cri, oreille, identification, quiz, ornithologie, {{keywords}}"/>
     <meta name="datetime" contents="{{genDateTime}}"/>
-    <link rel="stylesheet" type="text/css" href="{{dossierAttache}}/quizz.css">
+    <title>{{titre}}</title>
+    <link rel="stylesheet" media="screen" type="text/css" href="{{dossierAttache}}/quizz.css">
     <script type="text/javascript" src="{{dossierAttache}}/showdown.min.js"></script>
     <script>
       {{topJsScript}}
@@ -293,13 +293,15 @@ _KHtmlQuizz = """
                   {% endfor %}
                 </ol>
                 <ol style="list-style-type: upper-latin">
-                  {% if quiz.anecdotes %}
-                  <li><a href="#{{quiz.id}}.Anecdotes">Pour l'anecdote ...</a></li>
-                  <ol style="list-style-type: none">
-                    {% for anecd in quiz.anecdotes %}
-                      <li><a href="#{{quiz.id}}.{{anecd.id}}">{{anecd.index}}. {{anecd.titre}}</a></li>
-                    {% endfor %}
-                  </ol>
+                  {% if quiz.anecdotes|length > 1 %}
+                    <li><a href="#{{quiz.id}}.Anecdotes">Pour l'anecdote ...</a></li>
+                    <ol style="list-style-type: none">
+                      {% for anecd in quiz.anecdotes %}
+                        <li><a href="#{{quiz.id}}.{{anecd.id}}">{{anecd.index}}. {{anecd.titre}}</a></li>
+                      {% endfor %}
+                    </ol>
+                  {% elif quiz.anecdotes|length == 1 %}
+                    <li><a href="#{{quiz.id}}.Anecdote">Pour l'anecdote ... {{quiz.anecdotes[0].titre}}</a></li>
                   {% endif %}
                 </ol>
               {% endfor %}
@@ -347,14 +349,12 @@ _KHtmlQuizz = """
               {% if not etapes_loop.first %}
 
                 <a href="javascript:show('d{{quiz.id}}.{{etape.id}}')" id="d{{quiz.id}}.{{etape.id}}s">
-                  <img height="32" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer"
-                       title="cliquez pour voir la suite si elle est déjà publiée"/>
+                  <img height="32" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Montrer" />
                   cliquez pour voir la suite (MAIS ... uniquement si vous avez bien cherché !)
                 </a>
                 <div id="d{{quiz.id}}.{{etape.id}}" style="display: none">
                   <a href="javascript:hide('d{{quiz.id}}.{{etape.id}}')">
-                    <img height="32" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Cacher"
-                         title="cliquez pour cacher la suite"/>
+                    <img height="32" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Cacher" />
                     cliquez pour cacher la suite
                   </a>
 
@@ -390,8 +390,7 @@ _KHtmlQuizz = """
                       </td>
                       <td>
                         <a href="{{exr.urlTchSon}}" download>
-                          <img height="20" src="{{dossierAttache}}/fa-download-solid.svg" alt="Télécharger"
-                               title="Télécharger"/>
+                          <img height="20" src="{{dossierAttache}}/fa-download-solid.svg" alt="Télécharger" />
                         </a>
                       </td>
                       <td>
@@ -443,12 +442,25 @@ _KHtmlQuizz = """
 
         {% if quiz.anecdotes %}
 
-          <h3 id="{{quiz.id}}.Anecdotes" style="padding-top: 20px">A. Pour l'anecdote ...</h4>
-          <div style="margin-left: 10px; margin-top: 20px">
+          {% if quiz.anecdotes|length > 1 %}
+
+            <h3 id="{{quiz.id}}.Anecdotes" style="padding-top: 20px">A. Pour l'anecdote ...</h3>
+            <div style="margin-left: 10px; margin-top: 20px">
+
+          {% else %}
+
+            <h3 id="{{quiz.id}}.Anecdote" style="padding-top: 20px">A. Pour l'anecdote ... {{quiz.anecdotes[0].titre}}</h3>
+            
+          {% endif %}
 
           {% for anecd in quiz.anecdotes %}
 
-            <h4 id="{{quiz.id}}.{{anecd.id}}" style="margin-bottom: 0">{{anecd.index}}. {{anecd.titre}}</h4>
+            {% if quiz.anecdotes|length > 1 %}
+
+              <h4 id="{{quiz.id}}.{{anecd.id}}" style="margin-bottom: 0">{{anecd.index}}. {{anecd.titre}}</h4>
+            
+            {% endif %}
+
             <div class="chapter" style="margin-left: 10px">
 
               <table>
@@ -460,8 +472,7 @@ _KHtmlQuizz = """
                   </td>
                   <td>
                     <a href="{{anecd.urlTchSon}}" download>
-                      <img height="20" src="{{dossierAttache}}/fa-download-solid.svg" alt="Télécharger"
-                           title="Télécharger"/>
+                      <img height="20" src="{{dossierAttache}}/fa-download-solid.svg" alt="Télécharger" />
                     </a>
                   </td>
                   <td>
@@ -569,7 +580,7 @@ seule leur couleur - noire à l'origine - a été modifiée (en vert).
 
   </div>
 
-  <button onclick="scrollToTop()" id="toTopBtn" title="Remonter" alt="Remonter">
+  <button onclick="scrollToTop()" id="toTopBtn" title="Haut de page">
     <img width="64" height="64" src="{{dossierAttache}}/fa-angle-up.svg"/>
   </button>
 
