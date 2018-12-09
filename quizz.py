@@ -306,21 +306,20 @@ _KHtmlQuizz = """
                 </ol>
               {% endfor %}
               <li><a href="#licence">Licence / Auteur</a></li>
-              <li><a href="#re*ements">Remerciements</a></li>
-              <li><a href="#attributions">Emprunts / Attributions</a></li>
+              <li><a href="#attribs-mercis">Remerciements et attributions</a></li>
             </ol>
           </div>
         </td>
         <td style="align: right">
           {% for img in images.imgTMat %}
             <img src="{{dossierAttache}}/{{img.img}}"/>
-            <h6 style="text-align: right; margin: 0 0 0 0; padding: 0 0 0 0">{{img.legend}}</h6>
+            <h6 style="text-align: right; margin: 0; padding: 0">{{img.legend}}</h6>
           {% endfor %}
         </td>
       </tr>
     </table>
 
-    <h2 id="preambule" style="margin-bottom: 0">Préambule</h2>
+    <h2 id="preambule">Préambule</h2>
     <div markdown-text class="chapter" style="margin-left: 10px">
 
 {{preambule}}
@@ -328,6 +327,8 @@ _KHtmlQuizz = """
     </div>
     
     {% for quiz in quizz %}
+
+      <img class="center" height="32" src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
       <h2 id="{{quiz.id}}">{{quiz.titre}}</h2>
       <div style="margin-left: 10px">
@@ -372,7 +373,7 @@ _KHtmlQuizz = """
   
               {% for exr in quiz.exercices %}
   
-                <h4 id="{{quiz.id}}.{{exr.id}}" style="margin-bottom: 0">{{exr.index}}. {{exr.titre}}</h4>
+                <h4 id="{{quiz.id}}.{{exr.id}}">{{exr.index}}. {{exr.titre}}</h4>
                 <div class="chapter" style="margin-left: 10px"> <!-- contenu exercice -->
   
                   <p>{{exr.lieu}} (altitude {{exr.altitude}} m), {{exr.date}} ({{exr.duree}}).</p>
@@ -457,7 +458,7 @@ _KHtmlQuizz = """
 
             {% if quiz.anecdotes|length > 1 %}
 
-              <h4 id="{{quiz.id}}.{{anecd.id}}" style="margin-bottom: 0">{{anecd.index}}. {{anecd.titre}}</h4>
+              <h4 id="{{quiz.id}}.{{anecd.id}}">{{anecd.index}}. {{anecd.titre}}</h4>
             
             {% endif %}
 
@@ -504,11 +505,11 @@ _KHtmlQuizz = """
 
     {% endfor %} <!-- quiz in quizz -->
 
-    <h2 id="licence" style="margin-bottom: 0">Licence / Auteur</h2>
-    <div class="chapter" style="margin-left: 10px">
+    <h2 id="licence">Licence / Auteur</h2>
+    <div class="chapter" style="margin-left: 10px; margin-top: 10px">
 
       <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.fr" target="_blank">
-        <img height="48" src="{{dossierAttache}}/by-nc-sa.eu.svg" alt="Creative Commons BY NC SA 4.0"/>
+        <img height="36" src="{{dossierAttache}}/by-nc-sa.eu.svg" alt="Creative Commons BY NC SA 4.0"/>
       </a>
       
       <div markdown-text>
@@ -533,7 +534,7 @@ Attention cependant aux licences potentiellement plus restrictives :
 
     </div>
 
-    <h2 id="remerciements" style="margin-bottom: 0">Remerciements</h2>
+    <h2 id="attribs-mercis">Remerciements et attributions</h2>
     <div class="chapter" style="margin-left: 10px">
 
       <div markdown-text>
@@ -543,31 +544,20 @@ provient du site <a href="https://www.xeno-canto.org/" target="_blank">xeno-cant
 un grand merci aux ornithologues qui ont bien voulu partager leurs trouvailles
 et ainsi rendre cette publication possible.</p>
 
-{{remerciements}}
+{{attribsEtMercis}}
 
-      </div>
-      
-    </div>
-
-    <h2 id="attributions" style="margin-bottom: 0">Emprunts / Attributions</h2>
-    <div class="chapter" style="margin-left: 10px">
-
-      <div markdown-text>
-      
-Les icônes des petits yeux 'Cacher / Montrer l'étape suivante' et du bouton de téléchargement,
-ainsi que le chevron vertical du bouton de retour en haut de page sont l'oeuvre de
-<a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
-et sont distribuées selon la licence
-<a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a> ;
+Merci enfin au projet <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
+qui produit et distribue gratuitement, sous la licence
+<a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a>,
+des icônes et pictogrammes comme les petits yeux 'Cacher / Montrer l'étape suivante', le bouton de téléchargement,
+la plume séparant les quizz et le chevron vertical du bouton de retour en haut de page ;
 seule leur couleur - noire à l'origine - a été modifiée (en vert).
          
-{{attributions}}
-
       </div>
       
     </div>
 
-    <h6>
+    <h6 style="margin-bottom: 10px">
       Page générée via <a href="https://www.python.org/" target="_blank">Python 3</a>,
       <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>,
       <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
@@ -592,14 +582,13 @@ seule leur couleur - noire à l'origine - a été modifiée (en vert).
 """
 
 # Fonction principale de générationde la page.
-def buildHtmlPage(titre, sousTitre, description, motsClef, preambule, quizz, etapes, remerciements, effort,
-                  attributions, images, dossierSons, dossierAttache,
-                  notebook='Quizz.ipynb', prefixeFicCible='quizz'):
+def buildHtmlPage(titre, sousTitre, description, motsClef, preambule, quizz, etapes, attribsEtMercis, effort,
+                  images, dossierSons, dossierAttache, notebook='Quizz.ipynb', prefixeFicCible='quizz'):
+    
     preambule = jinja2.Template(preambule).render(dossierAttache=dossierAttache, dossierSons=dossierSons)
     html = jinja2.Template(_KHtmlQuizz) \
                   .render(titre=titre, sousTitre=sousTitre, description=description, motsClef=motsClef,
-                          preambule=preambule, quizz=quizz, etapes=etapes,
-                          remerciements=remerciements, attributions=attributions,
+                          preambule=preambule, quizz=quizz, etapes=etapes, attribsEtMercis=attribsEtMercis,
                           dossierAttache=dossierAttache, dossierSons=dossierSons, images=images, effort=effort,
                           topJsScript=_KTopJsScript, botJsScript=_KBotJsScript,
                           notebook=notebook, genDateTime=dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
