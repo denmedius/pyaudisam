@@ -21,7 +21,7 @@ import jinja2
 
 import pandas as pd
 
-import lxml.html
+import requests
 
 
 # Descripteurs.
@@ -178,16 +178,17 @@ def infosEnregXC(nr):
     dRec.update(id_rec='???????', ab_rec=spRec[0][0]+''.join(spRec[1:]))
     dRec.update(date_c=dRec['date'].replace('-', ''), 
                 time_c=('0' if len(dRec['time']) < 5 else '') + dRec['time'].replace(':', ''))
-    dRec.update(date=dt.datetime.strptime(dRec['date'], '%Y-%m-%d').strftime('%w %b %Y'))
+    dRec.update(date=dt.datetime.strptime(dRec['date'], '%Y-%m-%d').strftime('%d %B %Y'))
+    
     print("""
   lieu="{loc}", altitude={alt},
   date="{date}", heure="{time}", duree="{dur}",
   auteur="<a href=\\\"https://www.xeno-canto.org/contributor/{id_rec}\\\" target=\\\"_blank\\\">{rec}</a>",
   licence="<a href=\\\"https:{lic}\\\" target=\\\"_blank\\\">CC BY-NC-??</a>",
-  fichierSon="XXIdEnreg-XXPays-{ab_rec}-{date_c}-{time_c}-XC{id}-mono-vbr5.mp3", # Nom fic. dans ./enregistrements
+  fichierSon="XXIdEnreg-XXPays-{ab_rec}-{date_c}-{time_c}-XC{id}-mono-vbrX.mp3", # Nom fic. dans ./enregistrements
     """.format(**dRec))
 
-    return 'Lien direct <a href="{url}">{url}</a>'.format(url=dRec['url'])
+    return 'Lien direct <a href="{url}" target="_blank">{url}</a> (nouvel onglet)'.format(url=dRec['url'])
 
 
 # Code javascript intégré.
