@@ -123,7 +123,7 @@ class DescripteurEnregistrement(Descripteur):
         
         return jinja2.Template("""
                 <span>
-                  <audio controls>
+                  <audio controls style="min-width:800px">
                     <source src="{{dos}}/{{fic}}" type="audio/mpeg" />
                   </audio>
                   {% if url %}
@@ -251,7 +251,6 @@ _KHtmlQuizz = """
 <!DOCTYPE HTML>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, shrink-to-fit=no"/>
     <meta name="author" content="Jean-Philippe Meuret"/>
     <meta name="copyright" content="Jean-Philippe Meuret 2018"/>
     <meta name="license" content="CC BY NC SA"/>
@@ -275,7 +274,7 @@ _KHtmlQuizz = """
 
     <table>
       <tr>
-        <td>
+        <td style="min-width: 320px" >
           <h2>Table des matières</h2>
           <div style="margin-left: 10px">
             <ol style="list-style-type: upper-roman">
@@ -313,8 +312,8 @@ _KHtmlQuizz = """
         </td>
         <td style="align: right">
           {% for img in images.imgTMat %}
-            <img src="{{dossierAttache}}/{{img.img}}"/>
-            <h6 style="text-align: right; margin: 0; padding: 0">{{img.legend}}</h6>
+            <img class="shrinkable" src="{{dossierAttache}}/{{img.img}}"/>
+            <p style="text-align: right; margin: 0; padding: 0">{{img.legend}}</p>
           {% endfor %}
         </td>
       </tr>
@@ -386,8 +385,8 @@ _KHtmlQuizz = """
                   <table>
                     <tr>
                       <td>
-                        <audio controls>
-                          <source src="{{exr.urlTchSon}}" type="audio/mp3" preload="none"/>
+                        <audio controls class="audio-player">
+                          <source src="{{exr.urlTchSon}}" type="audio/mpeg" preload="none"/>
                         </audio>
                       </td>
                       <td>
@@ -468,8 +467,8 @@ _KHtmlQuizz = """
               <table>
                 <tr>
                   <td>
-                    <audio controls>
-                      <source src="{{anecd.urlTchSon}}" type="audio/mp3" preload="none"/>
+                    <audio controls class="audio-player">
+                      <source src="{{anecd.urlTchSon}}" type="audio/mpeg" preload="none"/>
                     </audio>
                   </td>
                   <td>
