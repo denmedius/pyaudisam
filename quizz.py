@@ -122,14 +122,12 @@ class DescripteurEnregistrement(Descripteur):
     def lecteurHtml(self, dossierSons):
         
         return jinja2.Template("""
-                <span>
-                  <audio controls style="min-width:800px">
+                <audio controls style="min-width:720px">
                     <source src="{{dos}}/{{fic}}" type="audio/mpeg" />
-                  </audio>
-                  {% if url %}
-                    <a style="font-size: 125%" href="{{url}}" target="_blank">{{url}}</a>
-                  {% endif %}
-                </span>
+                </audio>
+                {% if url %}
+                  <a href="{{url}}" target="_blank">{{url}}</a>
+                {% endif %}
                """).render(dos=dossierSons, fic=self.fichierSon, url=self.urlPageSon)
     
 class DescripteurExercice(DescripteurEnregistrement):
@@ -274,7 +272,7 @@ _KHtmlQuizz = """
 
     <table>
       <tr>
-        <td style="min-width: 320px" >
+        <td style="min-width: 320px">
           <h2>Table des matières</h2>
           <div style="margin-left: 10px">
             <ol style="list-style-type: upper-roman">
@@ -319,6 +317,9 @@ _KHtmlQuizz = """
       </tr>
     </table>
 
+    <img class="center" height="32" style="margin-top: 10px"
+         src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
+
     <h2 id="preambule">Préambule</h2>
     <div markdown-text class="chapter" style="margin-left: 10px">
 
@@ -328,7 +329,8 @@ _KHtmlQuizz = """
     
     {% for quiz in quizz %}
 
-      <img class="center" height="32" src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
+      <img class="center" height="32" style="margin-top: 10px"
+           src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
       <h2 id="{{quiz.id}}">{{quiz.titre}}</h2>
       <div style="margin-left: 10px">
@@ -505,6 +507,9 @@ _KHtmlQuizz = """
 
     {% endfor %} <!-- quiz in quizz -->
 
+    <img class="center" height="32" style="margin-top: 10px"
+         src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
+
     <h2 id="licence">Licence / Auteur</h2>
     <div class="chapter" style="margin-left: 10px; margin-top: 10px">
 
@@ -534,6 +539,9 @@ Attention cependant aux licences potentiellement plus restrictives :
 
     </div>
 
+    <img class="center" height="32" style="margin-top: 10px"
+         src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
+
     <h2 id="attribs-mercis">Remerciements et attributions</h2>
     <div class="chapter" style="margin-left: 10px">
 
@@ -549,13 +557,20 @@ et ainsi rendre cette publication possible.</p>
 Merci enfin au projet <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
 qui produit et distribue gratuitement, sous la licence
 <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a>,
-des icônes et pictogrammes comme les petits yeux 'Cacher / Montrer l'étape suivante', le bouton de téléchargement,
-la plume séparant les quizz et le chevron vertical du bouton de retour en haut de page ;
-seule leur couleur - noire à l'origine - a été modifiée (en vert).
+des icônes et pictogrammes "trop stylés", dont
+<img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Icône Montrer" />,
+<img height="16" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Icône Cacher" />,
+<img height="16" src="{{dossierAttache}}/fa-download-solid.svg" alt="Icône Télécharger" />,
+<img height="16" src="{{dossierAttache}}/fa-feather-alt.svg" alt="Icône Séparateur" /> et
+<img width="16" height="16" src="{{dossierAttache}}/fa-angle-up.svg" alt="Icône Haut de page" />,
+dont j'ai simplement changé la couleur, noire à l'origine, en vert (forcément).
          
       </div>
       
     </div>
+
+    <img class="center" height="32" style="margin-top: 10px"
+         src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h6 style="margin-bottom: 10px">
       Page générée via <a href="https://www.python.org/" target="_blank">Python 3</a>,
