@@ -240,189 +240,6 @@ def _planGeneralites(html2Parse, tag2List='h3'):
 
     return htmlToc
 
-# Styles CSS
-_KStylesCss = """
-html, body {
- margin: 0;
- padding: 0;
-}
-body {
- background-color: #e8efd1;
- font-family: Arial, Helvetica, sans-serif;
- font-size: 100%;
-}
-h1 {
- font-size: 480%; 
- color: #244c0c; 
- text-align: center;
-}
-h2 {
- font-size: 240%; 
- color: #244c0c; 
-}
-h3 {
- font-size: 160%; 
- color: #244c0c;
-}
-h4 {
- font-size: 120%; 
- color: #244c0c; 
-}
-h5 {
- font-size: 100%; 
- color: #244c0c; 
-}
-h6 {
- font-size: 80%; 
- color: #244c0c; 
-}
-p {
- color: #244c0c; 
-}
-ul,ol,li,td {
- color: #244c0c; 
-}
-a:link {
- color: #2f7404;
- font-weight: bold;
- text-decoration:underline;
-}
-a:visited {
- color: #379000;
- font-weight:bold;
- text-decoration:underline;
-}
-a:active,
-a:hover {
- color: #bd5a35;
- text-decoration:underline;
-}
-
-table a:link {
- color: #244c0c;
- font-weight: bold;
- text-decoration:none;
-}
-table a:visited {
- color: #546122;
- font-weight:bold;
- text-decoration:none;
-}
-table a:active,
-table a:hover {
- color: #bd5a35;
- text-decoration:underline;
-}
-
-table {
- font-family:Arial, Helvetica, sans-serif;
- color:#244c0c;
- text-shadow: 1px 1px 0px #fff;
- background:#eaebec;
- margin: 15px 8px 0 8px;
- border: #ccc 1px solid;
-
- -moz-border-radius:3px;
- -webkit-border-radius:3px;
- border-radius:3px;
-
- -moz-box-shadow: 0 1px 2px #d1d1d1;
- -webkit-box-shadow: 0 1px 2px #d1d1d1;
- box-shadow: 0 1px 2px #d1d1d1;
-}
-table th {
- text-align: left;
- padding: 0 8px 0 8px;
- border-top: 1px solid #f9fbf3;
- border-bottom: 1px solid #dee5ca;
-
- background: #bcc380;
- background: -webkit-gradient(linear, left top, left bottom, from(#bcc380), to(#e4eac8));
- background: -moz-linear-gradient(top, #bcc380, #e4eac8);
-}
-table th:first-child {
- text-align: left;
- padding-left: 10px;
-}
-table tr:first-child th:first-child {
- -moz-border-radius-topleft:3px;
- -webkit-border-top-left-radius:3px;
- border-top-left-radius:3px;
-}
-table tr:first-child th:last-child {
- -moz-border-radius-topright:3px;
- -webkit-border-top-right-radius:3px;
- border-top-right-radius:3px;
-}
-table tr {
- text-align: left;
- padding: 0 12px 0 0;
-}
-table td:first-child {
- text-align: left;
- padding-left: 10px;
- border-left: 0;
-}
-table td {
- padding: 8px 8px 8px 10px;
- border-top: 1px solid #ffffff;
- border-bottom: 1px solid #dee5ca;
- border-left: 1px solid #dee5ca;
-
- background: #f9fbf3;
- background: -webkit-gradient(linear, left top, left bottom, from(#f8f9f6), to(#f9fbf3));
- background: -moz-linear-gradient(top,  #f8f9f6,  #f9fbf3);
-}
-table tr.even td {
- background: #f6f6f6;
- background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f6f6f6));
- background: -moz-linear-gradient(top,  #f8f8f8,  #f6f6f6);
-}
-table tr:last-child td {
- border-bottom:0;
-}
-table tr:last-child td:first-child {
- -moz-border-radius-bottomleft:3px;
- -webkit-border-bottom-left-radius:3px;
- border-bottom-left-radius:3px;
-}
-table tr:last-child td:last-child {
- -moz-border-radius-bottomright:3px;
- -webkit-border-bottom-right-radius:3px;
- border-bottom-right-radius:3px;
-}
-table tr:hover td {
- background: #f3f4eb;
- background: -webkit-gradient(linear, left top, left bottom, from(#f3f4eb), to(#eeefe9));
- background: -moz-linear-gradient(top, #f3f4eb, #eeefe9); 
-}
-#toTopBtn {
-  display: none;
-  position: fixed;
-  bottom: 15px;
-  right: 15px;
-  z-index: 99;
-  border: none;
-  border-radius: 10px;
-  outline: none;
-  opacity: .25;
-  background-color: white;
-  cursor: pointer;
-}
-#toTopBtn:hover {
-  opacity: .75;
-}
-div.chapter {
-  -moz-border-radius:8px;
-  -webkit-border-radius:8px;
-  border-radius:8px;
-  padding: 1px 5px 1px 5px;
-}
-div.chapter:hover {
- background:#e3eac9;
-}
-"""
-
 # Javascripts
 _KScriptsJs = """
 // Show or hide some element (id) through :
@@ -462,17 +279,14 @@ _KHtmlGroupeEspeces = """
 <!DOCTYPE HTML>
 <head>
     <meta charset="utf-8">
-    <title>{{titre}}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="author" content="Jean-Philippe Meuret"/>
     <meta name="copyright" content="Jean-Philippe Meuret 2018"/>
     <meta name="license" content="CC BY NC SA"/>
     <meta name="description" content="{{title}}"/>
     <meta name="keywords" content="chant, cri, oiseau, ornithologie, oreille, identification, {{keywords}}"/>
     <meta name="datetime" contents="{{genDateTime}}"/>
-    <style type="text/css" media="screen">
-      {{stylesCss}}
-    </style>
+    <title>{{titre}}</title>
+    <link rel="stylesheet" media="screen" type="text/css" href="{{dossierAttache}}/chants.css">
     <script>
       {{scriptsJs}}
     </script>
@@ -485,10 +299,10 @@ _KHtmlGroupeEspeces = """
     
   <div style="margin-left: 15px">
     
-    <table>
+    <table style="min-width: 320px">
       <tr>
         <td>
-          <h2>Plan</h2>
+          <h2>Table des matières</h2>
           <div style="margin-left: 10px">
             <ol style="list-style-type: upper-roman">
                 <li><a href="#généralités">Généralités</a></li>
@@ -520,17 +334,23 @@ _KHtmlGroupeEspeces = """
         </td>
         <td style="align: right">
           {% for tocImg in images.tocImg %}
-            <img src="{{dossierAttache}}/{{tocImg.img}}"/>
-            <h6 style="text-align: right; margin: 0 0 0 0; padding: 0 0 0 0">{{tocImg.legend}}</h6>
+            <img class="shrinkable" src="{{dossierAttache}}/{{tocImg.img}}"/>
+            <p style="text-align: right; margin: 0 0 0 0; padding: 0 0 0 0">{{tocImg.legend}}</p>
           {% endfor %}
         </td>
       </tr>
     </table>
 
+    <img class="center" height="32" style="margin-top: 10px"
+         src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
+
     <h2 id="généralités">Généralités</h2>
     <div class="chapter" style="margin-left: 10px">
       {{generalites}}
     </div>
+
+    <img class="center" height="32" style="margin-top: 10px"
+         src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h2 id="détails">Détails sonores par espèce</h2>
     <div style="margin-left: 10px">
@@ -580,64 +400,21 @@ _KHtmlGroupeEspeces = """
       <h3 id="glossaire">Glossaire / Abréviations</h3>
       <div class="chapter" style="margin-left: 10px">
         <p>Signification des codes et abréviations utilisés dans la colonne "Description" des tableaux ci-après
-           (N.B. Cliquez sur les '?' présents dans cette colonne pour revenir directement ici
+           (N.B. Cliquez sur les '?' dans l'entête de cette colonne pour revenir directement ici
             si vous avez un trou de mémoire ;-).</p>
         <ul>
-          <li>ch : chant(s)</li>
-          <li>cr : cri(s)</li>
-          <li>crch : cri(s) similaire(s) au(x) chant(s) et/ou réciproquement,
-                     on ne sait pas décider si c'est un chant ou des cris,
-                     ou bien c'est un mélange des 2 (plusieurs individus)</li>
-          <li>t : tambour (pour les pics, et les grands singes ;-)</li>
-          <li>m : martellement(s)</li>
-          <li>ailes : bruit d'ailes, à l'envol ou au passage</li>
-          <li>comm : communautaire, en groupe</li>
-          <li>inq : inquiétude</li>
-          <li>al : alarme</li>
-          <li>extr : extrème (pour une alarme, par ex.)</li>
-          <li>par : parade</li>
-          <li>pours : poursuite</li>
-          <li>agress : agressif, agression</li>
-          <li>disp : dispute</li>
-          <li>intim : intime (couple)</li>
-          <li>alim : alimentaire</li>
-          <li>gagn : gagnage = en train de se nourrir</li>
-          <li>dort : dortoir</li>
-          <li>pul : pulli = poussins (au nid si nidicoles)</li>
-          <li>jvq : juvénile volant quémandant</li>
-          <li>jq : juvénile quémandant</li>
-          <li>juv : juvénile</li>
-          <li>ad : adulte</li>
-          <li>cp : couple</li>
-          <li>ind, indiv : individu</li>
-          <li>typ : typique, représentatif de l'espèce (pour un cri, un chant, un tambour)</li>
-          <li>imit : imite</li>
-          <li>rep : réponse, se répondent</li>
-          <li>pose : posé (= pas en vol !)</li>
-          <li>vol : en vol</li>
-          <li>age : âgé (pour un poussin = en fin d'élevage)</li>
-          <li>liq : liquide</li>
-          <li>elec : électrique</li>
-          <li>roule : roulé</li>
-          <li>vibr : vibré, vibration</li>
-          <li>fele : fêlé</li>
-          <li>accel : accéléré</li>
-          <li>tous : tous (les types de cris, par ex.)</li>
-          <li>prob : probable</li>
-          <li>poss : possible</li>
-          <li>deter : enregistrement déterioré par un traitement numérique quelconque (Cf. fph, debruit, ou autre),
-                      qui empêche ou complique la reconnaissance d'une ou plusieurs espèces, par ex.</li>
-          <li>debruit : enregistrement duquel on a soustrait une estimation du "bruit de fond"
-              (au mieux générateur de silences étranges, souvent assez déteriorant)</li>
-          <li>fph : enregistrement filtré passe-haut (basses fréquences supprimées ou atténuées)</li>
-          <li>doppler : effet Doppler (la hauteur des sons émis par un oiseau en rapprochement augmente,
-                                       et quand il s'éloigne, elle diminue)</li>
-          {{glossaireSpecifique}}
+          {% for expr, def in glossaire %}
+             <li>{{expr}} : {{def}},</li>
+          {% endfor %}
         </ul>
         
       </div>
 
       {% for esp in especes %}
+      
+        <img class="center" height="32" style="margin-top: 10px"
+             src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
+
         <h3 id="{{esp.id}}">{{esp.nom}} <i>({{esp.latin}})</i></h3>
         <div style="margin-left: 10px">
         
@@ -714,6 +491,9 @@ _KHtmlGroupeEspeces = """
       
     </div>
 
+    <img class="center" height="32" style="margin-top: 10px"
+         src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
+
     <h2 id="comparaisons">Comparaisons sonores en vis à vis</h2>
     <div style="margin-left: 10px">
     
@@ -785,13 +565,15 @@ _KHtmlGroupeEspeces = """
     
     </div>
 
+    <img class="center" height="32" style="margin-top: 10px"
+         src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
+
     <h2 id="quizz">Quizz sur concerts naturels</h2>
     <div class="chapter" style="margin-left: 10px">
     
-      <p>Des quizz progressifs et détaillés sont publiés sur des pages dédiées.</p>
-    
-      <p>Elles sont référencées sur <a href="http://jpmeuret.free.fr/nature.html" target="_blank">
-         ma page "Nature"</a> (chercher le mot "quiz").</p>
+      <p>Des quizz progressifs et détaillés sont publiés sur des pages dédiées
+         (cherchez le mot "quiz" sur <a href="http://jpmeuret.free.fr/nature.html" target="_blank">
+          ma page "Nature"</a>).</p>
     
     </div>
 
@@ -839,6 +621,16 @@ _KHtmlGroupeEspeces = """
     <h2 id="attributions">Emprunts / Attributions</h2>
     <div class="chapter" style="margin-left: 10px">
     
+      <p>Merci enfin au projet <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
+         qui produit et distribue gratuitement, sous la licence
+         <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a>,
+         des icônes et pictogrammes "trop stylés", dont
+         <img height="16" src="{{dossierAttache}}/fa-eye-regular.svg" alt="Icône Montrer" />,
+         <img height="16" src="{{dossierAttache}}/fa-eye-slash-regular.svg" alt="Icône Cacher" />,
+         <img height="16" src="{{dossierAttache}}/fa-feather-alt.svg" alt="Icône Séparateur" /> et
+         <img width="16" height="16" src="{{dossierAttache}}/fa-angle-up.svg" alt="Icône Haut de page" />,
+         dont j'ai simplement changé la couleur, noire à l'origine, en vert (forcément).</p>
+      
       <p>Les icônes des petits yeux 'Cacher / Montrer les espèces d'arrière plan'
          et le chevron vertical du bouton de retour en haut de page sont l'oeuvre de
          <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
@@ -867,6 +659,54 @@ _KHtmlGroupeEspeces = """
 </body>
 """
 
+KDGlossaire = \
+{
+  'accel' : 'accéléré',
+  'ad' : 'adulte',
+  'age' : 'âgé (pour un poussin = en fin d\'élevage)',
+  'agress' : 'agressif, agression',
+  'al' : 'alarme',
+  'alim' : 'alimentaire',
+  'ailes' : 'bruit d\'ailes, à l\'envol ou au passage',
+  'ch' : 'chant(s)',
+  'comm' : 'communautaire, en groupe',
+  'cp' : 'couple',
+  'cr' : 'cri(s)',
+  'crch' : 'cri(s) similaire(s) au(x) chant(s) et/ou réciproquement, on ne sait pas décider si c\'est un chant ou des cris, ou bien c\'est un mélange des 2 (plusieurs individus)',
+  'debruit' : 'enregistrement duquel on a soustrait une estimation du "bruit de fond" (au mieux générateur de silences étranges, souvent assez déteriorant)',
+  'deter' : 'enregistrement déterioré par un traitement numérique quelconque (Cf. fph, debruit, ou autre), qui empêche ou complique la reconnaissance d\'une ou plusieurs espèces, par ex.',
+  'disp' : 'dispute',
+  'doppler' : 'effet Doppler (la hauteur des sons émis par un oiseau en rapprochement augmente, et quand il s\'éloigne, elle diminue)',
+  'dort' : 'dortoir',
+  'elec' : 'électrique',
+  'extr' : 'extrème (pour une alarme, par ex.)',
+  'fele' : 'fêlé',
+  'fph' : 'enregistrement filtré passe-haut (basses fréquences supprimées ou atténuées)',
+  'gagn' : 'gagnage = en train de se nourrir',
+  'imit' : 'imite',
+  'ind, indiv' : 'individu',
+  'inq' : 'inquiétude',
+  'intim' : 'intime (couple)',
+  'jq' : 'juvénile quémandant',
+  'juv' : 'juvénile',
+  'jvq' : 'juvénile volant quémandant',
+  'liq' : 'liquide',
+  'm' : 'martellement(s)',
+  'rep' : 'réponse, se répondent',
+  'roule' : 'roulé',
+  'par' : 'parade',
+  'pose' : 'posé (= pas en vol !)',
+  'poss' : 'possible',
+  'pours' : 'poursuite',
+  'prob' : 'probable',
+  'pul' : 'pulli = poussins (au nid si nidicoles)',
+  't' : 'tambour (pour les pics, et les grands singes ;-)',
+  'tous' : 'tous (les types de cris, par ex.)',
+  'typ' : 'typique, représentatif de l\'espèce (pour un cri, un chant, un tambour)',
+  'vibr' : 'vibré, vibration',
+  'vol' : 'en vol'
+}
+
 # Fonction principale de générationde la page.
 def buildHtmlPage(titre, sousTitre, description, motsClef,
                   especes, generalites, specificites, glossaire, remerciements, effort,
@@ -875,6 +715,11 @@ def buildHtmlPage(titre, sousTitre, description, motsClef,
     
     dfSons = _lireDossierSons(cheminDossier=dossierSons, dEspeces=especes)
 
+    # Génération du glossaire complet, trié par entrée.
+    dGlossCompl = dict(KDGlossaire)
+    dGlossCompl.update(glossaire)
+    glossCompl = sorted(dGlossCompl.items())
+    
     # Première passe dans les textes.
     generalites = jinja2.Template(generalites).render(dossierAttache=dossierAttache)
     for esp in specificites:
@@ -891,10 +736,10 @@ def buildHtmlPage(titre, sousTitre, description, motsClef,
                                                 urlDossierSons=urlDossierSons),
                           typesManifs=_arbreTypesManifs(dfSons, especes, urlDossierSons=urlDossierSons),
                           generalites=generalites, planGeneralites=_planGeneralites(generalites),
-                          glossaireSpecifique=glossaire, remerciements=remerciements,
+                          glossaire=glossCompl, remerciements=remerciements,
                           attributions=attributions, ficTableauSynth=ficTableauSynth,
                           dossierAttache=dossierAttache, images=images, effort=effort,
-                          stylesCss=_KStylesCss, scriptsJs=_KScriptsJs, notebook=notebook,
+                          scriptsJs=_KScriptsJs, notebook=notebook,
                           genDateTime=dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
 
     chemFicCible = os.path.join('.', '{}{}.html'.format(prefixeFicCible, '.local' if urlDossierSons else ''))
