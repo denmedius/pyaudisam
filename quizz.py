@@ -34,6 +34,9 @@ class Descripteur(object):
         """Remove extra common heading blanks on every line + 1st line if empty
         """
         
+        if not mdText:
+            return ''
+        
         headSpaces = None
         for line in mdText.split('\n'):
             #print('"{}"'.format(line), end='')
@@ -252,8 +255,8 @@ _KHtmlQuizz = """
     <meta name="author" content="Jean-Philippe Meuret"/>
     <meta name="copyright" content="Jean-Philippe Meuret 2018"/>
     <meta name="license" content="CC BY NC SA"/>
-    <meta name="description" content="{{title}}"/>
-    <meta name="keywords" content="oiseau, chant, cri, oreille, identification, quiz, ornithologie, {{keywords}}"/>
+    <meta name="description" content="{{titre}}"/>
+    <meta name="keywords" content="oiseau, chant, cri, oreille, identification, quiz, ornithologie, {{motsClef}}"/>
     <meta name="datetime" contents="{{genDateTime}}"/>
     <title>{{titre}}</title>
     <link rel="stylesheet" media="screen" type="text/css" href="{{dossierAttache}}/quizz.css">
@@ -378,11 +381,14 @@ _KHtmlQuizz = """
                 <h4 id="{{quiz.id}}.{{exr.id}}">{{exr.index}}. {{exr.titre}}</h4>
                 <div class="chapter" style="margin-left: 10px"> <!-- contenu exercice -->
   
-                  <p>{{exr.lieu}} (altitude {{exr.altitude}} m), {{exr.date}} ({{exr.duree}}).</p>
+                  <p>{{exr.lieu}}{{ ' (altitude %d m)' % exr.altitude if exr.altitude is not none }},
+                     {{exr.date}} ({{exr.duree}}).</p>
   
-                  <div markdown-text>
+                  {% if exr.milieux %}
+                    <div markdown-text>
 {{exr.milieux}}
-                  </div>
+                    </div>
+                  {% endif %}
   
                   <table>
                     <tr>
@@ -596,7 +602,7 @@ dont j'ai simplement changé la couleur, noire à l'origine, en vert (forcément
 </body>
 """
 
-# Fonction principale de générationde la page.
+# Fonction principale de génération de la page.
 def buildHtmlPage(titre, sousTitre, description, motsClef, preambule, quizz, etapes, attribsEtMercis, effort,
                   images, dossierSons, dossierAttache, notebook='Quizz.ipynb', prefixeFicCible='quizz'):
     
