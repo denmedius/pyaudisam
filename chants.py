@@ -609,18 +609,20 @@ _KHtmlGroupeEspeces = """
     <h2 id="remerciements">Remerciements</h2>
     <div class="chapter" style="margin-left: 10px">
     
-      <p>Tous les enregistrements utilisés ici
-         proviennent du site <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a> :
+      {{remerciements}}
+                  
+      <p>Enfin, tous les enregistrements utilisés ici proviennent du site
+         <a href="https://www.xeno-canto.org/" target="_blank">xeno-canto.org</a> :
          un très grand merci aux ornithologues qui ont bien voulu partager leurs trouvailles
          et ainsi rendre cette publication possible.</p>
          
-      {{remerciements}}
-                  
     </div>
     
     <h2 id="attributions">Emprunts / Attributions</h2>
     <div class="chapter" style="margin-left: 10px">
     
+      {{attributions}}
+
       <p>Merci enfin au projet <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
          qui produit et distribue gratuitement, sous la licence
          <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a>,
@@ -631,13 +633,6 @@ _KHtmlGroupeEspeces = """
          <img width="16" height="16" src="{{dossierAttache}}/fa-angle-up.svg" alt="Icône Haut de page" />,
          dont j'ai simplement changé la couleur, noire à l'origine, en vert (forcément).</p>
       
-      <p>Les icônes des petits yeux 'Cacher / Montrer les espèces d'arrière plan'
-         et le chevron vertical du bouton de retour en haut de page sont l'oeuvre de
-         <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>,
-         et sont distribuées selon la licence
-         <a href="https://creativecommons.org/licenses/by/4.0/deed.fr" target="_blank">CC BY 4.0</a> ;
-         seule leur couleur - noire à l'origine - a été modifiée (en vert).</p>
-      {{attributions}}
     </div>
     
     <h6>
