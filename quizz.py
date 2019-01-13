@@ -398,7 +398,7 @@ _KHtmlQuizz = """
                         </audio>
                       </td>
                       <td>
-                        <a href="{{exr.urlTchSon}}" download>
+                        <a href="{{exr.urlTchSon}}" download="{{quiz.id}}-{{exr.id}}">
                           <img height="20" src="{{dossierAttache}}/fa-download-solid.svg" alt="Télécharger" />
                         </a>
                       </td>
