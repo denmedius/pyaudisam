@@ -282,10 +282,11 @@ _KHtmlGroupeEspeces = """
     <meta name="author" content="Jean-Philippe Meuret"/>
     <meta name="copyright" content="Jean-Philippe Meuret 2018"/>
     <meta name="license" content="CC BY NC SA"/>
-    <meta name="description" content="{{title}}"/>
-    <meta name="keywords" content="chant, cri, oiseau, ornithologie, oreille, identification, {{keywords}}"/>
+    <meta name="subtitle" content="{{sousTitre}}"/>
+    <meta name="description" content="{{description}}"/>
+    <meta name="keywords" content="chant, cri, oiseau, ornithologie, oreille, identification, {{motsCles}}"/>
     <meta name="datetime" contents="{{genDateTime}}"/>
-    <title>{{titre}}</title>
+    <title>{{titre}} ... à l'oreille !</title>
     <link rel="stylesheet" media="screen" type="text/css" href="{{dossierAttache}}/chants.css">
     <script>
       {{scriptsJs}}
@@ -294,12 +295,22 @@ _KHtmlGroupeEspeces = """
 
 <body>
 
-  <h1>{{titre}}</h1>
-  <h3 style="text-align: center">{{sousTitre}}</h3>
-    
+  <table id="title">
+    <tr>
+      <td style="font-size: 480%">{{titre}}</td>
+      <td style="font-size: 240%; margin-left:15px">... à l'oreille</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="font-size: 240%; text-align: center">{{sousTitre}}</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="font-size: 120%; text-align: center">{{description}}</td>
+    </tr>
+  </table>
+  
   <div style="margin-left: 15px">
     
-    <table style="min-width: 320px">
+    <table style="min-width: 320px; margin-left: auto; margin-right: auto">
       <tr>
         <td>
           <h2>Table des matières</h2>
@@ -341,7 +352,7 @@ _KHtmlGroupeEspeces = """
       </tr>
     </table>
 
-    <img class="center" height="32" style="margin-top: 10px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h2 id="généralités">Généralités</h2>
@@ -349,7 +360,7 @@ _KHtmlGroupeEspeces = """
       {{generalites}}
     </div>
 
-    <img class="center" height="32" style="margin-top: 10px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h2 id="détails">Détails sonores par espèce</h2>
@@ -412,7 +423,7 @@ _KHtmlGroupeEspeces = """
 
       {% for esp in especes %}
       
-        <img class="center" height="32" style="margin-top: 10px"
+        <img class="center" height="32" style="margin-top: 30px"
              src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
         <h3 id="{{esp.id}}">{{esp.nom}} <i>({{esp.latin}})</i></h3>
@@ -491,7 +502,7 @@ _KHtmlGroupeEspeces = """
       
     </div>
 
-    <img class="center" height="32" style="margin-top: 10px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h2 id="comparaisons">Comparaisons sonores en vis à vis</h2>
@@ -565,7 +576,7 @@ _KHtmlGroupeEspeces = """
     
     </div>
 
-    <img class="center" height="32" style="margin-top: 10px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h2 id="quizz">Quizz sur concerts naturels</h2>
@@ -702,8 +713,26 @@ KDGlossaire = \
   'vol' : 'en vol'
 }
 
-# Fonction principale de générationde la page.
-def buildHtmlPage(titre, sousTitre, description, motsClef,
+# Fonction principale de génération de la page.
+# * titre : général de la page générée (+ balise head/title)
+# * sousTitre : qq détails en plus (+ balise head/meta description)
+# * description : pour balise head/meta description
+# * motsCles : pour balise head/meta keywords (séparés par des virgules)
+# * especes : odict(<idEsp> : DescripteurEspece)
+# * generalites : <texte html>
+# * specificites : dict(<idEsp> : dict(specifs : <texte html>, manifs : dict(<idManif> : <texte html>)))
+# * glossaire : dict(<abrév.> : <explication>), à fusionner avec KDGlossaire
+# * remerciements : <texte html>
+# * effort : nb total d'heures passé pour la construction
+# * attributions : <texte html>
+# * images : dict(tocImg : list(dict(img=<nom fic. dans dossierAttache>, legend=<légende>)))
+# * urlDossierSons : URL locale dossier sons MP3, ou None pour lien direct xeno-canto.org (ou même dossier que HTML généré si pas XC)
+# * dossierSons : chemin local dossier des fichiers sons à analyser (enfin ... leur nom)
+# * dossierAttache : URL dossier annexe (fichiers attachés autres que les sons)
+# * ficTableauSynth : nom du fichier tableau de synthèse (supposé être dans le dossier attaché)
+# * notebook : nom du fichier notebook appelant (où se trouve le contenu rédigé), supposé être dans .
+# * prefixeFicCible : préfixe du nom de fichier HTML généré (ajout .local si pub locale, rien si pub sur site web)
+def buildHtmlPage(titre, sousTitre, description, motsCles,
                   especes, generalites, specificites, glossaire, remerciements, effort,
                   attributions, images, urlDossierSons, dossierSons, dossierAttache,
                   ficTableauSynth=None, notebook='Chants.ipynb', prefixeFicCible='chants'):
@@ -726,7 +755,7 @@ def buildHtmlPage(titre, sousTitre, description, motsClef,
 
     # Dernière passe finale.
     html = jinja2.Template(_KHtmlGroupeEspeces) \
-                  .render(titre=titre, sousTitre=sousTitre, description=description, motsClef=motsClef,
+                  .render(titre=titre, sousTitre=sousTitre, description=description, motsCles=motsCles,
                           especes=_arbreEspeces(dfSons, especes, specificites,
                                                 urlDossierSons=urlDossierSons),
                           typesManifs=_arbreTypesManifs(dfSons, especes, urlDossierSons=urlDossierSons),
