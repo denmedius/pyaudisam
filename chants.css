@@ -192,6 +192,10 @@ div.chapter:hover {
  margin-right: auto;
 }
 
+.shrinkable {
+  max-width: 100%;
+}
+
 #title {
  all: initial;
  display: table;
