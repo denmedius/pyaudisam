@@ -268,12 +268,21 @@ _KHtmlQuizz = """
 
 <body>
 
-  <h1>{{titre}}</h1>
-  <h3 style="text-align: center">{{sousTitre}}</h3>
-
+  <table id="title">
+    <tr>
+      <td style="font-size: 480%">{{titre}}</td>
+    </tr>
+    <tr>
+      <td style="font-size: 240%; text-align: center">{{sousTitre}}</td>
+    </tr>
+    <tr>
+      <td style="font-size: 120%; text-align: center">{{description}}</td>
+    </tr>
+  </table>
+  
   <div style="margin-left: 15px">
 
-    <table>
+    <table style="min-width: 320px; margin-left: auto; margin-right: auto">
       <tr>
         <td style="min-width: 320px">
           <h2>Table des matières</h2>
@@ -320,7 +329,7 @@ _KHtmlQuizz = """
       </tr>
     </table>
 
-    <img class="center" height="32" style="margin-top: 10px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h2 id="preambule">Préambule</h2>
@@ -332,7 +341,7 @@ _KHtmlQuizz = """
     
     {% for quiz in quizz %}
 
-      <img class="center" height="32" style="margin-top: 10px"
+      <img class="center" height="32" style="margin-top: 30px"
            src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
       <h2 id="{{quiz.id}}">{{quiz.titre}}</h2>
@@ -513,7 +522,7 @@ _KHtmlQuizz = """
 
     {% endfor %} <!-- quiz in quizz -->
 
-    <img class="center" height="32" style="margin-top: 10px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h2 id="licence">Licence / Auteur</h2>
@@ -545,7 +554,7 @@ Attention cependant aux licences potentiellement plus restrictives :
 
     </div>
 
-    <img class="center" height="32" style="margin-top: 10px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h2 id="attribs-mercis">Remerciements et attributions</h2>
@@ -575,7 +584,7 @@ dont j'ai simplement changé la couleur, noire à l'origine, en vert (forcément
       
     </div>
 
-    <img class="center" height="32" style="margin-top: 10px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="{{dossierAttache}}/fa-feather-alt.svg" alt="---" />
 
     <h6 style="margin-bottom: 10px">
