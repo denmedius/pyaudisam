@@ -679,6 +679,7 @@ KDGlossaire = \
   'cp' : 'couple',
   'cr' : 'cri(s)',
   'crch' : 'cri(s) similaire(s) au(x) chant(s) et/ou réciproquement, on ne sait pas décider si c\'est un chant ou des cris, ou bien c\'est un mélange des 2 (plusieurs individus)',
+  'crec' : 'crécelle (son mat, sec, rêche répété rapidement)',
   'debruit' : 'enregistrement duquel on a soustrait une estimation du "bruit de fond" (au mieux générateur de silences étranges, souvent assez déteriorant)',
   'deter' : 'enregistrement déterioré par un traitement numérique quelconque (Cf. fph, debruit, ou autre), qui empêche ou complique la reconnaissance d\'une ou plusieurs espèces, par ex.',
   'disp' : 'dispute',
@@ -710,6 +711,7 @@ KDGlossaire = \
   'pul' : 'pulli = poussins (au nid si nidicoles)',
   't' : 'tambour (pour les pics, et les grands singes ;-)',
   'tous' : 'tous (les types de cris, par ex.)',
+  'tril' : 'trille (alternance très rapide de 2 notes à hauteurs différentes ; un peu comme une crécelle, mais en plus tonal, mélodique)',
   'typ' : 'typique, représentatif de l\'espèce (pour un cri, un chant, un tambour)',
   'vibr' : 'vibré, vibration',
   'vol' : 'en vol'
