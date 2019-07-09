@@ -12,6 +12,7 @@
 import sys
 import os
 import tempfile
+import argparse
 
 import re
 
@@ -35,8 +36,8 @@ class DSEngine(object):
     
     # Distance software detection params.
     DistanceSuppVers = [7, 6] # Lastest first.
-    DistancePossInstPaths = [os.path.join('C:/', 'Program files (x86)'),
-                             os.path.join('C:/', 'Program files')]
+    DistancePossInstPaths = [os.path.join('C:\\', 'Program files (x86)'),
+                             os.path.join('C:\\', 'Program files')]
 
     # Find given executable installation dir.
     def findDistExecutable(self, exeFileName):
@@ -59,7 +60,7 @@ class DSEngine(object):
         if self.exeFilePathName:
             print('{} found in {}'.format(exeFileName, exeFileDir))
         else:
-            print('Error : Could not find {} ; please install Distance software (V6 or later)'.format(exeFileName))
+            raise Exception('Could not find {} ; please install Distance software (V6 or later)'.format(exeFileName))
     
     # Options possible values.
     DistUnits = ['Meter']
@@ -82,7 +83,7 @@ class DSEngine(object):
         self.workDir = workDir
         if not os.path.isdir(workDir):
             os.makedirs(workDir)
-        
+            
         # Detect engine executable installation folder
         self.findDistExecutable(exeFileName)
             
@@ -141,6 +142,17 @@ class DSEngine(object):
         
         print('Will run in', self.runDir)
         
+        # Define input and output file pathnames
+        def pathName(fileName):
+            return os.path.join(self.runDir, fileName)
+        
+        self.cmdFileName   = pathName('cmd.txt')
+        self.dataFileName  = pathName('data.txt')
+        self.outFileName   = pathName('output.txt')
+        self.logFileName   = pathName('log.txt')
+        self.statsFileName = pathName('stats.txt')
+        self.bootFileName  = pathName('bootstrap.txt')
+        
         return self.runDir
     
 class MCDSEngine(DSEngine):
@@ -195,13 +207,6 @@ class MCDSEngine(DSEngine):
                      End;
                   """.split())) + '\n'
 
-    cmdFileName   = 'cmd.txt'
-    dataFileName  = 'data.txt'
-    outFileName   = 'output.txt'
-    logFileName   = 'log.txt'
-    statsFileName = 'stats.txt'
-    bootFileName  = 'bootstrap.txt'
-        
     # Ctor
     def __init__(self, workDir='.',
                  distanceUnit='Meter', areaUnit='Hectare',
@@ -226,17 +231,16 @@ class MCDSEngine(DSEngine):
                                     stats=self.statsFileName, bootstrap=self.bootFileName,
                                     survType=self.options['surveyType'], distType=self.options['distanceType'],
                                     distUnit=self.options['distanceUnit'], areaUnit=self.options['areaUnit'],
-                                    dataFields=self.dataFields, dataFileName=self.dataFileName,
+                                    dataFields=', '.join(self.dataFields), dataFileName=self.dataFileName,
                                     estKeyFn=params['estimKeyFn'], estAdjustFn=params['estimAdjustFn'],
                                     estCriterion=params['estimCriterion'], cvInterv=params['cvInterval'])
 
-        tgtPathName = os.path.join(self.runDir, self.cmdFileName)
-        with open(tgtPathName, 'w') as cmdFile:
+        with open(self.cmdFileName, 'w') as cmdFile:
             cmdFile.write(cmdTxt)
 
-        print('Commands written to', tgtPathName)
+        print('Commands written to', self.cmdFileName)
 
-        return tgtPathName
+        return self.cmdFileName
     
     # Build input data table from data set (check and match mandatory columns, enforce order).
     def buildExportTable(self, dfData, decimalFields=list(), decPoint='.'):
@@ -269,12 +273,11 @@ class MCDSEngine(DSEngine):
         self.dataFields = self.options['firstDataFields'] + otherFields
         
         # Export.
-        tgtPathName = os.path.join(self.runDir, self.dataFileName)
-        dfExport.to_csv(tgtPathName, index=False, sep='\t', encoding='utf-8', header=None)
+        dfExport.to_csv(self.dataFileName, index=False, sep='\t', encoding='utf-8', header=None)
         
-        print('Data MCDS-exported to', tgtPathName)
+        print('Data MCDS-exported to', self.dataFileName)
         
-        return tgtPathName
+        return self.dataFileName
     
     # Run MCDS
     def __call__(self, dataSet, runName='mcds', realRun=True, **analysisParms):
@@ -282,7 +285,7 @@ class MCDSEngine(DSEngine):
         # Create a new exclusive run folder
         self.setupRunFolder(runName)
         
-        # Generate data and command file into this folder
+        # Generate data and command files into this folder
         _ = self.buildDataFile(dataSet)
         cmdFileName = self.buildCmdFile(**analysisParms)
         
@@ -327,7 +330,7 @@ class MCDSAnalysis(DSAnalysis):
     
     EstKeyFns = ['UNIFORM', 'HNORMAL', 'HAZARD'] #, 'NEXPON']
     EstAdjustFns = ['COSINE', 'POLY', 'HERMITE']
-    EstCriterions = ['AIC']
+    EstCriterions = ['AIC', 'AICC', 'BIC', 'LR']
 
     def __init__(self, engine, dataSet, namePrefix='mcds',
                  estimKeyFn='HNORMAL', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95):
@@ -357,14 +360,14 @@ class MCDSAnalysis(DSAnalysis):
     
     def run(self, realRun=True):
         
-        self.rc, self.filesDir = self.engine(dataSet=self.dataSet, runName=self.name,
-                                             estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
-                                             estimCriterion=self.estimCriterion, cvInterval=self.cvInterval)
+        self.runStatus, self.filesDir = self.engine(dataSet=self.dataSet, runName=self.name,
+                                                    estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
+                                                    estimCriterion=self.estimCriterion, cvInterval=self.cvInterval)
         
         # Load and decode results and log.
         dResults = odict([('estimKeyFn', self.estimKeyFn), ('estimAdjustFn', self.estimAdjustFn),
                           ('estimCriterion', self.estimCriterion), ('cvInterval', self.cvInterval),
-                          ('filesDir', self.filesDir), ('rc', self.rc),
+                          ('filesDir', self.filesDir), ('runStatus', self.runStatus),
                           #TODO
                          ])
         
@@ -389,6 +392,51 @@ class DataSet(object):
 
 if __name__ == '__main__':
 
-    print('A coder ...')
+    # Parse command line args.
+    argser = argparse.ArgumentParser(description='Run a distance sampling analysis using a DS engine from Distance software')
+
+    argser.add_argument('-g', '--debug', dest='debug', action='store_true', default=False, 
+                        help='Folder where to store DS analyses subfolders and output files')
+    argser.add_argument('-w', '--workdir', type=str, dest='workDir', default='.',
+                        help='Folder where to store DS analyses subfolders and output files')
+    argser.add_argument('-e', '--engine', type=str, dest='engineType', default='MCDS', choices=['MCDS'],
+                        help='The Distance engine to use, among MCDS, ... and no other for the moment')
+    argser.add_argument('-d', '--datafile', type=str, dest='dataFile',
+                        help='tabular data file path-name (XLSX or CSV/tab format)' \
+                             ' with at least region, surface, point, effort and distance columns')
+    argser.add_argument('-k', '--keyfn', type=str, dest='keyFn', default='HNORMAL', choices=['UNIFORM', 'HNORMAL', 'HAZARD'],
+                        help='Model key function')
+    argser.add_argument('-a', '--adjustfn', type=str, dest='adjustFn', default='COSINE', choices=['COSINE', 'POLY', 'HERMITE'],
+                        help='Model adjustment function')
+    argser.add_argument('-c', '--criterion', type=str, dest='criterion', default='AIC', choices=['AIC', 'AICC', 'BIC', 'LR'],
+                        help='Criterion to use for selecting number of adjustment terms of the model')
+    argser.add_argument('-i', '--cvinter', type=int, dest='cvInterval', default=95,
+                        help='Confidence value for estimated values interval (%%)')
+
+    args = argser.parse_args()
     
-    sys.exit(0)
+    # Load data set.
+    ext = os.path.splitext(args.dataFile)[1].lower()
+    if ext == '.xlsx':
+        dfData = pd.read_excel(args.dataFile)
+    elif ext == '.csv':
+        dfData = pd.read_csv(args.dataFile, sep='\t')
+
+    dataSet = DataSet(dfData)
+
+    # Create DS engine
+    engine = MCDSEngine(workDir=args.workDir,
+                        distanceUnit='Meter', areaUnit='Hectare',
+                        surveyType='Point', distanceType='Radial')
+
+    # Create and run analysis
+    analysis = MCDSAnalysis(engine=engine, dataSet=dataSet, namePrefix=args.engineType,
+                            estimKeyFn=args.keyFn, estimAdjustFn=args.adjustFn,
+                            estimCriterion=args.criterion, cvInterval=args.cvInterval)
+
+    dResults = analysis.run(realRun=not args.debug)
+    
+    # Print results
+    print('Results:\n' + '\n'.join('* {}: {}'.format(k, v) for k, v in dResults.items()))
+
+    sys.exit(analysis.runStatus)
