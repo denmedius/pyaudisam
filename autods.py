@@ -37,7 +37,8 @@ class DSEngine(object):
     # Distance software detection params.
     DistanceSuppVers = [7, 6] # Lastest first.
     DistancePossInstPaths = [os.path.join('C:\\', 'Program files (x86)'),
-                             os.path.join('C:\\', 'Program files')]
+                             os.path.join('C:\\', 'Program files'),
+                             sys.path[0]]
 
     # Find given executable installation dir.
     def findDistExecutable(self, exeFileName):
@@ -100,6 +101,14 @@ class DSEngine(object):
                ('SMP_EFFORT', ['effort', 'passages', 'surveys', 'samplings']),
                ('DISTANCE', ['distance'])])
     
+    # Associated Distance import fields.
+    DistanceFields = \
+        dict(STR_LABEL='Region*Label', STR_AREA='Region*Area', SMP_LABEL='Point transect*Label',
+             SMP_EFFORT='Point transect*Survey effort', DISTANCE='Observation*Radial distance')
+    
+    def distanceFields(self, dsFields):
+        return [self.DistanceFields[name] for name in dsFields]
+    
     # Data fields of decimal type.
     # TODO: Complete for non 'Point transect' modes
     DecimalFields = ['SMP_EFFORT', 'DISTANCE']
@@ -109,6 +118,7 @@ class DSEngine(object):
         
         print('Matching required data columns:', end=' ')
         
+        # Try and match required data columns.
         matFields = list()
         matDecFields = list()
         for tgtField in tgtAliasREs:
@@ -128,12 +138,13 @@ class DSEngine(object):
             if not foundTgtField:
                 raise Exception('Error: Failed to find a match for expected {} in dataset columns {}' \
                                 .format(tgtField, srcFields))
-                
-        remFields = [field for field in srcFields if field not in matFields]
+        
+        # Extra fields.
+        extFields = [field for field in srcFields if field not in matFields]
 
         print('... success.')
         
-        return matFields, remFields, matDecFields
+        return matFields, matDecFields, extFields
 
     # Setup run folder (all in and out files will go there)
     def setupRunFolder(self, runName='ds'):
@@ -243,34 +254,41 @@ class MCDSEngine(DSEngine):
         return self.cmdFileName
     
     # Build input data table from data set (check and match mandatory columns, enforce order).
-    def buildExportTable(self, dfData, decimalFields=list(), decPoint='.'):
+    # TODO: Add support for covariate columns (through extraFields)
+    def buildExportTable(self, dataSet, withExtraFields=True, decimalFields=list(), decPoint='.'):
         
         # Match dataSet table columns to MCDS expected fields from possible aliases
-        matchFields, otherFields, matchDecFields = \
-            self.matchDataFields(dfData.columns, self.ImportFieldAliasREs)
-        exportFields = matchFields + otherFields
+        matchFields, matchDecFields, extraFields = \
+            self.matchDataFields(dataSet.dfData.columns, self.ImportFieldAliasREs)
+        exportFields = matchFields
+        if withExtraFields:
+            exportFields += extraFields
+        else:
+            extraFields.clear()
         
         print('Final data columns in order:', exportFields)
         
         # Put columns in the right order (first data fields ... first, in the same order)
-        dfExport = dfData[exportFields].copy()
+        dfExport = dataSet.dfData[exportFields].copy()
 
         # Prepare safe export of decimal data with may be some NaNs
-        allDecFields = set(matchDecFields + decimalFields)
+        allDecFields = set(matchDecFields + decimalFields).intersection(exportFields)
         print('Decimal columns:', allDecFields)
         for field in allDecFields:
             dfExport[field] = dfExport[field].apply(safeFloat2Str, decPt=decPoint)
                 
-        return dfExport, otherFields
+        return dfExport, extraFields
 
     # Build MCDS input data file from data set.
+    # TODO: Add support for covariate columns (through extraFields)
     def buildDataFile(self, dataSet):
         
-        # Build data to export (check and match mandatory columns, enforce order, keep other cols).
-        dfExport, otherFields = self.buildExportTable(dataSet.dfData, dataSet.decimalFields, decPoint='.')
+        # Build data to export (check and match mandatory columns, enforce order, ignore extra cols).
+        dfExport, extraFields = \
+            self.buildExportTable(dataSet, withExtraFields=False, decPoint='.')
         
-        # Save data fields for the engine : mandatory ones + remaining ones
-        self.dataFields = self.options['firstDataFields'] + otherFields
+        # Save data fields for the engine : mandatory ones only
+        self.dataFields = self.options['firstDataFields']
         
         # Export.
         dfExport.to_csv(self.dataFileName, index=False, sep='\t', encoding='utf-8', header=None)
@@ -299,19 +317,20 @@ class MCDSEngine(DSEngine):
         # ... unless specified not to (input files generated, but no execution).
         else:
             print('Not running MCDS :', cmd)
-            self.runStatus = 2
+            self.runStatus = 0
 
         return self.runStatus, self.runDir
 
     # Build Distance/MCDS input data file from data set.
-    def buildDistanceDataFile(self, dfData, tgtFilePathName, decimalFields=list()):
+    def buildDistanceDataFile(self, dataSet, tgtFilePathName, decimalFields=list(), withExtraFields=False):
                 
         # Build data to export (check and match mandatory columns, enforce order, keep other cols).
-        dfExport, otherFields = self.buildExportTable(dfData, decimalFields, decPoint=',')
+        dfExport, extraFields = self.buildExportTable(dataSet, decimalFields=decimalFields,
+                                                      withExtraFields=withExtraFields, decPoint=',')
         
         # Export.
         dfExport.to_csv(tgtFilePathName, index=False, sep='\t', encoding='utf-8',
-                        header=self.FirstDistanceExportFields[self.options['surveyType']] + otherFields)
+                        header=self.distanceFields(self.options['firstDataFields']) + extraFields)
 
         print('Data Distance-exported to', tgtFilePathName)
         
@@ -360,7 +379,7 @@ class MCDSAnalysis(DSAnalysis):
     
     def run(self, realRun=True):
         
-        self.runStatus, self.filesDir = self.engine(dataSet=self.dataSet, runName=self.name,
+        self.runStatus, self.filesDir = self.engine(dataSet=self.dataSet, runName=self.name, realRun=realRun,
                                                     estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
                                                     estimCriterion=self.estimCriterion, cvInterval=self.cvInterval)
         
