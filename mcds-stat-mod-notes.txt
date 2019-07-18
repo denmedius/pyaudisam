@@ -1,0 +1,8 @@
+# Extract from Distance 7.3 documentation (http://distancesampling.org/)
+# The following was copied and pasted as is from the notes bellow the 2nd table of .chm documentation,
+# "MCDS Engine Stats File" page.
+1 Values for CV, LCL, UCL and DF are included for these statistics.
+2 Key function types are: 1 = uniform, 2 = half-normal, 3 = negative exponential, 4 = hazard rate
+3 Adjustment series types are: 1 = simple polynomial, 2 = Hermite polynomial, 3 = cosine
+4 Bootstrap CV calculated as bootstrap SE / bootstrap point estimate; df field here is the number of bootstraps
+5 Statistic 101 corresponds with the parameter identified as A(1) in the results, 102 with A(2), etc.

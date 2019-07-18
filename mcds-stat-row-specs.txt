@@ -1,0 +1,33 @@
+# Extract from Distance 7.3 documentation (http://distancesampling.org/)
+# The following was copied and pasted _as_is_ from the 1st table of .chm documentation,
+# "MCDS Engine Stats File" page.
+Stratum  
+ stratum number (or 0 if the estimate is for a sample or all data).
+ 
+ Sample   
+ sample number (or 0 if the estimate is for a stratum or all data).
+ 
+ Estimator
+ number of the estimator (in the order given in the Estimate procedure)
+ 
+ Module   
+ number of the parameter module (see below)
+ 
+ Statistic
+ number of the statistic within the parameter module (see below)
+ 
+ Value    
+ estimate value
+ 
+ Cv       
+ coefficient of variation of estimate or 0.0
+ 
+ Lcl      
+ lower confidence limit or 0.0
+ 
+ Ucl      
+ upper confidence limit or 0.0
+ 
+ Df       
+ degrees of freedom for interval or 0
+ 
