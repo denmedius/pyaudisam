@@ -22,52 +22,53 @@ import numpy as np
 import pandas as pd
 
 
-# Workaround df.to_csv(float_format='%.xf') not working when NaNs in serie
-def safeFloat2Str(val, prec=None, decPt='.'):
-    strVal = '' if np.isnan(val) else str(val) if prec is None \
-                else '{:.{prec}f}'.format(val, prec=prec)
-    if decPt != '.':
-        strVal = strVal.replace('.', decPt)
-    return strVal
-
-
-# DSEngine classes.
+# DSEngine (abstract) classes.
 class DSEngine(object):
+    
+    # Options possible values.
+    DistUnits = ['Meter']
+    AreaUnits = ['Hectare']
+    
+    # Forbidden chars in workDir path name (Distance DS engines are real red necks)
+    # TODO: stronger protection (more special chars ? more generic method, through re ?)
+    ForbidPathChars = [' ', '(', ')', ',', ':', ]
     
     # Distance software detection params.
     DistanceSuppVers = [7, 6] # Lastest first.
-    DistancePossInstPaths = [os.path.join('C:\\', 'Program files (x86)'),
-                             os.path.join('C:\\', 'Program files'),
-                             sys.path[0]]
+    DistancePossInstPaths = [sys.path[0], 
+                             os.path.join('C:\\', 'Program files (x86)'),
+                             os.path.join('C:\\', 'Program files')]
 
     # Find given executable installation dir.
-    def findDistExecutable(self, exeFileName):
+    @staticmethod
+    def findExecutable(exeFileName):
 
-        self.exeFilePathName = None
+        exeFilePathName = None
         print('Looking for {} ...'.format(exeFileName))
-        for path in self.DistancePossInstPaths:
-            for ver in self.DistanceSuppVers:
+        for path in DSEngine.DistancePossInstPaths:
+            for ver in DSEngine.DistanceSuppVers:
                 exeFileDir = os.path.join(path, 'Distance ' + str(ver))
                 print(' - checking {} : '.format(exeFileDir), end='')
                 if not os.path.exists(os.path.join(exeFileDir, exeFileName)):
                     print('no.')
                 else:
                     print('yes !')
-                    self.exeFilePathName = os.path.join(exeFileDir, exeFileName)
+                    exeFilePathName = os.path.join(exeFileDir, exeFileName)
                     break
-            if self.exeFilePathName:
+            if exeFilePathName:
                 break
 
-        if self.exeFilePathName:
+        if exeFilePathName:
             print('{} found in {}'.format(exeFileName, exeFileDir))
         else:
             raise Exception('Could not find {} ; please install Distance software (V6 or later)'.format(exeFileName))
+            
+        return exeFilePathName
     
-    # Options possible values.
-    DistUnits = ['Meter']
-    AreaUnits = ['Hectare']
+    # Specifications of output stats.
+    DfStatRowSpecs, DfStatModSpecs, DfStatModNotes, MIStatModColumns = None, None, None, None
     
-    def __init__(self, exeFileName, workDir='.',
+    def __init__(self, workDir='.',
                  distanceUnit='Meter', areaUnit='Hectare', **options):
 
         # Check base options
@@ -81,17 +82,12 @@ class DSEngine(object):
         self.options.update(distanceUnit=distanceUnit, areaUnit=areaUnit)
         
         # Check and prepare workdir if needed.
+        assert all(c not in workDir for c in self.ForbidPathChars), \
+               'Invalid character from "{}" in workDir folder "{}"' \
+               .format(''.join(self.ForbidPathChars), workDir)
         self.workDir = workDir
-        if not os.path.isdir(workDir):
-            os.makedirs(workDir)
+        os.makedirs(workDir, exist_ok=True)
             
-        # Detect engine executable installation folder
-        self.findDistExecutable(exeFileName)
-            
-    def __bool__(self):
-        
-        return self.exeFilePathName is not None
-
     # Possible regexps for auto-detection of columns to import from data sets / export
     # TODO: Complete for non 'Point transect' modes
     ImportFieldAliasREs = \
@@ -147,9 +143,13 @@ class DSEngine(object):
         return matFields, matDecFields, extFields
 
     # Setup run folder (all in and out files will go there)
-    def setupRunFolder(self, runName='ds'):
+    def setupRunFolder(self, runPrefix='ds'):
         
-        self.runDir = tempfile.mkdtemp(dir=self.workDir, prefix=runName+'-')
+        # MCDS does not support folder and file names with spaces inside ...
+        # And one never knows ... replace other special chars also.
+        runPrefix = runPrefix.translate(str.maketrans({' ':'-', ',':'-', '.':'-', '(': '', ')':''}))
+        
+        self.runDir = tempfile.mkdtemp(dir=self.workDir, prefix=runPrefix+'-')
         
         print('Will run in', self.runDir)
         
@@ -165,7 +165,8 @@ class DSEngine(object):
         self.bootFileName  = pathName('bootstrap.txt')
         
         return self.runDir
-    
+
+# MCDS engine (Conventional Distance Sampling)
 class MCDSEngine(DSEngine):
     
     DistUnits = ['Meter']
@@ -177,6 +178,15 @@ class MCDSEngine(DSEngine):
     FirstDistanceExportFields = { 'Point' : ['Region*Label', 'Region*Area', 'Point transect*Label',
                                              'Point transect*Survey effort', 'Observation*Radial distance'],
                                 } #TODO : Add Line support
+
+    # Estimator key functions (Order: Distance .chm doc, "MCDS Engine Stats File", note 2 below second table).
+    EstKeyFns = ['UNIFORM', 'HNORMAL', 'NEXPON', 'HAZARD']
+
+    # Estimator adjustment series (Order: Distance .chm doc, "MCDS Engine Stats File", note 3 below second table).
+    EstAdjustFns = ['POLY', 'HERMITE', 'COSINE']
+
+    # Estimator key functions (Order: Distance .chm doc, "MCDS Engine Stats File", note 2 below second table).
+    EstCriterions = ['AIC', 'AICC', 'BIC', 'LR']
 
     # Command file template (for str.format()ing).
     CmdTxt = \
@@ -217,12 +227,132 @@ class MCDSEngine(DSEngine):
                      VarN=Empirical;
                      End;
                   """.split())) + '\n'
+    
+    # Executable 
+    ExeFilePathName = DSEngine.findExecutable(exeFileName='MCDS.exe')
 
+    # Output stats specs : load from external files (extracts from Distance doc).
+    @classmethod
+    def loadStatSpecs(cls, nMaxAdjParams=10):
+        
+        print('MCDS : Loading output stats specs ...')
+        
+        # Output stats row specifications
+        fileName = 'mcds-stat-row-specs.txt'
+        print('*', fileName)
+        with open(fileName, mode='r', encoding='utf8') as fStatRowSpecs:
+            statRowSpecLines = [line.rstrip('\n') for line in fStatRowSpecs.readlines() if not line.startswith('#')]
+            statRowSpecs =  [(statRowSpecLines[i].strip(), statRowSpecLines[i+1].strip()) \
+                             for i in range(0, len(statRowSpecLines)-2, 3)]
+            cls.DfStatRowSpecs = pd.DataFrame(columns=['Name', 'Description'],
+                                              data=statRowSpecs).set_index('Name')
+            assert not cls.DfStatRowSpecs.empty, 'Empty MCDS stats row specs'
+        
+        # Module and stats number to description table
+        fileName = 'mcds-stat-mod-specs.txt'
+        print('*', fileName)
+        with open(fileName, mode='r', encoding='utf8') as fStatModSpecs:
+            statModSpecLines = [line.rstrip('\n') for line in fStatModSpecs.readlines() if not line.startswith('#')]
+            reModSpecNumName = re.compile('(.+) – (.+)')
+            statModSpecs = list()
+            moModule = None
+            for line in statModSpecLines:
+                if not line:
+                    continue
+                if moModule is None:
+                    moModule = reModSpecNumName.match(line.strip())
+                    continue
+                if line == ' ':
+                    moModule = None
+                    continue
+                moStatistic = reModSpecNumName.match(line.strip())
+                modNum, modDesc, statNum, statDescNotes = \
+                    moModule.group(1), moModule.group(2), moStatistic.group(1), moStatistic.group(2)
+                for i in range(len(statDescNotes)-1, -1, -1):
+                    if not re.match('[\d ,]', statDescNotes[i]):
+                        statDesc = statDescNotes[:i+1]
+                        statNotes = statDescNotes[i+1:].replace(' ', '')
+                        break
+                modNum = int(modNum)
+                if statNum.startswith('101 '):
+                    for num in range(nMaxAdjParams): # Assume no more than that ... a bit hacky !
+                        statModSpecs.append((modNum, modDesc, 101+num, # Make statDesc unique for later indexing
+                                             statDesc.replace('each', 'A({})'.format(num+1)), statNotes))
+                else:
+                    statNum = int(statNum)
+                    if modNum == 2 and statNum == 3: # Actually, there are 0 or 3 of these ...
+                        for num in range(3):
+                            statModSpecs.append((modNum, modDesc, num+201,
+                                                 # Change statNum & Make statDesc unique for later indexing
+                                                 statDesc+' (distance set {})'.format(num+1), statNotes))
+                    else:
+                        statModSpecs.append((modNum, modDesc, statNum, statDesc, statNotes))
+            cls.DfStatModSpecs = pd.DataFrame(columns=['modNum', 'modDesc', 'statNum', 'statDesc', 'statNotes'],
+                                              data=statModSpecs).set_index(['modNum', 'statNum'])
+            assert not cls.DfStatModSpecs.empty, 'Empty MCDS stats module specs'
+        
+        # Produce a MultiIndex for output stats as columns in the desired order.
+        indexItems = list()
+        for lbl, modDesc, statDesc, statNotes in cls.DfStatModSpecs[['modDesc', 'statDesc', 'statNotes']].itertuples():
+            indexItems.append((modDesc, statDesc, 'Value'))
+            if '1' in statNotes:
+                indexItems += [(modDesc, statDesc, valName) for valName in ['Cv', 'Lcl', 'Ucl', 'Df']]
+        cls.MIStatModColumns = pd.MultiIndex.from_tuples(indexItems)
+    
+        # Notes about stats.
+        fileName = 'mcds-stat-mod-notes.txt'
+        print('*', fileName)
+        with open(fileName, mode='r', encoding='utf8') as fStatModNotes:
+            statModNoteLines = [line.rstrip('\n') for line in fStatModNotes.readlines() if not line.startswith('#')]
+            statModNotes =  [(int(line[:2]), line[2:].strip()) for line in statModNoteLines if line]
+            cls.DfStatModNotes = pd.DataFrame(data=statModNotes, columns=['Note', 'Text']).set_index('Note')
+            assert not cls.DfStatModNotes.empty, 'Empty MCDS stats module notes'
+            
+        print('MCDS : Loaded output stats specs.')
+        print()
+        
+    # Accessors to dynamic class variables.
+    @classmethod
+    def statRowSpecs(cls):
+        
+        if cls.DfStatRowSpecs is None:
+            cls.loadStatSpecs()    
+
+        return cls.DfStatRowSpecs
+        
+    @classmethod
+    def statModSpecs(cls):
+        
+        if cls.DfStatModSpecs is None:
+            cls.loadStatSpecs()    
+
+        return cls.DfStatModSpecs
+        
+    @classmethod
+    def statModColumns(cls):
+        
+        if cls.MIStatModColumns is None:
+            cls.loadStatSpecs()    
+
+        return cls.MIStatModColumns
+        
+    @classmethod
+    def statModNotes(cls):
+        
+        if cls.DfStatModNotes is None:
+            cls.loadStatSpecs()    
+
+        return cls.DfStatModNotes
+        
     # Ctor
     def __init__(self, workDir='.',
                  distanceUnit='Meter', areaUnit='Hectare',
                  surveyType='Point', distanceType='Radial'):
         
+        # Initialize some class variables.
+        if MCDSEngine.DfStatRowSpecs is None:
+            MCDSEngine.loadStatSpecs()    
+
         # Check options
         assert surveyType in self.SurveyTypes, \
                'Invalid survey type {} : should be in {}'.format(surveyType, self.SurveyTypes)
@@ -230,7 +360,7 @@ class MCDSEngine(DSEngine):
                'Invalid area unit{} : should be in {}'.format(distanceType, self.DistTypes)
         
         # Initialise base.
-        super().__init__(exeFileName='MCDS.exe', workDir=workDir, 
+        super().__init__(workDir=workDir, 
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType,
                          firstDataFields=self.FirstDataFields[surveyType])        
@@ -253,9 +383,18 @@ class MCDSEngine(DSEngine):
 
         return self.cmdFileName
     
+    # Workaround pd.DataFrame.to_csv(float_format='%.xf') not working when NaNs in serie
+    @staticmethod
+    def safeFloat2Str(val, prec=None, decPt='.'):
+        strVal = '' if np.isnan(val) else str(val) if prec is None \
+                    else '{:.{prec}f}'.format(val, prec=prec)
+        if decPt != '.':
+            strVal = strVal.replace('.', decPt)
+        return strVal
+
     # Build input data table from data set (check and match mandatory columns, enforce order).
     # TODO: Add support for covariate columns (through extraFields)
-    def buildExportTable(self, dataSet, withExtraFields=True, decimalFields=list(), decPoint='.'):
+    def buildExportTable(self, dataSet, withExtraFields=True, decPoint='.'):
         
         # Match dataSet table columns to MCDS expected fields from possible aliases
         matchFields, matchDecFields, extraFields = \
@@ -272,10 +411,10 @@ class MCDSEngine(DSEngine):
         dfExport = dataSet.dfData[exportFields].copy()
 
         # Prepare safe export of decimal data with may be some NaNs
-        allDecFields = set(matchDecFields + decimalFields).intersection(exportFields)
+        allDecFields = set(matchDecFields + dataSet.decimalFields).intersection(exportFields)
         print('Decimal columns:', allDecFields)
         for field in allDecFields:
-            dfExport[field] = dfExport[field].apply(safeFloat2Str, decPt=decPoint)
+            dfExport[field] = dfExport[field].apply(self.safeFloat2Str, decPt=decPoint)
                 
         return dfExport, extraFields
 
@@ -298,17 +437,17 @@ class MCDSEngine(DSEngine):
         return self.dataFileName
     
     # Run MCDS
-    def __call__(self, dataSet, runName='mcds', realRun=True, **analysisParms):
+    def run(self, dataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
         # Create a new exclusive run folder
-        self.setupRunFolder(runName)
+        self.setupRunFolder(runPrefix)
         
         # Generate data and command files into this folder
         _ = self.buildDataFile(dataSet)
         cmdFileName = self.buildCmdFile(**analysisParms)
         
-        # Call executable ...
-        cmd = '"{}" 0, {}'.format(self.exeFilePathName, cmdFileName)
+        # Call executable (no " around cmdFile, don't forget the space after ',', ...)
+        cmd = '"{}" 0, {}'.format(self.ExeFilePathName, cmdFileName)
         if realRun:
             print('Running MCDS :', cmd)
             self.runStatus = os.system(cmd)
@@ -320,13 +459,68 @@ class MCDSEngine(DSEngine):
             self.runStatus = 0
 
         return self.runStatus, self.runDir
+    
+    # Decode output stats file to a value series
+    # Precondition: self.run(...)
+    # Warning: No support for more than 1 stratum, 1 sample, 1 estimator.
+    def decodeStats(self):
+
+        print('Decoding', self.statsFileName, end=' ... ')
+        
+        # 1. Load table (text format, with space separated and fixed width columns,
+        #    columns headers from self.DfStatRowSpecs)
+        dfStats = pd.read_csv(self.statsFileName, sep=' +', engine='python', names=self.DfStatRowSpecs.index)
+        
+        # 2. Remove Stratum, Sample and Estimator columns (no support for multiple ones for the moment)
+        dfStats.drop(columns=['Stratum', 'Sample', 'Estimator'], inplace=True)
+        
+        # 3. Stack figure columns to rows, to get more confortable
+        dfStats.set_index(['Module', 'Statistic'], append=True, inplace=True)
+        dfStats = dfStats.stack().reset_index()
+        dfStats.rename(columns={'level_0': 'id', 'level_3': 'Figure', 0: 'Value'}, inplace=True)
+
+        # 4. Fix multiple Module=2 & Statistic=3 rows (before joining with self.DfStatModSpecs)
+        newStatNum = 200
+        for lbl, sRow in dfStats[(dfStats.Module == 2) & (dfStats.Statistic == 3)].iterrows():
+            if dfStats.loc[lbl, 'Figure'] == 'Value':
+                newStatNum += 1
+            dfStats.loc[lbl, 'Statistic'] = newStatNum
+        newStatNum = 201
+        
+        # 5. Add descriptive / naming columns for modules and statistics,
+        #    from self.DfStatModSpecs (more user friendly than numeric ids + help for detecting N/A figures)
+        dfStats = dfStats.join(self.DfStatModSpecs, on=['Module', 'Statistic'])
+        
+        # 6. Check that supposed N/A figures (as told by self.dfStatModuleSpecs.statNotes) are really such
+        #    Warning: There must be a bug in MCDS with Module=2 & Statistic=10x : some Cv values not always 0 ...
+        sKeepOnlyValueFig = ~dfStats.statNotes.apply(lambda s: pd.notnull(s) and '1' in s)
+        sFigs2Drop = (dfStats.Figure != 'Value') & sKeepOnlyValueFig
+        assert ~dfStats[sFigs2Drop & ((dfStats.Module != 2) | (dfStats.Statistic < 100))].Value.any(), \
+               'Warning: Somme so-called "N/A" figures are not zeroes !'
+        
+        # 7. Remove so-called N/A figures
+        dfStats.drop(dfStats[sFigs2Drop].index, inplace=True)
+        
+        # 8. Make some values more readable.
+        lblKeyFn = (dfStats.Module == 2) & (dfStats.Statistic == 13)
+        dfStats.loc[lblKeyFn, 'Value'] = dfStats.loc[lblKeyFn, 'Value'].astype(int).apply(lambda n: self.EstKeyFns[n-1])
+        lblAdjFn = (dfStats.Module == 2) & (dfStats.Statistic == 14)
+        dfStats.loc[lblAdjFn, 'Value'] = dfStats.loc[lblAdjFn, 'Value'].astype(int).apply(lambda n: self.EstAdjustFns[n-1])
+        
+        # 9. Final indexing
+        dfStats = dfStats.reindex(columns=['modDesc', 'statDesc', 'Figure', 'Value'])
+        dfStats.set_index(['modDesc', 'statDesc', 'Figure'], inplace=True)
+
+        # That's all folks !
+        print('done.')
+        
+        return dfStats.T.iloc[0]
 
     # Build Distance/MCDS input data file from data set.
-    def buildDistanceDataFile(self, dataSet, tgtFilePathName, decimalFields=list(), withExtraFields=False):
+    def buildDistanceDataFile(self, dataSet, tgtFilePathName, withExtraFields=False):
                 
         # Build data to export (check and match mandatory columns, enforce order, keep other cols).
-        dfExport, extraFields = self.buildExportTable(dataSet, decimalFields=decimalFields,
-                                                      withExtraFields=withExtraFields, decPoint=',')
+        dfExport, extraFields = self.buildExportTable(dataSet, withExtraFields=withExtraFields, decPoint=',')
         
         # Export.
         dfExport.to_csv(tgtFilePathName, index=False, sep='\t', encoding='utf-8',
@@ -336,8 +530,10 @@ class MCDSEngine(DSEngine):
         
         return tgtFilePathName
 
-# Analysis : Gather input params, data set, results, debug and log files
+# Analysis (abstract) : Gather input params, data set, results, debug and log files
 class DSAnalysis(object):
+    
+    EngineClass = DSEngine
     
     def __init__(self, engine, dataSet, name):
         
@@ -347,20 +543,21 @@ class DSAnalysis(object):
         
 class MCDSAnalysis(DSAnalysis):
     
-    EstKeyFns = ['UNIFORM', 'HNORMAL', 'HAZARD'] #, 'NEXPON']
-    EstAdjustFns = ['COSINE', 'POLY', 'HERMITE']
-    EstCriterions = ['AIC', 'AICC', 'BIC', 'LR']
-
+    EngineClass = MCDSEngine
+    
     def __init__(self, engine, dataSet, namePrefix='mcds',
                  estimKeyFn='HNORMAL', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95):
         
+        # Check engine
+        assert isinstance(engine, MCDSEngine), 'Engine must be an MCDSEngine'
+        
         # Check analysis params
-        assert estimKeyFn in self.EstKeyFns, \
-               'Invalid estimate key function {}: should be in {}'.format(estimKeyFn, self.EstKeyFns)
-        assert estimAdjustFn in self.EstAdjustFns, \
-               'Invalid estimate adjust function {}: should be in {}'.format(estimAdjustFn, self.EstAdjustFns)
-        assert estimCriterion in self.EstCriterions, \
-               'Invalid estimate criterion {}: should be in {}'.format(estimCriterion, self.EstCriterions)
+        assert estimKeyFn in engine.EstKeyFns, \
+               'Invalid estimate key function {}: should be in {}'.format(estimKeyFn, engine.EstKeyFns)
+        assert estimAdjustFn in engine.EstAdjustFns, \
+               'Invalid estimate adjust function {}: should be in {}'.format(estimAdjustFn, engine.EstAdjustFns)
+        assert estimCriterion in engine.EstCriterions, \
+               'Invalid estimate criterion {}: should be in {}'.format(estimCriterion, engine.EstCriterions)
         assert cvInterval > 0 and cvInterval < 100,\
                'Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%[')
 
@@ -377,22 +574,35 @@ class MCDSAnalysis(DSAnalysis):
         self.estimCriterion = estimCriterion
         self.cvInterval = cvInterval
     
+    # Run columns for output : analysis params + root engine output
+    MIRunColumns = pd.MultiIndex.from_tuples([('parameters', 'estimator key function', 'Value'),
+                                              ('parameters', 'estimator adjustment series', 'Value'),
+                                              ('parameters', 'estimator selection criterion', 'Value'),
+                                              ('parameters', 'CV interval', 'Value'),
+                                              ('run output', 'run status', 'Value'),
+                                              ('run output', 'files folder', 'Value')])
+    
     def run(self, realRun=True):
         
-        self.runStatus, self.filesDir = self.engine(dataSet=self.dataSet, runName=self.name, realRun=realRun,
-                                                    estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
-                                                    estimCriterion=self.estimCriterion, cvInterval=self.cvInterval)
+        self.runStatus, self.filesDir = self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun,
+                                                        estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
+                                                        estimCriterion=self.estimCriterion, cvInterval=self.cvInterval)
         
-        # Load and decode results and log.
-        dResults = odict([('estimKeyFn', self.estimKeyFn), ('estimAdjustFn', self.estimAdjustFn),
-                          ('estimCriterion', self.estimCriterion), ('cvInterval', self.cvInterval),
-                          ('filesDir', self.filesDir), ('runStatus', self.runStatus),
-                          #TODO
-                         ])
+        # Load and decode output stats.
+        sResults = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
+                                   self.cvInterval, self.runStatus, self.filesDir],
+                             index=self.MIRunColumns)
         
-        return dResults
+        if self.runStatus in [1, 2]:
+            sResults = sResults.append(self.engine.decodeStats())
+            
+        # TODO: output (text and curves), log
+        
+        print()
+        
+        return sResults
     
-# A data set for multiple analyses, with 1 or 0 individual per line
+# An input data set for multiple analyses, with 1 or 0 individual per line
 # Warning:
 # * Only Point transect supported as for now
 # * No further change in decimal precision : provide what you need !
@@ -407,8 +617,66 @@ class DataSet(object):
         
         self.dfData = dfData
         self.decimalFields = decimalFields
+        
+    def getData(self):
+        
+        return self.dfData
 
+# A result set for multiple analyses from the same engine.
+# With ability to prepend custom heading columns to the engine output stat ones.
+class ResultsSet(object):
+    
+    def __init__(self, analysisClass, customColumns=None):
+        
+        assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
+        assert customColumns is None or isinstance(customColumns, pd.MultiIndex), \
+               'customColumns must be None or a pd.MultiIndex'
+        assert customColumns is None or len(customColumns.levels) == 3, \
+               'customColumns must have 3 levels if not None'
+        
+        self.analysisClass = analysisClass
+        self.columns = analysisClass.MIRunColumns
+        self.columns = self.columns.append(analysisClass.EngineClass.statModColumns())
+        if customColumns is not None:
+            self.columns = customColumns.append(self.columns)
+        self._dfData = pd.DataFrame()
+        self.rightColOrder = False
+    
+    # sCustom : Series for custom cols values
+    # sResult : Series for result cols values
+    def append(self, sCustom, sResult):
+        
+        assert isinstance(sCustom, pd.Series), 'sCustom : Can only append a pd.Series'
+        assert isinstance(sResult, pd.Series), 'sResult : Can only append a pd.Series'
+        
+        self._dfData = self._dfData.append([sCustom.append(sResult)], ignore_index=True)
+        
+        # Appending (or concat'ing) often changes columns order
+        self.rightColOrder = False
+        
+    @property
+    def dfData(self):
+        
+        if not self.rightColOrder:
+            
+            # Enforce right columns order.
+            self._dfData = self._dfData.reindex(self.columns, axis='columns')
+            
+            # No need to do it again, until next append() !
+            self.rightColOrder = True
+        
+        return self._dfData
 
+    @dfData.setter
+    def dfData(self, dfData):
+        
+        assert isinstance(dfData, pd.DataFrame), 'dfData must be a pd.DataFrame'
+        
+        self._dfData = dfData.copy()
+        
+        # Let's assume that columns order is dirty.
+        self.rightColOrder = False
+        
 if __name__ == '__main__':
 
     # Parse command line args.
