@@ -13,6 +13,7 @@ import sys
 import os
 import tempfile
 import argparse
+from packaging import version
 
 import re
 
@@ -66,7 +67,7 @@ class DSEngine(object):
         return exeFilePathName
     
     # Specifications of output stats.
-    DfStatRowSpecs, DfStatModSpecs, DfStatModNotes, MIStatModColumns = None, None, None, None
+    DfStatRowSpecs, DfStatModSpecs, DfStatModNotes, MIStatModCols, DfStatModColTrans = None, None, None, None, None
     
     def __init__(self, workDir='.',
                  distanceUnit='Meter', areaUnit='Hectare', **options):
@@ -110,7 +111,8 @@ class DSEngine(object):
     DecimalFields = ['SMP_EFFORT', 'DISTANCE']
     
     # Match srcFields with tgtAliasREs ones ; keep remaining ones ; sort decimal fields.
-    def matchDataFields(self, srcFields, tgtAliasREs=odict()):
+    @classmethod
+    def matchDataFields(cls, srcFields, tgtAliasREs=odict()):
         
         print('Matching required data columns:', end=' ')
         
@@ -122,10 +124,10 @@ class DSEngine(object):
             foundTgtField = False
             for srcField in srcFields:
                 for pat in tgtAliasREs[tgtField]:
-                    if re.match(pat, srcField, flags=re.IGNORECASE):
+                    if re.search(pat, srcField, flags=re.IGNORECASE):
                         print(srcField, end=', ')
                         matFields.append(srcField)
-                        if tgtField in self.DecimalFields:
+                        if tgtField in cls.DecimalFields:
                             matDecFields.append(srcField)
                         foundTgtField = True
                         break
@@ -181,12 +183,18 @@ class MCDSEngine(DSEngine):
 
     # Estimator key functions (Order: Distance .chm doc, "MCDS Engine Stats File", note 2 below second table).
     EstKeyFns = ['UNIFORM', 'HNORMAL', 'NEXPON', 'HAZARD']
+    EstKeyFnDef = EstKeyFns[0]
 
     # Estimator adjustment series (Order: Distance .chm doc, "MCDS Engine Stats File", note 3 below second table).
     EstAdjustFns = ['POLY', 'HERMITE', 'COSINE']
+    EstAdjustFnDef = EstAdjustFns[0]
 
     # Estimator key functions (Order: Distance .chm doc, "MCDS Engine Stats File", note 2 below second table).
     EstCriterions = ['AIC', 'AICC', 'BIC', 'LR']
+    EstCriterionDef = EstCriterions[0]
+    
+    # Estimator confidence value for output interval.
+    EstCVIntervalDef = 95 # %
 
     # Command file template (for str.format()ing).
     CmdTxt = \
@@ -297,7 +305,7 @@ class MCDSEngine(DSEngine):
             indexItems.append((modDesc, statDesc, 'Value'))
             if '1' in statNotes:
                 indexItems += [(modDesc, statDesc, valName) for valName in ['Cv', 'Lcl', 'Ucl', 'Df']]
-        cls.MIStatModColumns = pd.MultiIndex.from_tuples(indexItems)
+        cls.MIStatModCols = pd.MultiIndex.from_tuples(indexItems)
     
         # Notes about stats.
         fileName = 'mcds-stat-mod-notes.txt'
@@ -308,6 +316,12 @@ class MCDSEngine(DSEngine):
             cls.DfStatModNotes = pd.DataFrame(data=statModNotes, columns=['Note', 'Text']).set_index('Note')
             assert not cls.DfStatModNotes.empty, 'Empty MCDS stats module notes'
             
+        # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
+        fileName = 'mcds-stat-mod-trans.txt'
+        print('*', fileName)
+        cls.DfStatModColsTrans = dfStatModTransExt = pd.read_csv(fileName, sep='\t')
+        cls.DfStatModColsTrans.set_index(['Module', 'Statistic', 'Figure'], inplace=True)
+        
         print('MCDS : Loaded output stats specs.')
         print()
         
@@ -329,12 +343,12 @@ class MCDSEngine(DSEngine):
         return cls.DfStatModSpecs
         
     @classmethod
-    def statModColumns(cls):
+    def statModCols(cls):
         
-        if cls.MIStatModColumns is None:
+        if cls.MIStatModCols is None:
             cls.loadStatSpecs()    
 
-        return cls.MIStatModColumns
+        return cls.MIStatModCols
         
     @classmethod
     def statModNotes(cls):
@@ -343,6 +357,14 @@ class MCDSEngine(DSEngine):
             cls.loadStatSpecs()    
 
         return cls.DfStatModNotes
+        
+    @classmethod
+    def statModColTrans(cls):
+        
+        if cls.DfStatModColsTrans is None:
+            cls.loadStatSpecs()    
+
+        return cls.DfStatModColsTrans
         
     # Ctor
     def __init__(self, workDir='.',
@@ -386,7 +408,7 @@ class MCDSEngine(DSEngine):
     # Workaround pd.DataFrame.to_csv(float_format='%.xf') not working when NaNs in serie
     @staticmethod
     def safeFloat2Str(val, prec=None, decPt='.'):
-        strVal = '' if np.isnan(val) else str(val) if prec is None \
+        strVal = '' if pd.isnull(val) else str(val) if prec is None \
                     else '{:.{prec}f}'.format(val, prec=prec)
         if decPt != '.':
             strVal = strVal.replace('.', decPt)
@@ -546,7 +568,8 @@ class MCDSAnalysis(DSAnalysis):
     EngineClass = MCDSEngine
     
     def __init__(self, engine, dataSet, namePrefix='mcds',
-                 estimKeyFn='HNORMAL', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95):
+                 estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
+                 estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef):
         
         # Check engine
         assert isinstance(engine, MCDSEngine), 'Engine must be an MCDSEngine'
@@ -562,8 +585,11 @@ class MCDSAnalysis(DSAnalysis):
                'Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%[')
 
         # Build name from main params
-        name = '-'.join([namePrefix] + [p[:4] for p in [estimKeyFn, estimAdjustFn, estimCriterion]] \
-                        + [str(cvInterval)])
+        name = '-'.join([namePrefix] + [p[:3].lower() for p in [estimKeyFn, estimAdjustFn]])
+        if estimCriterion != self.EngineClass.EstCriterionDef:
+            name += '-' + estimCriterion.lower()
+        if cvInterval != self.EngineClass.EstCVIntervalDef:
+            name += '-' + str(cvInterval)
 
         # Initialise base.
         super().__init__(engine, dataSet, name)
@@ -574,13 +600,19 @@ class MCDSAnalysis(DSAnalysis):
         self.estimCriterion = estimCriterion
         self.cvInterval = cvInterval
     
-    # Run columns for output : analysis params + root engine output
+    # Run columns for output : analysis params + root engine output (3-level multi-index)
     MIRunColumns = pd.MultiIndex.from_tuples([('parameters', 'estimator key function', 'Value'),
                                               ('parameters', 'estimator adjustment series', 'Value'),
                                               ('parameters', 'estimator selection criterion', 'Value'),
                                               ('parameters', 'CV interval', 'Value'),
                                               ('run output', 'run status', 'Value'),
                                               ('run output', 'files folder', 'Value')])
+    
+    # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
+    DfRunColumnTrans = \
+        pd.DataFrame(index=MIRunColumns,
+                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInter', 'RunCode', 'RunFolder'],
+                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'InterConf', 'CodeExec', 'DossierExec']))
     
     def run(self, realRun=True):
         
@@ -602,43 +634,78 @@ class MCDSAnalysis(DSAnalysis):
         
         return sResults
     
-# An input data set for multiple analyses, with 1 or 0 individual per line
+# A tabular input data set for multiple analyses, with 1 or 0 individual per line
 # Warning:
 # * Only Point transect supported as for now
 # * No further change in decimal precision : provide what you need !
+# * Support provided for pandas.DataFrame, Excel .xlsx file and tab-separated .csv/.txt files,
+#   and OpenDoc .ods file when pandas >= 0.25
 class DataSet(object):
     
-    def __init__(self, dfData, decimalFields=list()):
+    SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
+                        + (['.ods'] if version.parse(pd.__version__).release >= (0, 25) else [])
+    
+    def __init__(self, source, decimalFields=list()):
+        
+        assert (isinstance(source, str) and os.path.isfile(source)) \
+               or isinstance(source, pd.DataFrame), \
+               'source must be a pandas.DataFrame or an existing filename'
+        
+        if isinstance(source, str):
+            ext = os.path.splitext(source)[1].lower()
+            assert ext in self.SupportedFileExts, \
+                   'Unsupported source file type {}: not from {{{}}}' \
+                   .format(ext, ','.join(self.SupportedFileExts))
+            if ext in ['.xlsx', '.ods']:
+                dfData = pd.read_excel(source)
+            elif ext in ['.csv', '.txt']:
+                dfData = pd.read_csv(source, sep='\t')
+        else:
+            dfData = source.copy()
         
         assert not dfData.empty, 'No data in set'
+        assert len(dfData.columns) >= 5, 'Not enough columns (should be at leat 5)'
+        
         assert all(field in dfData.columns for field in decimalFields), \
-               'Some declared decimal field(s) are not in dfData columns {}' \
+               'Some declared decimal field(s) are not in source columns {}' \
                .format(','.join(dfData.columns))
         
-        self.dfData = dfData
+        self._dfData = dfData
         self.decimalFields = decimalFields
         
-    def getData(self):
+    @property
+    def dfData(self):
         
-        return self.dfData
+        return self._dfData
 
+    @dfData.setter
+    def dfData(self, dfData):
+        
+        raise NotImplementedError('No changed allowed to data ; create a new dataset !')
+        
 # A result set for multiple analyses from the same engine.
 # With ability to prepend custom heading columns to the engine output stat ones.
+# And to get a 3-level multi-index columned or a mono-indexed translated columned version of the data table.
 class ResultsSet(object):
     
-    def __init__(self, analysisClass, customColumns=None):
+    def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None):
         
         assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
-        assert customColumns is None or isinstance(customColumns, pd.MultiIndex), \
-               'customColumns must be None or a pd.MultiIndex'
-        assert customColumns is None or len(customColumns.levels) == 3, \
-               'customColumns must have 3 levels if not None'
+        assert miCustomCols is None or isinstance(miCustomCols, pd.MultiIndex), \
+               'customCols must be None or a pd.MultiIndex'
+        assert miCustomCols is None or len(miCustomCols.levels) == 3, \
+               'customCols must have 3 levels if not None'
         
         self.analysisClass = analysisClass
-        self.columns = analysisClass.MIRunColumns
-        self.columns = self.columns.append(analysisClass.EngineClass.statModColumns())
-        if customColumns is not None:
-            self.columns = customColumns.append(self.columns)
+    
+        # 3-level multi-index columns (module, statistic, figure)
+        self.miAnalysisCols = analysisClass.MIRunColumns.append(analysisClass.EngineClass.statModCols())
+        self.miCustomCols = miCustomCols
+            
+        # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
+        self.dfAnalysisColTrans = analysisClass.DfRunColumnTrans.append(analysisClass.EngineClass.statModColTrans())
+        self.dfCustomColTrans = dfCustomColTrans
+        
         self._dfData = pd.DataFrame()
         self.rightColOrder = False
     
@@ -649,7 +716,7 @@ class ResultsSet(object):
         assert isinstance(sCustom, pd.Series), 'sCustom : Can only append a pd.Series'
         assert isinstance(sResult, pd.Series), 'sResult : Can only append a pd.Series'
         
-        self._dfData = self._dfData.append([sCustom.append(sResult)], ignore_index=True)
+        self._dfData = self._dfData.append(sCustom.append(sResult), ignore_index=True)
         
         # Appending (or concat'ing) often changes columns order
         self.rightColOrder = False
@@ -659,8 +726,12 @@ class ResultsSet(object):
         
         if not self.rightColOrder:
             
-            # Enforce right columns order.
-            self._dfData = self._dfData.reindex(self.columns, axis='columns')
+            # Enforce right columns order, but remove columns with no relevant data.
+            tgtColumns = self.miAnalysisCols
+            if self.miCustomCols is not None:
+                tgtColumns = self.miCustomCols.append(tgtColumns)
+            self._dfData = self._dfData.reindex(tgtColumns, axis='columns')
+            self._dfData.dropna(how='all', axis='columns', inplace=True)
             
             # No need to do it again, until next append() !
             self.rightColOrder = True
@@ -677,6 +748,23 @@ class ResultsSet(object):
         # Let's assume that columns order is dirty.
         self.rightColOrder = False
         
+    # Access a mono-indexed translated columns version of the data table
+    def dfTransData(self, lang='en'):
+        
+        assert lang in ['en', 'fr'], 'No support for "{}" language'.format(lang)
+        
+        # Build translation table for lang from custom one and analysis one
+        dfColTrans = self.dfAnalysisColTrans
+        if self.dfCustomColTrans is not None:
+            dfColTrans = self.dfCustomColTrans.append(dfColTrans)
+        dTr = dfColTrans[lang].to_dict()
+        
+        # Make a copy of dfData and translate cols.
+        dfTrData = self.dfData.copy()
+        dfTrData.columns = [dTr.get(col, col) for col in dfTrData.columns]
+        
+        return dfTrData
+
 if __name__ == '__main__':
 
     # Parse command line args.
@@ -703,13 +791,7 @@ if __name__ == '__main__':
     args = argser.parse_args()
     
     # Load data set.
-    ext = os.path.splitext(args.dataFile)[1].lower()
-    if ext == '.xlsx':
-        dfData = pd.read_excel(args.dataFile)
-    elif ext == '.csv':
-        dfData = pd.read_csv(args.dataFile, sep='\t')
-
-    dataSet = DataSet(dfData)
+    dataSet = DataSet(source=args.dataFile)
 
     # Create DS engine
     engine = MCDSEngine(workDir=args.workDir,
