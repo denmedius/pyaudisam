@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Code de génération d'exposé HTML "identification à l'oreille" pour un groupe d'espèces
+# Code de génération d'exposé HTML "Les Oiseaux à l'Oreille" pour un groupe d'espèces
+#
+# Exposé d'analyse détaillées et de description des différents types de chants et cris
+# de chaque espèce du groupe, après quelques informations plus générales sur l'espèce elle-même
+# (classification, milieux naturels fréquentés, régime alimentaire, identification visuelle,
+#  état des populations ... et autres particularités diverses, le tout vu d'Auvergne).
 #
 # A partir :
 #  * d'un dossier de fichiers sons bien nommés
@@ -376,8 +381,9 @@ _KHtmlGroupeEspeces = """
            avec dans l'ordre, pour chacun d'eux :</p>
         <ul>
             <li>un lecteur audio pour l'écouter en direct (attention : soyez patient, car selon votre navigateur,
-                 ou la vitesse de votre connexion internet, il se peut que vous deviez attendre
-                 un petit moment avant de pouvoir jouer tous les enregistrements),</li>
+                ou la vitesse de votre connexion internet, il se peut que vous deviez attendre
+                un petit moment avant de pouvoir jouer tous les enregistrements, en particulier les derniers
+                en bas de page ... parfois jusqu'à plusieurs minutes),</li>
             <li>une description rapide, à base d'adjectifs et de qualificatifs abrégés, sans accents ...
                 et/ou d'onomatopées
                 (Cf. <a href="#glossaire">glossaire</a> ci-dessous pour la signification des abréviations),</li>
