@@ -234,7 +234,7 @@ class MCDSEngine(DSEngine):
                      Cluster /Bias=GXLOG;
                      VarN=Empirical;
                      End;
-                  """.split())) + '\n'
+                  """.split('\n'))) + '\n'
     
     # Executable 
     ExeFilePathName = DSEngine.findExecutable(exeFileName='MCDS.exe')
@@ -398,7 +398,7 @@ class MCDSEngine(DSEngine):
                                     estKeyFn=params['estimKeyFn'], estAdjustFn=params['estimAdjustFn'],
                                     estCriterion=params['estimCriterion'], cvInterv=params['cvInterval'])
 
-        with open(self.cmdFileName, 'w') as cmdFile:
+        with open(self.cmdFileName, mode='w', encoding='utf-8') as cmdFile:
             cmdFile.write(cmdTxt)
 
         print('Commands written to', self.cmdFileName)
@@ -472,15 +472,17 @@ class MCDSEngine(DSEngine):
         cmd = '"{}" 0, {}'.format(self.ExeFilePathName, cmdFileName)
         if realRun:
             print('Running MCDS :', cmd)
+            self.runTime = pd.Timestamp.now()
             self.runStatus = os.system(cmd)
             print('Done : status =', self.runStatus)
             
         # ... unless specified not to (input files generated, but no execution).
         else:
             print('Not running MCDS :', cmd)
+            self.runTime = pd.NaT
             self.runStatus = 0
 
-        return self.runStatus, self.runDir
+        return self.runStatus, self.runTime, self.runDir
     
     # Decode output stats file to a value series
     # Precondition: self.run(...)
@@ -606,23 +608,25 @@ class MCDSAnalysis(DSAnalysis):
                                               ('parameters', 'estimator selection criterion', 'Value'),
                                               ('parameters', 'CV interval', 'Value'),
                                               ('run output', 'run status', 'Value'),
-                                              ('run output', 'files folder', 'Value')])
+                                              ('run output', 'run time', 'Value'),
+                                              ('run output', 'run folder', 'Value')])
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DfRunColumnTrans = \
         pd.DataFrame(index=MIRunColumns,
-                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInter', 'RunCode', 'RunFolder'],
-                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'InterConf', 'CodeExec', 'DossierExec']))
+                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInter', 'RunCode', 'RunTime', 'RunFolder'],
+                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'InterConf', 'CodeExec', 'HeureExec', 'DossierExec']))
     
     def run(self, realRun=True):
         
-        self.runStatus, self.filesDir = self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun,
-                                                        estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
-                                                        estimCriterion=self.estimCriterion, cvInterval=self.cvInterval)
+        self.runStatus, self.runTime, self.runDir = \
+            self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun,
+                            estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
+                            estimCriterion=self.estimCriterion, cvInterval=self.cvInterval)
         
         # Load and decode output stats.
         sResults = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
-                                   self.cvInterval, self.runStatus, self.filesDir],
+                                   self.cvInterval, self.runStatus, self.runTime, self.runDir],
                              index=self.MIRunColumns)
         
         if self.runStatus in [1, 2]:
@@ -645,6 +649,20 @@ class DataSet(object):
     SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
                         + (['.ods'] if version.parse(pd.__version__).release >= (0, 25) else [])
     
+    # Wrapper around pd.read_csv for smart ./, decimal character management (pandas is not smart on this)
+    # TODO: Make this more efficient
+    @staticmethod
+    def csv2df(fileName, decCols, sep='\t'):
+        df = pd.read_csv(fileName, sep=sep)
+        allRight = True
+        for col in decCols:
+            if df[col].dropna().apply(lambda v: isinstance(v, str)).any():
+                allRight = False
+                break
+        if not allRight:
+            df = pd.read_csv(fileName, sep=sep, decimal=',')
+        return df
+    
     def __init__(self, source, decimalFields=list()):
         
         assert (isinstance(source, str) and os.path.isfile(source)) \
@@ -659,7 +677,7 @@ class DataSet(object):
             if ext in ['.xlsx', '.ods']:
                 dfData = pd.read_excel(source)
             elif ext in ['.csv', '.txt']:
-                dfData = pd.read_csv(source, sep='\t')
+                dfData = self.csv2df(source, decCols=decimalFields, sep='\t')
         else:
             dfData = source.copy()
         
