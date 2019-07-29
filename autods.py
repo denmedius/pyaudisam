@@ -577,10 +577,12 @@ class MCDSAnalysis(DSAnalysis):
         assert isinstance(engine, MCDSEngine), 'Engine must be an MCDSEngine'
         
         # Check analysis params
-        assert estimKeyFn in engine.EstKeyFns, \
-               'Invalid estimate key function {}: should be in {}'.format(estimKeyFn, engine.EstKeyFns)
-        assert estimAdjustFn in engine.EstAdjustFns, \
-               'Invalid estimate adjust function {}: should be in {}'.format(estimAdjustFn, engine.EstAdjustFns)
+        assert len(estimKeyFn) >= 2 and estimKeyFn in [kf[:len(estimKeyFn)] for kf in engine.EstKeyFns], \
+               'Invalid estimate key function {}: should be in {} or at least 2-char abreviations' \
+               .format(estimKeyFn, engine.EstKeyFns)
+        assert len(estimAdjustFn) >= 2 and estimAdjustFn in [kf[:len(estimAdjustFn)] for kf in engine.EstAdjustFns], \
+               'Invalid estimate adjust function {}: should be in {} or at least 2-char abreviations' \
+               .format(estimAdjustFn, engine.EstAdjustFns)
         assert estimCriterion in engine.EstCriterions, \
                'Invalid estimate criterion {}: should be in {}'.format(estimCriterion, engine.EstCriterions)
         assert cvInterval > 0 and cvInterval < 100,\
@@ -638,10 +640,11 @@ class MCDSAnalysis(DSAnalysis):
         
         return sResults
     
-# A tabular input data set for multiple analyses, with 1 or 0 individual per line
+# A tabular input data set for multiple analyses, with 1 or 0 individual per row
 # Warning:
 # * Only Point transect supported as for now
-# * No further change in decimal precision : provide what you need !
+# * No change made afterwards on decimal precision : provide what you need !
+# * No change made afterwards on the order of rows : provide what you need !
 # * Support provided for pandas.DataFrame, Excel .xlsx file and tab-separated .csv/.txt files,
 #   and OpenDoc .ods file when pandas >= 0.25
 class DataSet(object):
