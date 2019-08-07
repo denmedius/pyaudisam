@@ -10,17 +10,21 @@
 
 
 import sys
-import os
+import os, shutil
 import tempfile
 import argparse
 from packaging import version
 
 import re
+import datetime as dt
+import codecs
 
 from collections import OrderedDict as odict
 
 import numpy as np
 import pandas as pd
+
+import jinja2
 
 
 # DSEngine (abstract) classes.
@@ -144,27 +148,41 @@ class DSEngine(object):
         
         return matFields, matDecFields, extFields
 
+    # Engine in/out file names.
+    CmdFileName = 'cmd.txt'
+    DataFileName = 'data.txt'
+    OutputFileName = 'output.txt'
+    LogFileName = 'log.txt'
+    StatsFileName = 'stats.txt'
+    BootFileName = 'bootstrap.txt'
+        
     # Setup run folder (all in and out files will go there)
-    def setupRunFolder(self, runPrefix='ds'):
+    def setupRunFolder(self, runPrefix='ds', forceSubFolder=None):
         
-        # MCDS does not support folder and file names with spaces inside ...
-        # And one never knows ... replace other special chars also.
-        runPrefix = runPrefix.translate(str.maketrans({' ':'-', ',':'-', '.':'-', '(': '', ')':''}))
+        if not forceSubFolder:
+            
+            # MCDS does not support folder and file names with spaces inside ...
+            # And one never knows ... replace other special chars also.
+            runPrefix = runPrefix.translate(str.maketrans({c:'-' for c in ' ,.:;()/'}))
         
-        self.runDir = tempfile.mkdtemp(dir=self.workDir, prefix=runPrefix+'-')
-        
+            self.runDir = tempfile.mkdtemp(dir=self.workDir, prefix=runPrefix+'-')
+            
+        else:
+            
+            self.runDir = os.path.join(self.workDir, forceSubFolder)
+            
         print('Will run in', self.runDir)
         
         # Define input and output file pathnames
         def pathName(fileName):
             return os.path.join(self.runDir, fileName)
         
-        self.cmdFileName   = pathName('cmd.txt')
-        self.dataFileName  = pathName('data.txt')
-        self.outFileName   = pathName('output.txt')
-        self.logFileName   = pathName('log.txt')
-        self.statsFileName = pathName('stats.txt')
-        self.bootFileName  = pathName('bootstrap.txt')
+        self.cmdFileName   = pathName(self.CmdFileName)
+        self.dataFileName  = pathName(self.DataFileName)
+        self.outFileName   = pathName(self.OutputFileName)
+        self.logFileName   = pathName(self.LogFileName)
+        self.statsFileName = pathName(self.StatsFileName)
+        self.bootFileName  = pathName(self.BootFileName)
         
         return self.runDir
 
@@ -616,8 +634,10 @@ class MCDSAnalysis(DSAnalysis):
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DfRunColumnTrans = \
         pd.DataFrame(index=MIRunColumns,
-                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInter', 'RunCode', 'RunTime', 'RunFolder'],
-                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'InterConf', 'CodeExec', 'HeureExec', 'DossierExec']))
+                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInter',
+                                   'RunCode', 'RunTime', 'RunFolder'],
+                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'InterConf',
+                                   'CodeExec', 'HeureExec', 'DossierExec']))
     
     def run(self, realRun=True):
         
@@ -730,14 +750,17 @@ class ResultsSet(object):
         self._dfData = pd.DataFrame()
         self.rightColOrder = False
     
-    # sCustom : Series for custom cols values
     # sResult : Series for result cols values
-    def append(self, sCustom, sResult):
+    # sCustomHead : Series for custom cols values
+    def append(self, sResult, sCustomHead=None):
         
-        assert isinstance(sCustom, pd.Series), 'sCustom : Can only append a pd.Series'
         assert isinstance(sResult, pd.Series), 'sResult : Can only append a pd.Series'
+        assert sCustomHead is None or isinstance(sCustomHead, pd.Series), 'sCustom : Can only append a pd.Series'
         
-        self._dfData = self._dfData.append(sCustom.append(sResult), ignore_index=True)
+        if sCustomHead is not None:
+            sResult = sCustomHead.append(sResult)
+        
+        self._dfData = self._dfData.append(sResult, ignore_index=True)
         
         # Appending (or concat'ing) often changes columns order
         self.rightColOrder = False
@@ -748,10 +771,10 @@ class ResultsSet(object):
         if not self.rightColOrder:
             
             # Enforce right columns order, but remove columns with no relevant data.
-            tgtColumns = self.miAnalysisCols
+            miTgtColumns = self.miAnalysisCols
             if self.miCustomCols is not None:
-                tgtColumns = self.miCustomCols.append(tgtColumns)
-            self._dfData = self._dfData.reindex(tgtColumns, axis='columns')
+                miTgtColumns = self.miCustomCols.append(miTgtColumns)
+            self._dfData = self._dfData.reindex(columns=miTgtColumns)
             self._dfData.dropna(how='all', axis='columns', inplace=True)
             
             # No need to do it again, until next append() !
@@ -770,9 +793,11 @@ class ResultsSet(object):
         self.rightColOrder = False
         
     # Access a mono-indexed translated columns version of the data table
-    def dfTransData(self, lang='en'):
+    def dfTransData(self, lang='en', subset=None):
         
         assert lang in ['en', 'fr'], 'No support for "{}" language'.format(lang)
+        assert subset is None or isinstance(subset, list) or isinstance(subset, pd.MultiIndex), \
+               'subset columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
         
         # Build translation table for lang from custom one and analysis one
         dfColTrans = self.dfAnalysisColTrans
@@ -780,11 +805,120 @@ class ResultsSet(object):
             dfColTrans = self.dfCustomColTrans.append(dfColTrans)
         dTr = dfColTrans[lang].to_dict()
         
-        # Make a copy of dfData and translate cols.
-        dfTrData = self.dfData.copy()
+        # Make a copy of / extract selected columns of dfData, and translate column names.
+        if subset is None:
+            dfTrData = self.dfData.copy()
+        else:
+            if isinstance(subset, list):
+                miSubset = pd.MultiIndex.from_tuples(subset)
+            else:
+                miSubset = subset
+            dfTrData = self.dfData.reindex(columns=miSubset)
         dfTrData.columns = [dTr.get(col, col) for col in dfTrData.columns]
         
         return dfTrData
+
+
+class ResultsReport(object):
+
+    def __init__(self, resultsSet, title, subTitle, description, keywords,
+                       synthCols=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+    
+        assert os.path.isdir(tgtFolder), 'Target folder {} doesn\'t seem to exist ...'.format(tgtFolder)
+        assert synthCols is None or isinstance(synthCols, list) or isinstance(synthCols, pd.MultiIndex), \
+               'synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
+        
+        self.resultsSet = resultsSet
+        self.synthCols = synthCols
+        
+        self.runFolderCol = resultsSet.dfAnalysisColTrans.loc[('run output', 'run folder', 'Value'), lang]
+
+        self.lang = lang
+        self.title = title
+        self.subTitle = subTitle
+        self.description = description
+        self.keywords = keywords
+        
+        self.attachedDir = attachedDir
+        
+        self.tgtPrefix = tgtPrefix
+        self.tgtFolder = tgtFolder
+        
+    DTrans = dict(en={ t: t for t in ['Synthesis', 'Details', 'Synthesis table', 'Detailed results',
+                                      'Summary computation log', 'Detailed computation log'] },
+                  fr={ 'Synthesis': 'Synthèse', 'Details': 'Détails',
+                       'Synthesis table': 'Tableau de synthèse', 'Detailed results': 'Résultats en détails',
+                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs'})
+
+    # Génération du rapport HTML.
+    def toHtml(self):
+        
+        # Build and configure jinja2 environnement.
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'),
+                                 trim_blocks=True, lstrip_blocks=True)
+        #env.filters.update(trace=_jcfPrint2StdOut) # Template debugging ...
+        
+        # Install needed attached files.
+        attSrcDir = os.path.join('AutoDS', 'report')
+        for fn in ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg']:
+            shutil.copy(os.path.join(attSrcDir, fn), self.tgtFolder)
+       
+        # Generate top report page.
+        genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        tmpl = env.get_template('autods-top-tmpl.html')
+        html = tmpl.render(synthesis=self.resultsSet.dfTransData(self.lang, subset=self.synthCols).to_html(),
+                           details=self.resultsSet.dfTransData(self.lang).to_html(),
+                           title=self.title, subtitle=self.subTitle,keywords=self.keywords,
+                           tr=self.DTrans[self.lang], genDateTime=genDateTime)
+        html = '\n'.join(line.rstrip() for line in html.split('\n') if line.rstrip())
+
+        # Write top HTML to file.
+        topHtmlPathName = os.path.join(self.tgtFolder, self.tgtPrefix + '.html')
+        with codecs.open(topHtmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
+            tgtFile.write(html)
+
+        # Generate detailled report page for each analysis
+        tmpl = env.get_template('autods-anlys-tmpl.html')
+        
+        dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
+        dfDetRes = self.resultsSet.dfTransData(self.lang)
+        for lblAnlys in dfDetRes.index:
+        
+            anlysFolder = dfDetRes.at[lblAnlys, self.runFolderCol]
+
+            # Generate analysis report page.
+            synthesis = dfSynthRes.loc[lblAnlys].to_frame().T.to_html()
+            details = dfDetRes.loc[lblAnlys].to_frame().T.to_html()
+            log = dict(text=open(os.path.join(anlysFolder, DSEngine.LogFileName)).read().strip())
+            outLst = open(os.path.join(anlysFolder, DSEngine.OutputFileName)).read().strip().split('\t')
+            output = [dict(id=title.translate(str.maketrans({c:'' for c in ' ,.-:()/'})), 
+                           title=title.strip(), text=text.strip('\n')) \
+                      for title, text in [outLst[i:i+2] for i in range(0, len(outLst), 2)]]
+            html = tmpl.render(synthesis=synthesis, details=details, log=log, output=output,
+                               title=self.title, subtitle=self.subTitle, keywords=self.keywords,
+                               tr=self.DTrans[self.lang], genDateTime=genDateTime)
+            html = '\n'.join(line.rstrip() for line in html.split('\n') if line.rstrip())
+
+            # Write analysis HTML to file.
+            htmlPathName = os.path.join(anlysFolder, 'index.html')
+            with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
+                tgtFile.write(html)
+
+        return topHtmlPathName
+
+    # Génération du rapport Excel.
+    def toExcel(self):
+        
+        xlsxPathName = os.path.join(self.tgtFolder, self.tgtPrefix + '.xlsx')
+        
+        with pd.ExcelWriter(xlsxPathName) as xlsxWriter:
+
+            self.resultsSet.dfTransData(self.lang, subset=self.synthCols) \
+              .to_excel(xlsxWriter, sheet_name=self.DTrans[self.lang]['Synthesis'], index=True)
+            self.resultsSet.dfTransData(self.lang) \
+              .to_excel(xlsxWriter, sheet_name=self.DTrans[self.lang]['Details'], index=True)
+
+        return xlsxPathName
 
 if __name__ == '__main__':
 
