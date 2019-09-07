@@ -52,9 +52,18 @@
     <img class="center" height="32" style="margin-top: 30px"
          src="./fa-feather-alt.svg" alt="---" />
 
-    <h2 id="synthesis">{{tr['Synthesis table']}}</h2>
+    <h2 id="synthesis">
+      <a href="./{{xlUrl}}" target="_blank">
+        <img height="64" style="margin-right: 16px" src="./fa-file-excel-rgr.svg"
+             onmouseover="this.src='./fa-file-excel-hover-rgr.svg';"
+             onmouseout="this.src='./fa-file-excel-rgr.svg';"
+             alt="{{tr['Download Excel']}}" alt="{{tr['Download Excel']}}"/></a>
+      {{tr['Synthesis table']}}
+    </h2>
     <div class="chapter" style="margin-left: 10px">
 
+      <p>{{tr['Click on analysis # for details']}}</p>
+      
 	  {{synthesis}}
 
     </div>
@@ -62,11 +71,20 @@
     <img class="center" height="32" style="margin-top: 30px"
          src="./fa-feather-alt.svg" alt="---" />
 
-    <h2 id="details">{{tr['Detailed results']}}</h2>
+    <h2 id="details">
+      <a href="./{{xlUrl}}" target="_blank">
+        <img height="64" style="margin-right: 8px" src="./fa-file-excel-rgr.svg"
+             onmouseover="this.src='./fa-file-excel-hover-rgr.svg';"
+             onmouseout="this.src='./fa-file-excel-rgr.svg';"
+             alt="{{tr['Download Excel']}}" alt="{{tr['Download Excel']}}"/></a>
+      {{tr['Detailed results']}}
+    </h2>
     <div class="chapter" style="margin-left: 10px">
 
+      <p>{{tr['Click on analysis # for details']}}</p>
+      
 	  {{details}}
-
+      
     </div>
     
     <h6 style="margin-bottom: 10px">

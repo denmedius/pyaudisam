@@ -577,6 +577,16 @@ class DSAnalysis(object):
     
     EngineClass = DSEngine
     
+    # Run columns for output : root engine output (3-level multi-index)
+    RunRunColumns = [('run output', 'run folder', 'Value'),
+                     ('run output', 'run status', 'Value'),
+                     ('run output', 'run time', 'Value')]
+    RunFolderColumn = RunRunColumns[0]
+    
+    # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
+    DRunRunColumnTrans = dict(en=['ExCod', 'RunTime', 'RunFolder'],
+                              fr=['CodEx', 'HeureExec', 'DossierExec'])
+    
     def __init__(self, engine, dataSet, name):
         
         self.engine = engine
@@ -626,18 +636,13 @@ class MCDSAnalysis(DSAnalysis):
     MIRunColumns = pd.MultiIndex.from_tuples([('parameters', 'estimator key function', 'Value'),
                                               ('parameters', 'estimator adjustment series', 'Value'),
                                               ('parameters', 'estimator selection criterion', 'Value'),
-                                              ('parameters', 'CV interval', 'Value'),
-                                              ('run output', 'run status', 'Value'),
-                                              ('run output', 'run time', 'Value'),
-                                              ('run output', 'run folder', 'Value')])
+                                              ('parameters', 'CV interval', 'Value')] + DSAnalysis.RunRunColumns)
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DfRunColumnTrans = \
         pd.DataFrame(index=MIRunColumns,
-                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInter',
-                                   'RunCode', 'RunTime', 'RunFolder'],
-                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'InterConf',
-                                   'CodeExec', 'HeureExec', 'DossierExec']))
+                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInter'] + DSAnalysis.DRunRunColumnTrans['en'],
+                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'InterConf']+ DSAnalysis.DRunRunColumnTrans['fr']))
     
     def run(self, realRun=True):
         
@@ -818,10 +823,22 @@ class ResultsSet(object):
         
         return dfTrData
 
+    # Save data to Excel.
+    def toExcel(self, fileName, sheetName=None):
+        
+        self.dfData.to_excel(fileName, sheet_name=sheetName or 'AllResults')
 
+    # Load data from Excel (assuming ctor params match with Excel sheet column names and list,
+    #  which can well be ensured by using the same ctor params as used for saving !).
+    def fromExcel(self, fileName, sheetName=None):
+        
+        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 'AllResults', 
+                                    header=[0, 1, 2], skiprows=[3], index_col=0)
+
+# Results reports class (Excel and HTML)
 class ResultsReport(object):
 
-    def __init__(self, resultsSet, title, subTitle, description, keywords,
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                        synthCols=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
     
         assert os.path.isdir(tgtFolder), 'Target folder {} doesn\'t seem to exist ...'.format(tgtFolder)
@@ -831,11 +848,12 @@ class ResultsReport(object):
         self.resultsSet = resultsSet
         self.synthCols = synthCols
         
-        self.runFolderCol = resultsSet.dfAnalysisColTrans.loc[('run output', 'run folder', 'Value'), lang]
+        self.runFolderCol = resultsSet.dfAnalysisColTrans.loc[DSAnalysis.RunFolderColumn, lang]
 
         self.lang = lang
         self.title = title
         self.subTitle = subTitle
+        self.anlysSubTitle = anlysSubTitle
         self.description = description
         self.keywords = keywords
         
@@ -844,13 +862,24 @@ class ResultsReport(object):
         self.tgtPrefix = tgtPrefix
         self.tgtFolder = tgtFolder
         
-    DTrans = dict(en={ t: t for t in ['Synthesis', 'Details', 'Synthesis table', 'Detailed results',
-                                      'Summary computation log', 'Detailed computation log'] },
-                  fr={ 'Synthesis': 'Synthèse', 'Details': 'Détails',
+    # Translation table for HTML report.
+    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
+                       'Synthesis table': 'Synthesis table', 'Detailed results': 'Detailed results',
+                       'Download Excel': 'Download as Excel(TM) file',
+                       'Summary computation log': 'Summary computation log', 'Detailed computation log': 'Detailed computation log',
+                       'Click on analysis # for details': 'Click on analysis number for detailed report' },
+                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
                        'Synthesis table': 'Tableau de synthèse', 'Detailed results': 'Résultats en détails',
-                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs'})
+                       'Download Excel': 'Télécharger le classeur Excel (TM)',
+                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
+                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour le rapport détaillé' })
 
-    # Génération du rapport HTML.
+    # Output file pathname generation.
+    def targetFilePathName(self, suffix, prefix=None, tgtFolder=None):
+        
+        return os.path.join(tgtFolder or self.tgtFolder, (prefix or self.tgtPrefix) + suffix)
+    
+    # HTML report generation.
     def toHtml(self):
         
         # Build and configure jinja2 environnement.
@@ -860,20 +889,54 @@ class ResultsReport(object):
         
         # Install needed attached files.
         attSrcDir = os.path.join('AutoDS', 'report')
-        for fn in ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg']:
+        for fn in ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg',
+                   'fa-file-excel-rgr.svg', 'fa-file-excel-hover-rgr.svg']:
             shutil.copy(os.path.join(attSrcDir, fn), self.tgtFolder)
+            
+        # Postprocess synthesis table :
+        # a. Add run folder columns, and as the 1st one (will serve as the analysis id and link to associated detailled report)
+        synCols = [DSAnalysis.RunFolderColumn] + [col for col in self.synthCols if col != DSAnalysis.RunFolderColumn]
+        dfSyn = self.resultsSet.dfTransData(self.lang, subset=synCols)
+        
+        # b. Links to each analysis detailled report.
+        #dfSyn[self.runFolderCol] = \
+        #    dfSyn[self.runFolderCol].apply(lambda p: '<a href="./{p}/index.html">{p}</a>' \
+        #                                             .format(p=os.path.relpath(p, self.tgtFolder).replace(os.sep, '/')))
+        dfSyn[self.runFolderCol] = \
+            dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
+                                   .format(p=os.path.relpath(an[self.runFolderCol], self.tgtFolder).replace(os.sep, '/'),
+                                           n=an.name), axis='columns')
+        dfSyn.rename(columns={ self.runFolderCol: self.DTrans[self.lang][self.runFolderCol] }, inplace=True)
        
+        # Postprocess synthesis table.
+        dfDet = self.resultsSet.dfTransData(self.lang)
+
+        # a. Add run folder columns, and as the 1st one (will serve as the analysis id and link to associated detailled report)
+        detTrCols = [self.runFolderCol] + [col for col in dfDet if col != self.runFolderCol]
+        dfDet = dfDet.reindex(columns=detTrCols)
+       
+        # b. Links to each analysis detailled report.
+        #dfDet[self.runFolderCol] = \
+        #    dfDet[self.runFolderCol].apply(lambda p: '<a href="{p}/index.html">{p}</a>' \
+        #                                             .format(p=os.path.relpath(p, self.tgtFolder).replace(os.sep, '/')))
+        dfDet[self.runFolderCol] = \
+            dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
+                                   .format(p=os.path.relpath(an[self.runFolderCol], self.tgtFolder).replace(os.sep, '/'),
+                                           n=an.name), axis='columns')
+        dfDet.rename(columns={ self.runFolderCol: self.DTrans[self.lang][self.runFolderCol] }, inplace=True)
+
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         tmpl = env.get_template('autods-top-tmpl.html')
-        html = tmpl.render(synthesis=self.resultsSet.dfTransData(self.lang, subset=self.synthCols).to_html(),
-                           details=self.resultsSet.dfTransData(self.lang).to_html(),
-                           title=self.title, subtitle=self.subTitle,keywords=self.keywords,
-                           tr=self.DTrans[self.lang], genDateTime=genDateTime)
+        topHtmlPathName = self.targetFilePathName(suffix='.html')
+        xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
+        html = tmpl.render(synthesis=dfSyn.to_html(escape=False, index=False),
+                           details=dfDet.to_html(escape=False, index=False),
+                           title=self.title, subtitle=self.subTitle, keywords=self.keywords,
+                           xlUrl=xlFileUrl, tr=self.DTrans[self.lang], genDateTime=genDateTime)
         html = '\n'.join(line.rstrip() for line in html.split('\n') if line.rstrip())
 
         # Write top HTML to file.
-        topHtmlPathName = os.path.join(self.tgtFolder, self.tgtPrefix + '.html')
         with codecs.open(topHtmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
             tgtFile.write(html)
 
@@ -886,21 +949,30 @@ class ResultsReport(object):
         
             anlysFolder = dfDetRes.at[lblAnlys, self.runFolderCol]
 
+            # Postprocess synthesis table :
+            dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
+            dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n))
+            
+            # Postprocess detailed table :
+            dfDet = dfDetRes.loc[lblAnlys].to_frame().T
+            dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n))
+            
             # Generate analysis report page.
-            synthesis = dfSynthRes.loc[lblAnlys].to_frame().T.to_html()
-            details = dfDetRes.loc[lblAnlys].to_frame().T.to_html()
+            subTitle = 'Analyse {:03d} : {}'.format(lblAnlys, self.anlysSubTitle)
             log = dict(text=open(os.path.join(anlysFolder, DSEngine.LogFileName)).read().strip())
             outLst = open(os.path.join(anlysFolder, DSEngine.OutputFileName)).read().strip().split('\t')
             output = [dict(id=title.translate(str.maketrans({c:'' for c in ' ,.-:()/'})), 
                            title=title.strip(), text=text.strip('\n')) \
                       for title, text in [outLst[i:i+2] for i in range(0, len(outLst), 2)]]
-            html = tmpl.render(synthesis=synthesis, details=details, log=log, output=output,
-                               title=self.title, subtitle=self.subTitle, keywords=self.keywords,
+            html = tmpl.render(synthesis=dfSyn.to_html(escape=False, index=True),
+                               details=dfDet.to_html(escape=False, index=True),
+                               log=log, output=output,
+                               title=self.title, subtitle=subTitle, keywords=self.keywords,
                                tr=self.DTrans[self.lang], genDateTime=genDateTime)
             html = '\n'.join(line.rstrip() for line in html.split('\n') if line.rstrip())
 
             # Write analysis HTML to file.
-            htmlPathName = os.path.join(anlysFolder, 'index.html')
+            htmlPathName = self.targetFilePathName(tgtFolder=anlysFolder, prefix='index', suffix='.html')
             with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
                 tgtFile.write(html)
 
