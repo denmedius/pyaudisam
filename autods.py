@@ -154,7 +154,7 @@ class DSEngine(object):
     OutputFileName = 'output.txt'
     LogFileName = 'log.txt'
     StatsFileName = 'stats.txt'
-    BootFileName = 'bootstrap.txt'
+    PlotsFileName = 'plots.txt'
         
     # Setup run folder (all in and out files will go there)
     def setupRunFolder(self, runPrefix='ds', forceSubFolder=None):
@@ -182,7 +182,7 @@ class DSEngine(object):
         self.outFileName   = pathName(self.OutputFileName)
         self.logFileName   = pathName(self.LogFileName)
         self.statsFileName = pathName(self.StatsFileName)
-        self.bootFileName  = pathName(self.BootFileName)
+        self.plotsFileName  = pathName(self.PlotsFileName)
         
         return self.runDir
 
@@ -220,9 +220,9 @@ class MCDSEngine(DSEngine):
                   """{output}
                      {log}
                      {stats}
+                     {plots}
                      {bootstrap}
-                     None
-                     None
+                     {bootpgrss}
                      Options;
                      Type={survType};
                      Distance={distType} /Measure='{distUnit}';
@@ -409,7 +409,8 @@ class MCDSEngine(DSEngine):
     def buildCmdFile(self, **params):
 
         cmdTxt = self.CmdTxt.format(output=self.outFileName, log=self.logFileName,
-                                    stats=self.statsFileName, bootstrap=self.bootFileName,
+                                    stats=self.statsFileName, plots=self.plotsFileName,
+                                    bootstrap='None', bootpgrss='None', # No support for the moment.
                                     survType=self.options['surveyType'], distType=self.options['distanceType'],
                                     distUnit=self.options['distanceUnit'], areaUnit=self.options['areaUnit'],
                                     dataFields=', '.join(self.dataFields), dataFileName=self.dataFileName,
@@ -578,10 +579,10 @@ class DSAnalysis(object):
     EngineClass = DSEngine
     
     # Run columns for output : root engine output (3-level multi-index)
-    RunRunColumns = [('run output', 'run folder', 'Value'),
-                     ('run output', 'run status', 'Value'),
-                     ('run output', 'run time', 'Value')]
-    RunFolderColumn = RunRunColumns[0]
+    RunRunColumns = [('run output', 'run status', 'Value'),
+                     ('run output', 'run time',   'Value'),
+                     ('run output', 'run folder', 'Value')]
+    RunFolderColumn = RunRunColumns[2]
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DRunRunColumnTrans = dict(en=['ExCod', 'RunTime', 'RunFolder'],
