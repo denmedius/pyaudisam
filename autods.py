@@ -849,7 +849,7 @@ class ResultsReport(object):
         self.resultsSet = resultsSet
         self.synthCols = synthCols
         
-        self.runFolderCol = resultsSet.dfAnalysisColTrans.loc[DSAnalysis.RunFolderColumn, lang]
+        self.trRunFolderCol = resultsSet.dfAnalysisColTrans.loc[DSAnalysis.RunFolderColumn, lang]
 
         self.lang = lang
         self.title = title
@@ -868,13 +868,21 @@ class ResultsReport(object):
                        'Synthesis table': 'Synthesis table', 'Detailed results': 'Detailed results',
                        'Download Excel': 'Download as Excel(TM) file',
                        'Summary computation log': 'Summary computation log', 'Detailed computation log': 'Detailed computation log',
-                       'Click on analysis # for details': 'Click on analysis number for detailed report' },
+                       'Click on analysis # for details': 'Click on analysis number for detailed report',
+                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
+                       'Back to top': 'Back to global report' },
                   fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
                        'Synthesis table': 'Tableau de synthèse', 'Detailed results': 'Résultats en détails',
                        'Download Excel': 'Télécharger le classeur Excel (TM)',
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
-                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour le rapport détaillé' })
+                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour le rapport détaillé',
+                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
+                       'Back to top': 'Retour au rapport global' })
 
+    # Translate string
+    def tr(self, s):
+        return self.DTrans[self.lang].get(s, s)
+        
     # Output file pathname generation.
     def targetFilePathName(self, suffix, prefix=None, tgtFolder=None):
         
@@ -891,7 +899,10 @@ class ResultsReport(object):
         # Install needed attached files.
         attSrcDir = os.path.join('AutoDS', 'report')
         for fn in ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg',
-                   'fa-file-excel-rgr.svg', 'fa-file-excel-hover-rgr.svg']:
+                   'fa-file-excel.svg', 'fa-file-excel-hover.svg',
+                   'fa-arrow-left-hover.svg', 'fa-arrow-left.svg',
+                   'fa-arrow-right-hover.svg', 'fa-arrow-right.svg',
+                   'fa-arrow-up-hover.svg', 'fa-arrow-up.svg']:
             shutil.copy(os.path.join(attSrcDir, fn), self.tgtFolder)
             
         # Postprocess synthesis table :
@@ -900,31 +911,25 @@ class ResultsReport(object):
         dfSyn = self.resultsSet.dfTransData(self.lang, subset=synCols)
         
         # b. Links to each analysis detailled report.
-        #dfSyn[self.runFolderCol] = \
-        #    dfSyn[self.runFolderCol].apply(lambda p: '<a href="./{p}/index.html">{p}</a>' \
-        #                                             .format(p=os.path.relpath(p, self.tgtFolder).replace(os.sep, '/')))
-        dfSyn[self.runFolderCol] = \
+        dfSyn[self.trRunFolderCol] = \
             dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
-                                   .format(p=os.path.relpath(an[self.runFolderCol], self.tgtFolder).replace(os.sep, '/'),
+                                   .format(p=os.path.relpath(an[self.trRunFolderCol], self.tgtFolder).replace(os.sep, '/'),
                                            n=an.name), axis='columns')
-        dfSyn.rename(columns={ self.runFolderCol: self.DTrans[self.lang][self.runFolderCol] }, inplace=True)
+        dfSyn.rename(columns={ self.trRunFolderCol: self.tr(self.trRunFolderCol) }, inplace=True)
        
         # Postprocess synthesis table.
         dfDet = self.resultsSet.dfTransData(self.lang)
 
         # a. Add run folder columns, and as the 1st one (will serve as the analysis id and link to associated detailled report)
-        detTrCols = [self.runFolderCol] + [col for col in dfDet if col != self.runFolderCol]
+        detTrCols = [self.trRunFolderCol] + [col for col in dfDet if col != self.trRunFolderCol]
         dfDet = dfDet.reindex(columns=detTrCols)
        
         # b. Links to each analysis detailled report.
-        #dfDet[self.runFolderCol] = \
-        #    dfDet[self.runFolderCol].apply(lambda p: '<a href="{p}/index.html">{p}</a>' \
-        #                                             .format(p=os.path.relpath(p, self.tgtFolder).replace(os.sep, '/')))
-        dfDet[self.runFolderCol] = \
+        dfDet[self.trRunFolderCol] = \
             dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
-                                   .format(p=os.path.relpath(an[self.runFolderCol], self.tgtFolder).replace(os.sep, '/'),
+                                   .format(p=os.path.relpath(an[self.trRunFolderCol], self.tgtFolder).replace(os.sep, '/'),
                                            n=an.name), axis='columns')
-        dfDet.rename(columns={ self.runFolderCol: self.DTrans[self.lang][self.runFolderCol] }, inplace=True)
+        dfDet.rename(columns={ self.trRunFolderCol: self.tr(self.trRunFolderCol) }, inplace=True)
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -942,13 +947,20 @@ class ResultsReport(object):
             tgtFile.write(html)
 
         # Generate detailled report page for each analysis
-        tmpl = env.get_template('autods-anlys-tmpl.html')
-        
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
         dfDetRes = self.resultsSet.dfTransData(self.lang)
+
+        # 1. 1st pass : Generate previous / next list
+        sCurrUrl = dfSynthRes[self.trRunFolderCol]
+        sCurrUrl = sCurrUrl.apply(lambda path: self.targetFilePathName(tgtFolder=path, prefix='index', suffix='.html'))
+        sCurrUrl = sCurrUrl.apply(lambda path: os.path.relpath(path, self.tgtFolder).replace(os.sep, '/'))
+        dfAnlysUrls = pd.DataFrame(dict(current=sCurrUrl, previous=np.roll(sCurrUrl, 1), next=np.roll(sCurrUrl, -1)))
+
+        # 2. 2nd pass : Generate
+        tmpl = env.get_template('autods-anlys-tmpl.html')
         for lblAnlys in dfDetRes.index:
         
-            anlysFolder = dfDetRes.at[lblAnlys, self.runFolderCol]
+            anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
 
             # Postprocess synthesis table :
             dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
@@ -965,10 +977,14 @@ class ResultsReport(object):
             output = [dict(id=title.translate(str.maketrans({c:'' for c in ' ,.-:()/'})), 
                            title=title.strip(), text=text.strip('\n')) \
                       for title, text in [outLst[i:i+2] for i in range(0, len(outLst), 2)]]
+            sAnlysUrls = dfAnlysUrls.loc[lblAnlys]
             html = tmpl.render(synthesis=dfSyn.to_html(escape=False, index=True),
                                details=dfDet.to_html(escape=False, index=True),
                                log=log, output=output,
                                title=self.title, subtitle=subTitle, keywords=self.keywords,
+                               navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
+                                            nextAnlys='../'+sAnlysUrls.next,
+                                            back2Top='../'+os.path.basename(topHtmlPathName)),
                                tr=self.DTrans[self.lang], genDateTime=genDateTime)
             html = '\n'.join(line.rstrip() for line in html.split('\n') if line.rstrip())
 
@@ -985,11 +1001,25 @@ class ResultsReport(object):
         xlsxPathName = os.path.join(self.tgtFolder, self.tgtPrefix + '.xlsx')
         
         with pd.ExcelWriter(xlsxPathName) as xlsxWriter:
-
-            self.resultsSet.dfTransData(self.lang, subset=self.synthCols) \
-              .to_excel(xlsxWriter, sheet_name=self.DTrans[self.lang]['Synthesis'], index=True)
-            self.resultsSet.dfTransData(self.lang) \
-              .to_excel(xlsxWriter, sheet_name=self.DTrans[self.lang]['Details'], index=True)
+            
+            # Synthesis
+            dfSyn = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
+            
+            def toHyperlink(path):
+                relPath = os.path.relpath(path, self.tgtFolder).replace(os.sep, '/')
+                return '=HYPERLINK("file:///{path}", "{path}")'.format(path=relPath)
+            
+            if DSAnalysis.RunFolderColumn in self.synthCols:
+                dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(toHyperlink)
+            
+            dfSyn.to_excel(xlsxWriter, sheet_name=self.tr('Synthesis'), index=True)
+            
+            # Details
+            dfDet = self.resultsSet.dfTransData(self.lang)
+            
+            dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
+            
+            dfDet.to_excel(xlsxWriter, sheet_name=self.tr('Details'), index=True)
 
         return xlsxPathName
 

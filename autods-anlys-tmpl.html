@@ -52,7 +52,27 @@
      <img class="center" height="32" style="margin-top: 30px"
          src="../fa-feather-alt.svg" alt="---" />
 
-    <h2 id="synthesis">{{tr['Synthesis table']}}</h2>
+    <h2 id="synthesis">
+      {{tr['Synthesis table']}}
+      <a href="./{{navUrls.prevAnlys}}">
+        <img height="32" style="margin-left: 32px" src="../fa-arrow-left.svg"
+             onmouseover="this.src='../fa-arrow-left-hover.svg';"
+             onmouseout="this.src='../fa-arrow-left.svg';"
+             title="{{tr['Previous analysis']}}"
+             alt="{{tr['Previous analysis']}}" /></a>
+      <a href="./{{navUrls.back2Top}}">
+        <img height="40" style="margin-left: 16px" src="../fa-arrow-up.svg"
+             onmouseover="this.src='../fa-arrow-up-hover.svg';"
+             onmouseout="this.src='../fa-arrow-up.svg';"
+             title="{{tr['Back to top']}}"
+             alt="{{tr['Back to top']}}" /></a>
+      <a href="./{{navUrls.nextAnlys}}">
+        <img height="32" style="margin-left: 16px" src="../fa-arrow-right.svg"
+             onmouseover="this.src='../fa-arrow-right-hover.svg';"
+             onmouseout="this.src='../fa-arrow-right.svg';"
+             title="{{tr['Next analysis']}}"
+             alt="{{tr['Next analysis']}}" /></a>
+    </h2>
     <div class="chapter" style="margin-left: 10px">
 
 	  {{synthesis}}
@@ -62,7 +82,27 @@
     <img class="center" height="32" style="margin-top: 30px"
          src="../fa-feather-alt.svg" alt="---" />
 
-    <h2 id="details">{{tr['Detailed results']}}</h2>
+    <h2 id="details">
+      {{tr['Detailed results']}}
+      <a href="./{{navUrls.prevAnlys}}">
+        <img height="32" style="margin-left: 32px" src="../fa-arrow-left.svg"
+             onmouseover="this.src='../fa-arrow-left-hover.svg';"
+             onmouseout="this.src='../fa-arrow-left.svg';"
+             title="{{tr['Previous analysis']}}"
+             alt="{{tr['Previous analysis']}}" /></a>
+      <a href="./{{navUrls.back2Top}}">
+        <img height="40" style="margin-left: 16px" src="../fa-arrow-up.svg"
+             onmouseover="this.src='../fa-arrow-up-hover.svg';"
+             onmouseout="this.src='../fa-arrow-up.svg';"
+             title="{{tr['Back to top']}}"
+             alt="{{tr['Back to top']}}" /></a>
+      <a href="./{{navUrls.nextAnlys}}">
+        <img height="32" style="margin-left: 16px" src="../fa-arrow-right.svg"
+             onmouseover="this.src='../fa-arrow-right-hover.svg';"
+             onmouseout="this.src='../fa-arrow-right.svg';"
+             title="{{tr['Next analysis']}}"
+             alt="{{tr['Next analysis']}}" /></a>
+    </h2>
     <div class="chapter" style="margin-left: 10px">
 
 	  {{details}}
@@ -72,7 +112,27 @@
     <img class="center" height="32" style="margin-top: 30px"
          src="../fa-feather-alt.svg" alt="---" />
 
-    <h2 id="log">{{tr['Summary computation log']}}</h2>
+    <h2 id="log">
+      {{tr['Summary computation log']}}
+      <a href="./{{navUrls.prevAnlys}}">
+        <img height="32" style="margin-left: 32px" src="../fa-arrow-left.svg"
+             onmouseover="this.src='../fa-arrow-left-hover.svg';"
+             onmouseout="this.src='../fa-arrow-left.svg';"
+             title="{{tr['Previous analysis']}}"
+             alt="{{tr['Previous analysis']}}" /></a>
+      <a href="./{{navUrls.back2Top}}">
+        <img height="40" style="margin-left: 16px" src="../fa-arrow-up.svg"
+             onmouseover="this.src='../fa-arrow-up-hover.svg';"
+             onmouseout="this.src='../fa-arrow-up.svg';"
+             title="{{tr['Back to top']}}"
+             alt="{{tr['Back to top']}}" /></a>
+      <a href="./{{navUrls.nextAnlys}}">
+        <img height="32" style="margin-left: 16px" src="../fa-arrow-right.svg"
+             onmouseover="this.src='../fa-arrow-right-hover.svg';"
+             onmouseout="this.src='../fa-arrow-right.svg';"
+             title="{{tr['Next analysis']}}"
+             alt="{{tr['Next analysis']}}" /></a>
+    </h2>
     <div class="chapter" style="margin-left: 10px">
 
 	  <pre>{{log.text}}</pre>
@@ -87,15 +147,32 @@
 
       {% for ochap in output %}
   
-        <h3 id="{{ochap.id}}">{{ochap.title}}</h3>
+        <h3 id="{{ochap.id}}">
+          {{ochap.title}}
+          <a href="./{{navUrls.prevAnlys}}">
+            <img height="32" style="margin-left: 32px" src="../fa-arrow-left.svg"
+                 onmouseover="this.src='../fa-arrow-left-hover.svg';"
+                 onmouseout="this.src='../fa-arrow-left.svg';"
+                 title="{{tr['Previous analysis']}}"
+                 alt="{{tr['Previous analysis']}}" /></a>
+          <a href="./{{navUrls.back2Top}}">
+            <img height="40" style="margin-left: 16px" src="../fa-arrow-up.svg"
+                 onmouseover="this.src='../fa-arrow-up-hover.svg';"
+                 onmouseout="this.src='../fa-arrow-up.svg';"
+                 title="{{tr['Back to top']}}"
+                 alt="{{tr['Back to top']}}" /></a>
+          <a href="./{{navUrls.nextAnlys}}">
+            <img height="32" style="margin-left: 16px" src="../fa-arrow-right.svg"
+                 onmouseover="this.src='../fa-arrow-right-hover.svg';"
+                 onmouseout="this.src='../fa-arrow-right.svg';"
+                 title="{{tr['Next analysis']}}"
+                 alt="{{tr['Next analysis']}}" /></a>
+        </h3>
         <div class="chapter" style="margin-left: 10px">
   	  
           <pre>{{ochap.text}}<pre>
   	  
         </div>
-  
-        <img class="center" height="32" style="margin-top: 30px"
-             src="../fa-feather-alt.svg" alt="---" />
   
       {% endfor %} <!-- opage in output -->
 
