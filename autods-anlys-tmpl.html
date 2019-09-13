@@ -170,11 +170,15 @@
         </h3>
         <div class="chapter" style="margin-left: 10px">
   	  
-          <pre>{{ochap.text}}<pre>
+          {% if ochap.title in plots %}
+            <img src="./{{plots[ochap.title]}}"/>
+          {% else %}
+            <pre>{{ochap.text}}<pre>
+          {% endif %}
   	  
         </div>
   
-      {% endfor %} <!-- opage in output -->
+      {% endfor %} <!-- ochap in output -->
 
     </div>
     

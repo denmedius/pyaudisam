@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 
 import jinja2
+import matplotlib.pyplot as plt
 
 
 # DSEngine (abstract) classes.
@@ -559,6 +560,48 @@ class MCDSEngine(DSEngine):
         
         return dfStats.T.iloc[0]
 
+    # Decode output log file to a string
+    # Precondition: self.run(...)
+    @classmethod
+    def decodeLog(cls, anlysFolder):
+        
+        return dict(text=open(os.path.join(anlysFolder, cls.LogFileName)).read().strip())
+    
+    # Decode output ... output file to a dict of chapters
+    # Precondition: self.run(...)
+    @classmethod
+    def decodeOutput(cls, anlysFolder):
+        
+        outLst = open(os.path.join(anlysFolder, cls.OutputFileName)).read().strip().split('\t')
+        
+        return [dict(id=title.translate(str.maketrans({c:'' for c in ' ,.-:()/'})), 
+                     title=title.strip(), text=text.strip('\n')) \
+                for title, text in [outLst[i:i+2] for i in range(0, len(outLst), 2)]]
+            
+    # Decode output plots file as a dict of plot dicts (key = output chapter title)
+    # Precondition: self.run(...)
+    @classmethod
+    def decodePlots(cls, anlysFolder):
+        
+        dPlots = dict()
+        lines = (line.strip() for line in open(os.path.join(anlysFolder, cls.PlotsFileName), 'r').readlines())
+        for title in lines:
+            
+            title = title.strip()
+            subTitle = next(lines).strip()
+            xLabel = next(lines).strip()
+            yLabel = next(lines).strip()
+            xMin, xMax, yMin, yMax = [float(s) for s in next(lines).split()]
+            nDataRows = int(next(lines))
+            dataRows = list()
+            for l in range(nDataRows):
+                dataRows.append([float(s) for s in next(lines).split()])
+                
+            dPlots[title] = dict(title=title, subTitle=subTitle, dataRows=dataRows, #nDataRows=nDataRows,,
+                                 xLabel=xLabel, yLabel=yLabel, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
+
+        return dPlots
+
     # Build Distance/MCDS input data file from data set.
     def buildDistanceDataFile(self, dataSet, tgtFilePathName, withExtraFields=False):
                 
@@ -744,13 +787,14 @@ class ResultsSet(object):
                'customCols must have 3 levels if not None'
         
         self.analysisClass = analysisClass
+        self.engineClass = analysisClass.EngineClass
     
         # 3-level multi-index columns (module, statistic, figure)
-        self.miAnalysisCols = analysisClass.MIRunColumns.append(analysisClass.EngineClass.statModCols())
+        self.miAnalysisCols = analysisClass.MIRunColumns.append(self.engineClass.statModCols())
         self.miCustomCols = miCustomCols
             
         # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
-        self.dfAnalysisColTrans = analysisClass.DfRunColumnTrans.append(analysisClass.EngineClass.statModColTrans())
+        self.dfAnalysisColTrans = analysisClass.DfRunColumnTrans.append(self.engineClass.statModColTrans())
         self.dfCustomColTrans = dfCustomColTrans
         
         self._dfData = pd.DataFrame()
@@ -888,6 +932,79 @@ class ResultsReport(object):
         
         return os.path.join(tgtFolder or self.tgtFolder, (prefix or self.tgtPrefix) + suffix)
     
+    # Plot ... data to be plot, and draw resulting figure to image files.
+    @staticmethod
+    def generatePlots(plotsData, tgtFolder, imgFormat='png', figSize=(12, 6),
+                      grid=True, bgColor='#f9fbf3', transparent=False, trColors=['blue', 'red']):
+        
+        imgFormat = imgFormat.lower()
+        
+        # For each plot, 
+        dPlots = dict()
+        for title, pld in plotsData.items():
+            
+            # Plot a figure from the plot data (3 possible types, from title).
+            if 'Qq-plot' in title:
+                
+                tgtFileName = 'qqplot'
+                
+                n = len(pld['dataRows'])
+                df2Plot = pd.DataFrame(data=pld['dataRows'],
+                                       columns=['If the fit was perfect ...', 'Real observations'],
+                                       index=np.linspace(0.5/n, 1.0-0.5/n, n))
+                
+                axes = df2Plot.plot(figsize=figSize, color=trColors, grid=grid,
+                                    xlim=(pld['xMin'], pld['xMax']),
+                                    ylim=(pld['yMin'], pld['yMax']))
+
+            elif 'Detection Probability' in title:
+                
+                tgtFileName = 'detprob'
+                
+                df2Plot = pd.DataFrame(data=pld['dataRows'], 
+                                       columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
+                                                pld['yLabel'] + ' (fitted)'])
+                df2Plot.set_index(pld['xLabel'], inplace=True)
+                
+                axes = df2Plot.plot(figsize=figSize, color=trColors, grid=grid,
+                                    xlim=(pld['xMin'], pld['xMax']), 
+                                    ylim=(pld['yMin'], pld['yMax']))
+        
+            elif 'Pdf' in title:
+                
+                tgtFileName = 'probdens'
+                
+                df2Plot = pd.DataFrame(data=pld['dataRows'], 
+                                       columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
+                                                pld['yLabel'] + ' (fitted)'])
+                df2Plot.set_index(pld['xLabel'], inplace=True)
+                
+                axes = df2Plot.plot(figsize=figSize, color=trColors, grid=grid,
+                                    xlim=(pld['xMin'], pld['xMax']), 
+                                    ylim=(pld['yMin'], pld['yMax']))
+        
+            # Finish plotting.
+            axes.legend(df2Plot.columns, fontsize=12)
+            axes.set_title(label=pld['title'] + ' : ' + pld['subTitle'],
+                           fontdict=dict(fontsize=16), pad=20)
+            axes.set_xlabel(pld['xLabel'], fontsize=12)
+            axes.set_ylabel(pld['yLabel'], fontsize=12)
+            if not transparent:
+                axes.set_facecolor(bgColor)
+                axes.figure.patch.set_facecolor(bgColor)
+                
+            # Generate an image file for the plot figure (forcing the specified patch background color).
+            tgtFileName = tgtFileName + '.' + imgFormat
+            axes.figure.savefig(os.path.join(tgtFolder, tgtFileName),
+                                box_inches='tight', transparent=transparent,
+                                facecolor=axes.figure.get_facecolor(), edgecolor='none')
+            plt.close(axes.figure)
+
+            # Save image URL.
+            dPlots[title] = tgtFileName
+                
+        return dPlots
+    
     # HTML report generation.
     def toHtml(self):
         
@@ -958,6 +1075,7 @@ class ResultsReport(object):
 
         # 2. 2nd pass : Generate
         tmpl = env.get_template('autods-anlys-tmpl.html')
+        engineClass = self.resultsSet.engineClass
         for lblAnlys in dfDetRes.index:
         
             anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
@@ -972,15 +1090,12 @@ class ResultsReport(object):
             
             # Generate analysis report page.
             subTitle = 'Analyse {:03d} : {}'.format(lblAnlys, self.anlysSubTitle)
-            log = dict(text=open(os.path.join(anlysFolder, DSEngine.LogFileName)).read().strip())
-            outLst = open(os.path.join(anlysFolder, DSEngine.OutputFileName)).read().strip().split('\t')
-            output = [dict(id=title.translate(str.maketrans({c:'' for c in ' ,.-:()/'})), 
-                           title=title.strip(), text=text.strip('\n')) \
-                      for title, text in [outLst[i:i+2] for i in range(0, len(outLst), 2)]]
             sAnlysUrls = dfAnlysUrls.loc[lblAnlys]
             html = tmpl.render(synthesis=dfSyn.to_html(escape=False, index=True),
                                details=dfDet.to_html(escape=False, index=True),
-                               log=log, output=output,
+                               log=engineClass.decodeLog(anlysFolder),
+                               output=engineClass.decodeOutput(anlysFolder),
+                               plots=self.generatePlots(engineClass.decodePlots(anlysFolder), anlysFolder),
                                title=self.title, subtitle=subTitle, keywords=self.keywords,
                                navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
                                             nextAnlys='../'+sAnlysUrls.next,
