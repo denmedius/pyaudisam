@@ -338,7 +338,7 @@ class MCDSEngine(DSEngine):
         # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
         fileName = 'mcds-stat-mod-trans.txt'
         print('*', fileName)
-        cls.DfStatModColsTrans = dfStatModTransExt = pd.read_csv(fileName, sep='\t')
+        cls.DfStatModColsTrans = pd.read_csv(fileName, sep='\t')
         cls.DfStatModColsTrans.set_index(['Module', 'Statistic', 'Figure'], inplace=True)
         
         print('MCDS : Loaded output stats specs.')
@@ -778,7 +778,8 @@ class DataSet(object):
 # And to get a 3-level multi-index columned or a mono-indexed translated columned version of the data table.
 class ResultsSet(object):
     
-    def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None):
+    def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None,
+                       dComputedCols=None, dfComputedColTrans=None):
         
         assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
         assert miCustomCols is None or isinstance(miCustomCols, pd.MultiIndex), \
@@ -791,18 +792,24 @@ class ResultsSet(object):
     
         # 3-level multi-index columns (module, statistic, figure)
         self.miAnalysisCols = analysisClass.MIRunColumns.append(self.engineClass.statModCols())
+        for col, ind in dComputedCols.items(): # Add post-computed columns at the right place
+            self.miAnalysisCols = self.miAnalysisCols.insert(ind, col)
         self.miCustomCols = miCustomCols
-            
-        # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
+        
+        # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
         self.dfAnalysisColTrans = analysisClass.DfRunColumnTrans.append(self.engineClass.statModColTrans())
+        self.dfAnalysisColTrans = self.dfAnalysisColTrans.append(dfComputedColTrans)
         self.dfCustomColTrans = dfCustomColTrans
         
-        self._dfData = pd.DataFrame()
-        self.rightColOrder = False
+        self._dfData = pd.DataFrame() # The real data (frame).
+        self.rightColOrder = False # self._dfData columns are assumed to be in a wrong order.
+        self.postComputed = False # Post-computation not yet done.
     
     # sResult : Series for result cols values
     # sCustomHead : Series for custom cols values
     def append(self, sResult, sCustomHead=None):
+        
+        assert not self.postComputed, 'Can\'t append after columns post-computation'
         
         assert isinstance(sResult, pd.Series), 'sResult : Can only append a pd.Series'
         assert sCustomHead is None or isinstance(sCustomHead, pd.Series), 'sCustom : Can only append a pd.Series'
@@ -818,19 +825,23 @@ class ResultsSet(object):
     @property
     def dfData(self):
         
-        if not self.rightColOrder:
+        # Do post-computation if not already done.
+        if not(self._dfData.empty or self.postComputed):
             
-            # Enforce right columns order, but remove columns with no relevant data.
+            self.postComputeColumns()
+            self.postComputed = True # No need to do it again !
+        
+        # Enforce right columns order.
+        if not(self._dfData.empty or self.rightColOrder):
+            
             miTgtColumns = self.miAnalysisCols
             if self.miCustomCols is not None:
                 miTgtColumns = self.miCustomCols.append(miTgtColumns)
             self._dfData = self._dfData.reindex(columns=miTgtColumns)
-            self._dfData.dropna(how='all', axis='columns', inplace=True)
-            
-            # No need to do it again, until next append() !
-            self.rightColOrder = True
+            self.rightColOrder = True # No need to do it again, until next append() !
         
-        return self._dfData
+        # Don't return columns with no relevant data.
+        return self._dfData.dropna(how='all', axis='columns')
 
     @dfData.setter
     def dfData(self, dfData):
@@ -842,6 +853,9 @@ class ResultsSet(object):
         # Let's assume that columns order is dirty.
         self.rightColOrder = False
         
+        # Post-computation not yet done.
+        self.postComputed = False
+    
     # Access a mono-indexed translated columns version of the data table
     def dfTransData(self, lang='en', subset=None):
         
@@ -880,6 +894,7 @@ class ResultsSet(object):
         self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 'AllResults', 
                                     header=[0, 1, 2], skiprows=[3], index_col=0)
 
+        
 # Results reports class (Excel and HTML)
 class ResultsReport(object):
 
