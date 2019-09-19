@@ -794,6 +794,7 @@ class ResultsSet(object):
         self.miAnalysisCols = analysisClass.MIRunColumns.append(self.engineClass.statModCols())
         for col, ind in dComputedCols.items(): # Add post-computed columns at the right place
             self.miAnalysisCols = self.miAnalysisCols.insert(ind, col)
+        self.computedCols = list(dComputedCols.keys())
         self.miCustomCols = miCustomCols
         
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
@@ -852,6 +853,9 @@ class ResultsSet(object):
         
         # Let's assume that columns order is dirty.
         self.rightColOrder = False
+        
+        # Remove any computed column (will be recomputed later on).
+        self._dfData.drop(columns=self.computedCols, inplace=True)
         
         # Post-computation not yet done.
         self.postComputed = False
