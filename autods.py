@@ -11,6 +11,7 @@
 
 import sys
 import os, shutil
+import copy
 import tempfile
 import argparse
 from packaging import version
@@ -916,7 +917,26 @@ class ResultsSet(object):
 # Results reports class (Excel and HTML)
 class ResultsReport(object):
 
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
+    # Translation table for HTML report.
+    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
+                       'Synthesis table': 'Synthesis table',
+                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
+                       'Detailed results': 'Detailed results',
+                       'Download Excel': 'Download as Excel(TM) file',
+                       'Summary computation log': 'Summary computation log',
+                       'Detailed computation log': 'Detailed computation log',
+                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
+                       'Back to top': 'Back to global report' },
+                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
+                       'Synthesis table': 'Tableau de synthèse',
+                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
+                       'Detailed results': 'Résultats en détails',
+                       'Download Excel': 'Télécharger le classeur Excel (TM)',
+                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
+                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
+                       'Back to top': 'Retour au rapport global' })
+
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, dCustomTrans=dict(),
                        synthCols=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
     
         assert len(resultsSet) > 0, 'Can\'t build reports with nothing inside'
@@ -937,45 +957,20 @@ class ResultsReport(object):
         self.description = description
         self.keywords = keywords
         
+        self.dTrans = copy.deepcopy(dCustomTrans)
+        for lang in self.DTrans.keys():
+            if lang not in self.dTrans:
+                self.dTrans[lang] = dict()
+            self.dTrans[lang].update(self.DTrans[lang])
+        
         self.attachedDir = attachedDir
         
         self.tgtPrefix = tgtPrefix
         self.tgtFolder = tgtFolder
         
-    # Translation table for HTML report.
-    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
-                       'Synthesis table': 'Synthesis table',
-                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'Note: Some figures rounded or converted': 
-                          "<strong>Note</strong>: Densities are expressed per square km,"
-                          " and most figures have been rounded for readability",
-                       'Detailed results': 'Detailed results',
-                       'Note: All figures untouched, as output by MCDS': 
-                          "<strong>Note</strong>: All values have been left untouched,"
-                          " as outuput by MCDS (no rounding, no conversion)",
-                       'Download Excel': 'Download as Excel(TM) file',
-                       'Summary computation log': 'Summary computation log',
-                       'Detailed computation log': 'Detailed computation log',
-                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
-                       'Back to top': 'Back to global report' },
-                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
-                       'Synthesis table': 'Tableau de synthèse',
-                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'Note: Some figures rounded or converted':
-                           "<strong>N.B.</strong> Les densités sont exprimées par km carré, et presque toutes les valeurs"
-                           " ont été arrondies par mesure de simplicité",
-                       'Detailed results': 'Résultats en détails',
-                       'Note: All figures untouched, as output by MCDS':
-                           "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                           " elles sont toutes telles que produites par MCDS",
-                       'Download Excel': 'Télécharger le classeur Excel (TM)',
-                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
-                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
-                       'Back to top': 'Retour au rapport global' })
-
     # Translate string
     def tr(self, s):
-        return self.DTrans[self.lang].get(s, s)
+        return self.dTrans[self.lang].get(s, s)
     
     # Translate EN-translated column(s) name(s) to self.lang one
     # * colNames : str (1), list(N) or dict (N keys) of column names
@@ -1148,7 +1143,7 @@ class ResultsReport(object):
         html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=False),
                            details=dfsDet.render(), #escape=False, index=False),
                            title=self.title, subtitle=self.subTitle, keywords=self.keywords,
-                           xlUrl=xlFileUrl, tr=self.DTrans[self.lang], genDateTime=genDateTime)
+                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang], genDateTime=genDateTime)
         html = '\n'.join(line.rstrip() for line in html.split('\n') if line.rstrip())
 
         # Write top HTML to file.
@@ -1194,7 +1189,7 @@ class ResultsReport(object):
                                navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
                                             nextAnlys='../'+sAnlysUrls.next,
                                             back2Top='../'+os.path.basename(topHtmlPathName)),
-                               tr=self.DTrans[self.lang], genDateTime=genDateTime)
+                               tr=self.dTrans[self.lang], genDateTime=genDateTime)
             html = '\n'.join(line.rstrip() for line in html.split('\n') if line.rstrip())
 
             # Write analysis HTML to file.

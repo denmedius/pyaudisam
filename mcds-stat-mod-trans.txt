@@ -3,7 +3,7 @@ encounter rate	number of observations (n)	Value	NObs	NObs
 encounter rate	number of samples (k)	Value	NSamp	NEchant
 encounter rate	effort (L or K or T)	Value	Effort	Effort
 encounter rate	encounter rate (n/L or n/K or n/T)	Value	EncRate	TxContact
-encounter rate	encounter rate (n/L or n/K or n/T)	Cv	ConfInd EncRate	IndConf TxContact
+encounter rate	encounter rate (n/L or n/K or n/T)	Cv	CoefVar EncRate	CoefVar TxContact
 encounter rate	encounter rate (n/L or n/K or n/T)	Lcl	Min EncRate	Min TxContact
 encounter rate	encounter rate (n/L or n/K or n/T)	Ucl	Max EncRate	Max TxContact
 encounter rate	encounter rate (n/L or n/K or n/T)	Df	DoF EncRate	DegLib TxContact
@@ -15,17 +15,17 @@ detection probability	chi-square test probability (distance set 1)	Value	Chi2 P 
 detection probability	chi-square test probability (distance set 2)	Value	Chi2 P 2	Chi2 P 2
 detection probability	chi-square test probability (distance set 3)	Value	Chi2 P 3	Chi2 P 3
 detection probability	f(0) or h(0)	Value	f/h(0)	f/h(0)
-detection probability	f(0) or h(0)	Cv	ConfInd f/h(0)	IndConf f/h(0)
+detection probability	f(0) or h(0)	Cv	CoefVar f/h(0)	CoefVar f/h(0)
 detection probability	f(0) or h(0)	Lcl	Min f/h(0)	Min f/h(0)
 detection probability	f(0) or h(0)	Ucl	Max f/h(0)	Max f/h(0)
 detection probability	f(0) or h(0)	Df	DoF f/h(0)	DegLib f/h(0)
 detection probability	probability of detection (Pw)	Value	PDetec	PDetec
-detection probability	probability of detection (Pw)	Cv	ConfInd PDetec	IndConf PDetec
+detection probability	probability of detection (Pw)	Cv	CoefVar PDetec	CoefVar PDetec
 detection probability	probability of detection (Pw)	Lcl	Min PDetec	Min PDetec
 detection probability	probability of detection (Pw)	Ucl	Max PDetec	Max PDetec
 detection probability	probability of detection (Pw)	Df	DoF PDetec	DegLib PDetec
 detection probability	effective strip width (ESW) or effective detection radius (EDR)	Value	EDR/ESW	EDR/ESW
-detection probability	effective strip width (ESW) or effective detection radius (EDR)	Cv	ConfInd EDR/ESW	IndConf EDR/ESW
+detection probability	effective strip width (ESW) or effective detection radius (EDR)	Cv	CoefVar EDR/ESW	CoefVar EDR/ESW
 detection probability	effective strip width (ESW) or effective detection radius (EDR)	Lcl	Min EDR/ESW	Min EDR/ESW
 detection probability	effective strip width (ESW) or effective detection radius (EDR)	Ucl	Max EDR/ESW	Max EDR/ESW
 detection probability	effective strip width (ESW) or effective detection radius (EDR)	Df	DoF EDR/ESW	DegLib EDR/ESW
@@ -51,44 +51,44 @@ detection probability	estimated value of A(8) adjustment term parameter	Value	Es
 detection probability	estimated value of A(9) adjustment term parameter	Value	EstA(9)	EstA(9)
 detection probability	estimated value of A(10) adjustment term parameter	Value	EstA(10)	EstA(10)
 cluster size	average cluster size	Value	AvgClustSz	TailMoyClust
-cluster size	average cluster size	Cv	ConfInd AvgClustSz	IndConf TailMoyClust
+cluster size	average cluster size	Cv	CoefVar AvgClustSz	CoefVar TailMoyClust
 cluster size	average cluster size	Lcl	Min AvgClustSz	Min TailMoyClust
 cluster size	average cluster size	Ucl	Max AvgClustSz	Max TailMoyClust
 cluster size	average cluster size	Df	DoF AvgClustSz	DegLib TailMoyClust
 cluster size	size-bias regression correlation (r)	Value	SzBias RegCorr	CorrReg BiaisTail
 cluster size	p-value for correlation significance (r-p)	Value	CorSignPVal	PVal SignifCorr
 cluster size	estimate of expected cluster size corrected for size bias	Value	EstExpFixedCluSz	TailCorrCluAttEst
-cluster size	estimate of expected cluster size corrected for size bias	Cv	ConfInd EstExpFixedCluSz	IndConf TailCorrCluAttEst
+cluster size	estimate of expected cluster size corrected for size bias	Cv	CoefVar EstExpFixedCluSz	CoefVar TailCorrCluAttEst
 cluster size	estimate of expected cluster size corrected for size bias	Lcl	Min EstExpFixedCluSz	Min TailCorrCluAttEst
 cluster size	estimate of expected cluster size corrected for size bias	Ucl	Max EstExpFixedCluSz	Max TailCorrCluAttEst
 cluster size	estimate of expected cluster size corrected for size bias	Df	DoF EstExpFixedCluSz	DegLib TailCorrCluAttEst
 density/abundance	density of clusters (or animal density if non-clustered)	Value	DensClu	DensClu
-density/abundance	density of clusters (or animal density if non-clustered)	Cv	ConfInd DensClu	IndConf DensClu
+density/abundance	density of clusters (or animal density if non-clustered)	Cv	CoefVar DensClu	CoefVar DensClu
 density/abundance	density of clusters (or animal density if non-clustered)	Lcl	Min DensClu	Min DensClu
 density/abundance	density of clusters (or animal density if non-clustered)	Ucl	Max DensClu	Max DensClu
 density/abundance	density of clusters (or animal density if non-clustered)	Df	DoF DensClu	DegLib DensClu
 density/abundance	density of animals	Value	Density	Densité
-density/abundance	density of animals	Cv	ConfInd Density	IndConf Densité
+density/abundance	density of animals	Cv	CoefVar Density	CoefVar Densité
 density/abundance	density of animals	Lcl	Min Density	Min Densité
 density/abundance	density of animals	Ucl	Max Density	Max Densité
 density/abundance	density of animals	Df	DoF Density	DegLib Densité
 density/abundance	number of animals, if survey area is specified	Value	Number	Nombre
-density/abundance	number of animals, if survey area is specified	Cv	ConfInd Number	IndConf Nombre
+density/abundance	number of animals, if survey area is specified	Cv	CoefVar Number	CoefVar Nombre
 density/abundance	number of animals, if survey area is specified	Lcl	Min Number	Min Nombre
 density/abundance	number of animals, if survey area is specified	Ucl	Max Number	Max Nombre
 density/abundance	number of animals, if survey area is specified	Df	DoF Number	DegLib Nombre
 density/abundance	bootstrap density of clusters	Value	BootsDensClu	BootsDensClu
-density/abundance	bootstrap density of clusters	Cv	ConfInd BootsDensClu	IndConf BootsDensClu
+density/abundance	bootstrap density of clusters	Cv	CoefVar BootsDensClu	CoefVar BootsDensClu
 density/abundance	bootstrap density of clusters	Lcl	Min BootsDensClu	Min BootsDensClu
 density/abundance	bootstrap density of clusters	Ucl	Max BootsDensClu	Max BootsDensClu
 density/abundance	bootstrap density of clusters	Df	DoF BootsDensClu	DegLib BootsDensClu
 density/abundance	bootstrap density of animals	Value	BootDensity	DensitéBoot
-density/abundance	bootstrap density of animals	Cv	ConfInd BootDensity	IndConf DensitéBoot
+density/abundance	bootstrap density of animals	Cv	CoefVar BootDensity	CoefVar DensitéBoot
 density/abundance	bootstrap density of animals	Lcl	Min BootDensity	Min DensitéBoot
 density/abundance	bootstrap density of animals	Ucl	Max BootDensity	Max DensitéBoot
 density/abundance	bootstrap density of animals	Df	DoF BootDensity	DegLib DensitéBoot
 density/abundance	bootstrap number of animals	Value	BootNumber	NombreBoot
-density/abundance	bootstrap number of animals	Cv	ConfInd BootNumber	IndConf NombreBoot
+density/abundance	bootstrap number of animals	Cv	CoefVar BootNumber	CoefVar NombreBoot
 density/abundance	bootstrap number of animals	Lcl	Min BootNumber	Min NombreBoot
 density/abundance	bootstrap number of animals	Ucl	Max BootNumber	Max NombreBoot
 density/abundance	bootstrap number of animals	Df	DoF BootNumber	DegLib NombreBoot
