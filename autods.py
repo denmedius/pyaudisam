@@ -20,7 +20,7 @@ import re
 import datetime as dt
 import codecs
 
-from collections import OrderedDict as odict
+from collections import OrderedDict as odict, namedtuple as ntuple
 
 import numpy as np
 import pandas as pd
@@ -84,11 +84,13 @@ class DSEngine(object):
         assert areaUnit in self.AreaUnits, \
                'Invalid area unit {}: should be in {}'.format(areaUnit, self.AreaUnits)
         
-        # Save workdir, base and specific options.
-        self.options = options.copy()
-        self.options.update(distanceUnit=distanceUnit, areaUnit=areaUnit)
+        # Save specific options (as a named tuple for easier use).
+        options = copy.deepcopy(options)
+        options.update(distanceUnit=distanceUnit, areaUnit=areaUnit)
+        self.OptionsClass = ntuple('Options', options.keys())
+        self.options = self.OptionsClass(**options) 
         
-        # Check and prepare workdir if needed.
+        # Check and prepare workdir if needed, and save.
         assert all(c not in workDir for c in self.ForbidPathChars), \
                'Invalid character from "{}" in workDir folder "{}"' \
                .format(''.join(self.ForbidPathChars), workDir)
@@ -215,47 +217,12 @@ class MCDSEngine(DSEngine):
     
     # Estimator confidence value for output interval.
     EstCVIntervalDef = 95 # %
-
-    # Command file template (for str.format()ing).
-    CmdTxt = \
-        '\n'.join(map(str.strip,
-                  """{output}
-                     {log}
-                     {stats}
-                     {plots}
-                     {bootstrap}
-                     {bootpgrss}
-                     Options;
-                     Type={survType};
-                     Distance={distType} /Measure='{distUnit}';
-                     Area /Units='{areaUnit}';
-                     Object=Single;
-                     SF=1;
-                     Selection=Sequential;
-                     Lookahead=1;
-                     Maxterms=5;
-                     Confidence={cvInterv};
-                     Print=Selection;
-                     End;
-                     Data /Structure=Flat;
-                     Fields={dataFields};
-                     Infile={dataFileName} /NoEcho;
-                     End;
-                     Estimate;
-                     Distance;
-                     Density=All;
-                     Encounter=All;
-                     Detection=All;
-                     Size=All;
-                     Estimator /Key={estKeyFn} /Adjust={estAdjustFn} /Criterion={estCriterion};
-                     Monotone=Strict;
-                     Pick=AIC;
-                     GOF;
-                     Cluster /Bias=GXLOG;
-                     VarN=Empirical;
-                     End;
-                  """.split('\n'))) + '\n'
     
+    # Distance truncation / cut points parameters.
+    DistMinDef = None # No left truncation (min = 0)
+    DistMaxDef = None # No right truncation (max = max. distance observed)
+    DistCutsDef = None # Automatic engine distance cuts determination.
+
     # Executable 
     ExeFilePathName = DSEngine.findExecutable(exeFileName='MCDS.exe')
 
@@ -407,18 +374,99 @@ class MCDSEngine(DSEngine):
                          surveyType=surveyType, distanceType=distanceType,
                          firstDataFields=self.FirstDataFields[surveyType])        
     
+    # Command file template (for str.format()ing).
+    CmdTxt = \
+        '\n'.join(map(str.strip,
+                  """{output}
+                     {log}
+                     {stats}
+                     {plots}
+                     {bootstrap}
+                     {bootpgrss}
+                     Options;
+                     Type={survType};
+                     Distance={distType} /Measure='{distUnit}';
+                     Area /Units='{areaUnit}';
+                     Object=Single;
+                     SF=1;
+                     Selection=Sequential;
+                     Lookahead=1;
+                     Maxterms=5;
+                     Confidence={cvInterv};
+                     Print=Selection;
+                     End;
+                     Data /Structure=Flat;
+                     Fields={dataFields};
+                     Infile={dataFileName} /NoEcho;
+                     End;
+                     Estimate;
+                     Distance{distCutSpecs};
+                     Density=All;
+                     Encounter=All;
+                     Detection=All;
+                     Size=All;
+                     Estimator /Key={estKeyFn} /Adjust={estAdjustFn} /Criterion={estCriterion};
+                     Monotone=Strict;
+                     Pick=AIC;
+                     GOF;
+                     Cluster /Bias=GXLOG;
+                     VarN=Empirical;
+                     End;
+                  """.split('\n'))) + '\n'
+    
     # Build command file from options and params
     def buildCmdFile(self, **params):
 
+        # Default params values
+        if 'estimKeyFn' not in params:
+            params['estimKeyFn'] = self.EstKeyFnDef
+        if 'estimAdjustFn' not in params:
+            params['estimAdjustFn'] = self.EstAdjustFnDef
+        if 'estimCriterion' not in params:
+            params['estimCriterion'] = self.EstCriterionDef
+        if 'cvInterval' not in params:
+            params['cvInterval'] = self.EstCVIntervalDef
+        if 'maxDist' not in params:
+            params['maxDist'] = self.DistMaxDef
+        if 'minDist' not in params:
+            params['minDist'] = self.DistMinDef
+        if 'distCuts' not in params:
+            params['distCuts'] = self.DistCutsDef
+
+        # Generate file contents
+        # a. Compute non trivial data fields
+        distCutSpecs = ''
+        
+        distCuts = params['distCuts']
+        if distCuts is not None:
+            
+            if isinstance(distCuts, list) and minDist is not None and maxDist is not None:
+                distCutSpecs += ' /Int=' + ','.join(str(d) for d in [minDist] + distCuts + [maxDist])
+            elif isinstance(distCuts, int):
+                distCutSpecs += ' /NClass=' + str(distCuts)
+        
+        if not isinstance(distCuts, list): # None or int
+
+            minDist = params['minDist']
+            if minDist is not None:
+                distCutSpecs += ' /Left=' + str(minDist)
+
+            maxDist = params['maxDist']
+            if maxDist is not None:
+                distCutSpecs += ' /Width=' + str(maxDist)
+        
+        # b. Format contents string
         cmdTxt = self.CmdTxt.format(output=self.outFileName, log=self.logFileName,
                                     stats=self.statsFileName, plots=self.plotsFileName,
                                     bootstrap='None', bootpgrss='None', # No support for the moment.
-                                    survType=self.options['surveyType'], distType=self.options['distanceType'],
-                                    distUnit=self.options['distanceUnit'], areaUnit=self.options['areaUnit'],
+                                    survType=self.options.surveyType, distType=self.options.distanceType,
+                                    distUnit=self.options.distanceUnit, areaUnit=self.options.areaUnit,
                                     dataFields=', '.join(self.dataFields), dataFileName=self.dataFileName,
                                     estKeyFn=params['estimKeyFn'], estAdjustFn=params['estimAdjustFn'],
-                                    estCriterion=params['estimCriterion'], cvInterv=params['cvInterval'])
+                                    estCriterion=params['estimCriterion'], cvInterv=params['cvInterval'],
+                                    distCutSpecs=distCutSpecs)
 
+        # Write file.
         with open(self.cmdFileName, mode='w', encoding='utf-8') as cmdFile:
             cmdFile.write(cmdTxt)
 
@@ -470,7 +518,7 @@ class MCDSEngine(DSEngine):
             self.buildExportTable(dataSet, withExtraFields=False, decPoint='.')
         
         # Save data fields for the engine : mandatory ones only
-        self.dataFields = self.options['firstDataFields']
+        self.dataFields = self.options.firstDataFields
         
         # Export.
         dfExport.to_csv(self.dataFileName, index=False, sep='\t', encoding='utf-8', header=None)
@@ -611,7 +659,7 @@ class MCDSEngine(DSEngine):
         
         # Export.
         dfExport.to_csv(tgtFilePathName, index=False, sep='\t', encoding='utf-8',
-                        header=self.distanceFields(self.options['firstDataFields']) + extraFields)
+                        header=self.distanceFields(self.options.firstDataFields) + extraFields)
 
         print('Data Distance-exported to', tgtFilePathName)
         
@@ -644,7 +692,15 @@ class MCDSAnalysis(DSAnalysis):
     
     def __init__(self, engine, dataSet, namePrefix='mcds',
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
-                 estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef):
+                 estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
+                 minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, distCuts=EngineClass.DistCutsDef):
+        
+        """
+            :param minDist: None or >=0 
+            :param maxDist: None or > :param minDist:
+            :param distCuts: None or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
+                             or list of distance values inside [:param minDist:, :param maxDist:]
+        """
         
         # Check engine
         assert isinstance(engine, MCDSEngine), 'Engine must be an MCDSEngine'
@@ -658,8 +714,23 @@ class MCDSAnalysis(DSAnalysis):
                .format(estimAdjustFn, engine.EstAdjustFns)
         assert estimCriterion in engine.EstCriterions, \
                'Invalid estimate criterion {}: should be in {}'.format(estimCriterion, engine.EstCriterions)
-        assert cvInterval > 0 and cvInterval < 100,\
+        assert cvInterval > 0 and cvInterval < 100, \
                'Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%[')
+        assert minDist is None or minDist >= 0, \
+               'Invalid left truncation distance {}: should be None or >= 0'.format(distCuts)
+        assert maxDist is None or minDist <= maxDist, \
+               'Invalid right truncation distance {}:' \
+               ' should be None or >= left truncation distance if specified, or >= 0'.format(distCuts)
+        if distCuts is not None:
+            if isinstance(distCuts, int):
+                assert distCuts > 1, 'Invalid number of distance cuts {}; should be None or > 1'.format(distCuts)
+            if isinstance(distCuts, list):
+                assert len(distCuts) > 0, 'Invalid distance cut list {}; should not be empty'.format(distCuts)
+                prevCut = minDist
+                for cut in distCuts:
+                    assert cut > prevCut, 'Invalid distance cut list {}; should be made of strictly increasing values' \
+                                          ' in ]{}, {}['.format(minDist, maxDist, distCuts)
+                    prevCut = cut
 
         # Build name from main params
         name = '-'.join([namePrefix] + [p[:3].lower() for p in [estimKeyFn, estimAdjustFn]])
@@ -676,29 +747,39 @@ class MCDSAnalysis(DSAnalysis):
         self.estimAdjustFn = estimAdjustFn
         self.estimCriterion = estimCriterion
         self.cvInterval = cvInterval
+        self.minDist = minDist
+        self.maxDist = maxDist
+        self.distCuts = distCuts
     
     # Run columns for output : analysis params + root engine output (3-level multi-index)
     MIRunColumns = pd.MultiIndex.from_tuples([('parameters', 'estimator key function', 'Value'),
                                               ('parameters', 'estimator adjustment series', 'Value'),
                                               ('parameters', 'estimator selection criterion', 'Value'),
-                                              ('parameters', 'CV interval', 'Value')] + DSAnalysis.RunRunColumns)
+                                              ('parameters', 'CV interval', 'Value'),
+                                              ('parameters', 'left truncation distance', 'Value'),
+                                              ('parameters', 'right truncation distance', 'Value'),
+                                              ('parameters', 'distance cut points', 'Value')] + DSAnalysis.RunRunColumns)
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DfRunColumnTrans = \
         pd.DataFrame(index=MIRunColumns,
-                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInter'] + DSAnalysis.DRunRunColumnTrans['en'],
-                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'InterConf']+ DSAnalysis.DRunRunColumnTrans['fr']))
+                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInterv', 'LeftTrunc', 'RightTrunc', 'DistCuts'] \
+                                  + DSAnalysis.DRunRunColumnTrans['en'],
+                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'IntervConf', 'TroncGche', 'TroncDrte', 'TranchDist'] \
+                                  + DSAnalysis.DRunRunColumnTrans['fr']))
     
     def run(self, realRun=True):
         
         self.runStatus, self.runTime, self.runDir = \
             self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun,
                             estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
-                            estimCriterion=self.estimCriterion, cvInterval=self.cvInterval)
+                            estimCriterion=self.estimCriterion, cvInterval=self.cvInterval,
+                            minDist=self.minDist, maxDist=self.maxDist, distCuts=self.distCuts)
         
         # Load and decode output stats.
         sResults = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
-                                   self.cvInterval, self.runStatus, self.runTime, self.runDir],
+                                   self.cvInterval, self.minDist, self.maxDist, self.distCuts,
+                                   self.runStatus, self.runTime, self.runDir],
                              index=self.MIRunColumns)
         
         if self.runStatus in [1, 2]:
