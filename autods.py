@@ -221,7 +221,8 @@ class MCDSEngine(DSEngine):
     # Distance truncation / cut points parameters.
     DistMinDef = None # No left truncation (min = 0)
     DistMaxDef = None # No right truncation (max = max. distance observed)
-    DistCutsDef = None # Automatic engine distance cuts determination.
+    DistFitCutsDef = None # Model fitting : Automatic engine distance cuts determination.
+    DistDiscrCutsDef = None # Distance values discretisation : None (keep exact values).
 
     # Executable 
     ExeFilePathName = DSEngine.findExecutable(exeFileName='MCDS.exe')
@@ -400,7 +401,7 @@ class MCDSEngine(DSEngine):
                      Infile={dataFileName} /NoEcho;
                      End;
                      Estimate;
-                     Distance{distCutSpecs};
+                     Distance{distDiscrSpecs};
                      Density=All;
                      Encounter=All;
                      Detection=All;
@@ -408,7 +409,7 @@ class MCDSEngine(DSEngine):
                      Estimator /Key={estKeyFn} /Adjust={estAdjustFn} /Criterion={estCriterion};
                      Monotone=Strict;
                      Pick=AIC;
-                     GOF;
+                     GOF{gOFitSpecs};
                      Cluster /Bias=GXLOG;
                      VarN=Empirical;
                      End;
@@ -430,31 +431,44 @@ class MCDSEngine(DSEngine):
             params['maxDist'] = self.DistMaxDef
         if 'minDist' not in params:
             params['minDist'] = self.DistMinDef
-        if 'distCuts' not in params:
-            params['distCuts'] = self.DistCutsDef
+        if 'fitDistCuts' not in params:
+            params['fitDistCuts'] = self.DistFitCutsDef
+        if 'discrDistCuts' not in params:
+            params['discrDistCuts'] = self.DistDiscrCutsDef
 
         # Generate file contents
         # a. Compute non trivial data fields
-        distCutSpecs = ''
+        distDiscrSpecs = ''
+        gOFitSpecs = ''
         
-        distCuts = params['distCuts']
-        if distCuts is not None:
+        fitDistCuts = params['fitDistCuts']
+        discrDistCuts = params['discrDistCuts']
+        if discrDistCuts is not None:
             
-            if isinstance(distCuts, list) and minDist is not None and maxDist is not None:
-                distCutSpecs += ' /Int=' + ','.join(str(d) for d in [minDist] + distCuts + [maxDist])
-            elif isinstance(distCuts, int):
-                distCutSpecs += ' /NClass=' + str(distCuts)
+            if isinstance(discrDistCuts, list) and minDist is not None and maxDist is not None:
+                distDiscrSpecs += ' /Int=' + ','.join(str(d) for d in [minDist] + distCuts + [maxDist])
+            elif isinstance(discrDistCuts, int):
+                distDiscrSpecs += ' /NClass=' + str(discrDistCuts)
+            # Other cases not supported, dans should be asserted by the caller.
         
-        if not isinstance(distCuts, list): # None or int
+        elif fitDistCuts is not None: # Can't fit model on other distance intervals than used for discretisation.
+            
+            if isinstance(fitDistCuts, list) and minDist is not None and maxDist is not None:
+                fitDistCuts += ' /Int=' + ','.join(str(d) for d in [minDist] + distCuts + [maxDist])
+            elif isinstance(discrDistCuts, int):
+                fitDistCuts += ' /NClass=' + str(discrDistCuts)
+            # Other cases not supported, dans should be asserted by the caller.
+                
+        if not isinstance(discrDistCuts, list): # None or int
 
             minDist = params['minDist']
             if minDist is not None:
-                distCutSpecs += ' /Left=' + str(minDist)
+                distDiscrSpecs += ' /Left=' + str(minDist)
 
             maxDist = params['maxDist']
             if maxDist is not None:
-                distCutSpecs += ' /Width=' + str(maxDist)
-        
+                distDiscrSpecs += ' /Width=' + str(maxDist)
+                
         # b. Format contents string
         cmdTxt = self.CmdTxt.format(output=self.outFileName, log=self.logFileName,
                                     stats=self.statsFileName, plots=self.plotsFileName,
@@ -464,7 +478,7 @@ class MCDSEngine(DSEngine):
                                     dataFields=', '.join(self.dataFields), dataFileName=self.dataFileName,
                                     estKeyFn=params['estimKeyFn'], estAdjustFn=params['estimAdjustFn'],
                                     estCriterion=params['estimCriterion'], cvInterv=params['cvInterval'],
-                                    distCutSpecs=distCutSpecs)
+                                    distDiscrSpecs=distDiscrSpecs, gOFitSpecs=gOFitSpecs)
 
         # Write file.
         with open(self.cmdFileName, mode='w', encoding='utf-8') as cmdFile:
@@ -690,16 +704,35 @@ class MCDSAnalysis(DSAnalysis):
     
     EngineClass = MCDSEngine
     
+    @staticmethod
+    def checkDistCuts(distCuts, minDist, maxDist):
+        if distCuts is None:
+            return # OK !
+        if isinstance(distCuts, int):
+            assert distCuts > 1, 'Invalid number of distance cuts {}; should be None or > 1'.format(distCuts)
+        if isinstance(distCuts, list):
+            assert len(distCuts) > 0, 'Invalid distance cut list {}; should not be empty'.format(distCuts)
+            prevCut = minDist
+            for cut in distCuts:
+                assert cut > prevCut, 'Invalid distance cut list {}; should be made of strictly increasing values' \
+                                      ' in ]{}, {}['.format(minDist, maxDist, distCuts)
+                prevCut = cut
+    
     def __init__(self, engine, dataSet, namePrefix='mcds',
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
-                 minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, distCuts=EngineClass.DistCutsDef):
+                 minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
+                 fitDistCuts=EngineClass.DistFitCutsDef, discrDistCuts=EngineClass.DistDiscrCutsDef):
         
         """
             :param minDist: None or >=0 
             :param maxDist: None or > :param minDist:
-            :param distCuts: None or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
-                             or list of distance values inside [:param minDist:, :param maxDist:]
+            :param fitDistCuts: None or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
+                                or list of distance values inside [:param minDist:, :param maxDist:]
+                                ... for model fitting
+            :param discrDistCuts: None or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
+                                or list of distance values inside [:param minDist:, :param maxDist:]
+                                ... for distance values discretisation
         """
         
         # Check engine
@@ -721,17 +754,9 @@ class MCDSAnalysis(DSAnalysis):
         assert maxDist is None or minDist <= maxDist, \
                'Invalid right truncation distance {}:' \
                ' should be None or >= left truncation distance if specified, or >= 0'.format(distCuts)
-        if distCuts is not None:
-            if isinstance(distCuts, int):
-                assert distCuts > 1, 'Invalid number of distance cuts {}; should be None or > 1'.format(distCuts)
-            if isinstance(distCuts, list):
-                assert len(distCuts) > 0, 'Invalid distance cut list {}; should not be empty'.format(distCuts)
-                prevCut = minDist
-                for cut in distCuts:
-                    assert cut > prevCut, 'Invalid distance cut list {}; should be made of strictly increasing values' \
-                                          ' in ]{}, {}['.format(minDist, maxDist, distCuts)
-                    prevCut = cut
-
+        self.checkDistCuts(fitDistCuts, minDist, maxDist)
+        self.checkDistCuts(discrDistCuts, minDist, maxDist)
+        
         # Build name from main params
         name = '-'.join([namePrefix] + [p[:3].lower() for p in [estimKeyFn, estimAdjustFn]])
         if estimCriterion != self.EngineClass.EstCriterionDef:
@@ -749,7 +774,8 @@ class MCDSAnalysis(DSAnalysis):
         self.cvInterval = cvInterval
         self.minDist = minDist
         self.maxDist = maxDist
-        self.distCuts = distCuts
+        self.fitDistCuts = fitDistCuts
+        self.discrDistCuts = discrDistCuts
     
     # Run columns for output : analysis params + root engine output (3-level multi-index)
     MIRunColumns = pd.MultiIndex.from_tuples([('parameters', 'estimator key function', 'Value'),
@@ -758,14 +784,18 @@ class MCDSAnalysis(DSAnalysis):
                                               ('parameters', 'CV interval', 'Value'),
                                               ('parameters', 'left truncation distance', 'Value'),
                                               ('parameters', 'right truncation distance', 'Value'),
-                                              ('parameters', 'distance cut points', 'Value')] + DSAnalysis.RunRunColumns)
+                                              ('parameters', 'model fitting distance cut points', 'Value'),
+                                              ('parameters', 'distance discretisation cut points', 'Value')] \
+                                             + DSAnalysis.RunRunColumns)
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DfRunColumnTrans = \
         pd.DataFrame(index=MIRunColumns,
-                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInterv', 'LeftTrunc', 'RightTrunc', 'DistCuts'] \
+                     data=dict(en=['ModKeyFn', 'ModAdjSer', 'ModChcCrit', 'ConfInterv',
+                                   'LeftTrunc', 'RightTrunc', 'FitDistCuts', 'DiscrDistCuts'] \
                                   + DSAnalysis.DRunRunColumnTrans['en'],
-                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'IntervConf', 'TroncGche', 'TroncDrte', 'TranchDist'] \
+                               fr=['FnCléMod', 'SérAjustMod', 'CritChxMod', 'IntervConf',
+                                   'TroncGche', 'TroncDrte', 'TranchDistMod', 'TranchDistDiscr'] \
                                   + DSAnalysis.DRunRunColumnTrans['fr']))
     
     def run(self, realRun=True):
@@ -774,19 +804,18 @@ class MCDSAnalysis(DSAnalysis):
             self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun,
                             estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
                             estimCriterion=self.estimCriterion, cvInterval=self.cvInterval,
-                            minDist=self.minDist, maxDist=self.maxDist, distCuts=self.distCuts)
+                            minDist=self.minDist, maxDist=self.maxDist,
+                            fitDistCuts=self.fitDistCuts, discrDistCuts=self.discrDistCuts)
         
         # Load and decode output stats.
         sResults = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
-                                   self.cvInterval, self.minDist, self.maxDist, self.distCuts,
+                                   self.cvInterval, self.minDist, self.maxDist, self.fitDistCuts, self.discrDistCuts,
                                    self.runStatus, self.runTime, self.runDir],
                              index=self.MIRunColumns)
         
         if self.runStatus in [1, 2]:
             sResults = sResults.append(self.engine.decodeStats())
             
-        # TODO: output (text and curves), log
-        
         print()
         
         return sResults
