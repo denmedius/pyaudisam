@@ -441,33 +441,33 @@ class MCDSEngine(DSEngine):
         distDiscrSpecs = ''
         gOFitSpecs = ''
         
+        minDist = params['minDist']
+        maxDist = params['maxDist']
         fitDistCuts = params['fitDistCuts']
         discrDistCuts = params['discrDistCuts']
         if discrDistCuts is not None:
             
-            if isinstance(discrDistCuts, list) and minDist is not None and maxDist is not None:
-                distDiscrSpecs += ' /Int=' + ','.join(str(d) for d in [minDist] + distCuts + [maxDist])
+            if isinstance(discrDistCuts, list):
+                assert not (minDist is None or maxDist is None)
+                distDiscrSpecs += ' /Int=' + ','.join(str(d) for d in [minDist] + discrDistCuts + [maxDist])
             elif isinstance(discrDistCuts, int):
                 distDiscrSpecs += ' /NClass=' + str(discrDistCuts)
             # Other cases not supported, dans should be asserted by the caller.
         
         elif fitDistCuts is not None: # Can't fit model on other distance intervals than used for discretisation.
             
-            if isinstance(fitDistCuts, list) and minDist is not None and maxDist is not None:
-                fitDistCuts += ' /Int=' + ','.join(str(d) for d in [minDist] + distCuts + [maxDist])
-            elif isinstance(discrDistCuts, int):
-                fitDistCuts += ' /NClass=' + str(discrDistCuts)
+            if isinstance(fitDistCuts, list):
+                assert not (minDist is None or maxDist is None)
+                gOFitSpecs += ' /Int=' + ','.join(str(d) for d in [minDist] + fitDistCuts + [maxDist])
+            elif isinstance(fitDistCuts, int):
+                gOFitSpecs += ' /NClass=' + str(fitDistCuts)
             # Other cases not supported, dans should be asserted by the caller.
                 
-        if not isinstance(discrDistCuts, list): # None or int
+        if minDist is not None:
+            distDiscrSpecs += ' /Left=' + str(minDist)
 
-            minDist = params['minDist']
-            if minDist is not None:
-                distDiscrSpecs += ' /Left=' + str(minDist)
-
-            maxDist = params['maxDist']
-            if maxDist is not None:
-                distDiscrSpecs += ' /Width=' + str(maxDist)
+        if maxDist is not None:
+            distDiscrSpecs += ' /Width=' + str(maxDist)
                 
         # b. Format contents string
         cmdTxt = self.CmdTxt.format(output=self.outFileName, log=self.logFileName,
@@ -524,6 +524,7 @@ class MCDSEngine(DSEngine):
         return dfExport, extraFields
 
     # Build MCDS input data file from data set.
+    # Note: Data order not changed, same as in input dataSet !
     # TODO: Add support for covariate columns (through extraFields)
     def buildDataFile(self, dataSet):
         
@@ -710,15 +711,17 @@ class MCDSAnalysis(DSAnalysis):
             return # OK !
         if isinstance(distCuts, int):
             assert distCuts > 1, 'Invalid number of distance cuts {}; should be None or > 1'.format(distCuts)
-        if isinstance(distCuts, list):
+        elif isinstance(distCuts, list):
             assert len(distCuts) > 0, 'Invalid distance cut list {}; should not be empty'.format(distCuts)
-            prevCut = minDist
+            prevCut = -1e10 if minDist is None else minDist
             for cut in distCuts:
                 assert cut > prevCut, 'Invalid distance cut list {}; should be made of strictly increasing values' \
                                       ' in ]{}, {}['.format(minDist, maxDist, distCuts)
                 prevCut = cut
+            if maxDist is not None:
+                assert distCuts[-1] < maxDist, 'Invalid last distance cut {}; should be empty < {}'.format(distCuts[-1], maxDist)
     
-    def __init__(self, engine, dataSet, namePrefix='mcds',
+    def __init__(self, engine, dataSet, name=None,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
@@ -750,19 +753,20 @@ class MCDSAnalysis(DSAnalysis):
         assert cvInterval > 0 and cvInterval < 100, \
                'Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%[')
         assert minDist is None or minDist >= 0, \
-               'Invalid left truncation distance {}: should be None or >= 0'.format(distCuts)
-        assert maxDist is None or minDist <= maxDist, \
+               'Invalid left truncation distance {}: should be None or >= 0'.format(minDist)
+        assert maxDist is None or minDist is None or minDist <= maxDist, \
                'Invalid right truncation distance {}:' \
-               ' should be None or >= left truncation distance if specified, or >= 0'.format(distCuts)
+               ' should be None or >= left truncation distance if specified, or >= 0'.format(maxDist)
         self.checkDistCuts(fitDistCuts, minDist, maxDist)
         self.checkDistCuts(discrDistCuts, minDist, maxDist)
         
-        # Build name from main params
-        name = '-'.join([namePrefix] + [p[:3].lower() for p in [estimKeyFn, estimAdjustFn]])
-        if estimCriterion != self.EngineClass.EstCriterionDef:
-            name += '-' + estimCriterion.lower()
-        if cvInterval != self.EngineClass.EstCVIntervalDef:
-            name += '-' + str(cvInterval)
+        # Build name from main params if not specified
+        if name is None:
+            name = '-'.join(['mcds'] + [p[:3].lower() for p in [estimKeyFn, estimAdjustFn]])
+            if estimCriterion != self.EngineClass.EstCriterionDef:
+                name += '-' + estimCriterion.lower()
+            if cvInterval != self.EngineClass.EstCVIntervalDef:
+                name += '-' + str(cvInterval)
 
         # Initialise base.
         super().__init__(engine, dataSet, name)
@@ -995,11 +999,9 @@ class ResultsSet(object):
         assert subset is None or isinstance(subset, list) or isinstance(subset, pd.MultiIndex), \
                'subset columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
         
-        # Build translation table for lang from custom one and analysis one
-        
-        # Make a copy of / extract selected columns of dfData, and translate column names.
+        # Make a copy of / extract selected columns of dfData.
         if subset is None:
-            dfTrData = self.dfData.copy()
+            dfTrData = self.dfData #.copy()
         else:
             if isinstance(subset, list):
                 miSubset = pd.MultiIndex.from_tuples(subset)
@@ -1007,6 +1009,7 @@ class ResultsSet(object):
                 miSubset = subset
             dfTrData = self.dfData.reindex(columns=miSubset)
         
+        # Translate column names.
         dfTrData.columns = [self.transTable()[lang].get(col, str(col)) for col in dfTrData.columns]
         
         return dfTrData
@@ -1024,6 +1027,55 @@ class ResultsSet(object):
                                     header=[0, 1, 2], skiprows=[3], index_col=0)
 
         
+# A specialized results set for MCDS analyses,
+# with extra. post-computed columns : Delta AIC, Chi2 P
+class MCDSResultsSet(ResultsSet):
+    
+    DeltaAicColInd = ('detection probability', 'Delta AIC', 'Value')
+    Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
+
+    def __init__(self, miCustomCols=None, dfCustomColTrans=None):
+        
+        # Setup computed columns specs.
+        dCompCols = odict([(self.DeltaAicColInd, 22), # Right before AIC
+                           (self.Chi2ColInd, 24)]) # Right before all Chi2 tests 
+        dfCompColTrans = \
+            pd.DataFrame(index=dCompCols.keys(),
+                         data=dict(en=['Delta AIC', 'Chi2 P'], fr=['Delta AIC', 'Chi2 P']))
+
+        # Initialise base.
+        super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
+                                       dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+        
+    # Post-computations.
+    def postComputeColumns(self):
+        
+        # Compute Delta AIC (AIC - min(group)) per { species, periods, precision, duration } group.
+        # a. Minimum AIC per group
+        aicColInd = ('detection probability', 'AIC value', 'Value')
+        aicGroupColInds = [('sample', 'Sample', 'Value')]
+        df2Join = self._dfData.groupby(aicGroupColInds)[[aicColInd]].min()
+        
+        # b. Rename computed columns to target
+        df2Join.columns = pd.MultiIndex.from_tuples([self.DeltaAicColInd])
+        
+        # c. Join the column to the target data-frame
+        self._dfData = self._dfData.join(df2Join, on=aicGroupColInds)
+        
+        # d. Compute delta-AIC in-place
+        self._dfData[self.DeltaAicColInd] = self._dfData[aicColInd] - self._dfData[self.DeltaAicColInd]
+
+        # Compute determined Chi2 test probability (last value of all the tests done).
+        def determineChi2(sChi2All):
+            for chi2 in sChi2All:
+                if not np.isnan(chi2):
+                    return chi2
+            return np.nan
+        chi2AllColInds = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
+                          for i in range(3, 0, -1)]
+        self._dfData[self.Chi2ColInd] = self._dfData[chi2AllColInds].apply(determineChi2, axis='columns')
+
+
 # Results reports class (Excel and HTML)
 class ResultsReport(object):
 
@@ -1378,7 +1430,7 @@ if __name__ == '__main__':
                         surveyType='Point', distanceType='Radial')
 
     # Create and run analysis
-    analysis = MCDSAnalysis(engine=engine, dataSet=dataSet, namePrefix=args.engineType,
+    analysis = MCDSAnalysis(engine=engine, dataSet=dataSet, name=args.engineType,
                             estimKeyFn=args.keyFn, estimAdjustFn=args.adjustFn,
                             estimCriterion=args.criterion, cvInterval=args.cvInterval)
 
