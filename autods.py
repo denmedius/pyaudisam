@@ -600,7 +600,7 @@ class MCDSEngine(DSEngine):
         dfStats = dfStats.join(self.DfStatModSpecs, on=['Module', 'Statistic'])
         
         # 6. Check that supposed N/A figures (as told by self.dfStatModuleSpecs.statNotes) are really such
-        #    Warning: There must be a bug in MCDS with Module=2 & Statistic=10x : some Cv values not always 0 ...
+        #    Warning: There seems to be a bug in MCDS with Module=2 & Statistic=10x : some Cv values not always 0 ...
         sKeepOnlyValueFig = ~dfStats.statNotes.apply(lambda s: pd.notnull(s) and '1' in s)
         sFigs2Drop = (dfStats.Figure != 'Value') & sKeepOnlyValueFig
         assert ~dfStats[sFigs2Drop & ((dfStats.Module != 2) | (dfStats.Statistic < 100))].Value.any(), \
@@ -659,7 +659,7 @@ class MCDSEngine(DSEngine):
             nDataRows = int(next(lines))
             dataRows = list()
             for l in range(nDataRows):
-                dataRows.append([float(s) for s in next(lines).split()])
+                dataRows.append([np.nan if '*' in s else float(s) for s in next(lines).split()])
                 
             dPlots[title] = dict(title=title, subTitle=subTitle, dataRows=dataRows, #nDataRows=nDataRows,,
                                  xLabel=xLabel, yLabel=yLabel, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
@@ -922,6 +922,7 @@ class ResultsSet(object):
         self.postComputed = False # Post-computation not yet done.
     
     def __len__(self):
+        
         return len(self._dfData)
     
     # sResult : Series for result cols values
@@ -944,7 +945,8 @@ class ResultsSet(object):
     # Post-computations.
     def postComputeColumns(self):
         
-        pass # Nothing done here ; derive class if needed (=> work directly on self._dfData).
+        # Derive class to really compute things (=> work directly on self._dfData),
+        pass
         
     @property
     def dfData(self):
@@ -952,17 +954,26 @@ class ResultsSet(object):
         # Do post-computation if not already done.
         if not(self._dfData.empty or self.postComputed):
             
+            # Make sure we jave a MultiIndex for columns (append breaks this, not fromExcel)
+            if not isinstance(self._dfData.columns, pd.MultiIndex):
+                self._dfData.columns = pd.MultiIndex.from_tuples(self._dfData.columns)
+            
+            # Post-compute as specified (or not).
             self.postComputeColumns()
             self.postComputed = True # No need to do it again !
         
         # Enforce right columns order.
         if not(self._dfData.empty or self.rightColOrder):
             
+            #print('dfData: reordering')
             miTgtColumns = self.miAnalysisCols
             if self.miCustomCols is not None:
                 miTgtColumns = self.miCustomCols.append(miTgtColumns)
             self._dfData = self._dfData.reindex(columns=miTgtColumns)
             self.rightColOrder = True # No need to do it again, until next append() !
+        
+        # This is also documentation line !
+        assert isinstance(self._dfData.columns, pd.MultiIndex)
         
         # Don't return columns with no relevant data.
         return self._dfData.dropna(how='all', axis='columns')
@@ -983,6 +994,11 @@ class ResultsSet(object):
         # Post-computation not yet done.
         self.postComputed = False
     
+    # Get translate names of custom columns
+    def transCustomColumns(self, lang):
+        
+        return self.dfCustomColTrans[lang].to_list()
+    
     # Build translation table for lang from custom one and analysis one
     def transTable(self):
         
@@ -1001,13 +1017,14 @@ class ResultsSet(object):
         
         # Make a copy of / extract selected columns of dfData.
         if subset is None:
-            dfTrData = self.dfData #.copy()
+            dfTrData = self.dfData
         else:
             if isinstance(subset, list):
                 miSubset = pd.MultiIndex.from_tuples(subset)
-            else:
+            else: # pd.MultiIndex
                 miSubset = subset
             dfTrData = self.dfData.reindex(columns=miSubset)
+        dfTrData = dfTrData.copy()
         
         # Translate column names.
         dfTrData.columns = [self.transTable()[lang].get(col, str(col)) for col in dfTrData.columns]
@@ -1019,8 +1036,8 @@ class ResultsSet(object):
         
         self.dfData.to_excel(fileName, sheet_name=sheetName or 'AllResults')
 
-    # Load data from Excel (assuming ctor params match with Excel sheet column names and list,
-    #  which can well be ensured by using the same ctor params as used for saving !).
+    # Load (overwrite) data from Excel (assuming ctor params match with Excel sheet column names and list,
+    # which can well be ensured by using the same ctor params as used for saving !).
     def fromExcel(self, fileName, sheetName=None):
         
         self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 'AllResults', 
@@ -1050,6 +1067,8 @@ class MCDSResultsSet(ResultsSet):
     # Post-computations.
     def postComputeColumns(self):
         
+        #print('postComputeColumns: ...')
+        
         # Compute Delta AIC (AIC - min(group)) per { species, periods, precision, duration } group.
         # a. Minimum AIC per group
         aicColInd = ('detection probability', 'AIC value', 'Value')
@@ -1060,6 +1079,7 @@ class MCDSResultsSet(ResultsSet):
         df2Join.columns = pd.MultiIndex.from_tuples([self.DeltaAicColInd])
         
         # c. Join the column to the target data-frame
+        #print(self._dfData.columns, df2Join.columns)
         self._dfData = self._dfData.join(df2Join, on=aicGroupColInds)
         
         # d. Compute delta-AIC in-place
@@ -1262,6 +1282,8 @@ class ResultsReport(object):
             shutil.copy(os.path.join(attSrcDir, fn), self.tgtFolder)
             
         # Postprocess synthesis table :
+        print('Top page ...')
+        
         # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
         synCols = self.synthCols
         if DSAnalysis.RunFolderColumn not in synCols:
@@ -1312,11 +1334,13 @@ class ResultsReport(object):
         with codecs.open(topHtmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
             tgtFile.write(html)
 
-        # Generate detailled report page for each analysis
+        # Generate report page for each analysis
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
         dfDetRes = self.resultsSet.dfTransData(self.lang)
 
-        # 1. 1st pass : Generate previous / next list
+        print('Analyses pages ({}) ...'.format(len(dfSynthRes)))
+
+        # 1. 1st pass : Generate previous / next list (for navigation buttons)
         sCurrUrl = dfSynthRes[self.trRunFolderCol]
         sCurrUrl = sCurrUrl.apply(lambda path: self.targetFilePathName(tgtFolder=path, prefix='index', suffix='.html'))
         sCurrUrl = sCurrUrl.apply(lambda path: os.path.relpath(path, self.tgtFolder).replace(os.sep, '/'))
@@ -1325,7 +1349,12 @@ class ResultsReport(object):
         # 2. 2nd pass : Generate
         tmpl = env.get_template('autods-anlys-tmpl.html')
         engineClass = self.resultsSet.engineClass
+        trCustCols = self.resultsSet.transCustomColumns(self.lang)
+        
         for lblAnlys in dfDetRes.index:
+            
+            sAnlysCustCols = dfDetRes.loc[lblAnlys, trCustCols]
+            print('#{}'.format(lblAnlys), ' '.join(['{}={}'.format(k, v) for k, v in sAnlysCustCols.iteritems()]))
         
             anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
 
@@ -1359,6 +1388,8 @@ class ResultsReport(object):
             with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
                 tgtFile.write(html)
 
+        print('... done.')
+                
         return topHtmlPathName
 
     # Génération du rapport Excel.
