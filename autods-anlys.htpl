@@ -183,14 +183,14 @@
     </div>
     
     <h6 style="margin-bottom: 10px">
-      Page générée via <a href="https://www.python.org/" target="_blank">Python 3</a>,
+      {{tr['Page generated with']}} <a href="https://www.python.org/" target="_blank">Python 3</a>,
       <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>,
-      <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
-      avec les pictogrammes de <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>
-      dans <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>
-      (sources : <a href="../autods.py" target="_blank">autods.py</a>
-       et <a href="../AutoDS-tests.ipynb" target="_blank">AutoDS-tests.ipynb</a>),
-      le {{genDateTime}}.
+      {{tr['and']}} <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
+      {{tr['with icons from']}} <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>
+      {{tr['in']}} <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>
+      ({{tr['sources']}} : <a href="./autods.py" target="_blank">autods.py</a>
+      {{tr['and']}} <a href="./AutoDS-tests.ipynb" target="_blank">AutoDS-tests.ipynb</a>),
+      {{tr['on']}} {{genDateTime}}.
     </h6>
 
   </div>

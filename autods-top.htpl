@@ -1,0 +1,111 @@
+<!DOCTYPE HTML>
+<head>
+
+  <meta charset="utf-8">
+  <meta name="author" content="Jean-Philippe Meuret"/>
+  <meta name="copyright" content="Jean-Philippe Meuret 2019"/>
+  <meta name="license" content="CC BY NC SA"/>
+  <meta name="description" content="{{title}}"/>
+  <meta name="keywords" content="distance, sampling, mcds, {{keywords}}"/>
+  <meta name="datetime" content="{{genDateTime}}"/>
+  
+  <title>{{title}}</title>
+  
+  <link rel="stylesheet" media="screen" type="text/css" href="./autods.css">
+  
+  <script>
+    // Back to top floating button managment
+    // When the user scrolls down100 px from the top of the document, show the button
+    window.onscroll = function()
+    {
+    	if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100)
+    		document.getElementById("toTopBtn").style.display = "block";
+    	else
+    		document.getElementById("toTopBtn").style.display = "none";
+    }
+    // When the user clicks on the button, scroll to the top of the document
+    function scrollToTop()
+    {
+    	document.body.scrollTop = 0;
+    	document.documentElement.scrollTop = 0;
+    }
+  </script>
+  
+</head>
+
+<body>
+
+  <table id="title">
+    <tr>
+      <td style="font-size: 480%">{{title}}</td>
+    </tr>
+    <tr>
+      <td style="font-size: 240%; text-align: center">{{subtitle}}</td>
+    </tr>
+    <tr>
+      <td style="font-size: 120%; text-align: center">{{description}}</td>
+    </tr>
+  </table>
+  
+  <div style="margin-left: 15px">
+
+    <img class="center" height="32" style="margin-top: 30px"
+         src="./fa-feather-alt.svg" alt="---" />
+
+    <h2 id="synthesis">
+      <a href="./{{xlUrl}}" target="_blank">
+        <img height="48" style="margin-right: 16px" src="./fa-file-excel.svg"
+             onmouseover="this.src='./fa-file-excel-hover.svg';"
+             onmouseout="this.src='./fa-file-excel.svg';"
+             title="{{tr['Download Excel']}}"
+             alt="{{tr['Download Excel']}}" /></a>
+      {{tr['Synthesis table']}}
+    </h2>
+    <div class="chapter" style="margin-left: 10px">
+
+      <p>{{tr['Note: Some figures rounded or converted']}}</p>
+      <p style='font-size: 80%'>{{tr['Click on analysis # for details']}}</p>
+      
+	  {{synthesis}}
+
+    </div>
+    
+    <img class="center" height="32" style="margin-top: 30px"
+         src="./fa-feather-alt.svg" alt="---" />
+
+    <h2 id="details">
+      <a href="./{{xlUrl}}" target="_blank">
+        <img height="48" style="margin-right: 8px" src="./fa-file-excel.svg"
+             onmouseover="this.src='./fa-file-excel-hover.svg';"
+             onmouseout="this.src='./fa-file-excel.svg';"
+             title="{{tr['Download Excel']}}"
+             alt="{{tr['Download Excel']}}" /></a>
+      {{tr['Detailed results']}}
+    </h2>
+    <div class="chapter" style="margin-left: 10px">
+
+      <p>{{tr['Note: All figures untouched, as output by MCDS']}}</p>
+      <p style='font-size: 80%'>{{tr['Click on analysis # for details']}}</p>
+      
+	  {{details}}
+      
+    </div>
+    
+    <h6 style="margin-bottom: 10px">
+      {{tr['Page generated with']}} <a href="https://www.python.org/" target="_blank">Python 3</a>,
+      <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>,
+      {{tr['and']}} <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
+      {{tr['with icons from']}} <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>
+      {{tr['in']}} <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>
+      ({{tr['sources']}} : <a href="./autods.py" target="_blank">autods.py</a>
+      {{tr['and']}} <a href="./AutoDS-tests.ipynb" target="_blank">AutoDS-tests.ipynb</a>),
+      {{tr['on']}} {{genDateTime}}.
+    </h6>
+
+  </div>
+
+  <button onclick="scrollToTop()" id="toTopBtn" title="Haut de page">
+    <img width="64" height="64" src="./fa-angle-up.svg"/>
+  </button>
+
+</body>

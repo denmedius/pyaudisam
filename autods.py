@@ -1096,38 +1096,19 @@ class MCDSResultsSet(ResultsSet):
         self._dfData[self.Chi2ColInd] = self._dfData[chi2AllColInds].apply(determineChi2, axis='columns')
 
 
-# Results reports class (Excel and HTML)
+# Base for results reports classes (abstract)
 class ResultsReport(object):
 
-    # Translation table for HTML report.
-    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
-                       'Synthesis table': 'Synthesis table',
-                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'Detailed results': 'Detailed results',
-                       'Download Excel': 'Download as Excel(TM) file',
-                       'Summary computation log': 'Summary computation log',
-                       'Detailed computation log': 'Detailed computation log',
-                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
-                       'Back to top': 'Back to global report' },
-                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
-                       'Synthesis table': 'Tableau de synthèse',
-                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'Detailed results': 'Résultats en détails',
-                       'Download Excel': 'Télécharger le classeur Excel (TM)',
-                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
-                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
-                       'Back to top': 'Retour au rapport global' })
+    # Translation table for output documents.
+    DTrans = dict(en={ }, fr={ })
 
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, dCustomTrans=dict(),
-                       synthCols=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+    def __init__(self, resultsSet, title, subTitle, description, keywords, dCustomTrans=dict(),
+                       lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
     
         assert len(resultsSet) > 0, 'Can\'t build reports with nothing inside'
         assert os.path.isdir(tgtFolder), 'Target folder {} doesn\'t seem to exist ...'.format(tgtFolder)
-        assert synthCols is None or isinstance(synthCols, list) or isinstance(synthCols, pd.MultiIndex), \
-               'synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
         
         self.resultsSet = resultsSet
-        self.synthCols = synthCols
         
         self.trRunFolderCol = resultsSet.dfAnalysisColTrans.loc[DSAnalysis.RunFolderColumn, lang]
         self.dfEnColTrans = None # EN to other languages column name translation
@@ -1135,7 +1116,6 @@ class ResultsReport(object):
         self.lang = lang
         self.title = title
         self.subTitle = subTitle
-        self.anlysSubTitle = anlysSubTitle
         self.description = description
         self.keywords = keywords
         
@@ -1149,6 +1129,8 @@ class ResultsReport(object):
         
         self.tgtPrefix = tgtPrefix
         self.tgtFolder = tgtFolder
+        
+        self.tmplEnv = None
         
     # Translate string
     def tr(self, s):
@@ -1182,6 +1164,81 @@ class ResultsReport(object):
     def targetFilePathName(self, suffix, prefix=None, tgtFolder=None):
         
         return os.path.join(tgtFolder or self.tgtFolder, (prefix or self.tgtPrefix) + suffix)
+    
+    def relativeRunFolderUrl(self, runFolderPath):
+        return os.path.relpath(runFolderPath, self.tgtFolder).replace(os.sep, '/')
+    
+    # Install needed attached files for HTML report.
+    def installAttFiles(self, attFiles):
+        
+        attSrcDir = os.path.join('AutoDS', 'report')
+        for fn in attFiles:
+            shutil.copy(os.path.join(attSrcDir, fn), self.tgtFolder)        
+    
+    # Get Jinja2 template environment for HTML reports.
+    def getTemplateEnv(self):
+        
+        # Build and configure jinja2 environnement if not already done.
+        if self.tmplEnv is None:
+            self.tmplEnv = jinja2.Environment(loader=jinja2.FileSystemLoader('.'),
+                                              trim_blocks=True, lstrip_blocks=True)
+            #self.tmplEnv.filters.update(trace=_jcfPrint2StdOut) # Template debugging ...
+
+        return self.tmplEnv
+    
+    # Final formatting of translated data tables, for HTML or SpreadSheet rendering
+    # (sort, convert units, round values, and style).
+    # To be specialized in derived classes (here, we do nothing) !
+    # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
+    # Return a pd.DataFrame.Styler
+    def finalFormatData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+        
+        return dfTrData.style # Nothing done here, specialize in derived class if needed.
+
+    
+# Results full reports class (Excel and HTML, targeting similar result as in Distance 6+)
+class ResultsFullReport(ResultsReport):
+
+    # Translation table.
+    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
+                       'Synthesis table': 'Synthesis table',
+                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
+                       'Detailed results': 'Detailed results',
+                       'Download Excel': 'Download as Excel(TM) file',
+                       'Summary computation log': 'Summary computation log',
+                       'Detailed computation log': 'Detailed computation log',
+                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
+                       'Back to top': 'Back to global report',
+                       'Page generated with': 'Page générée via', 'with icons from': 'avec les pictogrammes de',
+                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' },
+                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
+                       'Synthesis table': 'Tableau de synthèse',
+                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
+                       'Detailed results': 'Résultats en détails',
+                       'Download Excel': 'Télécharger le classeur Excel (TM)',
+                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
+                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
+                       'Back to top': 'Retour au rapport global',
+                       'Page generated with': 'Page generated with', 'with icons from': 'with icons from',
+                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' })
+
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, dCustomTrans=dict(),
+                       synthCols=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+    
+        assert synthCols is None or isinstance(synthCols, list) or isinstance(synthCols, pd.MultiIndex), \
+               'synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
+        
+        super().__init__(resultsSet, title, subTitle, description, keywords, dCustomTrans=dCustomTrans,
+                         lang=lang, attachedDir=attachedDir, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+        
+        self.synthCols = synthCols
+
+        self.anlysSubTitle = anlysSubTitle
+        
+    # Attached files for HTML report.
+    AttachedFiles = ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg', 'fa-file-excel.svg', 'fa-file-excel-hover.svg',
+                     'fa-arrow-left-hover.svg', 'fa-arrow-left.svg', 'fa-arrow-right-hover.svg', 'fa-arrow-right.svg',
+                     'fa-arrow-up-hover.svg', 'fa-arrow-up.svg']
     
     # Plot ... data to be plot, and draw resulting figure to image files.
     @staticmethod
@@ -1256,42 +1313,18 @@ class ResultsReport(object):
                 
         return dPlots
     
-    # Final formatting of translated data tables, for HTML or SpreadSheet rendering
-    # (sort, convert units, round values, and style).
-    # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
-    # Return a pd.DataFrame.Styler
-    def finalFormatData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    # Top page
+    def toHtmlTop(self):
         
-        return dfTrData.style # Nothing done here, specialize in derived class if needed.
-        
-    # HTML report generation (based on results.dfTransData).
-    def toHtml(self):
-        
-        # Build and configure jinja2 environnement.
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'),
-                                 trim_blocks=True, lstrip_blocks=True)
-        #env.filters.update(trace=_jcfPrint2StdOut) # Template debugging ...
-        
-        # Install needed attached files.
-        attSrcDir = os.path.join('AutoDS', 'report')
-        for fn in ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg',
-                   'fa-file-excel.svg', 'fa-file-excel-hover.svg',
-                   'fa-arrow-left-hover.svg', 'fa-arrow-left.svg',
-                   'fa-arrow-right-hover.svg', 'fa-arrow-right.svg',
-                   'fa-arrow-up-hover.svg', 'fa-arrow-up.svg']:
-            shutil.copy(os.path.join(attSrcDir, fn), self.tgtFolder)
-            
-        # Postprocess synthesis table :
         print('Top page ...')
         
+        # Generate post-processed and translated synthesis table.
         # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
         synCols = self.synthCols
         if DSAnalysis.RunFolderColumn not in synCols:
             synCols += [DSAnalysis.RunFolderColumn]
         dfSyn = self.resultsSet.dfTransData(self.lang, subset=synCols)
-        def relRunFolderUrl(runFolderPath):
-            return os.path.relpath(runFolderPath, self.tgtFolder).replace(os.sep, '/')
-        dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(relRunFolderUrl)
+        dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         
         # b. Links to each analysis detailled report.
         dfSyn.index = \
@@ -1301,14 +1334,14 @@ class ResultsReport(object):
         # c. Post-format as specified in actual class.
         dfsSyn = self.finalFormatData(dfSyn)
 
-        # Postprocess detailed table.
+        # Generate post-processed and translated detailed table.
         dfDet = self.resultsSet.dfTransData(self.lang)
 
         # a. Add run folder column if not there (will serve to generate the link to the analysis detailed report)
         detTrCols = list(dfDet.columns)
         if self.trRunFolderCol not in detTrCols:
             detTrCols += [self.trRunFolderCol]
-        dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(relRunFolderUrl)
+        dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         dfDet = dfDet.reindex(columns=detTrCols)
        
         # b. Links to each analysis detailed report.
@@ -1321,7 +1354,7 @@ class ResultsReport(object):
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-        tmpl = env.get_template('autods-top-tmpl.html')
+        tmpl = self.getTemplateEnv().get_template('autods-top.htpl')
         topHtmlPathName = self.targetFilePathName(suffix='.html')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=False),
@@ -1334,7 +1367,12 @@ class ResultsReport(object):
         with codecs.open(topHtmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
             tgtFile.write(html)
 
-        # Generate report page for each analysis
+        return topHtmlPathName
+    
+    # Analyses pages.
+    def toHtmlAnalyses(self):
+        
+        # Generate translated synthesis and detailed tables.
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
         dfDetRes = self.resultsSet.dfTransData(self.lang)
 
@@ -1347,7 +1385,8 @@ class ResultsReport(object):
         dfAnlysUrls = pd.DataFrame(dict(current=sCurrUrl, previous=np.roll(sCurrUrl, 1), next=np.roll(sCurrUrl, -1)))
 
         # 2. 2nd pass : Generate
-        tmpl = env.get_template('autods-anlys-tmpl.html')
+        topHtmlPathName = self.targetFilePathName(suffix='.html')
+        tmpl = self.getTemplateEnv().get_template('autods-anlys.htpl')
         engineClass = self.resultsSet.engineClass
         trCustCols = self.resultsSet.transCustomColumns(self.lang)
         
@@ -1369,6 +1408,7 @@ class ResultsReport(object):
             dfsDet = self.finalFormatData(dfDet, convert=False, round=False)
             
             # Generate analysis report page.
+            genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
             subTitle = 'Analyse {:03d} : {}'.format(lblAnlys, self.anlysSubTitle)
             sAnlysUrls = dfAnlysUrls.loc[lblAnlys]
             html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=True),
@@ -1387,6 +1427,18 @@ class ResultsReport(object):
             htmlPathName = self.targetFilePathName(tgtFolder=anlysFolder, prefix='index', suffix='.html')
             with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
                 tgtFile.write(html)
+        
+    # HTML report generation (based on results.dfTransData).
+    def toHtml(self):
+        
+        # Install needed attached files.
+        self.installAttFiles(self.AttachedFiles)
+            
+        # Generate full report page for each analysis
+        topHtmlPathName = self.toHtmlTop()
+
+        # Generate report page for each analysis
+        self.toHtmlAnalyses()
 
         print('... done.')
                 
@@ -1401,9 +1453,7 @@ class ResultsReport(object):
             
             # Synthesis
             dfSyn = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
-            def relRunFolderUrl(runFolderPath):
-                return os.path.relpath(runFolderPath, self.tgtFolder).replace(os.sep, '/')
-            dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(relRunFolderUrl)
+            dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             
             # ... Convert run folder columns to hyperlink if present
             def toHyperlink(path):
@@ -1418,7 +1468,7 @@ class ResultsReport(object):
             # Details
             dfDet = self.resultsSet.dfTransData(self.lang)
             
-            dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(relRunFolderUrl)
+            dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
             
             dfsDet = self.finalFormatData(dfDet, convert=False, round=False)
@@ -1426,6 +1476,75 @@ class ResultsReport(object):
             dfsDet.to_excel(xlsxWriter, sheet_name=self.tr('Details'), index=True)
 
         return xlsxPathName
+
+# Results pre-reports class 
+# (HTML only, targeting very simple mono-table synthesis for fully automatic pre-analyses,
+#  in order to give the user hints about what analyses are to be done, and with what parameter values).
+class ResultsPreReport(ResultsFullReport):
+
+    # Translation table.
+    TODO
+
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, dCustomTrans=dict(),
+                       synthCols=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+    
+        super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords, dCustomTrans=dCustomTrans,
+                         synthCols=synthCols, lang=lang, attachedDir=attachedDir, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+    
+    # Top page
+    def toHtmlTop(self):
+        
+        print('Top page ...')
+        
+        # Generate post-processed and translated synthesis table.
+        # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
+        synCols = self.synthCols ????????
+        if DSAnalysis.RunFolderColumn not in synCols:
+            synCols += [DSAnalysis.RunFolderColumn]
+        dfSyn = self.resultsSet.dfTransData(self.lang, subset=synCols)
+        dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
+        
+        # b. Links to each analysis detailled report.
+        dfSyn.index = \
+            dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
+                                   .format(p=an[self.trRunFolderCol], n=an.name), axis='columns')
+       
+        # c. Post-format as specified in actual class.
+        dfsSyn = self.finalFormatData(dfSyn)
+
+        # Generate top report page.
+        genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        tmpl = self.getTemplateEnv().get_template('autods-pretop.htpl')
+        topHtmlPathName = self.targetFilePathName(suffix='.html')
+        xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
+        html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=False),
+                           details=dfsDet.render(), #escape=False, index=False),
+                           title=self.title, subtitle=self.subTitle, keywords=self.keywords,
+                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang], genDateTime=genDateTime)
+        html = '\n'.join(line.rstrip() for line in html.split('\n') if line.rstrip())
+
+        # Write top HTML to file.
+        with codecs.open(topHtmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
+            tgtFile.write(html)
+
+        return topHtmlPathName
+    
+    # HTML report generation (based on results.dfTransData).
+    def toHtml(self):
+        
+        # Install needed attached files.
+        self.installAttFiles(self.AttachedFiles)
+            
+        # Generate full report page for each analysis
+        self.toHtmlAnalyses()
+        
+        # Generate top report page.
+        topHtmlPathName = self.toHtmlTop()
+
+        print('... done.')
+                
+        return topHtmlPathName
+
 
 if __name__ == '__main__':
 
