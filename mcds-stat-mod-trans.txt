@@ -7,9 +7,9 @@ encounter rate	encounter rate (n/L or n/K or n/T)	Cv	CoefVar EncRate	CoefVar TxC
 encounter rate	encounter rate (n/L or n/K or n/T)	Lcl	Min EncRate	Min TxContact
 encounter rate	encounter rate (n/L or n/K or n/T)	Ucl	Max EncRate	Max TxContact
 encounter rate	encounter rate (n/L or n/K or n/T)	Df	DoF EncRate	DegLib TxContact
-encounter rate	left truncation distance	Value	LeftTruncDist	DistTroncGche
-encounter rate	right truncation distance (w)	Value	RightTruncDist	DistTroncDte
-detection probability	total number of parameters (m)	Value	TotNumPars	NbTotPars
+encounter rate	left truncation distance	Value	Left Trunc	Tronc Gche
+encounter rate	right truncation distance (w)	Value	Right Trunc	Tronc Dte
+detection probability	total number of parameters (m)	Value	TotNum Pars	NbTot Pars
 detection probability	AIC value	Value	AIC	AIC
 detection probability	chi-square test probability (distance set 1)	Value	Chi2 P 1	Chi2 P 1
 detection probability	chi-square test probability (distance set 2)	Value	Chi2 P 2	Chi2 P 2
@@ -35,11 +35,11 @@ detection probability	Log likelihood	Value	LogLhood	LogProba
 detection probability	Kolmogorov-Smirnov test probability	Value	KS P	KS P
 detection probability	Cramér-von Mises (uniform weighting) test probability	Value	CvM Uw P	CvM Uw P
 detection probability	Cramér-von Mises (cosine weighting) test probability	Value	CvM Cw P	CvM Cw P
-detection probability	key function type	Value	KeyFn	FnClé
-detection probability	adjustment series type	Value	AdjSer	SérAjust
-detection probability	number of key function parameters (NKP)	Value	NumKFnPars	NbParsFnClé
-detection probability	number of adjustment term parameters (NAP)	Value	NumASerPars	NbParsSérAjust
-detection probability	number of covariate parameters (NCP)	Value	NumCovars	NbCovars
+detection probability	key function type	Value	Key Fn	Fn Clé
+detection probability	adjustment series type	Value	Adj Ser	Sér Ajust
+detection probability	number of key function parameters (NKP)	Value	NumPars KeyFn	NbPars FnClé
+detection probability	number of adjustment term parameters (NAP)	Value	NumPars AdjSer	NbPars SérAjust
+detection probability	number of covariate parameters (NCP)	Value	Num Covars	Nb Covars
 detection probability	estimated value of A(1) adjustment term parameter	Value	EstA(1)	EstA(1)
 detection probability	estimated value of A(2) adjustment term parameter	Value	EstA(2)	EstA(2)
 detection probability	estimated value of A(3) adjustment term parameter	Value	EstA(3)	EstA(3)
@@ -50,18 +50,18 @@ detection probability	estimated value of A(7) adjustment term parameter	Value	Es
 detection probability	estimated value of A(8) adjustment term parameter	Value	EstA(8)	EstA(8)
 detection probability	estimated value of A(9) adjustment term parameter	Value	EstA(9)	EstA(9)
 detection probability	estimated value of A(10) adjustment term parameter	Value	EstA(10)	EstA(10)
-cluster size	average cluster size	Value	AvgClustSz	TailMoyClust
-cluster size	average cluster size	Cv	CoefVar AvgClustSz	CoefVar TailMoyClust
-cluster size	average cluster size	Lcl	Min AvgClustSz	Min TailMoyClust
-cluster size	average cluster size	Ucl	Max AvgClustSz	Max TailMoyClust
-cluster size	average cluster size	Df	DoF AvgClustSz	DegLib TailMoyClust
+cluster size	average cluster size	Value	AvgSz Clust	TailMoyClust
+cluster size	average cluster size	Cv	CoefVar AvgSz Clust	CoefVar TailMoy Clust
+cluster size	average cluster size	Lcl	Min AvgSz Clust	Min TailMoy Clust
+cluster size	average cluster size	Ucl	Max AvgSz Clust	Max TailMoy Clust
+cluster size	average cluster size	Df	DoF AvgSz Clust	DegLib TailMoy Clust
 cluster size	size-bias regression correlation (r)	Value	SzBias RegCorr	CorrReg BiaisTail
-cluster size	p-value for correlation significance (r-p)	Value	CorSignPVal	PVal SignifCorr
-cluster size	estimate of expected cluster size corrected for size bias	Value	EstExpFixedCluSz	TailCorrCluAttEst
-cluster size	estimate of expected cluster size corrected for size bias	Cv	CoefVar EstExpFixedCluSz	CoefVar TailCorrCluAttEst
-cluster size	estimate of expected cluster size corrected for size bias	Lcl	Min EstExpFixedCluSz	Min TailCorrCluAttEst
-cluster size	estimate of expected cluster size corrected for size bias	Ucl	Max EstExpFixedCluSz	Max TailCorrCluAttEst
-cluster size	estimate of expected cluster size corrected for size bias	Df	DoF EstExpFixedCluSz	DegLib TailCorrCluAttEst
+cluster size	p-value for correlation significance (r-p)	Value	Cor Sign PVal	PVal SignifCorr
+cluster size	estimate of expected cluster size corrected for size bias	Value	EstExp FixedCluSz	TailCorr CluAttEst
+cluster size	estimate of expected cluster size corrected for size bias	Cv	CoefVar EstExp FixedCluSz	CoefVar TailCorr CluAttEst
+cluster size	estimate of expected cluster size corrected for size bias	Lcl	Min EstExp FixedCluSz	Min TailCorr CluAttEst
+cluster size	estimate of expected cluster size corrected for size bias	Ucl	Max EstExp FixedCluSz	Max TailCorr CluAttEst
+cluster size	estimate of expected cluster size corrected for size bias	Df	DoF EstExp FixedCluSz	DegLib TailCorr CluAttEst
 density/abundance	density of clusters (or animal density if non-clustered)	Value	DensClu	DensClu
 density/abundance	density of clusters (or animal density if non-clustered)	Cv	CoefVar DensClu	CoefVar DensClu
 density/abundance	density of clusters (or animal density if non-clustered)	Lcl	Min DensClu	Min DensClu
@@ -77,18 +77,18 @@ density/abundance	number of animals, if survey area is specified	Cv	CoefVar Numb
 density/abundance	number of animals, if survey area is specified	Lcl	Min Number	Min Nombre
 density/abundance	number of animals, if survey area is specified	Ucl	Max Number	Max Nombre
 density/abundance	number of animals, if survey area is specified	Df	DoF Number	DegLib Nombre
-density/abundance	bootstrap density of clusters	Value	BootsDensClu	BootsDensClu
-density/abundance	bootstrap density of clusters	Cv	CoefVar BootsDensClu	CoefVar BootsDensClu
-density/abundance	bootstrap density of clusters	Lcl	Min BootsDensClu	Min BootsDensClu
-density/abundance	bootstrap density of clusters	Ucl	Max BootsDensClu	Max BootsDensClu
-density/abundance	bootstrap density of clusters	Df	DoF BootsDensClu	DegLib BootsDensClu
-density/abundance	bootstrap density of animals	Value	BootDensity	DensitéBoot
-density/abundance	bootstrap density of animals	Cv	CoefVar BootDensity	CoefVar DensitéBoot
-density/abundance	bootstrap density of animals	Lcl	Min BootDensity	Min DensitéBoot
-density/abundance	bootstrap density of animals	Ucl	Max BootDensity	Max DensitéBoot
-density/abundance	bootstrap density of animals	Df	DoF BootDensity	DegLib DensitéBoot
-density/abundance	bootstrap number of animals	Value	BootNumber	NombreBoot
-density/abundance	bootstrap number of animals	Cv	CoefVar BootNumber	CoefVar NombreBoot
-density/abundance	bootstrap number of animals	Lcl	Min BootNumber	Min NombreBoot
-density/abundance	bootstrap number of animals	Ucl	Max BootNumber	Max NombreBoot
-density/abundance	bootstrap number of animals	Df	DoF BootNumber	DegLib NombreBoot
+density/abundance	bootstrap density of clusters	Value	BootsDens Clu	BootsDensClu
+density/abundance	bootstrap density of clusters	Cv	CoefVar BootsDens Clu	CoefVar DensBoots Clu
+density/abundance	bootstrap density of clusters	Lcl	Min BootsDens Clu	Min DensBoots Clu
+density/abundance	bootstrap density of clusters	Ucl	Max BootsDens Clu	Max DensBoots Clu
+density/abundance	bootstrap density of clusters	Df	DoF BootsDens Clu	DegLib DensBoots Clu
+density/abundance	bootstrap density of animals	Value	BootsDens	DensBoots
+density/abundance	bootstrap density of animals	Cv	CoefVar BootsDens	CoefVar DensBoots
+density/abundance	bootstrap density of animals	Lcl	Min BootsDens	Min DensBoots
+density/abundance	bootstrap density of animals	Ucl	Max BootsDens	Max DensBoots
+density/abundance	bootstrap density of animals	Df	DoF BootsDens	DegLib DensBoots
+density/abundance	bootstrap number of animals	Value	BootsNum	NbBoots
+density/abundance	bootstrap number of animals	Cv	CoefVar BootsNum	CoefVar NbBoots
+density/abundance	bootstrap number of animals	Lcl	Min BootsNum	Min NbBoots
+density/abundance	bootstrap number of animals	Ucl	Max BootsNum	Max NbBoots
+density/abundance	bootstrap number of animals	Df	DoF BootsNum	DegLib NbBoots

@@ -15,7 +15,7 @@
   
   <script>
     // Back to top floating button managment
-    // When the user scrolls down100 px from the top of the document, show the button
+    // When the user scrolls down 100 px from the top of the document, show the button
     window.onscroll = function()
     {
     	if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100)
@@ -67,7 +67,7 @@
       <p>{{tr['Note: Some figures rounded or converted']}}</p>
       <p style='font-size: 80%'>{{tr['Click on analysis # for details']}}</p>
       
-	  {{summary}}
+	  {{synthesis}}
 
     </div>
         
