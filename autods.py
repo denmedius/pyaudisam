@@ -1494,7 +1494,8 @@ class ResultsPreReport(ResultsFullReport):
     DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
                        'Synthesis table': 'Synthesis table',
                        'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'Sample': 'Sample', 'Parameters': 'Parameters', 'Results': 'Results', 'PDF': 'PDF',
+                       'Sample': 'Sample', 'Parameters': 'Parameters', 'Results': 'Results',
+                       'PDF': 'Detection probability density',
                        'Detailed results': 'Detailed results',
                        'Download Excel': 'Download as Excel(TM) file',
                        'Summary computation log': 'Summary computation log',
@@ -1506,7 +1507,8 @@ class ResultsPreReport(ResultsFullReport):
                   fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
                        'Synthesis table': 'Tableau de synthèse',
                        'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'Sample': 'Echantillon', 'Parameters': 'Paramètres', 'Results': 'Résultats', 'PDF': 'PDF',
+                       'Sample': 'Echantillon', 'Parameters': 'Paramètres', 'Results': 'Résultats',
+                       'PDF': 'Densité de probabilité de détection',
                        'Detailed results': 'Résultats en détails',
                        'Download Excel': 'Télécharger le classeur Excel (TM)',
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
@@ -1531,7 +1533,7 @@ class ResultsPreReport(ResultsFullReport):
     @staticmethod
     def series2VertTable(ser):
         
-        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, classes='layout-only'))
+        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False))
     
         #return ''.join('<p>{}: {}</p>'.format(k, v) for k, v in dictOrSeries.items())
         
