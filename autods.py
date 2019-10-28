@@ -1348,7 +1348,7 @@ class ResultsFullReport(ResultsReport):
         # b. Links to each analysis detailled report.
         dfSyn.index = \
             dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
-                                   .format(p=an[self.trRunFolderCol], n=an.name), axis='columns')
+                                   .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
        
         # c. Post-format as specified in actual class.
         dfsSyn = self.finalFormatData(dfSyn)
@@ -1366,7 +1366,7 @@ class ResultsFullReport(ResultsReport):
         # b. Links to each analysis detailed report.
         dfDet.index = \
             dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
-                                   .format(p=an[self.trRunFolderCol], n=an.name), axis='columns')
+                                   .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
         
         # c. Post-format as specified in actual class.
         dfsDet = self.finalFormatData(dfDet, convert=False, round=False)
@@ -1399,6 +1399,8 @@ class ResultsFullReport(ResultsReport):
         print('Analyses pages ({}) ...'.format(len(dfSynthRes)))
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons)
+        #    with the sorted order if any
+        dfSynthRes = self.finalFormatData(dfSynthRes, convert=False, round=False, style=False).data
         sCurrUrl = dfSynthRes[self.trRunFolderCol]
         sCurrUrl = sCurrUrl.apply(lambda path: self.targetFilePathName(tgtFolder=path, prefix='index', suffix='.html'))
         sCurrUrl = sCurrUrl.apply(lambda path: os.path.relpath(path, self.tgtFolder).replace(os.sep, '/'))
@@ -1410,7 +1412,7 @@ class ResultsFullReport(ResultsReport):
         engineClass = self.resultsSet.engineClass
         trCustCols = self.resultsSet.transCustomColumns(self.lang)
         
-        for lblAnlys in dfDetRes.index:
+        for lblAnlys in dfSynthRes.index:
             
             sAnlysCustCols = dfDetRes.loc[lblAnlys, trCustCols]
             print('  #{}'.format(lblAnlys), ' '.join(['{}={}'.format(k, v) for k, v in sAnlysCustCols.iteritems()]))
@@ -1419,17 +1421,17 @@ class ResultsFullReport(ResultsReport):
 
             # Postprocess synthesis table :
             dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
-            dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n))
+            dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n+1))
             dfsSyn = self.finalFormatData(dfSyn)
             
             # Postprocess detailed table :
             dfDet = dfDetRes.loc[lblAnlys].to_frame().T
-            dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n))
+            dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n+1))
             dfsDet = self.finalFormatData(dfDet, convert=False, round=False)
             
             # Generate analysis report page.
             genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-            subTitle = 'Analyse {:03d} : {}'.format(lblAnlys, self.anlysSubTitle)
+            subTitle = 'Analyse {:03d} : {}'.format(lblAnlys+1, self.anlysSubTitle)
             sAnlysUrls = dfAnlysUrls.loc[lblAnlys]
             html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=True),
                                details=dfsDet.render(), #(escape=False, index=True),
@@ -1587,7 +1589,7 @@ class ResultsPreReport(ResultsFullReport):
         
         dfSyn.index = \
             dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
-                                   .format(p=self.relativeRunFolderUrl(an[self.trRunFolderCol]), n=an.name),
+                                   .format(p=self.relativeRunFolderUrl(an[self.trRunFolderCol]), n=an.name+1),
                         axis='columns')
         
         # 4. Translate table columns.
