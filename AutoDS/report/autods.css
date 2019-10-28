@@ -106,6 +106,8 @@ table th {
  background: #bcc380;
  background: -webkit-gradient(linear, left top, left bottom, from(#bcc380), to(#e4eac8));
  background: -moz-linear-gradient(top, #bcc380, #e4eac8);
+
+ white-space: normal;
 }
 table th:first-child {
  text-align: left;
@@ -133,6 +135,7 @@ table td {
  border-top: 1px solid #ffffff;
  border-bottom: 1px solid #dee5ca;
  border-left: 1px solid #dee5ca;
+ vertical-align: top;
 }
 table tr.even td {
  background: #f6f6f6;
@@ -192,6 +195,10 @@ div.chapter {
 }
 div.chapter:hover {
  background:#e3eac9;
+}
+
+.top-vert-align {
+  vertical-align: top;
 }
 
 .center {

@@ -27,6 +27,7 @@ import pandas as pd
 
 import jinja2
 import matplotlib.pyplot as plt
+import matplotlib.ticker as pltt
 
 
 # DSEngine (abstract) classes.
@@ -1248,7 +1249,7 @@ class ResultsFullReport(ResultsReport):
     PlotImgPrfxProbDens = 'probdens'
     
     @classmethod
-    def generatePlots(cls, plotsData, tgtFolder, imgFormat='png', figSize=(12, 6),
+    def generatePlots(cls, plotsData, tgtFolder, imgFormat='png', figSize=(14, 7),
                       grid=True, bgColor='#f9fbf3', transparent=False, trColors=['blue', 'red']):
         
         imgFormat = imgFormat.lower()
@@ -1283,6 +1284,11 @@ class ResultsFullReport(ResultsReport):
                 axes = df2Plot.plot(figsize=figSize, color=trColors, grid=grid,
                                     xlim=(pld['xMin'], pld['xMax']), 
                                     ylim=(pld['yMin'], pld['yMax']))
+                
+                aMTicks = axes.get_xticks()
+                axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
+                axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
+                axes.grid(True, which='minor')
         
             elif 'Pdf' in title:
                 
@@ -1297,12 +1303,19 @@ class ResultsFullReport(ResultsReport):
                                     xlim=(pld['xMin'], pld['xMax']), 
                                     ylim=(pld['yMin'], pld['yMax']))
         
+                aMTicks = axes.get_xticks()
+                axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
+                axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
+                axes.grid(True, which='minor')
+                
             # Finish plotting.
-            axes.legend(df2Plot.columns, fontsize=12)
+            axes.legend(df2Plot.columns, fontsize=14)
             axes.set_title(label=pld['title'] + ' : ' + pld['subTitle'],
-                           fontdict=dict(fontsize=16), pad=20)
-            axes.set_xlabel(pld['xLabel'], fontsize=12)
-            axes.set_ylabel(pld['yLabel'], fontsize=12)
+                           fontdict=dict(fontsize=18), pad=20)
+            axes.set_xlabel(pld['xLabel'], fontsize=14)
+            axes.set_ylabel(pld['yLabel'], fontsize=14)
+            axes.tick_params(axis = 'both', labelsize=12)
+            axes.grid(True, which='major')
             if not transparent:
                 axes.set_facecolor(bgColor)
                 axes.figure.patch.set_facecolor(bgColor)
@@ -1370,7 +1383,7 @@ class ResultsFullReport(ResultsReport):
 
         # Write top HTML to file.
         htmlPathName = self.targetFilePathName(suffix='.html')
-        with codecs.open(topHtmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
+        with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
             tgtFile.write(html)
 
         return htmlPathName
@@ -1533,14 +1546,16 @@ class ResultsPreReport(ResultsFullReport):
     @staticmethod
     def series2VertTable(ser):
         
-        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False))
+        def float2str(v): # Workaround to_html non transparent default float format (!?)
+            return '{:g}'.format(v)
+        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, float_format=float2str))
     
         #return ''.join('<p>{}: {}</p>'.format(k, v) for k, v in dictOrSeries.items())
         
     def pdfImageHtmlElement(self, runFolder):
         
         for pdfInd in range(3, 0, -1):
-            pdfFileName = '{}{}.{}'.format(self.PlotImgPrfxDetProb, pdfInd, self.PlotImgFormat)
+            pdfFileName = '{}{}.{}'.format(self.PlotImgPrfxProbDens, pdfInd, self.PlotImgFormat)
             if os.path.isfile(os.path.join(runFolder, pdfFileName)):
                 return '<img src="./{}/{}" style="height: {}px" />' \
                        .format(self.relativeRunFolderUrl(runFolder), pdfFileName, self.pdfPlotHeight)
@@ -1756,13 +1771,27 @@ class MCDSResultsFullReport(ResultsFullReport):
 # A specialized full report for MCDS analyses, with actual output formating
 class MCDSResultsPreReport(ResultsPreReport):
 
+    DCustTrans = \
+        dict(en={ 'Note: Some figures rounded or converted': 
+                     "<strong>Note</strong>: Densities are expressed per square km,"
+                     " and most figures have been rounded for readability",
+                  'Note: All figures untouched, as output by MCDS': 
+                     "<strong>Note</strong>: All values have been left untouched,"
+                     " as outuput by MCDS (no rounding, no conversion)" },
+             fr={ 'Note: Some figures rounded or converted':
+                      "<strong>N.B.</strong> Les densités sont exprimées par km carré, et presque toutes les valeurs"
+                      " ont été arrondies pour la lisibilité",
+                  'Note: All figures untouched, as output by MCDS':
+                      "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
+                      " elles sont toutes telles que produites par MCDS" })
+    
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                        sampleCols, paramCols, resultCols, anlysSynthCols=None, 
-                       dCustomTrans=dict(), pdfPlotHeight=256, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+                       pdfPlotHeight=256, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          sampleCols, paramCols, resultCols, anlysSynthCols,
-                         dCustomTrans, pdfPlotHeight, lang, attachedDir, tgtFolder, tgtPrefix)
+                         self.DCustTrans, pdfPlotHeight, lang, attachedDir, tgtFolder, tgtPrefix)
         
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
     # (sort, convert units, round values, and style).
