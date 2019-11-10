@@ -1,0 +1,725 @@
+Ref	Passage	Observateur	Point	DateHeure	Espece	nMalAd10	nAutAd10	nMalAd5	nAutAd5	distMem
+4446066	a	Cyrille Jallageas	194	2019-04-07 07:40:00	Mésange noire	1	0	1	0	24,96063302
+4446096	a	Cyrille Jallageas	194	2019-04-07 07:41:00	Pinson des arbres	1	0	1	0	80,79148421
+4446095	a	Cyrille Jallageas	194	2019-04-07 07:41:00	Pinson des arbres	1	0	1	0	102,5544749
+4446097	a	Cyrille Jallageas	194	2019-04-07 07:42:00	Mésange bleue	1	0	1	0	43,72579774
+4446098	a	Cyrille Jallageas	194	2019-04-07 07:42:00	Mésange nonnette	1	0	1	0	49,26185542
+4446062	a	Cyrille Jallageas	194	2019-04-07 07:42:00	Bruant zizi	1	0	1	0	69,17289829
+4446061	a	Cyrille Jallageas	194	2019-04-07 07:42:00	Pouillot véloce	1	0	1	0	102,2573978
+4446099	a	Cyrille Jallageas	194	2019-04-07 07:43:00	Alouette des champs	2	0	2	0	73,10889205
+4446101	a	Cyrille Jallageas	194	2019-04-07 07:44:00	Geai des chênes	0	1	0	1	30,34391037
+4446100	a	Cyrille Jallageas	194	2019-04-07 07:44:00	Geai des chênes	0	1	0	1	65,96671079
+4446102	a	Cyrille Jallageas	194	2019-04-07 07:44:00	Pigeon ramier	1	0	1	0	129,1692358
+4446104	a	Cyrille Jallageas	194	2019-04-07 07:45:00	Grimpereau des jardins	1	0	0	0	81,45592085
+4446103	a	Cyrille Jallageas	194	2019-04-07 07:45:00	Pigeon ramier	1	0	0	0	86,48085307
+4446063	a	Cyrille Jallageas	194	2019-04-07 07:46:00	Troglodyte mignon	1	0	0	0	36,01356792
+4446064	a	Cyrille Jallageas	194	2019-04-07 07:46:00	Alouette lulu	1	0	0	0	50,65581302
+4446105	a	Cyrille Jallageas	194	2019-04-07 07:46:00	Rougequeue noir	1	0	0	0	104,114803
+4446106	a	Cyrille Jallageas	194	2019-04-07 07:46:00	Tourterelle turque	1	1	0	0	134,5038419
+4446065	a	Cyrille Jallageas	194	2019-04-07 07:46:00	Mésange charbonnière	1	0	0	0	187,782343
+4446107	a	Cyrille Jallageas	194	2019-04-07 07:47:00	Bruant jaune	1	0	0	0	31,1656735
+4446110	a	Cyrille Jallageas	194	2019-04-07 07:48:00	Rougegorge familier	1	0	0	0	31,96055343
+4446108	a	Cyrille Jallageas	194	2019-04-07 07:48:00	Fauvette à tête noire	1	0	0	0	53,69302842
+4446109	a	Cyrille Jallageas	194	2019-04-07 07:48:00	Coucou gris	1	0	0	0	263,7923645
+4446055	a	Cyrille Jallageas	194	2019-04-07 07:49:00	Pic vert	1	0	0	0	61,20936251
+4446056	a	Cyrille Jallageas	194	2019-04-07 07:49:00	Pigeon ramier	1	0	0	0	72,15108986
+4446057	a	Cyrille Jallageas	194	2019-04-07 07:50:00	Pic épeiche	0	1	0	0	83,26340442
+4446058	a	Cyrille Jallageas	194	2019-04-07 07:50:00	Corneille noire	0	2	0	0	151,4262825
+4446060	a	Cyrille Jallageas	194	2019-04-07 07:51:00	Pigeon ramier	1	0	0	0	98,00577395
+4446059	a	Cyrille Jallageas	194	2019-04-07 07:51:00	Grive musicienne	1	0	0	0	245,9249071
+4446077	a	Cyrille Jallageas	195	2019-04-07 08:23:00	Bergeronnette grise	1	1	1	1	128,4476745
+4446075	a	Cyrille Jallageas	195	2019-04-07 08:23:00	Moineau domestique	0	5	0	5	132,2701211
+4446076	a	Cyrille Jallageas	195	2019-04-07 08:23:00	Rougequeue noir	1	0	1	0	140,7678133
+4446078	a	Cyrille Jallageas	195	2019-04-07 08:24:00	Alouette des champs	1	0	1	0	87,28351069
+4446040	a	Cyrille Jallageas	195	2019-04-07 08:24:00	Chardonneret élégant	1	0	1	0	109,3078041
+4446039	a	Cyrille Jallageas	195	2019-04-07 08:24:00	Alouette lulu	1	0	1	0	131,0685277
+4446041	a	Cyrille Jallageas	195	2019-04-07 08:25:00	Tourterelle turque	1	0	1	0	347,1595489
+4446042	a	Cyrille Jallageas	195	2019-04-07 08:28:00	Grive musicienne	1	0	0	0	107,6626001
+4446043	a	Cyrille Jallageas	195	2019-04-07 08:28:00	Alouette lulu	1	0	0	0	113,1573041
+4446044	a	Cyrille Jallageas	195	2019-04-07 08:30:00	Pie bavarde	0	1	0	0	87,75268388
+4446046	a	Cyrille Jallageas	195	2019-04-07 08:31:00	Tarier pâtre	2	1	0	0	79,90036416
+4446045	a	Cyrille Jallageas	195	2019-04-07 08:31:00	Rougegorge familier	1	0	0	0	95,02107242
+4446085	a	Cyrille Jallageas	196	2019-04-07 08:52:00	Merle noir	1	0	1	0	11,60001857
+4446084	a	Cyrille Jallageas	196	2019-04-07 08:52:00	Pigeon ramier	0	1	0	1	33,52612376
+4446087	a	Cyrille Jallageas	196	2019-04-07 08:53:00	Bruant proyer	1	0	1	0	39,30553808
+4446086	a	Cyrille Jallageas	196	2019-04-07 08:53:00	Bruant jaune	1	0	1	0	42,02567288
+4446088	a	Cyrille Jallageas	196	2019-04-07 08:54:00	Mésange charbonnière	1	1	1	1	33,72753262
+4446089	a	Cyrille Jallageas	196	2019-04-07 08:55:00	Rougegorge familier	1	0	1	0	55,42985611
+4446090	a	Cyrille Jallageas	196	2019-04-07 08:55:00	Rougegorge familier	1	0	1	0	78,39695677
+4446054	a	Cyrille Jallageas	196	2019-04-07 08:56:00	Tarier pâtre	1	0	0	0	64,37495289
+4446053	a	Cyrille Jallageas	196	2019-04-07 08:56:00	Alouette des champs	1	0	0	0	68,36697173
+4446047	a	Cyrille Jallageas	196	2019-04-07 08:58:00	Fauvette à tête noire	1	0	0	0	25,94926066
+4446091	a	Cyrille Jallageas	196	2019-04-07 08:58:00	Mésange à longue queue	0	1	0	0	35,35691737
+4446048	a	Cyrille Jallageas	196	2019-04-07 08:59:00	Bruant zizi	1	0	0	0	52,36099536
+4446049	a	Cyrille Jallageas	196	2019-04-07 09:00:00	Coucou gris	1	0	0	0	344,6381737
+4446050	a	Cyrille Jallageas	196	2019-04-07 09:01:00	Alouette lulu	1	0	0	0	55,52888293
+4446052	a	Cyrille Jallageas	196	2019-04-07 09:01:00	Pouillot véloce	1	0	0	0	72,23984289
+4446051	a	Cyrille Jallageas	196	2019-04-07 09:01:00	Alouette lulu	1	0	0	0	107,9089901
+4446174	a	Cyrille Jallageas	197	2019-04-07 09:21:00	Alouette lulu	0	2	0	2	60,5866489
+4446175	a	Cyrille Jallageas	197	2019-04-07 09:21:00	Pouillot véloce	1	0	1	0	65,6951337
+4446176	a	Cyrille Jallageas	197	2019-04-07 09:22:00	Bruant proyer	1	0	1	0	70,13248946
+4446177	a	Cyrille Jallageas	197	2019-04-07 09:22:00	Alouette des champs	1	0	1	0	79,2302803
+4446178	a	Cyrille Jallageas	197	2019-04-07 09:23:00	Alouette des champs	3	0	3	0	46,27785884
+4446179	a	Cyrille Jallageas	197	2019-04-07 09:23:00	Pouillot véloce	1	0	1	0	105,8609184
+4446180	a	Cyrille Jallageas	197	2019-04-07 09:23:00	Grive musicienne	1	0	1	0	107,0022255
+4446181	a	Cyrille Jallageas	197	2019-04-07 09:24:00	Pinson des arbres	0	2	0	2	54,26657985
+4446182	a	Cyrille Jallageas	197	2019-04-07 09:24:00	Fauvette à tête noire	1	0	1	0	77,66497742
+4446183	a	Cyrille Jallageas	197	2019-04-07 09:25:00	Fauvette à tête noire	1	0	0	0	67,42786739
+4446184	a	Cyrille Jallageas	197	2019-04-07 09:25:00	Pie bavarde	0	1	0	0	103,6483119
+4446185	a	Cyrille Jallageas	197	2019-04-07 09:26:00	Corneille noire	0	2	0	0	115,5800218
+4446186	a	Cyrille Jallageas	197	2019-04-07 09:27:00	Corneille noire	0	1	0	0	137,2100753
+4446187	a	Cyrille Jallageas	197	2019-04-07 09:28:00	Coucou gris	1	0	0	0	149,2195958
+4446189	a	Cyrille Jallageas	197	2019-04-07 09:29:00	Tarier pâtre	1	0	0	0	68,37424928
+4446188	a	Cyrille Jallageas	197	2019-04-07 09:29:00	Rougegorge familier	1	0	0	0	133,3886761
+4446173	a	Cyrille Jallageas	197	2019-04-07 09:30:00	Grive musicienne	1	0	0	0	160,2691264
+4446067	a	Cyrille Jallageas	198	2019-04-07 09:44:00	Alouette des champs	1	0	1	0	15,11643699
+4446068	a	Cyrille Jallageas	198	2019-04-07 09:46:00	Tarier pâtre	1	0	1	0	47,33889647
+4446069	a	Cyrille Jallageas	198	2019-04-07 09:47:00	Tarier pâtre	1	0	1	0	39,21681175
+4446071	a	Cyrille Jallageas	198	2019-04-07 09:48:00	Alouette des champs	1	0	0	0	33,87894619
+4446070	a	Cyrille Jallageas	198	2019-04-07 09:48:00	Merle noir	1	0	0	0	61,46334344
+4446072	a	Cyrille Jallageas	198	2019-04-07 09:49:00	Bruant proyer	1	0	0	0	62,73881748
+4446073	a	Cyrille Jallageas	198	2019-04-07 09:50:00	Étourneau sansonnet	0	1	0	0	79,24645528
+4446074	a	Cyrille Jallageas	198	2019-04-07 09:51:00	Bruant zizi	1	0	0	0	67,62265641
+4446079	a	Cyrille Jallageas	198	2019-04-07 09:51:00	Verdier d'Europe	1	0	0	0	102,6758234
+4446080	a	Cyrille Jallageas	198	2019-04-07 09:52:00	Verdier d'Europe	1	0	0	0	90,34141984
+4446081	a	Cyrille Jallageas	198	2019-04-07 09:52:00	Bruant proyer	1	0	0	0	119,4898638
+4446082	a	Cyrille Jallageas	198	2019-04-07 09:52:00	Bruant zizi	1	0	0	0	132,9172074
+4446083	a	Cyrille Jallageas	198	2019-04-07 09:53:00	Verdier d'Europe	1	0	0	0	150,0858651
+4514486	a	Cyrille Jallageas	199	2019-05-01 06:52:00	Alouette des champs	1	0	1	0	74,31577531
+4514484	a	Cyrille Jallageas	199	2019-05-01 06:52:00	Rossignol philomèle	1	0	1	0	169,4875646
+4514485	a	Cyrille Jallageas	199	2019-05-01 06:52:00	Coucou gris	1	0	1	0	769,4968267
+4514487	a	Cyrille Jallageas	199	2019-05-01 06:53:00	Fauvette à tête noire	1	0	1	0	152,8364127
+4514489	a	Cyrille Jallageas	199	2019-05-01 06:54:00	Fauvette grisette	1	0	1	0	99,62340868
+4514488	a	Cyrille Jallageas	199	2019-05-01 06:54:00	Pinson des arbres	1	0	1	0	124,1634415
+4514490	a	Cyrille Jallageas	199	2019-05-01 06:55:00	Fauvette grisette	1	0	1	0	22,98702613
+4514491	a	Cyrille Jallageas	199	2019-05-01 06:55:00	Alouette des champs	1	0	1	0	75,28703768
+4514492	a	Cyrille Jallageas	199	2019-05-01 06:56:00	Buse variable	0	1	0	0	152,2574802
+4514493	a	Cyrille Jallageas	199	2019-05-01 06:57:00	Merle noir	1	0	0	0	91,00652141
+4514495	a	Cyrille Jallageas	199	2019-05-01 06:57:00	Pouillot véloce	1	0	0	0	123,2461817
+4514494	a	Cyrille Jallageas	199	2019-05-01 06:57:00	Alouette des champs	1	0	0	0	159,4096048
+4514498	a	Cyrille Jallageas	199	2019-05-01 06:59:00	Linotte mélodieuse	1	1	0	0	51,45163071
+4514496	a	Cyrille Jallageas	199	2019-05-01 06:59:00	Coucou gris	1	0	0	0	757,3742191
+4514497	a	Cyrille Jallageas	199	2019-05-01 07:00:00	Rossignol philomèle	1	0	0	0	53,76376846
+4514514	a	Cyrille Jallageas	200	2019-05-01 07:28:00	Rougegorge familier	1	0	1	0	120,1171731
+4514515	a	Cyrille Jallageas	200	2019-05-01 07:28:00	Mésange bleue	1	0	1	0	137,314272
+4514516	a	Cyrille Jallageas	200	2019-05-01 07:28:00	Mésange charbonnière	1	0	1	0	161,2406841
+4514518	a	Cyrille Jallageas	200	2019-05-01 07:29:00	Fauvette à tête noire	1	0	1	0	80,41509686
+4514519	a	Cyrille Jallageas	200	2019-05-01 07:29:00	Alouette des champs	1	0	1	0	112,967092
+4514517	a	Cyrille Jallageas	200	2019-05-01 07:29:00	Mésange charbonnière	1	0	1	0	121,6316546
+4514521	a	Cyrille Jallageas	200	2019-05-01 07:30:00	Alouette des champs	1	0	1	0	148,5262919
+4514520	a	Cyrille Jallageas	200	2019-05-01 07:30:00	Loriot d'Europe	1	0	1	0	195,444401
+4514522	a	Cyrille Jallageas	200	2019-05-01 07:30:00	Alouette lulu	1	0	1	0	210,8879043
+4514525	a	Cyrille Jallageas	200	2019-05-01 07:31:00	Grimpereau des jardins	1	0	0	0	92,82932552
+4514523	a	Cyrille Jallageas	200	2019-05-01 07:31:00	Étourneau sansonnet	0	3	0	0	126,0464463
+4514526	a	Cyrille Jallageas	200	2019-05-01 07:31:00	Geai des chênes	0	1	0	0	172,8642748
+4514527	a	Cyrille Jallageas	200	2019-05-01 07:32:00	Merle noir	1	0	0	0	101,468496
+4514528	a	Cyrille Jallageas	200	2019-05-01 07:33:00	Rougegorge familier	1	0	0	0	159,097695
+4514529	a	Cyrille Jallageas	200	2019-05-01 07:34:00	Grive musicienne	1	0	0	0	77,72529353
+4514530	a	Cyrille Jallageas	200	2019-05-01 07:34:00	Pouillot véloce	1	0	0	0	91,02792893
+4514543	a	Cyrille Jallageas	200	2019-05-01 07:35:00	Alouette des champs	1	0	0	0	19,9798751
+4514542	a	Cyrille Jallageas	200	2019-05-01 07:35:00	Pinson des arbres	1	0	0	0	75,59769938
+4514544	a	Cyrille Jallageas	200	2019-05-01 07:36:00	Merle noir	1	0	0	0	85,96755019
+4514546	a	Cyrille Jallageas	200	2019-05-01 07:38:00	Bruant zizi	1	1	0	0	75,40002907
+4514545	a	Cyrille Jallageas	200	2019-05-01 07:38:00	Mésange bleue	1	0	0	0	79,82219622
+4514385	a	Cyrille Jallageas	201	2019-05-01 07:52:00	Alouette des champs	1	0	1	0	148,539384
+4514386	a	Cyrille Jallageas	201	2019-05-01 07:52:00	Bruant zizi	1	1	1	1	185,7900549
+4514387	a	Cyrille Jallageas	201	2019-05-01 07:53:00	Alouette des champs	1	0	1	0	150,6661522
+4514389	a	Cyrille Jallageas	201	2019-05-01 07:54:00	Fauvette à tête noire	1	0	1	0	200,1645239
+4514388	a	Cyrille Jallageas	201	2019-05-01 07:54:00	Pipit des arbres	1	0	1	0	200,3937081
+4514391	a	Cyrille Jallageas	201	2019-05-01 07:55:00	Pouillot siffleur	0	1	0	1	196,353595
+4514390	a	Cyrille Jallageas	201	2019-05-01 07:55:00	Grive musicienne	1	0	1	0	215,6101263
+4514392	a	Cyrille Jallageas	201	2019-05-01 07:58:00	Pouillot véloce	1	0	0	0	204,3727184
+4514393	a	Cyrille Jallageas	201	2019-05-01 07:58:00	Coucou gris	1	0	0	0	731,2626942
+4514395	a	Cyrille Jallageas	201	2019-05-01 08:01:00	Caille des blés	1	0	0	0	174,5066926
+4514396	a	Cyrille Jallageas	201	2019-05-01 08:01:00	Rossignol philomèle	1	0	0	0	203,5630536
+4514394	a	Cyrille Jallageas	201	2019-05-01 08:01:00	Pigeon ramier	1	0	0	0	268,303495
+4514377	a	Cyrille Jallageas	202	2019-05-01 08:42:00	Alouette des champs	1	0	1	0	33,39394088
+4514378	a	Cyrille Jallageas	202	2019-05-01 08:43:00	Rossignol philomèle	1	0	1	0	91,78451951
+4514380	a	Cyrille Jallageas	202	2019-05-01 08:43:00	Pie bavarde	0	2	0	2	92,33762567
+4514379	a	Cyrille Jallageas	202	2019-05-01 08:43:00	Alouette des champs	1	0	1	0	119,2973831
+4514413	a	Cyrille Jallageas	202	2019-05-01 08:43:00	Tourterelle turque	2	0	2	0	368,3076802
+4514414	a	Cyrille Jallageas	202	2019-05-01 08:44:00	Pigeon ramier	1	0	1	0	465,4344378
+4514416	a	Cyrille Jallageas	202	2019-05-01 08:45:00	Rossignol philomèle	1	0	1	0	296,0009039
+4514415	a	Cyrille Jallageas	202	2019-05-01 08:45:00	Merle noir	1	0	1	0	336,7445622
+4514417	a	Cyrille Jallageas	202	2019-05-01 08:46:00	Rossignol philomèle	1	0	1	0	419,8054072
+4514419	a	Cyrille Jallageas	202	2019-05-01 08:47:00	Pic épeiche	1	0	0	0	351,7176639
+4514418	a	Cyrille Jallageas	202	2019-05-01 08:47:00	Merle noir	1	0	0	0	401,9344709
+4514421	a	Cyrille Jallageas	202	2019-05-01 08:48:00	Hirondelle rustique	0	5	0	0	43,31411817
+4514420	a	Cyrille Jallageas	202	2019-05-01 08:48:00	Alouette des champs	1	0	0	0	155,8948391
+4514422	a	Cyrille Jallageas	202	2019-05-01 08:50:00	Merle noir	1	0	0	0	282,2960348
+4514424	a	Cyrille Jallageas	202	2019-05-01 08:51:00	Fauvette à tête noire	1	0	0	0	113,9519749
+4514423	a	Cyrille Jallageas	202	2019-05-01 08:51:00	Pigeon ramier	1	0	0	0	335,2412834
+4514381	a	Cyrille Jallageas	218	2019-05-01 09:32:00	Fauvette grisette	1	0	1	0	56,17254784
+4514382	a	Cyrille Jallageas	218	2019-05-01 09:32:00	Rossignol philomèle	1	0	1	0	93,26596597
+4514397	a	Cyrille Jallageas	218	2019-05-01 09:33:00	Pigeon ramier	0	1	0	1	41,73142779
+4514383	a	Cyrille Jallageas	218	2019-05-01 09:33:00	Coucou gris	1	0	1	0	108,8053452
+4514384	a	Cyrille Jallageas	218	2019-05-01 09:33:00	Coucou gris	1	0	1	0	320,3300654
+4514399	a	Cyrille Jallageas	218	2019-05-01 09:34:00	Pigeon ramier	1	0	1	0	34,80129449
+4514398	a	Cyrille Jallageas	218	2019-05-01 09:34:00	Pigeon ramier	1	0	1	0	134,9013967
+4514400	a	Cyrille Jallageas	218	2019-05-01 09:35:00	Fauvette grisette	1	0	1	0	36,52723615
+4514401	a	Cyrille Jallageas	218	2019-05-01 09:35:00	Torcol fourmilier	1	0	1	0	70,18101067
+4514403	a	Cyrille Jallageas	218	2019-05-01 09:36:00	Fauvette grisette	1	0	0	0	22,60905531
+4514402	a	Cyrille Jallageas	218	2019-05-01 09:36:00	Loriot d'Europe	1	0	0	0	53,87847684
+4514406	a	Cyrille Jallageas	218	2019-05-01 09:37:00	Mésange bleue	1	0	0	0	36,44868218
+4514405	a	Cyrille Jallageas	218	2019-05-01 09:37:00	Merle noir	1	0	0	0	46,91301547
+4514404	a	Cyrille Jallageas	218	2019-05-01 09:37:00	Pinson des arbres	1	0	0	0	74,66661921
+4514407	a	Cyrille Jallageas	218	2019-05-01 09:38:00	Grive musicienne	1	0	0	0	93,46719052
+4514408	a	Cyrille Jallageas	218	2019-05-01 09:39:00	Fauvette à tête noire	1	0	0	0	95,16082217
+4514410	a	Cyrille Jallageas	218	2019-05-01 09:40:00	Fauvette grisette	1	0	0	0	74,33656623
+4514409	a	Cyrille Jallageas	218	2019-05-01 09:40:00	Rougegorge familier	1	0	0	0	95,46599971
+4514425	a	Cyrille Jallageas	218	2019-05-01 09:41:00	Merle noir	1	0	0	0	51,88480085
+4514411	a	Cyrille Jallageas	218	2019-05-01 09:41:00	Fauvette à tête noire	1	0	0	0	98,18612065
+4514412	a	Cyrille Jallageas	218	2019-05-01 09:41:00	Fauvette à tête noire	1	0	0	0	124,4443216
+4514532	a	Cyrille Jallageas	219	2019-05-01 09:06:00	Alouette des champs	0	3	0	3	48,35839288
+4514531	a	Cyrille Jallageas	219	2019-05-01 09:06:00	Bruant proyer	1	0	1	0	98,22226642
+4514533	a	Cyrille Jallageas	219	2019-05-01 09:07:00	Fauvette à tête noire	1	0	1	0	37,62267807
+4514534	a	Cyrille Jallageas	219	2019-05-01 09:07:00	Pipit des arbres	1	0	1	0	84,76202876
+4514535	a	Cyrille Jallageas	219	2019-05-01 09:08:00	Bruant proyer	1	0	1	0	26,94147808
+4514537	a	Cyrille Jallageas	219	2019-05-01 09:08:00	Pouillot véloce	1	0	1	0	72,57008891
+4514538	a	Cyrille Jallageas	219	2019-05-01 09:08:00	Rossignol philomèle	1	0	1	0	77,15951913
+4514536	a	Cyrille Jallageas	219	2019-05-01 09:08:00	Coucou gris	1	0	1	0	306,0296562
+4514512	a	Cyrille Jallageas	219	2019-05-01 09:09:00	Alouette des champs	1	0	1	0	58,70408007
+4514539	a	Cyrille Jallageas	219	2019-05-01 09:09:00	Merle noir	1	0	1	0	91,47776208
+4514499	a	Cyrille Jallageas	219	2019-05-01 09:10:00	Pigeon ramier	1	0	1	0	69,26468818
+4514541	a	Cyrille Jallageas	219	2019-05-01 09:10:00	Rossignol philomèle	1	0	1	0	136,0066943
+4514540	a	Cyrille Jallageas	219	2019-05-01 09:10:00	Pic vert	0	1	0	1	192,8565926
+4514510	a	Cyrille Jallageas	219	2019-05-01 09:11:00	Corneille noire	0	1	0	0	82,16979133
+4514511	a	Cyrille Jallageas	219	2019-05-01 09:11:00	Milan noir	0	1	0	0	87,06350697
+4514513	a	Cyrille Jallageas	219	2019-05-01 09:11:00	Étourneau sansonnet	0	2	0	0	172,6778723
+4514502	a	Cyrille Jallageas	219	2019-05-01 09:12:00	Alouette lulu	1	0	0	0	51,44565046
+4514500	a	Cyrille Jallageas	219	2019-05-01 09:12:00	Pinson des arbres	1	0	0	0	57,84643205
+4514501	a	Cyrille Jallageas	219	2019-05-01 09:12:00	Mésange charbonnière	1	0	0	0	66,17926549
+4514503	a	Cyrille Jallageas	219	2019-05-01 09:13:00	Mésange charbonnière	1	0	0	0	111,2296841
+4514504	a	Cyrille Jallageas	219	2019-05-01 09:14:00	Fauvette à tête noire	1	0	0	0	59,46159389
+4514505	a	Cyrille Jallageas	219	2019-05-01 09:15:00	Pic vert	0	1	0	0	132,1392052
+4514507	a	Cyrille Jallageas	219	2019-05-01 09:16:00	Pouillot véloce	1	0	0	0	69,4245995
+4514506	a	Cyrille Jallageas	219	2019-05-01 09:16:00	Fauvette à tête noire	1	0	0	0	127,4953048
+4514508	a	Cyrille Jallageas	219	2019-05-01 09:16:00	Merle noir	0	3	0	0	162,2160211
+4514509	a	Cyrille Jallageas	219	2019-05-01 09:16:00	Buse variable	0	1	0	0	243,4332167
+4599015	b	Cyrille Jallageas	194	2019-06-01 06:38:00	Pie bavarde	0	1	0	1	195,0355498
+4599014	b	Cyrille Jallageas	194	2019-06-01 06:38:00	Coucou gris	1	0	1	0	262,0486469
+4599017	b	Cyrille Jallageas	194	2019-06-01 06:39:00	Pigeon ramier	1	1	1	1	64,45449705
+4599018	b	Cyrille Jallageas	194	2019-06-01 06:39:00	Pigeon ramier	1	0	1	0	185,9470963
+4599016	b	Cyrille Jallageas	194	2019-06-01 06:39:00	Coucou gris	1	1	1	1	231,6707472
+4599022	b	Cyrille Jallageas	194	2019-06-01 06:40:00	Rougegorge familier	1	0	1	0	41,38892726
+4599020	b	Cyrille Jallageas	194	2019-06-01 06:40:00	Pouillot véloce	1	0	1	0	65,5785255
+4599021	b	Cyrille Jallageas	194	2019-06-01 06:40:00	Loriot d'Europe	1	0	1	0	87,86043566
+4599019	b	Cyrille Jallageas	194	2019-06-01 06:40:00	Pigeon ramier	1	0	1	0	271,5881228
+4599023	b	Cyrille Jallageas	194	2019-06-01 06:41:00	Corneille noire	1	0	1	0	391,7395508
+4599024	b	Cyrille Jallageas	194	2019-06-01 06:42:00	Troglodyte mignon	1	0	0	0	41,58816519
+4599026	b	Cyrille Jallageas	194	2019-06-01 06:42:00	Pinson des arbres	1	0	0	0	50,00260302
+4599025	b	Cyrille Jallageas	194	2019-06-01 06:42:00	Tourterelle turque	1	0	0	0	88,50232369
+4599034	b	Cyrille Jallageas	194	2019-06-01 06:42:00	Caille des blés	1	0	0	0	99,52442596
+4599027	b	Cyrille Jallageas	194	2019-06-01 06:44:00	Alouette des champs	1	0	0	0	112,0375043
+4599028	b	Cyrille Jallageas	194	2019-06-01 06:44:00	Alouette des champs	1	0	0	0	112,0375043
+4599029	b	Cyrille Jallageas	194	2019-06-01 06:45:00	Merle noir	1	0	0	0	115,4961326
+4599030	b	Cyrille Jallageas	194	2019-06-01 06:46:00	Moineau domestique	0	2	0	0	140,7448099
+4599033	b	Cyrille Jallageas	194	2019-06-01 06:47:00	Fauvette grisette	1	0	0	0	21,15588422
+4599032	b	Cyrille Jallageas	194	2019-06-01 06:47:00	Fauvette à tête noire	1	0	0	0	184,6691384
+4599031	b	Cyrille Jallageas	194	2019-06-01 06:47:00	Alouette des champs	1	0	0	0	187,8600603
+4599035	b	Cyrille Jallageas	195	2019-06-01 06:59:00	Fauvette grisette	1	0	1	0	73,18408998
+4599037	b	Cyrille Jallageas	195	2019-06-01 07:00:00	Fauvette à tête noire	1	0	1	0	90,50711575
+4599038	b	Cyrille Jallageas	195	2019-06-01 07:00:00	Alouette des champs	1	0	1	0	91,82587474
+4599036	b	Cyrille Jallageas	195	2019-06-01 07:00:00	Moineau domestique	6	0	6	0	142,7070192
+4599040	b	Cyrille Jallageas	195	2019-06-01 07:01:00	Pie bavarde	1	0	1	0	134,6861747
+4599039	b	Cyrille Jallageas	195	2019-06-01 07:01:00	Corneille noire	0	1	0	1	204,507605
+4599041	b	Cyrille Jallageas	195	2019-06-01 07:02:00	Corneille noire	0	1	0	1	346,5711486
+4599042	b	Cyrille Jallageas	195	2019-06-01 07:03:00	Merle noir	1	0	1	0	129,4850416
+4599043	b	Cyrille Jallageas	195	2019-06-01 07:03:00	Moineau domestique	0	12	0	12	144,5132639
+4599044	b	Cyrille Jallageas	195	2019-06-01 07:03:00	Alouette des champs	1	0	1	0	172,6620848
+4599054	b	Cyrille Jallageas	195	2019-06-01 07:04:00	Fauvette grisette	1	0	0	0	88,37202273
+4599045	b	Cyrille Jallageas	195	2019-06-01 07:04:00	Pinson des arbres	1	0	0	0	105,9807376
+4599046	b	Cyrille Jallageas	195	2019-06-01 07:04:00	Rossignol philomèle	1	0	0	0	226,4777812
+4599055	b	Cyrille Jallageas	195	2019-06-01 07:04:00	Tourterelle des bois	1	0	0	0	652,5475813
+4599056	b	Cyrille Jallageas	195	2019-06-01 07:04:00	Coucou gris	1	0	0	0	945,749223
+4599047	b	Cyrille Jallageas	195	2019-06-01 07:05:00	Moineau domestique	0	1	0	0	80,98915167
+4599048	b	Cyrille Jallageas	195	2019-06-01 07:06:00	Mésange charbonnière	1	0	0	0	100,5122406
+4599049	b	Cyrille Jallageas	195	2019-06-01 07:06:00	Rossignol philomèle	1	0	0	0	148,9502711
+4599050	b	Cyrille Jallageas	195	2019-06-01 07:07:00	Pouillot véloce	1	0	0	0	146,1891093
+4599051	b	Cyrille Jallageas	195	2019-06-01 07:07:00	Coucou gris	1	0	0	0	860,5520879
+4599053	b	Cyrille Jallageas	195	2019-06-01 07:08:00	Étourneau sansonnet	0	2	0	0	139,948642
+4599052	b	Cyrille Jallageas	195	2019-06-01 07:08:00	Merle noir	1	0	0	0	179,6095582
+4599277	b	Cyrille Jallageas	196	2019-06-01 07:37:00	Pie-grièche écorcheur	1	0	1	0	44,67930569
+4599279	b	Cyrille Jallageas	196	2019-06-01 07:37:00	Fauvette grisette	1	0	1	0	53,56805651
+4599278	b	Cyrille Jallageas	196	2019-06-01 07:37:00	Bruant proyer	1	0	1	0	116,5810346
+4599281	b	Cyrille Jallageas	196	2019-06-01 07:38:00	Alouette lulu	1	0	1	0	39,52625508
+4599280	b	Cyrille Jallageas	196	2019-06-01 07:38:00	Fauvette grisette	1	0	1	0	52,28250205
+4599282	b	Cyrille Jallageas	196	2019-06-01 07:38:00	Coucou gris	1	0	1	0	153,4475254
+4599284	b	Cyrille Jallageas	196	2019-06-01 07:39:00	Rossignol philomèle	1	0	1	0	51,77298105
+4599283	b	Cyrille Jallageas	196	2019-06-01 07:39:00	Fauvette grisette	1	0	1	0	61,00157645
+4599285	b	Cyrille Jallageas	196	2019-06-01 07:40:00	Mésange bleue	1	0	1	0	63,11678643
+4599286	b	Cyrille Jallageas	196	2019-06-01 07:40:00	Pie-grièche écorcheur	1	0	1	0	112,8513764
+4599295	b	Cyrille Jallageas	196	2019-06-01 07:41:00	Pie-grièche écorcheur	1	0	0	0	70,30015923
+4599298	b	Cyrille Jallageas	196	2019-06-01 07:41:00	Pie-grièche écorcheur	1	1	0	0	79,46567409
+4599287	b	Cyrille Jallageas	196	2019-06-01 07:41:00	Merle noir	1	0	0	0	102,5171201
+4599297	b	Cyrille Jallageas	196	2019-06-01 07:41:00	Rossignol philomèle	1	0	0	0	118,341183
+4599296	b	Cyrille Jallageas	196	2019-06-01 07:41:00	Loriot d'Europe	1	0	0	0	262,6085632
+4599288	b	Cyrille Jallageas	196	2019-06-01 07:42:00	Étourneau sansonnet	0	1	0	0	59,12411934
+4599289	b	Cyrille Jallageas	196	2019-06-01 07:42:00	Geai des chênes	0	1	0	0	134,9357889
+4599290	b	Cyrille Jallageas	196	2019-06-01 07:43:00	Fauvette grisette	1	0	0	0	68,04147502
+4599292	b	Cyrille Jallageas	196	2019-06-01 07:44:00	Fauvette grisette	1	0	0	0	79,54864869
+4599291	b	Cyrille Jallageas	196	2019-06-01 07:44:00	Tourterelle des bois	1	0	0	0	230,7049312
+4599293	b	Cyrille Jallageas	196	2019-06-01 07:45:00	Coucou gris	1	0	0	0	541,6424309
+4599294	b	Cyrille Jallageas	196	2019-06-01 07:46:00	Fauvette à tête noire	1	0	0	0	93,95496331
+4599300	b	Cyrille Jallageas	197	2019-06-01 08:07:00	Fauvette à tête noire	1	0	1	0	90,74621726
+4599301	b	Cyrille Jallageas	197	2019-06-01 08:08:00	Pouillot véloce	1	0	1	0	67,58907365
+4599304	b	Cyrille Jallageas	197	2019-06-01 08:08:00	Pouillot véloce	1	0	1	0	89,67757774
+4599302	b	Cyrille Jallageas	197	2019-06-01 08:08:00	Fauvette grisette	1	0	1	0	104,0197385
+4599303	b	Cyrille Jallageas	197	2019-06-01 08:08:00	Fauvette grisette	1	0	1	0	143,0751517
+4599305	b	Cyrille Jallageas	197	2019-06-01 08:09:00	Alouette des champs	1	0	1	0	71,76601381
+4599306	b	Cyrille Jallageas	197	2019-06-01 08:09:00	Fauvette grisette	1	0	1	0	95,1300191
+4599307	b	Cyrille Jallageas	197	2019-06-01 08:10:00	Pigeon ramier	1	0	1	0	141,0167642
+4599308	b	Cyrille Jallageas	197	2019-06-01 08:10:00	Corneille noire	0	2	0	2	146,4199854
+4599310	b	Cyrille Jallageas	197	2019-06-01 08:11:00	Geai des chênes	0	1	0	1	123,2273211
+4599309	b	Cyrille Jallageas	197	2019-06-01 08:11:00	Tourterelle des bois	1	0	1	0	132,7914342
+4599311	b	Cyrille Jallageas	197	2019-06-01 08:12:00	Pinson des arbres	1	0	0	0	92,88501524
+4599312	b	Cyrille Jallageas	197	2019-06-01 08:12:00	Alouette lulu	1	0	0	0	121,329754
+4599315	b	Cyrille Jallageas	197	2019-06-01 08:14:00	Mésange charbonnière	1	0	0	0	54,57976368
+4599316	b	Cyrille Jallageas	197	2019-06-01 08:15:00	Rossignol philomèle	1	0	0	0	74,9956046
+4599317	b	Cyrille Jallageas	197	2019-06-01 08:15:00	Accenteur mouchet	1	0	0	0	98,68584477
+4599319	b	Cyrille Jallageas	197	2019-06-01 08:16:00	Fauvette grisette	1	0	0	0	77,51144244
+4599318	b	Cyrille Jallageas	197	2019-06-01 08:16:00	Alouette des champs	1	0	0	0	110,4121889
+4599320	b	Cyrille Jallageas	197	2019-06-01 08:17:00	Pie-grièche écorcheur	1	0	0	0	105,9612539
+4599321	b	Cyrille Jallageas	197	2019-06-01 08:17:00	Fauvette grisette	1	0	0	0	108,7264785
+4599323	b	Cyrille Jallageas	197	2019-06-01 08:18:00	Pie-grièche écorcheur	1	0	0	0	57,89569107
+4599322	b	Cyrille Jallageas	197	2019-06-01 08:18:00	Verdier d'Europe	1	0	0	0	119,2561735
+4599328	b	Cyrille Jallageas	198	2019-06-01 08:27:00	Tarier pâtre	1	0	1	0	30,6314209
+4599329	b	Cyrille Jallageas	198	2019-06-01 08:28:00	Bruant proyer	1	0	1	0	118,658502
+4599331	b	Cyrille Jallageas	198	2019-06-01 08:30:00	Alouette lulu	1	0	1	0	69,18953413
+4599330	b	Cyrille Jallageas	198	2019-06-01 08:30:00	Tarier pâtre	1	0	1	0	112,1865298
+4599333	b	Cyrille Jallageas	198	2019-06-01 08:31:00	Fauvette grisette	1	0	1	0	178,2240777
+4599334	b	Cyrille Jallageas	198	2019-06-01 08:32:00	Fauvette à tête noire	1	0	0	0	138,8034624
+4599335	b	Cyrille Jallageas	198	2019-06-01 08:33:00	Coucou gris	1	0	0	0	486,2329183
+4599337	b	Cyrille Jallageas	198	2019-06-01 08:34:00	Fauvette grisette	1	0	0	0	53,66665811
+4599336	b	Cyrille Jallageas	198	2019-06-01 08:34:00	Linotte mélodieuse	1	0	0	0	55,9896431
+4599338	b	Cyrille Jallageas	198	2019-06-01 08:35:00	Fauvette à tête noire	1	0	0	0	82,74031482
+4599340	b	Cyrille Jallageas	198	2019-06-01 08:36:00	Bruant zizi	1	0	0	0	107,1792106
+4599339	b	Cyrille Jallageas	198	2019-06-01 08:36:00	Merle noir	1	0	0	0	108,3236565
+4599341	b	Cyrille Jallageas	198	2019-06-01 08:37:00	Alouette des champs	1	0	0	0	55,10908538
+4599342	b	Cyrille Jallageas	198	2019-06-01 08:38:00	Merle noir	1	1	0	0	76,24826419
+4582077	b	Cyrille Jallageas	199	2019-05-26 06:33:00	Alouette des champs	1	0	1	0	50,33221707
+4582076	b	Cyrille Jallageas	199	2019-05-26 06:33:00	Alouette des champs	1	0	1	0	64,80300909
+4582078	b	Cyrille Jallageas	199	2019-05-26 06:34:00	Pie-grièche écorcheur	1	0	1	0	40,26097105
+4582080	b	Cyrille Jallageas	199	2019-05-26 06:34:00	Pic vert	0	1	0	1	104,0256383
+4582079	b	Cyrille Jallageas	199	2019-05-26 06:34:00	Loriot d'Europe	1	0	1	0	176,4562329
+4582095	b	Cyrille Jallageas	199	2019-05-26 06:35:00	Merle noir	1	0	1	0	31,42821837
+4582081	b	Cyrille Jallageas	199	2019-05-26 06:35:00	Grive musicienne	0	0	0	0	120,2358087
+4582082	b	Cyrille Jallageas	199	2019-05-26 06:35:00	Grive musicienne	0	1	0	1	120,2358087
+4582083	b	Cyrille Jallageas	199	2019-05-26 06:36:00	Bruant zizi	1	0	1	0	16,12194749
+4582084	b	Cyrille Jallageas	199	2019-05-26 06:36:00	Coucou gris	1	0	1	0	199,1912127
+4582086	b	Cyrille Jallageas	199	2019-05-26 06:37:00	Alouette des champs	1	0	0	0	60,78148722
+4582087	b	Cyrille Jallageas	199	2019-05-26 06:37:00	Tourterelle des bois	1	0	0	0	111,2009761
+4582097	b	Cyrille Jallageas	199	2019-05-26 06:37:00	Bruant proyer	1	0	0	0	123,3876742
+4582085	b	Cyrille Jallageas	199	2019-05-26 06:37:00	Coucou gris	1	0	0	0	534,4031542
+4582088	b	Cyrille Jallageas	199	2019-05-26 06:38:00	Tourterelle des bois	1	0	0	0	293,1003468
+4582089	b	Cyrille Jallageas	199	2019-05-26 06:39:00	Pie-grièche écorcheur	2	0	0	0	33,43293737
+4582099	b	Cyrille Jallageas	199	2019-05-26 06:39:00	Alouette des champs	1	0	0	0	120,7098527
+4582091	b	Cyrille Jallageas	199	2019-05-26 06:40:00	Merle noir	2	0	0	0	44,9618996
+4582090	b	Cyrille Jallageas	199	2019-05-26 06:40:00	Pie-grièche écorcheur	1	0	0	0	78,922413
+4582092	b	Cyrille Jallageas	199	2019-05-26 06:41:00	Sittelle torchepot	1	0	0	0	115,8843772
+4582093	b	Cyrille Jallageas	199	2019-05-26 06:41:00	Étourneau sansonnet	0	4	0	0	124,4008864
+4582096	b	Cyrille Jallageas	199	2019-05-26 06:41:00	Pie-grièche écorcheur	1	0	0	0	146,3177632
+4582094	b	Cyrille Jallageas	199	2019-05-26 06:42:00	Merle noir	1	0	0	0	128,8035807
+4582098	b	Cyrille Jallageas	199	2019-05-26 06:42:00	Pigeon ramier	1	0	0	0	159,2426773
+4582124	b	Cyrille Jallageas	200	2019-05-26 07:01:00	Milan noir	0	1	0	1	71,22505941
+4582123	b	Cyrille Jallageas	200	2019-05-26 07:01:00	Corneille noire	1	0	1	0	153,1579656
+4582126	b	Cyrille Jallageas	200	2019-05-26 07:02:00	Fauvette grisette	1	0	1	0	88,19449993
+4582125	b	Cyrille Jallageas	200	2019-05-26 07:02:00	Fauvette à tête noire	1	0	1	0	127,7229248
+4582127	b	Cyrille Jallageas	200	2019-05-26 07:03:00	Pigeon ramier	1	0	1	0	63,36348588
+4582129	b	Cyrille Jallageas	200	2019-05-26 07:03:00	Alouette des champs	1	0	1	0	87,03090073
+4582128	b	Cyrille Jallageas	200	2019-05-26 07:03:00	Tourterelle des bois	1	0	1	0	142,3370876
+4582132	b	Cyrille Jallageas	200	2019-05-26 07:04:00	Alouette des champs	1	0	1	0	24,45665431
+4582131	b	Cyrille Jallageas	200	2019-05-26 07:04:00	Tourterelle des bois	1	0	1	0	149,739837
+4582130	b	Cyrille Jallageas	200	2019-05-26 07:04:00	Rougegorge familier	1	0	1	0	159,8879833
+4582146	b	Cyrille Jallageas	200	2019-05-26 07:05:00	Pinson des arbres	1	0	0	0	77,86002028
+4582133	b	Cyrille Jallageas	200	2019-05-26 07:05:00	Pie-grièche écorcheur	1	0	0	0	89,11909385
+4582144	b	Cyrille Jallageas	200	2019-05-26 07:05:00	Mésange charbonnière	1	0	0	0	104,4349162
+4582134	b	Cyrille Jallageas	200	2019-05-26 07:05:00	Alouette des champs	1	0	0	0	122,1094511
+4582135	b	Cyrille Jallageas	200	2019-05-26 07:05:00	Pic épeiche	1	0	0	0	144,7474707
+4582145	b	Cyrille Jallageas	200	2019-05-26 07:05:00	Coucou gris	1	0	0	0	286,2237051
+4582136	b	Cyrille Jallageas	200	2019-05-26 07:06:00	Pigeon ramier	1	0	0	0	161,8064792
+4582137	b	Cyrille Jallageas	200	2019-05-26 07:07:00	Merle noir	1	0	0	0	172,8166378
+4582138	b	Cyrille Jallageas	200	2019-05-26 07:07:00	Pinson des arbres	1	0	0	0	190,1538501
+4582139	b	Cyrille Jallageas	200	2019-05-26 07:08:00	Roitelet à triple bandeau	1	0	0	0	63,01048523
+4582140	b	Cyrille Jallageas	200	2019-05-26 07:08:00	Alouette lulu	1	0	0	0	132,5377139
+4582142	b	Cyrille Jallageas	200	2019-05-26 07:10:00	Merle noir	1	0	0	0	68,68683907
+4582143	b	Cyrille Jallageas	200	2019-05-26 07:10:00	Fauvette à tête noire	1	0	0	0	71,74632158
+4582141	b	Cyrille Jallageas	200	2019-05-26 07:10:00	Merle noir	1	0	0	0	126,0417106
+4582100	b	Cyrille Jallageas	201	2019-05-26 07:24:00	Alouette des champs	1	0	1	0	158,3439943
+4582102	b	Cyrille Jallageas	201	2019-05-26 07:25:00	Alouette des champs	1	0	1	0	161,9145291
+4582101	b	Cyrille Jallageas	201	2019-05-26 07:25:00	Caille des blés	1	0	1	0	219,0486031
+4582103	b	Cyrille Jallageas	201	2019-05-26 07:26:00	Merle noir	1	0	1	0	219,3270275
+4582105	b	Cyrille Jallageas	201	2019-05-26 07:28:00	Alouette des champs	1	0	1	0	199,9124317
+4582104	b	Cyrille Jallageas	201	2019-05-26 07:28:00	Fauvette à tête noire	1	0	1	0	261,5530333
+4582106	b	Cyrille Jallageas	201	2019-05-26 07:29:00	Pouillot véloce	1	0	0	0	254,637561
+4582107	b	Cyrille Jallageas	201	2019-05-26 07:30:00	Corneille noire	1	0	0	0	197,765126
+4582108	b	Cyrille Jallageas	201	2019-05-26 07:30:00	Fauvette à tête noire	1	0	0	0	259,3539481
+4582109	b	Cyrille Jallageas	201	2019-05-26 07:33:00	Tourterelle des bois	1	0	0	0	618,4690778
+4582110	b	Cyrille Jallageas	201	2019-05-26 07:34:00	Corneille noire	1	0	0	0	218,2198794
+4582111	b	Cyrille Jallageas	202	2019-05-26 07:49:00	Merle noir	1	0	1	0	87,82443527
+4582112	b	Cyrille Jallageas	202	2019-05-26 07:50:00	Rossignol philomèle	1	0	1	0	373,3918899
+4582113	b	Cyrille Jallageas	202	2019-05-26 07:50:00	Pigeon ramier	1	0	1	0	397,9937473
+4582115	b	Cyrille Jallageas	202	2019-05-26 07:51:00	Pinson des arbres	1	0	1	0	271,9455398
+4582114	b	Cyrille Jallageas	202	2019-05-26 07:51:00	Tourterelle turque	2	0	2	0	361,7901286
+4582116	b	Cyrille Jallageas	202	2019-05-26 07:52:00	Fauvette à tête noire	1	0	1	0	366,9843832
+4582117	b	Cyrille Jallageas	202	2019-05-26 07:53:00	Alouette des champs	1	0	1	0	153,4556932
+4582119	b	Cyrille Jallageas	202	2019-05-26 07:54:00	Alouette des champs	1	0	0	0	132,616284
+4582118	b	Cyrille Jallageas	202	2019-05-26 07:54:00	Pie bavarde	0	1	0	0	155,2921752
+4582120	b	Cyrille Jallageas	202	2019-05-26 07:55:00	Tourterelle des bois	1	0	0	0	373,63378
+4582121	b	Cyrille Jallageas	202	2019-05-26 07:57:00	Merle noir	0	1	0	0	145,6941606
+4582122	b	Cyrille Jallageas	202	2019-05-26 07:58:00	Pic vert	1	0	0	0	426,0472562
+4582278	b	Cyrille Jallageas	218	2019-05-26 08:30:00	Mésange bleue	1	0	1	0	15,40597743
+4582279	b	Cyrille Jallageas	218	2019-05-26 08:30:00	Tourterelle des bois	1	0	1	0	138,8164873
+4582280	b	Cyrille Jallageas	218	2019-05-26 08:31:00	Pouillot véloce	1	0	1	0	110,4034852
+4582281	b	Cyrille Jallageas	218	2019-05-26 08:31:00	Corneille noire	0	2	0	2	116,2472579
+4582282	b	Cyrille Jallageas	218	2019-05-26 08:32:00	Geai des chênes	0	1	0	1	151,5170974
+4582283	b	Cyrille Jallageas	218	2019-05-26 08:32:00	Corneille noire	1	0	1	0	167,1259559
+4582285	b	Cyrille Jallageas	218	2019-05-26 08:33:00	Pigeon ramier	1	0	1	0	104,3977982
+4582284	b	Cyrille Jallageas	218	2019-05-26 08:33:00	Coucou gris	1	0	1	0	165,8934521
+4582288	b	Cyrille Jallageas	218	2019-05-26 08:34:00	Merle noir	1	0	1	0	88,80739003
+4582287	b	Cyrille Jallageas	218	2019-05-26 08:34:00	Coucou gris	1	0	1	0	127,3166925
+4582290	b	Cyrille Jallageas	218	2019-05-26 08:35:00	Fauvette grisette	1	0	0	0	56,63784308
+4582291	b	Cyrille Jallageas	218	2019-05-26 08:35:00	Merle noir	1	0	0	0	67,75575963
+4582289	b	Cyrille Jallageas	218	2019-05-26 08:35:00	Pouillot véloce	1	0	0	0	106,6711512
+4582292	b	Cyrille Jallageas	218	2019-05-26 08:36:00	Pic vert	0	1	0	0	16,22370849
+4582293	b	Cyrille Jallageas	218	2019-05-26 08:36:00	Grive musicienne	1	0	0	0	109,8058492
+4582294	b	Cyrille Jallageas	218	2019-05-26 08:37:00	Rougegorge familier	1	0	0	0	101,5484544
+4582295	b	Cyrille Jallageas	218	2019-05-26 08:38:00	Loriot d'Europe	1	0	0	0	80,33740051
+4582296	b	Cyrille Jallageas	218	2019-05-26 08:39:00	Alouette des champs	1	0	0	0	40,02006296
+4582297	b	Cyrille Jallageas	218	2019-05-26 08:39:00	Pic vert	0	1	0	0	127,7912277
+4582298	b	Cyrille Jallageas	218	2019-05-26 08:40:00	Merle noir	1	0	0	0	86,00614026
+4582299	b	Cyrille Jallageas	218	2019-05-26 08:41:00	Merle noir	1	0	0	0	36,08666609
+4582300	b	Cyrille Jallageas	218	2019-05-26 08:41:00	Pic épeiche	0	1	0	0	137,4925176
+4582201	b	Cyrille Jallageas	219	2019-05-26 08:07:00	Fauvette grisette	1	0	1	0	111,3023065
+4582205	b	Cyrille Jallageas	219	2019-05-26 08:08:00	Pinson des arbres	0	1	0	1	96,55342147
+4582204	b	Cyrille Jallageas	219	2019-05-26 08:08:00	Mésange bleue	0	1	0	1	109,0962018
+4582203	b	Cyrille Jallageas	219	2019-05-26 08:08:00	Merle noir	1	0	1	0	113,5452596
+4582202	b	Cyrille Jallageas	219	2019-05-26 08:08:00	Fauvette grisette	1	0	1	0	181,3604969
+4582206	b	Cyrille Jallageas	219	2019-05-26 08:09:00	Étourneau sansonnet	0	2	0	2	132,5436452
+4582207	b	Cyrille Jallageas	219	2019-05-26 08:10:00	Alouette des champs	1	0	1	0	97,52349803
+4582208	b	Cyrille Jallageas	219	2019-05-26 08:10:00	Rossignol philomèle	1	0	1	0	146,0406656
+4582209	b	Cyrille Jallageas	219	2019-05-26 08:11:00	Rossignol philomèle	1	0	1	0	420,2332198
+4582210	b	Cyrille Jallageas	219	2019-05-26 08:13:00	Caille des blés	1	0	0	0	91,17085207
+4582211	b	Cyrille Jallageas	219	2019-05-26 08:14:00	Geai des chênes	0	1	0	0	115,2938499
+4582213	b	Cyrille Jallageas	219	2019-05-26 08:15:00	Grosbec casse-noyaux	0	1	0	0	71,20667356
+4582212	b	Cyrille Jallageas	219	2019-05-26 08:15:00	Mésange bleue	0	4	0	0	132,7356517
+4582215	b	Cyrille Jallageas	219	2019-05-26 08:16:00	Bruant zizi	1	0	0	0	37,80270252
+4582216	b	Cyrille Jallageas	219	2019-05-26 08:16:00	Corneille noire	0	1	0	0	53,7046581
+4582214	b	Cyrille Jallageas	219	2019-05-26 08:16:00	Tarier pâtre	1	0	0	0	113,7919151
+4582219	b	Cyrille Jallageas	219	2019-05-26 08:17:00	Pic vert	1	0	0	0	73,2207367
+4582217	b	Cyrille Jallageas	219	2019-05-26 08:17:00	Fauvette à tête noire	1	0	0	0	85,09108957
+4582218	b	Cyrille Jallageas	219	2019-05-26 08:17:00	Alouette des champs	1	0	0	0	123,1767107
+4470071	a	Pierre Tourret	23	2019-04-13 08:55:00	Linotte mélodieuse	1	0	1	0	37,7130878
+4470070	a	Pierre Tourret	23	2019-04-13 08:55:00	Pipit farlouse	0	5	0	5	74,02432681
+4470073	a	Pierre Tourret	23	2019-04-13 08:56:00	Alouette des champs	1	0	1	0	73,2259407
+4470072	a	Pierre Tourret	23	2019-04-13 08:56:00	Corneille noire	0	1	0	1	146,5206732
+4470074	a	Pierre Tourret	23	2019-04-13 08:57:00	Verdier d'Europe	1	0	1	0	67,32654531
+4470075	a	Pierre Tourret	23	2019-04-13 08:58:00	Bruant jaune	1	0	1	0	74,12076993
+4470076	a	Pierre Tourret	23	2019-04-13 08:58:00	Corneille noire	0	1	0	1	303,0939088
+4470078	a	Pierre Tourret	23	2019-04-13 08:59:00	Fauvette à tête noire	1	0	0	0	25,64293592
+4470077	a	Pierre Tourret	23	2019-04-13 08:59:00	Merle noir	1	0	0	0	193,3373167
+4470218	a	Pierre Tourret	23	2019-04-13 08:59:00	Bruant jaune	1	0	0	0	204,3181851
+4470213	a	Pierre Tourret	23	2019-04-13 09:00:00	Merle noir	1	0	0	0	40,63222346
+4470214	a	Pierre Tourret	23	2019-04-13 09:01:00	Accenteur mouchet	1	0	0	0	36,9652613
+4470215	a	Pierre Tourret	23	2019-04-13 09:02:00	Merle noir	1	0	0	0	66,66931726
+4470216	a	Pierre Tourret	23	2019-04-13 09:03:00	Alouette des champs	1	0	0	0	43,65915643
+4470217	a	Pierre Tourret	23	2019-04-13 09:04:00	Alouette lulu	1	0	0	0	74,75760645
+4470195	a	Pierre Tourret	39	2019-04-13 08:09:00	Merle noir	1	0	1	0	31,79709188
+4470196	a	Pierre Tourret	39	2019-04-13 08:10:00	Bruant jaune	1	0	1	0	52,02769589
+4470198	a	Pierre Tourret	39	2019-04-13 08:10:00	Grive draine	1	0	1	0	235,3685795
+4470197	a	Pierre Tourret	39	2019-04-13 08:10:00	Merle noir	1	0	1	0	235,8457861
+4470200	a	Pierre Tourret	39	2019-04-13 08:11:00	Accenteur mouchet	1	0	1	0	42,36020293
+4470199	a	Pierre Tourret	39	2019-04-13 08:11:00	Alouette des champs	1	0	1	0	92,88097329
+4470202	a	Pierre Tourret	39	2019-04-13 08:11:00	Alouette des champs	1	0	1	0	167,3855946
+4470201	a	Pierre Tourret	39	2019-04-13 08:11:00	Alouette des champs	1	0	1	0	203,9550458
+4470067	a	Pierre Tourret	39	2019-04-13 08:12:00	Bruant jaune	0	1	0	1	67,0925251
+4470203	a	Pierre Tourret	39	2019-04-13 08:12:00	Pic épeiche	0	1	0	1	143,6636083
+4470204	a	Pierre Tourret	39	2019-04-13 08:12:00	Merle noir	1	0	1	0	207,157562
+4470068	a	Pierre Tourret	39	2019-04-13 08:14:00	Merle noir	1	1	0	0	62,0536534
+4470175	a	Pierre Tourret	39	2019-04-13 08:14:00	Accenteur mouchet	1	0	0	0	100,1788242
+4470176	a	Pierre Tourret	39	2019-04-13 08:14:00	Alouette des champs	1	0	0	0	178,9794022
+4470069	a	Pierre Tourret	39	2019-04-13 08:14:00	Torcol fourmilier	1	0	0	0	243,9346623
+4470178	a	Pierre Tourret	39	2019-04-13 08:15:00	Merle noir	1	0	0	0	88,86526319
+4470177	a	Pierre Tourret	39	2019-04-13 08:15:00	Fauvette à tête noire	1	0	0	0	140,6272226
+4470179	a	Pierre Tourret	39	2019-04-13 08:16:00	Étourneau sansonnet	0	1	0	0	50,40991397
+4470180	a	Pierre Tourret	39	2019-04-13 08:17:00	Fauvette à tête noire	1	0	0	0	141,4253917
+4470181	a	Pierre Tourret	39	2019-04-13 08:18:00	Tarier pâtre	1	0	0	0	71,36969439
+4470167	a	Pierre Tourret	40	2019-04-13 08:29:00	Rougegorge familier	0	1	0	1	107,4461605
+4470166	a	Pierre Tourret	40	2019-04-13 08:29:00	Bruant jaune	1	1	1	1	113,4232085
+4470168	a	Pierre Tourret	40	2019-04-13 08:30:00	Fauvette à tête noire	1	0	1	0	58,77628853
+4470169	a	Pierre Tourret	40	2019-04-13 08:30:00	Alouette des champs	2	0	2	0	239,3841301
+4470170	a	Pierre Tourret	40	2019-04-13 08:31:00	Merle noir	1	0	1	0	54,04498392
+4470171	a	Pierre Tourret	40	2019-04-13 08:31:00	Pic épeichette	0	1	0	1	164,3164047
+4470172	a	Pierre Tourret	40	2019-04-13 08:31:00	Alouette des champs	1	0	1	0	189,0704934
+4470173	a	Pierre Tourret	40	2019-04-13 08:32:00	Merle noir	1	0	1	0	66,98696614
+4470063	a	Pierre Tourret	40	2019-04-13 08:32:00	Fauvette à tête noire	1	0	1	0	123,568714
+4470065	a	Pierre Tourret	40	2019-04-13 08:36:00	Linotte mélodieuse	1	0	0	0	37,06339502
+4470064	a	Pierre Tourret	40	2019-04-13 08:36:00	Alouette lulu	1	0	0	0	73,97738231
+4470066	a	Pierre Tourret	40	2019-04-13 08:36:00	Alouette des champs	1	0	0	0	158,9367021
+4470051	a	Pierre Tourret	41	2019-04-12 10:29:00	Fauvette à tête noire	1	0	1	0	37,17004539
+4470052	a	Pierre Tourret	41	2019-04-12 10:29:00	Fauvette à tête noire	1	0	1	0	85,68553818
+4470055	a	Pierre Tourret	41	2019-04-12 10:30:00	Merle noir	1	0	1	0	49,62186778
+4470054	a	Pierre Tourret	41	2019-04-12 10:30:00	Fauvette à tête noire	1	0	1	0	126,4752582
+4470053	a	Pierre Tourret	41	2019-04-12 10:30:00	Geai des chênes	0	1	0	1	139,6425323
+4470056	a	Pierre Tourret	41	2019-04-12 10:31:00	Pinson des arbres	1	0	1	0	89,51503517
+4470057	a	Pierre Tourret	41	2019-04-12 10:31:00	Merle noir	1	0	1	0	253,1331194
+4470059	a	Pierre Tourret	41	2019-04-12 10:32:00	Pinson des arbres	1	0	1	0	49,24016606
+4470058	a	Pierre Tourret	41	2019-04-12 10:32:00	Grive draine	1	0	1	0	97,12516683
+4470060	a	Pierre Tourret	41	2019-04-12 10:33:00	Mésange charbonnière	1	0	1	0	35,1097352
+4470061	a	Pierre Tourret	41	2019-04-12 10:33:00	Grive draine	1	0	1	0	50,43718273
+4470205	a	Pierre Tourret	41	2019-04-12 10:34:00	Grimpereau des jardins	1	0	0	0	36,06381113
+4470062	a	Pierre Tourret	41	2019-04-12 10:34:00	Mésange charbonnière	2	0	0	0	140,5786042
+4470206	a	Pierre Tourret	41	2019-04-12 10:36:00	Rougegorge familier	0	1	0	0	29,60893702
+4470207	a	Pierre Tourret	41	2019-04-12 10:37:00	Fauvette à tête noire	1	0	0	0	227,9737294
+4470208	a	Pierre Tourret	41	2019-04-12 10:38:00	Rougegorge familier	1	0	0	0	29,15275335
+4470209	a	Pierre Tourret	41	2019-04-12 10:38:00	Accenteur mouchet	1	0	0	0	51,06224761
+4470210	a	Pierre Tourret	41	2019-04-12 10:38:00	Pic épeichette	1	0	0	0	66,91651082
+4470219	a	Pierre Tourret	42	2019-04-13 09:32:00	Accenteur mouchet	1	0	1	0	36,23860862
+4470220	a	Pierre Tourret	42	2019-04-13 09:32:00	Merle noir	1	0	1	0	63,51615734
+4470222	a	Pierre Tourret	42	2019-04-13 09:33:00	Merle noir	1	0	1	0	127,9483064
+4470221	a	Pierre Tourret	42	2019-04-13 09:33:00	Merle noir	1	0	1	0	141,3636523
+4470223	a	Pierre Tourret	42	2019-04-13 09:35:00	Fauvette des jardins	1	0	1	0	56,57568466
+4470224	a	Pierre Tourret	42	2019-04-13 09:35:00	Bruant jaune	1	0	1	0	69,20885441
+4470225	a	Pierre Tourret	42	2019-04-13 09:35:00	Fauvette à tête noire	1	0	1	0	101,4814422
+4470226	a	Pierre Tourret	42	2019-04-13 09:36:00	Pouillot véloce	1	0	0	0	93,5993809
+4470184	a	Pierre Tourret	42	2019-04-13 09:36:00	Mésange charbonnière	1	0	0	0	93,87399453
+4470185	a	Pierre Tourret	42	2019-04-13 09:36:00	Corneille noire	0	1	0	0	160,3766375
+4470186	a	Pierre Tourret	42	2019-04-13 09:37:00	Corneille noire	0	1	0	0	182,1242041
+4470187	a	Pierre Tourret	42	2019-04-13 09:38:00	Alouette lulu	2	0	0	0	134,0997912
+4470188	a	Pierre Tourret	42	2019-04-13 09:39:00	Accenteur mouchet	1	0	0	0	54,12712592
+4470189	a	Pierre Tourret	42	2019-04-13 09:41:00	Mésange bleue	1	0	0	0	56,97586188
+4469992	a	Pierre Tourret	56	2019-04-12 08:10:00	Tarier pâtre	1	0	1	0	65,60946436
+4469991	a	Pierre Tourret	56	2019-04-12 08:10:00	Torcol fourmilier	1	0	1	0	225,4602016
+4469993	a	Pierre Tourret	56	2019-04-12 08:11:00	Bruant jaune	1	0	1	0	26,9321729
+4469994	a	Pierre Tourret	56	2019-04-12 08:11:00	Bruant zizi	1	0	1	0	58,12240128
+4469995	a	Pierre Tourret	56	2019-04-12 08:11:00	Bruant zizi	1	0	1	0	77,15251696
+4469996	a	Pierre Tourret	56	2019-04-12 08:12:00	Alouette des champs	2	0	2	0	51,85310357
+4469989	a	Pierre Tourret	56	2019-04-12 08:13:00	Merle noir	1	0	1	0	90,51349452
+4469997	a	Pierre Tourret	56	2019-04-12 08:13:00	Fauvette à tête noire	1	0	1	0	151,1766309
+4469990	a	Pierre Tourret	56	2019-04-12 08:13:00	Pic vert	0	1	0	1	259,8637982
+4469999	a	Pierre Tourret	56	2019-04-12 08:14:00	Linotte mélodieuse	0	1	0	1	83,33474543
+4469998	a	Pierre Tourret	56	2019-04-12 08:14:00	Bruant jaune	1	0	1	0	104,5598441
+4470000	a	Pierre Tourret	56	2019-04-12 08:15:00	Bruant jaune	1	0	0	0	66,87643654
+4470001	a	Pierre Tourret	56	2019-04-12 08:15:00	Pouillot véloce	1	0	0	0	132,4676722
+4470002	a	Pierre Tourret	56	2019-04-12 08:16:00	Merle noir	1	0	0	0	113,4865276
+4470003	a	Pierre Tourret	56	2019-04-12 08:17:00	Fauvette à tête noire	1	0	0	0	156,5108122
+4470004	a	Pierre Tourret	56	2019-04-12 08:18:00	Moineau domestique	1	0	0	0	63,89427736
+4470007	a	Pierre Tourret	57	2019-04-12 08:34:00	Mésange charbonnière	1	0	1	0	21,95489788
+4470005	a	Pierre Tourret	57	2019-04-12 08:34:00	Fauvette à tête noire	3	0	3	0	27,88783812
+4470006	a	Pierre Tourret	57	2019-04-12 08:34:00	Alouette lulu	1	0	1	0	59,21499661
+4470009	a	Pierre Tourret	57	2019-04-12 08:35:00	Torcol fourmilier	1	0	1	0	65,76512435
+4470008	a	Pierre Tourret	57	2019-04-12 08:35:00	Bruant jaune	1	0	1	0	68,97541803
+4470010	a	Pierre Tourret	57	2019-04-12 08:36:00	Tarier pâtre	1	0	1	0	42,05530848
+4470012	a	Pierre Tourret	57	2019-04-12 08:37:00	Merle noir	1	0	1	0	29,70838538
+4470011	a	Pierre Tourret	57	2019-04-12 08:37:00	Coucou gris	1	0	1	0	238,5474683
+4470014	a	Pierre Tourret	57	2019-04-12 08:38:00	Pic épeiche	0	1	0	0	88,03888954
+4470013	a	Pierre Tourret	57	2019-04-12 08:38:00	Merle noir	1	0	0	0	91,63020763
+4470015	a	Pierre Tourret	57	2019-04-12 08:39:00	Bruant jaune	1	0	0	0	93,79395206
+4470016	a	Pierre Tourret	57	2019-04-12 08:39:00	Bruant zizi	1	0	0	0	119,1668655
+4470017	a	Pierre Tourret	57	2019-04-12 08:41:00	Mésange bleue	1	0	0	0	54,22798541
+4470022	a	Pierre Tourret	57	2019-04-12 08:41:00	Troglodyte mignon	1	0	0	0	168,3959282
+4470018	a	Pierre Tourret	57	2019-04-12 08:42:00	Merle noir	1	0	0	0	78,69096868
+4470019	a	Pierre Tourret	57	2019-04-12 08:42:00	Grimpereau des jardins	1	0	0	0	84,77553714
+4470021	a	Pierre Tourret	57	2019-04-12 08:43:00	Rougegorge familier	1	0	0	0	15,00603692
+4470020	a	Pierre Tourret	57	2019-04-12 08:43:00	Pouillot véloce	1	0	0	0	78,31132639
+4470024	a	Pierre Tourret	58	2019-04-12 09:00:00	Alouette lulu	1	0	1	0	16,8725275
+4470023	a	Pierre Tourret	58	2019-04-12 09:00:00	Torcol fourmilier	1	0	1	0	70,01371604
+4470025	a	Pierre Tourret	58	2019-04-12 09:00:00	Fauvette à tête noire	1	0	1	0	85,92544052
+4470027	a	Pierre Tourret	58	2019-04-12 09:01:00	Pouillot véloce	1	0	1	0	111,7880794
+4470026	a	Pierre Tourret	58	2019-04-12 09:01:00	Mésange charbonnière	1	0	1	0	114,443757
+4470029	a	Pierre Tourret	58	2019-04-12 09:02:00	Merle noir	1	0	1	0	77,19875505
+4470028	a	Pierre Tourret	58	2019-04-12 09:02:00	Linotte mélodieuse	1	1	1	1	88,60370483
+4470030	a	Pierre Tourret	58	2019-04-12 09:03:00	Accenteur mouchet	1	0	1	0	59,26120491
+4470031	a	Pierre Tourret	58	2019-04-12 09:03:00	Fauvette à tête noire	1	0	1	0	176,3829825
+4470032	a	Pierre Tourret	58	2019-04-12 09:03:00	Grive draine	1	0	1	0	222,7710566
+4470033	a	Pierre Tourret	58	2019-04-12 09:04:00	Fauvette à tête noire	1	0	0	0	241,3011402
+4470047	a	Pierre Tourret	58	2019-04-12 09:05:00	Pouillot véloce	1	0	0	0	56,73182441
+4470048	a	Pierre Tourret	58	2019-04-12 09:05:00	Accenteur mouchet	1	0	0	0	107,5690876
+4470034	a	Pierre Tourret	58	2019-04-12 09:05:00	Merle noir	1	0	0	0	131,2851847
+4470050	a	Pierre Tourret	58	2019-04-12 09:08:00	Tarier pâtre	1	0	0	0	96,20490716
+4470049	a	Pierre Tourret	58	2019-04-12 09:09:00	Torcol fourmilier	1	0	0	0	138,0527776
+4470035	a	Pierre Tourret	59	2019-04-12 09:28:00	Pipit des arbres	1	0	1	0	41,92467573
+4470036	a	Pierre Tourret	59	2019-04-12 09:28:00	Pouillot véloce	1	0	1	0	63,46597767
+4470039	a	Pierre Tourret	59	2019-04-12 09:29:00	Mésange bleue	1	0	1	0	79,13798891
+4470037	a	Pierre Tourret	59	2019-04-12 09:29:00	Bruant zizi	1	0	1	0	115,8074555
+4470040	a	Pierre Tourret	59	2019-04-12 09:30:00	Fauvette à tête noire	1	0	1	0	97,3743762
+4470042	a	Pierre Tourret	59	2019-04-12 09:30:00	Huppe fasciée	1	0	1	0	100,3473325
+4470043	a	Pierre Tourret	59	2019-04-12 09:30:00	Fauvette à tête noire	1	0	1	0	108,6192806
+4470041	a	Pierre Tourret	59	2019-04-12 09:30:00	Merle noir	1	0	1	0	146,6632087
+4470045	a	Pierre Tourret	59	2019-04-12 09:31:00	Fauvette à tête noire	1	0	1	0	46,65047667
+4470044	a	Pierre Tourret	59	2019-04-12 09:31:00	Fauvette à tête noire	1	0	1	0	183,9128064
+4470046	a	Pierre Tourret	59	2019-04-12 09:32:00	Merle noir	1	0	1	0	46,65047667
+4470151	a	Pierre Tourret	59	2019-04-12 09:32:00	Merle noir	1	0	1	0	141,9294735
+4470150	a	Pierre Tourret	59	2019-04-12 09:32:00	Pouillot véloce	1	0	1	0	171,6612737
+4470152	a	Pierre Tourret	59	2019-04-12 09:33:00	Mésange charbonnière	1	0	0	0	69,09748645
+4470153	a	Pierre Tourret	59	2019-04-12 09:33:00	Pipit des arbres	1	0	0	0	113,7704908
+4470154	a	Pierre Tourret	59	2019-04-12 09:35:00	Merle noir	1	0	0	0	244,8962239
+4470157	a	Pierre Tourret	60	2019-04-12 09:46:00	Pouillot véloce	1	0	1	0	65,85456962
+4470156	a	Pierre Tourret	60	2019-04-12 09:46:00	Alouette lulu	1	0	1	0	164,8472508
+4470158	a	Pierre Tourret	60	2019-04-12 09:47:00	Pouillot véloce	1	0	1	0	94,94697563
+4470161	a	Pierre Tourret	60	2019-04-12 09:48:00	Merle noir	1	0	1	0	178,0219877
+4470159	a	Pierre Tourret	60	2019-04-12 09:48:00	Merle noir	1	0	1	0	179,5807827
+4470160	a	Pierre Tourret	60	2019-04-12 09:48:00	Grive draine	1	0	1	0	186,8848998
+4470162	a	Pierre Tourret	60	2019-04-12 09:49:00	Alouette des champs	2	0	2	0	144,1308404
+4470163	a	Pierre Tourret	60	2019-04-12 09:50:00	Linotte mélodieuse	1	0	1	0	55,26257224
+4470165	a	Pierre Tourret	60	2019-04-12 09:50:00	Accenteur mouchet	1	0	1	0	63,41136395
+4470164	a	Pierre Tourret	60	2019-04-12 09:50:00	Bruant zizi	1	0	1	0	68,51883153
+4470086	a	Pierre Tourret	60	2019-04-12 09:53:00	Corneille noire	0	1	0	0	446,2182484
+4470087	a	Pierre Tourret	60	2019-04-12 09:54:00	Alouette lulu	1	0	0	0	184,4487967
+4470088	a	Pierre Tourret	60	2019-04-12 09:55:00	Merle noir	1	0	0	0	69,29320012
+4600361	b	Pierre Tourret	23	2019-06-01 07:18:00	Pie-grièche écorcheur	1	0	1	0	116,1841825
+4600362	b	Pierre Tourret	23	2019-06-01 07:18:00	Pie-grièche écorcheur	1	0	1	0	150,2744239
+4600366	b	Pierre Tourret	23	2019-06-01 07:19:00	Bruant zizi	1	0	1	0	43,75045512
+4600363	b	Pierre Tourret	23	2019-06-01 07:19:00	Pie-grièche écorcheur	1	0	1	0	73,83201298
+4600365	b	Pierre Tourret	23	2019-06-01 07:19:00	Bruant jaune	1	0	1	0	79,92102122
+4600364	b	Pierre Tourret	23	2019-06-01 07:19:00	Alouette des champs	0	1	0	1	136,9755937
+4600367	b	Pierre Tourret	23	2019-06-01 07:20:00	Bruant proyer	1	0	1	0	184,6755145
+4600368	b	Pierre Tourret	23	2019-06-01 07:20:00	Merle noir	1	0	1	0	229,5387384
+4600369	b	Pierre Tourret	23	2019-06-01 07:21:00	Linotte mélodieuse	1	0	1	0	22,25637397
+4600371	b	Pierre Tourret	23	2019-06-01 07:21:00	Merle noir	1	0	1	0	135,5168673
+4600370	b	Pierre Tourret	23	2019-06-01 07:21:00	Alouette lulu	1	0	1	0	144,4188077
+4600262	b	Pierre Tourret	23	2019-06-01 07:22:00	Pie-grièche écorcheur	1	0	0	0	204,7455725
+4600261	b	Pierre Tourret	23	2019-06-01 07:22:00	Alouette des champs	0	1	0	0	248,0098675
+4600263	b	Pierre Tourret	23	2019-06-01 07:23:00	Rossignol philomèle	1	0	0	0	128,6961288
+4600265	b	Pierre Tourret	23	2019-06-01 07:25:00	Fauvette à tête noire	1	0	0	0	213,7096299
+4600264	b	Pierre Tourret	23	2019-06-01 07:25:00	Alouette des champs	0	1	0	0	295,2912499
+4600266	b	Pierre Tourret	23	2019-06-01 07:25:00	Fauvette à tête noire	0	1	0	0	321,3205772
+4600268	b	Pierre Tourret	23	2019-06-01 07:26:00	Alouette des champs	0	1	0	0	87,18597964
+4600267	b	Pierre Tourret	23	2019-06-01 07:26:00	Pinson des arbres	1	0	0	0	235,9945102
+4600395	b	Pierre Tourret	39	2019-06-01 06:40:00	Alouette des champs	0	1	0	1	29,57698328
+4600394	b	Pierre Tourret	39	2019-06-01 06:40:00	Alouette des champs	0	1	0	1	50,17743477
+4600396	b	Pierre Tourret	39	2019-06-01 06:40:00	Pie-grièche écorcheur	1	0	1	0	85,21965291
+4600397	b	Pierre Tourret	39	2019-06-01 06:41:00	Bruant proyer	1	0	1	0	82,8356373
+4600398	b	Pierre Tourret	39	2019-06-01 06:42:00	Bruant jaune	1	0	1	0	68,68079877
+4600399	b	Pierre Tourret	39	2019-06-01 06:43:00	Bruant jaune	0	1	0	1	80,37430927
+4600400	b	Pierre Tourret	39	2019-06-01 06:43:00	Pic vert	0	1	0	1	244,5284839
+4600401	b	Pierre Tourret	39	2019-06-01 06:44:00	Mésange charbonnière	1	0	0	0	86,12790589
+4600402	b	Pierre Tourret	39	2019-06-01 06:45:00	Alouette des champs	0	1	0	0	125,3881979
+4600403	b	Pierre Tourret	39	2019-06-01 06:46:00	Pie-grièche écorcheur	1	0	0	0	59,26029383
+4600404	b	Pierre Tourret	39	2019-06-01 06:46:00	Fauvette à tête noire	1	0	0	0	112,1203849
+4600345	b	Pierre Tourret	39	2019-06-01 06:48:00	Merle noir	1	0	0	0	57,9842509
+4600346	b	Pierre Tourret	39	2019-06-01 06:49:00	Fauvette à tête noire	0	1	0	0	147,6536296
+4600347	b	Pierre Tourret	40	2019-06-01 06:56:00	Alouette des champs	0	1	0	1	134,2945248
+4600349	b	Pierre Tourret	40	2019-06-01 06:56:00	Buse variable	0	1	0	1	208,085578
+4600348	b	Pierre Tourret	40	2019-06-01 06:56:00	Alouette des champs	0	1	0	1	221,6107676
+4600352	b	Pierre Tourret	40	2019-06-01 06:57:00	Bruant zizi	1	0	1	0	125,0469496
+4600351	b	Pierre Tourret	40	2019-06-01 06:57:00	Pie-grièche écorcheur	1	0	1	0	179,8341047
+4600350	b	Pierre Tourret	40	2019-06-01 06:57:00	Rossignol philomèle	1	0	1	0	210,9684713
+4600353	b	Pierre Tourret	40	2019-06-01 06:58:00	Pie-grièche écorcheur	1	0	1	0	85,41634356
+4600354	b	Pierre Tourret	40	2019-06-01 06:58:00	Fauvette à tête noire	0	1	0	1	240,3267531
+4600356	b	Pierre Tourret	40	2019-06-01 06:59:00	Fauvette grisette	1	0	1	0	54,99490026
+4600357	b	Pierre Tourret	40	2019-06-01 06:59:00	Faisan de Colchide	1	0	1	0	188,0017582
+4600355	b	Pierre Tourret	40	2019-06-01 06:59:00	Fauvette à tête noire	0	1	0	1	201,3541051
+4600358	b	Pierre Tourret	40	2019-06-01 07:00:00	Alouette des champs	0	1	0	0	150,7865427
+4600359	b	Pierre Tourret	40	2019-06-01 07:01:00	Merle noir	1	0	0	0	42,52036814
+4600360	b	Pierre Tourret	40	2019-06-01 07:01:00	Mésange charbonnière	1	0	0	0	171,9591652
+4600388	b	Pierre Tourret	40	2019-06-01 07:02:00	Pie-grièche écorcheur	1	0	0	0	130,3722073
+4600389	b	Pierre Tourret	40	2019-06-01 07:03:00	Merle noir	0	1	0	0	284,6376068
+4600390	b	Pierre Tourret	40	2019-06-01 07:04:00	Alouette des champs	0	1	0	0	298,2603483
+4600391	b	Pierre Tourret	40	2019-06-01 07:05:00	Tarier pâtre	0	1	0	0	103,7687078
+4600373	b	Pierre Tourret	41	2019-05-31 08:48:00	Tarier pâtre	1	0	1	0	16,02672775
+4600372	b	Pierre Tourret	41	2019-05-31 08:48:00	Fauvette grisette	1	1	1	1	21,09616227
+4600374	b	Pierre Tourret	41	2019-05-31 08:49:00	Geai des chênes	0	1	0	1	28,60563942
+4600375	b	Pierre Tourret	41	2019-05-31 08:49:00	Fauvette à tête noire	1	0	1	0	29,22170847
+4600376	b	Pierre Tourret	41	2019-05-31 08:49:00	Mésange charbonnière	0	1	0	1	43,79522817
+4600377	b	Pierre Tourret	41	2019-05-31 08:50:00	Mésange charbonnière	0	1	0	1	52,5650392
+4600378	b	Pierre Tourret	41	2019-05-31 08:50:00	Pinson des arbres	1	0	1	0	70,25592726
+4600379	b	Pierre Tourret	41	2019-05-31 08:51:00	Fauvette à tête noire	0	1	0	1	144,5497643
+4600380	b	Pierre Tourret	41	2019-05-31 08:51:00	Merle noir	1	0	1	0	144,5497643
+4600382	b	Pierre Tourret	41	2019-05-31 08:52:00	Pouillot véloce	1	0	1	0	28,22190561
+4600381	b	Pierre Tourret	41	2019-05-31 08:52:00	Bruant jaune	1	0	1	0	90,78630515
+4600384	b	Pierre Tourret	41	2019-05-31 08:53:00	Merle noir	1	0	0	0	59,31938072
+4600383	b	Pierre Tourret	41	2019-05-31 08:53:00	Fauvette à tête noire	0	1	0	0	235,1517536
+4600385	b	Pierre Tourret	41	2019-05-31 08:54:00	Pouillot véloce	0	1	0	0	53,70130645
+4600386	b	Pierre Tourret	41	2019-05-31 08:54:00	Tourterelle des bois	1	0	0	0	101,5531936
+4600407	b	Pierre Tourret	41	2019-05-31 08:55:00	Rossignol philomèle	0	1	0	0	57,26709184
+4600387	b	Pierre Tourret	41	2019-05-31 08:55:00	Pipit des arbres	1	0	0	0	100,8633879
+4600406	b	Pierre Tourret	41	2019-05-31 08:55:00	Rossignol philomèle	1	0	0	0	228,649992
+4600408	b	Pierre Tourret	41	2019-05-31 08:56:00	Fauvette à tête noire	0	1	0	0	192,0418816
+4600164	b	Pierre Tourret	56	2019-05-31 06:41:00	Bruant proyer	1	0	1	0	66,90706837
+4600166	b	Pierre Tourret	56	2019-05-31 06:42:00	Merle noir	1	0	1	0	2,928579623
+4600167	b	Pierre Tourret	56	2019-05-31 06:42:00	Fauvette grisette	1	0	1	0	16,18217972
+4600165	b	Pierre Tourret	56	2019-05-31 06:42:00	Tarier pâtre	1	0	1	0	24,31475505
+4600168	b	Pierre Tourret	56	2019-05-31 06:43:00	Rossignol philomèle	1	0	1	0	37,36847634
+4600169	b	Pierre Tourret	56	2019-05-31 06:43:00	Pouillot véloce	0	1	0	1	51,26699805
+4600170	b	Pierre Tourret	56	2019-05-31 06:43:00	Fauvette à tête noire	0	1	0	1	70,412885
+4600172	b	Pierre Tourret	56	2019-05-31 06:44:00	Mésange charbonnière	1	1	1	1	24,11718771
+4600171	b	Pierre Tourret	56	2019-05-31 06:44:00	Fauvette à tête noire	0	1	0	1	77,00586276
+4600174	b	Pierre Tourret	56	2019-05-31 06:45:00	Bruant jaune	1	0	1	0	62,64298467
+4600173	b	Pierre Tourret	56	2019-05-31 06:45:00	Bruant zizi	1	0	1	0	76,53352476
+4600175	b	Pierre Tourret	56	2019-05-31 06:45:00	Faisan de Colchide	1	0	1	0	81,91376355
+4600176	b	Pierre Tourret	56	2019-05-31 06:46:00	Troglodyte mignon	1	0	0	0	60,19824392
+4600177	b	Pierre Tourret	56	2019-05-31 06:47:00	Merle noir	0	1	0	0	74,59759104
+4600178	b	Pierre Tourret	56	2019-05-31 06:48:00	Buse variable	0	1	0	0	85,07674696
+4600181	b	Pierre Tourret	56	2019-05-31 06:49:00	Accenteur mouchet	1	0	0	0	60,70947656
+4600182	b	Pierre Tourret	56	2019-05-31 06:50:00	Pie-grièche écorcheur	1	0	0	0	25,17588766
+4600183	b	Pierre Tourret	56	2019-05-31 06:51:00	Alouette des champs	1	1	0	0	42,89153702
+4600191	b	Pierre Tourret	57	2019-05-31 07:00:00	Fauvette grisette	1	0	1	0	46,94258765
+4600193	b	Pierre Tourret	57	2019-05-31 07:00:00	Merle noir	0	1	0	1	70,02250632
+4600192	b	Pierre Tourret	57	2019-05-31 07:00:00	Merle noir	0	1	0	1	98,37566814
+4600196	b	Pierre Tourret	57	2019-05-31 07:01:00	Rossignol philomèle	1	0	1	0	44,9989671
+4600195	b	Pierre Tourret	57	2019-05-31 07:01:00	Faisan de Colchide	1	0	1	0	63,77502421
+4600194	b	Pierre Tourret	57	2019-05-31 07:01:00	Merle noir	0	1	0	1	170,9436565
+4600199	b	Pierre Tourret	57	2019-05-31 07:02:00	Alouette lulu	1	0	1	0	85,11198024
+4600197	b	Pierre Tourret	57	2019-05-31 07:02:00	Pouillot véloce	1	0	1	0	95,20245129
+4600198	b	Pierre Tourret	57	2019-05-31 07:02:00	Fauvette à tête noire	1	0	1	0	95,20245129
+4600201	b	Pierre Tourret	57	2019-05-31 07:03:00	Merle noir	1	0	1	0	45,99937501
+4600200	b	Pierre Tourret	57	2019-05-31 07:03:00	Pouillot véloce	0	1	0	1	66,36180691
+4600202	b	Pierre Tourret	57	2019-05-31 07:04:00	Mésange charbonnière	1	0	0	0	61,30393482
+4600234	b	Pierre Tourret	57	2019-05-31 07:04:00	Pie-grièche écorcheur	1	0	0	0	105,7487471
+4600228	b	Pierre Tourret	57	2019-05-31 07:05:00	Pic vert	0	1	0	0	102,2560307
+4600229	b	Pierre Tourret	57	2019-05-31 07:06:00	Bruant jaune	1	0	0	0	93,38557197
+4600230	b	Pierre Tourret	57	2019-05-31 07:07:00	Pic épeichette	1	0	0	0	52,68505505
+4600232	b	Pierre Tourret	57	2019-05-31 07:08:00	Bruant jaune	1	0	0	0	76,6244665
+4600231	b	Pierre Tourret	57	2019-05-31 07:08:00	Fauvette grisette	1	0	0	0	90,01012915
+4600233	b	Pierre Tourret	57	2019-05-31 07:09:00	Serin cini	1	0	0	0	68,86324666
+4600237	b	Pierre Tourret	58	2019-05-31 07:21:00	Bruant zizi	1	0	1	0	58,09788418
+4600238	b	Pierre Tourret	58	2019-05-31 07:21:00	Rossignol philomèle	1	0	1	0	65,94187232
+4600236	b	Pierre Tourret	58	2019-05-31 07:21:00	Bruant jaune	1	0	1	0	77,45932185
+4600239	b	Pierre Tourret	58	2019-05-31 07:22:00	Pouillot véloce	1	0	1	0	58,13617786
+4600240	b	Pierre Tourret	58	2019-05-31 07:22:00	Grive musicienne	1	0	1	0	93,1353436
+4600241	b	Pierre Tourret	58	2019-05-31 07:22:00	Pinson des arbres	0	1	0	1	178,1726638
+4600243	b	Pierre Tourret	58	2019-05-31 07:23:00	Rossignol philomèle	0	1	0	1	108,1422717
+4600242	b	Pierre Tourret	58	2019-05-31 07:23:00	Pinson des arbres	0	1	0	1	158,7349223
+4600203	b	Pierre Tourret	58	2019-05-31 07:24:00	Fauvette grisette	1	0	1	0	24,46325554
+4600204	b	Pierre Tourret	58	2019-05-31 07:24:00	Merle noir	1	0	1	0	24,46325554
+4600244	b	Pierre Tourret	58	2019-05-31 07:24:00	Fauvette à tête noire	1	0	1	0	79,11653131
+4600205	b	Pierre Tourret	58	2019-05-31 07:25:00	Fauvette à tête noire	0	1	0	1	184,9582126
+4600206	b	Pierre Tourret	58	2019-05-31 07:26:00	Bruant jaune	1	0	0	0	139,6821874
+4600207	b	Pierre Tourret	58	2019-05-31 07:26:00	Alouette des champs	1	0	0	0	205,5471702
+4600208	b	Pierre Tourret	58	2019-05-31 07:29:00	Fauvette à tête noire	0	1	0	0	183,7015483
+4600210	b	Pierre Tourret	58	2019-05-31 07:30:00	Pie-grièche écorcheur	0	1	0	0	131,787602
+4600209	b	Pierre Tourret	58	2019-05-31 07:30:00	Pie-grièche écorcheur	1	0	0	0	153,1523023
+4600211	b	Pierre Tourret	58	2019-05-31 07:31:00	Alouette des champs	1	0	0	0	161,383383
+4600185	b	Pierre Tourret	59	2019-05-31 07:41:00	Pouillot véloce	1	0	1	0	80,25963919
+4600188	b	Pierre Tourret	59	2019-05-31 07:42:00	Bruant zizi	1	0	1	0	72,53039699
+4600187	b	Pierre Tourret	59	2019-05-31 07:42:00	Fauvette à tête noire	0	1	0	1	91,70486583
+4600186	b	Pierre Tourret	59	2019-05-31 07:42:00	Pipit des arbres	1	0	1	0	94,7737058
+4600189	b	Pierre Tourret	59	2019-05-31 07:42:00	Fauvette à tête noire	0	1	0	1	121,9850431
+4600190	b	Pierre Tourret	59	2019-05-31 07:43:00	Pouillot de Bonelli	1	0	1	0	69,92635011
+4600212	b	Pierre Tourret	59	2019-05-31 07:44:00	Bruant jaune	1	0	1	0	209,8559075
+4600213	b	Pierre Tourret	59	2019-05-31 07:45:00	Fauvette à tête noire	0	1	0	1	62,42669539
+4600214	b	Pierre Tourret	59	2019-05-31 07:46:00	Merle noir	1	0	0	0	53,05282144
+4600215	b	Pierre Tourret	59	2019-05-31 07:46:00	Merle noir	1	0	0	0	65,852683
+4600220	b	Pierre Tourret	59	2019-05-31 07:46:00	Tourterelle des bois	1	0	0	0	77,69454956
+4600216	b	Pierre Tourret	59	2019-05-31 07:47:00	Rossignol philomèle	1	0	0	0	214,2936788
+4600217	b	Pierre Tourret	59	2019-05-31 07:48:00	Fauvette grisette	1	0	0	0	34,35517859
+4600218	b	Pierre Tourret	59	2019-05-31 07:49:00	Fauvette grisette	1	0	0	0	54,49599521
+4600219	b	Pierre Tourret	59	2019-05-31 07:52:00	Rossignol philomèle	0	1	0	0	19,88678026
+4600223	b	Pierre Tourret	60	2019-05-31 08:06:00	Merle noir	0	0	0	0	37,12934577
+4600222	b	Pierre Tourret	60	2019-05-31 08:06:00	Pie-grièche écorcheur	1	0	1	0	65,95251861
+4600221	b	Pierre Tourret	60	2019-05-31 08:06:00	Pipit des arbres	1	0	1	0	170,7032105
+4600224	b	Pierre Tourret	60	2019-05-31 08:07:00	Merle noir	1	0	1	0	166,2632945
+4600225	b	Pierre Tourret	60	2019-05-31 08:08:00	Pie-grièche écorcheur	0	1	0	1	147,2897885
+4600226	b	Pierre Tourret	60	2019-05-31 08:08:00	Pinson des arbres	0	1	0	1	223,5173219
+4600227	b	Pierre Tourret	60	2019-05-31 08:08:00	Pinson des arbres	0	1	0	1	275,0976747
+4600251	b	Pierre Tourret	60	2019-05-31 08:09:00	Alouette des champs	1	0	1	0	89,10780016
+4600250	b	Pierre Tourret	60	2019-05-31 08:09:00	Pouillot véloce	1	0	1	0	191,2456326
+4600253	b	Pierre Tourret	60	2019-05-31 08:10:00	Alouette des champs	0	1	0	0	132,1448585
+4600254	b	Pierre Tourret	60	2019-05-31 08:10:00	Fauvette à tête noire	1	0	0	0	246,9755675
+4600255	b	Pierre Tourret	60	2019-05-31 08:11:00	Fauvette grisette	1	0	0	0	117,7035267
+4600256	b	Pierre Tourret	60	2019-05-31 08:12:00	Alouette des champs	0	1	0	0	36,85914201
+4600257	b	Pierre Tourret	60	2019-05-31 08:12:00	Fauvette à tête noire	0	1	0	0	137,8473281
+4600259	b	Pierre Tourret	60	2019-05-31 08:13:00	Pie-grièche écorcheur	0	1	0	0	59,01675875
+4600258	b	Pierre Tourret	60	2019-05-31 08:13:00	Rossignol philomèle	1	0	0	0	176,9413963
+4600260	b	Pierre Tourret	60	2019-05-31 08:16:00	Bruant jaune	1	0	0	0	143,1049069
