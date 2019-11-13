@@ -830,8 +830,8 @@ class MCDSAnalysis(DSAnalysis):
 # * Only Point transect supported as for now
 # * No change made afterwards on decimal precision : provide what you need !
 # * No change made afterwards on the order of rows : provide what you need !
-# * Support provided for pandas.DataFrame, Excel .xlsx file and tab-separated .csv/.txt files,
-#   and OpenDoc .ods file when pandas >= 0.25
+# * Support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
+#   and even OpenDoc .ods file with pandas >= 0.25
 class DataSet(object):
     
     SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
@@ -1836,6 +1836,175 @@ class MCDSResultsPreReport(ResultsPreReport):
             pass # No styling to be done here.
         
         return dfs
+
+
+# Utilities for feeding DataSet instances. #####################
+
+# Transform a multi-categorical sightings set into an equivalent mono-categorical sightings set,
+# that is where no sightings has more that one category with positive count (keeping the same total counts).
+# Highly optimized version.
+# Ex: A sightings set with 2 categorical count columns nMales and nFemales
+#     * in the input set, you may have 1 sightings with nMales = 5 and nFemales = 2
+#     * in the output set, this sightings have been separated in 2 distinct ones (all other properties left untouched) :
+#       the 1st with nMales = 5 and nFemales = 0, the 2nd with nMales = 0 and nFemales = 2.
+def separateMultiCategoricalCounts(dfInSights, countColumns):
+    
+    # For each count column
+    ldfMonoCat = list()
+    for col in countColumns:
+
+        # Select rows with some individuals in this column
+        dfOneCat = dfInSights[dfInSights[col] > 0].copy()
+
+        # Set all other count cols to 0.
+        otherCols = countColumns.copy()
+        otherCols.remove(col)
+        dfOneCat[otherCols] = 0
+
+        # Store into a list for later
+        ldfMonoCat.append(dfOneCat)
+
+    # Concat all data frames into one.
+    dfOutSights = pd.concat(ldfMonoCat)
+
+    # Sort to "initial" order (easier to read), and reset index (for unique labels).
+    dfOutSights.sort_index(inplace=True)
+    dfOutSights.reset_index(inplace=True, drop=True)
+
+    # Done.
+    return dfOutSights
+
+# Transform a multi-individual mono-categorical sightings set into an equivalent mono-individual mono-categorical sightings set
+# that is where no sightings has more that one individual per category (keeping the same total counts).
+# Highly optimized version.
+# Ex: A sightings set with 2 mono-categorical count columns nMales and nFemales
+#     * in tyhe input set, you may have 1 sightings with nMales = 3 and nFemales = 0 (but none with nMales and nFemales > 0)
+#     * in the output set, this sightings have been separated in 3 distinct ones (all other properties left untouched) :
+#       all with nMales = 1 and nFemales = 0.
+def individualiseMonoCategoricalCounts(dfInSights, countColumns):
+    
+    # For each count column
+    ldfIndiv = list()
+    for col in countColumns:
+        
+        # Select rows with some individuals in this column
+        dfOneCat = dfInSights[dfInSights[col] > 0]
+        
+        # Repeat each one by its count of individuals
+        dfIndiv = dfInSights.loc[np.repeat(dfOneCat.index.values, dfOneCat[col].values)]
+
+        # Replace non-zero counts by 1.
+        dfIndiv.loc[dfIndiv[col] > 0, col] = 1
+        
+        # Store into a list for later
+        ldfIndiv.append(dfIndiv)
+        
+    # Concat all data frames into one.
+    dfOutSights = pd.concat(ldfIndiv)
+
+    # Sort to "initial" order (easier to read), and reset index (for unique labels).
+    dfOutSights.sort_index(inplace=True)
+    dfOutSights.reset_index(inplace=True, drop=True)
+    
+    # Done.
+    return dfOutSights
+
+# Add transect effort = number of passes made
+def addTransectEffort(dfInSights, transectCol, passesCol):
+    
+    dfPointEffort = dfInSights[[transectCol, passesCol]].groupby(transectCol).nunique()
+    dfPointEffort = dfPointEffort[[passesCol]].rename(columns=dict(Passage='Effort'))
+    
+    return dfInSights.join(dfPointEffort, on='Point')
+    
+
+# Generation of a table of implicit variant specification,
+# from a list of possible data selection criteria for each variable.
+# * dVariants : { target columns name: list of possibles criteria for data selection }
+def implicitCombinationSpec(dVariants):
+    
+    def fixedLengthList(toComplete, length):
+        return toComplete + [np.nan]*(length - len(toComplete))
+
+    nRows = max(len(l) for l in dVariants.values())
+
+    return pd.DataFrame({ colName : fixedLengthList(variants, nRows) for colName, variants in dVariants.items() })
+
+# Generation of a table of explicit variant specifications, from an implicit one
+def explicitCombinationSpec(dfImplSpecs):
+    
+    dfExplSpecs = dfImplSpecs[dfImplSpecs.columns[:1]].dropna()
+    
+    # For each implicit specs column (but the first)
+    for col in dfImplSpecs.columns[1:]:
+        
+        # Get variants
+        sVariants = dfImplSpecs[col].dropna()
+        
+        # Duplicate current explicit table as much as variants are many
+        dfExplSpecs = dfExplSpecs.loc[np.repeat(dfExplSpecs.index.to_numpy(), len(sVariants))]
+        
+        # Add the new columns by tiling the variants along the whole index range
+        dfExplSpecs[col] = np.tile(sVariants.to_numpy(), len(dfExplSpecs) // len(sVariants))
+        
+        # Reset index for easy next duplication
+        dfExplSpecs.reset_index(inplace=True, drop=True)
+
+    # Done.
+    return dfExplSpecs
+
+# Select sample sightings from an all-samples sightings table
+# * sSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
+#             keys being columns of dfAllSights
+# * dfAllSights : the all-samples (individual) sightings table to search into
+def selectSampleSightings(sSample, dfAllSights):
+    
+    dfSampSights = dfAllSights
+    for col, values in sSample.items():
+        values = str(values) # For ints as strings that get forced to int in io sometimes (ex. from_excel)
+        if '+' in values:
+            dfSampSights = dfSampSights[dfSampSights[col].astype(str).isin(values.split('+'))]
+        else:
+            dfSampSights = dfSampSights[dfSampSights[col].astype(str) == values]
+
+    return dfSampSights
+    
+# Add "abscence" sightings to field data collected on transects for a given sample
+# * dfInSights : input data table
+# * sampleCols : the names of the other sample id columns (taxon id not included)
+# * dfExpdTransects : the expected transects, as a data frame indexed by the transectId,
+#     an index with same name as the corresponding colum in dfInSights,
+#     and with other info columns to duplicate in absence sightings
+def addAbsenceSightings(dfInSights, sampleCols, dfExpdTransects):
+    
+    assert not dfInSights.empty, 'Error : Empty sightings data to complete !'
+
+    # Use the 1st sightings of the sample to build the absence sightings prototype
+    # (all null columns except for the sample identification ones, lefts as is)
+    dAbscSightTmpl = dfInSights.iloc[0].to_dict()
+    dAbscSightTmpl.update({ k: None for k in dAbscSightTmpl.keys() if k not in sampleCols })
+    dAbscSightTmpl
+
+    # Determine missing transects for the sample
+    transectIdCol = dfExpdTransects.index.name
+    dfSampTransects = dfInSights.drop_duplicates(subset=transectIdCol)
+    dfSampTransects.set_index(transectIdCol, inplace=True)
+    dfSampTransects = dfSampTransects[dfExpdTransects.columns]
+
+    dfMissgTransects = dfExpdTransects.loc[dfExpdTransects.index.difference(dfSampTransects.index)]
+
+    # Generate the abscence sightings : 1 row per missing transect
+    ldAbscSights = list()
+
+    for _, sMissgTrans in dfMissgTransects.reset_index().iterrows():
+
+        dAbscSight = dAbscSightTmpl.copy() # Copy template sightings
+        dAbscSight.update(sMissgTrans.to_dict()) # Update transect columns only
+
+        ldAbscSights.append(dAbscSight)
+
+    # Add them to the input sightings
+    return dfInSights.append(pd.DataFrame(pd.DataFrame(ldAbscSights)))
 
 
 if __name__ == '__main__':
