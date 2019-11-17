@@ -101,7 +101,7 @@ class DSEngine(object):
     # Possible regexps for auto-detection of columns to import from data sets / export
     # TODO: Complete for non 'Point transect' modes
     ImportFieldAliasREs = \
-        odict([('STR_LABEL', ['region', 'zone', 'strate', 'stratum']),
+        odict([('STR_LABEL', ['region', 'zone', 'secteur', 'strate', 'stratum']),
                ('STR_AREA', ['surface', 'area', 'ha', 'km2']),
                ('SMP_LABEL', ['point', 'lieu', 'location']),
                ('SMP_EFFORT', ['effort', 'passages', 'surveys', 'samplings']),
@@ -543,6 +543,30 @@ class MCDSEngine(DSEngine):
         
         return self.dataFileName
     
+    # Run status codes (from MCDS documentation)
+    RCNotRun      = 0
+    RCOK          = 1
+    RCWarnings    = 2
+    RCErrors      = 3
+    RCFileErrors  = 4
+    RCOtherErrors = 5 # and above.
+    
+    @classmethod
+    def wasRun(cls, runCode):
+        return runCode != cls.RCNotRun
+    
+    @classmethod
+    def success(cls, runCode):
+        return runCode == cls.RCOK
+    
+    @classmethod
+    def warnings(cls, runCode):
+        return runCode == cls.RCWarnings
+    
+    @classmethod
+    def errors(cls, runCode):
+        return runCode >= cls.RCErrors
+    
     # Run MCDS
     def run(self, dataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
@@ -565,7 +589,7 @@ class MCDSEngine(DSEngine):
         else:
             print('Not running MCDS :', cmd)
             self.runTime = pd.NaT
-            self.runStatus = 0
+            self.runStatus = self.RCNotRun
 
         return self.runStatus, self.runTime, self.runDir
     
@@ -818,13 +842,26 @@ class MCDSAnalysis(DSAnalysis):
                                    self.runStatus, self.runTime, self.runDir],
                              index=self.MIRunColumns)
         
-        if self.runStatus in [1, 2]:
+        if self.success() or self.warnings():
             sResults = sResults.append(self.engine.decodeStats())
             
         print()
         
+        # Return a result, event if not run or MCDS crashed or ...
         return sResults
     
+    def wasRun(self):
+        return self.engine.wasRun(self.runStatus)
+    
+    def success(self):
+        return self.engine.success(self.runStatus)
+    
+    def warnings(self):
+        return self.engine.warnings(self.runStatus)
+    
+    def errors(self):
+        return self.engine.errors(self.runStatus)
+
 # A tabular input data set for multiple analyses, with 1 or 0 individual per row
 # Warning:
 # * Only Point transect supported as for now
@@ -1052,7 +1089,8 @@ class MCDSResultsSet(ResultsSet):
     DeltaAicColInd = ('detection probability', 'Delta AIC', 'Value')
     Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
 
-    def __init__(self, miCustomCols=None, dfCustomColTrans=None):
+    # * miSampleCols : defaults to miCustomCols if None
+    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None):
         
         # Setup computed columns specs.
         dCompCols = odict([(self.DeltaAicColInd, 22), # Right before AIC
@@ -1065,6 +1103,13 @@ class MCDSResultsSet(ResultsSet):
         super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
                                        dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
         
+        self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
+        
+    # Get translate names of custom columns
+    def transSampleColumns(self, lang):
+        
+        return self.dfCustomColTrans.loc[self.miSampleCols, lang].to_list()
+    
     # Post-computations.
     def postComputeColumns(self):
         
@@ -1073,7 +1118,7 @@ class MCDSResultsSet(ResultsSet):
         # Compute Delta AIC (AIC - min(group)) per { species, periods, precision, duration } group.
         # a. Minimum AIC per group
         aicColInd = ('detection probability', 'AIC value', 'Value')
-        aicGroupColInds = [('sample', 'Sample', 'Value')]
+        aicGroupColInds = self.miSampleCols.to_list()
         df2Join = self._dfData.groupby(aicGroupColInds)[[aicColInd]].min()
         
         # b. Rename computed columns to target
@@ -1188,11 +1233,22 @@ class ResultsReport(object):
         return self.tmplEnv
     
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
+    # in the "one analysis at a time" case.
     # (sort, convert units, round values, and style).
     # To be specialized in derived classes (here, we do nothing) !
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatDataOneAnalysisData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+        
+        return dfTrData.style # Nothing done here, specialize in derived class if needed.
+
+    # Final formatting of translated data tables, for HTML or SpreadSheet rendering
+    # in the "all analyses at once" case.
+    # (sort, convert units, round values, and style).
+    # To be specialized in derived classes (here, we do nothing) !
+    # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
+    # Return a pd.DataFrame.Styler
+    def finalFormatDataAllAnalysesData(self, dfTrData, sort=True, convert=True, round=True, style=True):
         
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
@@ -1333,7 +1389,7 @@ class ResultsFullReport(ResultsReport):
         return dPlots
     
     # Top page
-    def toHtmlTop(self):
+    def toHtmlAllAnalyses(self):
         
         print('Top page ...')
         
@@ -1347,11 +1403,11 @@ class ResultsFullReport(ResultsReport):
         
         # b. Links to each analysis detailled report.
         dfSyn.index = \
-            dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
+            dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
                                    .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
        
         # c. Post-format as specified in actual class.
-        dfsSyn = self.finalFormatData(dfSyn)
+        dfsSyn = self.finalFormatAllAnalysesData(dfSyn)
 
         # Generate post-processed and translated detailed table.
         dfDet = self.resultsSet.dfTransData(self.lang)
@@ -1365,11 +1421,11 @@ class ResultsFullReport(ResultsReport):
        
         # b. Links to each analysis detailed report.
         dfDet.index = \
-            dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
+            dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
                                    .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
         
         # c. Post-format as specified in actual class.
-        dfsDet = self.finalFormatData(dfDet, convert=False, round=False)
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, convert=False, round=False)
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -1390,7 +1446,7 @@ class ResultsFullReport(ResultsReport):
     
     # Analyses pages.
     PlotImgFormat = 'png'
-    def toHtmlAnalyses(self):
+    def toHtmlOneAnalysis(self):
         
         # Generate translated synthesis and detailed tables.
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
@@ -1400,7 +1456,7 @@ class ResultsFullReport(ResultsReport):
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons)
         #    with the sorted order if any
-        dfSynthRes = self.finalFormatData(dfSynthRes, convert=False, round=False, style=False).data
+        dfSynthRes = self.finalFormatOneAnalysisData(dfSynthRes, convert=False, round=False, style=False).data
         sCurrUrl = dfSynthRes[self.trRunFolderCol]
         sCurrUrl = sCurrUrl.apply(lambda path: self.targetFilePathName(tgtFolder=path, prefix='index', suffix='.html'))
         sCurrUrl = sCurrUrl.apply(lambda path: os.path.relpath(path, self.tgtFolder).replace(os.sep, '/'))
@@ -1422,19 +1478,19 @@ class ResultsFullReport(ResultsReport):
             # Postprocess synthesis table :
             dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
             dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n+1))
-            dfsSyn = self.finalFormatData(dfSyn)
+            dfsSyn = self.finalFormatOneAnalysisData(dfSyn)
             
             # Postprocess detailed table :
             dfDet = dfDetRes.loc[lblAnlys].to_frame().T
             dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n+1))
-            dfsDet = self.finalFormatData(dfDet, convert=False, round=False)
+            dfsDet = self.finalFormatOneAnalysisData(dfDet, convert=False, round=False)
             
             # Generate analysis report page.
             genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
             subTitle = 'Analyse {:03d} : {}'.format(lblAnlys+1, self.anlysSubTitle)
             sAnlysUrls = dfAnlysUrls.loc[lblAnlys]
-            html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=True),
-                               details=dfsDet.render(), #(escape=False, index=True),
+            html = tmpl.render(synthesis=dfsSyn.render(),
+                               details=dfsDet.render(),
                                log=engineClass.decodeLog(anlysFolder),
                                output=engineClass.decodeOutput(anlysFolder),
                                plots=self.generatePlots(engineClass.decodePlots(anlysFolder),
@@ -1458,10 +1514,10 @@ class ResultsFullReport(ResultsReport):
         self.installAttFiles(self.AttachedFiles)
             
         # Generate full report page for each analysis
-        topHtmlPathName = self.toHtmlTop()
+        topHtmlPathName = self.toHtmlAllAnalyses()
 
         # Generate report page for each analysis
-        self.toHtmlAnalyses()
+        self.toHtmlOneAnalysis()
 
         print('... done.')
                 
@@ -1484,7 +1540,7 @@ class ResultsFullReport(ResultsReport):
             if DSAnalysis.RunFolderColumn in self.synthCols:                
                 dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(toHyperlink)
             
-            dfsSyn = self.finalFormatData(dfSyn)
+            dfsSyn = self.finalFormatAllAnalysesData(dfSyn)
             
             dfsSyn.to_excel(xlsxWriter, sheet_name=self.tr('Synthesis'), index=True)
             
@@ -1494,142 +1550,11 @@ class ResultsFullReport(ResultsReport):
             dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
             
-            dfsDet = self.finalFormatData(dfDet, convert=False, round=False)
+            dfsDet = self.finalFormatAllAnalysesData(dfDet, convert=False, round=False)
             
             dfsDet.to_excel(xlsxWriter, sheet_name=self.tr('Details'), index=True)
 
         return xlsxPathName
-
-# Results pre-reports class 
-# (HTML only, targeting very simple mono-table synthesis for fully automatic pre-analyses,
-#  in order to give the user hints about what analyses are to be done, and with what parameter values).
-class ResultsPreReport(ResultsFullReport):
-
-    # Translation table.
-    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
-                       'Synthesis table': 'Synthesis table',
-                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'Sample': 'Sample', 'Parameters': 'Parameters', 'Results': 'Results',
-                       'PDF': 'Detection probability density',
-                       'Detailed results': 'Detailed results',
-                       'Download Excel': 'Download as Excel(TM) file',
-                       'Summary computation log': 'Summary computation log',
-                       'Detailed computation log': 'Detailed computation log',
-                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
-                       'Back to top': 'Back to global report',
-                       'Page generated with': 'Page générée via', 'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' },
-                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
-                       'Synthesis table': 'Tableau de synthèse',
-                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'Sample': 'Echantillon', 'Parameters': 'Paramètres', 'Results': 'Résultats',
-                       'PDF': 'Densité de probabilité de détection',
-                       'Detailed results': 'Résultats en détails',
-                       'Download Excel': 'Télécharger le classeur Excel (TM)',
-                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
-                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
-                       'Back to top': 'Retour au rapport global',
-                       'Page generated with': 'Page generated with', 'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' })
-
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                       sampleCols, paramCols, resultCols, anlysSynthCols=None, 
-                       dCustomTrans=dict(), pdfPlotHeight=256, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
-    
-        super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         synthCols=anlysSynthCols, dCustomTrans=dCustomTrans, lang=lang,
-                         attachedDir=attachedDir, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
-    
-        self.sampleCols = sampleCols
-        self.paramCols = paramCols
-        self.resultCols = resultCols
-        self.pdfPlotHeight = pdfPlotHeight
-
-    @staticmethod
-    def series2VertTable(ser):
-        
-        def float2str(v): # Workaround to_html non transparent default float format (!?)
-            return '{:g}'.format(v)
-        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, float_format=float2str))
-    
-        #return ''.join('<p>{}: {}</p>'.format(k, v) for k, v in dictOrSeries.items())
-        
-    def pdfImageHtmlElement(self, runFolder):
-        
-        for pdfInd in range(3, 0, -1):
-            pdfFileName = '{}{}.{}'.format(self.PlotImgPrfxProbDens, pdfInd, self.PlotImgFormat)
-            if os.path.isfile(os.path.join(runFolder, pdfFileName)):
-                return '<img src="./{}/{}" style="height: {}px" />' \
-                       .format(self.relativeRunFolderUrl(runFolder), pdfFileName, self.pdfPlotHeight)
-        
-        return 'PDF image file not found'
-        
-    # Top page
-    def toHtmlTop(self):
-        
-        print('Top page ...')
-        
-        # Generate the table to display from raw results (index + 4 columns : sample, params, results, PDF plot)
-        # 1. Get translated and post-formated detailed results
-        dfDet = self.resultsSet.dfTransData(self.lang)
-        dfsDet = self.finalFormatData(dfDet)
-        dfDet = dfsDet.data
-
-        # 2. Translate sample, parameter and result columns
-        dTransResCol = self.resultsSet.transTable()
-        sampleTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.sampleCols]
-        paramTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.paramCols]
-        resultTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
-        
-        # 3. Fill target table index and columns
-        dfSyn = pd.DataFrame(dict(Sample=dfDet[sampleTrCols].apply(self.series2VertTable, axis='columns'),
-                                  Parameters=dfDet[paramTrCols].apply(self.series2VertTable, axis='columns'),
-                                  Results=dfDet[resultTrCols].apply(self.series2VertTable, axis='columns'),
-                                  PDF=dfDet[self.trRunFolderCol].apply(self.pdfImageHtmlElement)))
-        
-        dfSyn.index = \
-            dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:03d}</a>' \
-                                   .format(p=self.relativeRunFolderUrl(an[self.trRunFolderCol]), n=an.name+1),
-                        axis='columns')
-        
-        # 4. Translate table columns.
-        dfSyn.columns = [self.tr(col) for col in dfSyn.columns]
-
-        self.dfSyn = dfSyn
-        
-        # Generate top report page.
-        genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-        tmpl = self.getTemplateEnv().get_template('autods-pretop.htpl')
-        xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
-        html = tmpl.render(synthesis=dfSyn.to_html(escape=False),
-                           title=self.title, subtitle=self.subTitle, keywords=self.keywords,
-                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang], genDateTime=genDateTime)
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
-
-        # Write top HTML to file.
-        htmlPathName = self.targetFilePathName(suffix='.html')
-        with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
-            tgtFile.write(html)
-
-        return htmlPathName
-    
-    # HTML report generation (based on results.dfTransData).
-    def toHtml(self):
-        
-        # Install needed attached files.
-        self.installAttFiles(self.AttachedFiles)
-            
-        # Generate full report page for each analysis
-        # (done first to have PDF image files generated for top report page generation just below).
-        self.toHtmlAnalyses()
-        
-        # Generate top report page.
-        topHtmlPathName = self.toHtmlTop()
-
-        print('... done.')
-                
-        return topHtmlPathName
-
 
 # A specialized full report for MCDS analyses, with actual output formating
 class MCDSResultsFullReport(ResultsFullReport):
@@ -1649,10 +1574,11 @@ class MCDSResultsFullReport(ResultsFullReport):
                       " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                       synthCols=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+                       synthCols=None, dCustomTrans=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         synthCols, self.DCustTrans, lang, attachedDir, tgtFolder, tgtPrefix)
+                         synthCols, self.DCustTrans if dCustomTrans is None else dCustomTrans,
+                         lang, attachedDir, tgtFolder, tgtPrefix)
         
     # Styling colors
     cChrGray = '#869074'
@@ -1694,17 +1620,25 @@ class MCDSResultsFullReport(ResultsFullReport):
             return short.translate(str.maketrans({c:'' for c in '[] '})).replace('.0,', ',')
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
+    # in the "all analyses at once" case.
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round=True, style=True):
         
         # Sorting
         df = dfTrData
         if sort:
+            # Temporarily add a sample Id column for sorting by (assuming analysis have been run as grouped by sample)
+            sampleIdCols = self.resultsSet.transSampleColumns(self.lang)
+            df.insert(0, column='#Sample#', value=df.groupby(sampleIdCols, sort=False).ngroup())
             
-            df.sort_values(by=[col for col in self.trEnColNames(['Sample', 'Delta AIC']) if col in df.columns], 
-                           ascending=[True, True], inplace=True)
+            # Sort
+            sortCols = ['#Sample#'] + [col for col in self.trEnColNames(['Delta AIC']) if col in df.columns]
+            df.sort_values(by=sortCols, ascending=True, inplace=True)
+            
+            # Clean-up
+            df.drop(columns=['#Sample#'], inplace=True)
         
         # Converting to other units, or so.
         kVarDens = 1.0
@@ -1737,7 +1671,7 @@ class MCDSResultsFullReport(ResultsFullReport):
         if style:
             
             col = self.trEnColNames('Delta AIC')
-            if col in df.columns:
+            if col in df.columns and df[col].max() > 0: # if all delta AIC == 0, no need to stress it.
                 dfs.set_properties(subset=pd.IndexSlice[df[df[col] == 0].index, :],
                                    **{'background-color': self.cBckGreen})
                
@@ -1769,9 +1703,45 @@ class MCDSResultsFullReport(ResultsFullReport):
         
         return dfs
 
+    # Final formatting of translated data tables, for HTML or SpreadSheet rendering
+    # in the "one analysis at a time" case.
+    # (sort, convert units, round values, and style).
+    # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
+    # Return a pd.DataFrame.Styler
+    finalFormatOneAnalysisData = finalFormatAllAnalysesData
 
-# A specialized full report for MCDS analyses, with actual output formating
-class MCDSResultsPreReport(ResultsPreReport):
+
+# A specialized pre-report for MCDS analyses, with actual output formating
+# (HTML only, targeting very simple mono-table synthesis for fully automatic pre-analyses,
+#  in order to give the user hints about what analyses are to be done, and with what parameter values).
+class MCDSResultsPreReport(MCDSResultsFullReport):
+
+    # Translation table.
+    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
+                       'Synthesis table': 'Synthesis table',
+                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
+                       'Sample': 'Sample', 'Parameters': 'Parameters', 'Results': 'Results',
+                       'PDF': 'Detection probability density',
+                       'Detailed results': 'Detailed results',
+                       'Download Excel': 'Download as Excel(TM) file',
+                       'Summary computation log': 'Summary computation log',
+                       'Detailed computation log': 'Detailed computation log',
+                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
+                       'Back to top': 'Back to global report',
+                       'Page generated with': 'Page générée via', 'with icons from': 'avec les pictogrammes de',
+                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' },
+                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
+                       'Synthesis table': 'Tableau de synthèse',
+                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
+                       'Sample': 'Echantillon', 'Parameters': 'Paramètres', 'Results': 'Résultats',
+                       'PDF': 'Densité de probabilité de détection',
+                       'Detailed results': 'Résultats en détails',
+                       'Download Excel': 'Télécharger le classeur Excel (TM)',
+                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
+                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
+                       'Back to top': 'Retour au rapport global',
+                       'Page generated with': 'Page generated with', 'with icons from': 'with icons from',
+                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' })
 
     DCustTrans = \
         dict(en={ 'Note: Some figures rounded or converted': 
@@ -1792,20 +1762,26 @@ class MCDSResultsPreReport(ResultsPreReport):
                        pdfPlotHeight=256, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         sampleCols, paramCols, resultCols, anlysSynthCols,
-                         self.DCustTrans, pdfPlotHeight, lang, attachedDir, tgtFolder, tgtPrefix)
+                         synthCols=anlysSynthCols, dCustomTrans=self.DCustTrans, lang=lang,
+                         attachedDir=attachedDir, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
+        self.sampleCols = sampleCols
+        self.paramCols = paramCols
+        self.resultCols = resultCols
+        self.pdfPlotHeight = pdfPlotHeight
+
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
+    # in the "one analysis at a time" case.
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatAllAnalysisData(self, dfTrData, sort=True, convert=True, round=True, style=True):
         
         # Sorting
         df = dfTrData
         if sort:
             
-            pass # No sort to be done here
+            pass # No sorting to be done here
         
         # Converting to other units, or so.
         kVarDens = 1.0
@@ -1836,6 +1812,91 @@ class MCDSResultsPreReport(ResultsPreReport):
             pass # No styling to be done here.
         
         return dfs
+
+    @staticmethod
+    def series2VertTable(ser):
+        
+        def float2str(v): # Workaround to_html non transparent default float format (!?)
+            return '{:g}'.format(v)
+        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, float_format=float2str))
+    
+        #return ''.join('<p>{}: {}</p>'.format(k, v) for k, v in dictOrSeries.items())
+        
+    def pdfImageHtmlElement(self, runFolder):
+        
+        for pdfInd in range(3, 0, -1):
+            pdfFileName = '{}{}.{}'.format(self.PlotImgPrfxProbDens, pdfInd, self.PlotImgFormat)
+            if os.path.isfile(os.path.join(runFolder, pdfFileName)):
+                return '<img src="./{}/{}" style="height: {}px" />' \
+                       .format(self.relativeRunFolderUrl(runFolder), pdfFileName, self.pdfPlotHeight)
+        
+        return 'PDF image file not found'
+        
+    # Top page
+    def toHtmlAllAnalyses(self):
+        
+        print('Top page ...')
+        
+        # Generate the table to display from raw results (index + 4 columns : sample, params, results, PDF plot)
+        # 1. Get translated and post-formated detailed results
+        dfDet = self.resultsSet.dfTransData(self.lang)
+        dfsDet = self.finalFormatAllAnalysesData(dfDet)
+        dfDet = dfsDet.data
+
+        # 2. Translate sample, parameter and result columns
+        dTransResCol = self.resultsSet.transTable()
+        sampleTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.sampleCols]
+        paramTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.paramCols]
+        resultTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
+        
+        # 3. Fill target table index and columns
+        dfSyn = pd.DataFrame(dict(Sample=dfDet[sampleTrCols].apply(self.series2VertTable, axis='columns'),
+                                  Parameters=dfDet[paramTrCols].apply(self.series2VertTable, axis='columns'),
+                                  Results=dfDet[resultTrCols].apply(self.series2VertTable, axis='columns'),
+                                  PDF=dfDet[self.trRunFolderCol].apply(self.pdfImageHtmlElement)))
+        
+        dfSyn.index = \
+            dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
+                                   .format(p=self.relativeRunFolderUrl(an[self.trRunFolderCol]), n=an.name+1),
+                        axis='columns')
+        
+        # 4. Translate table columns.
+        dfSyn.columns = [self.tr(col) for col in dfSyn.columns]
+
+        self.dfSyn = dfSyn
+        
+        # Generate top report page.
+        genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        tmpl = self.getTemplateEnv().get_template('autods-pretop.htpl')
+        xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
+        html = tmpl.render(synthesis=dfSyn.to_html(escape=False),
+                           title=self.title, subtitle=self.subTitle, keywords=self.keywords,
+                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang], genDateTime=genDateTime)
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
+
+        # Write top HTML to file.
+        htmlPathName = self.targetFilePathName(suffix='.html')
+        with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
+            tgtFile.write(html)
+
+        return htmlPathName
+    
+    # HTML report generation (based on results.dfTransData).
+    def toHtml(self):
+        
+        # Install needed attached files.
+        self.installAttFiles(self.AttachedFiles)
+            
+        # Generate full report page for each analysis
+        # (done first to have PDF image files generated for top report page generation just below).
+        self.toHtmlOneAnalysis()
+        
+        # Generate top report page.
+        topHtmlPathName = self.toHtmlAllAnalyses()
+
+        print('... done.')
+                
+        return topHtmlPathName
 
 
 # Utilities for feeding DataSet instances. #####################
@@ -2006,6 +2067,17 @@ def addAbsenceSightings(dfInSights, sampleCols, dfExpdTransects):
     # Add them to the input sightings
     return dfInSights.append(pd.DataFrame(pd.DataFrame(ldAbscSights)))
 
+# Add survey area information to sightings data (in-place modification)
+# * dfInSights : input data table
+# * dAreaInfo : a column name to scalar or list-like dictionary-like data to add to the table
+#               (list-like data must match in length with the input table index)
+def addSurveyAreaInfo(dfInSights, dAreaInfo):
+    
+    for col, values in dAreaInfo.items():
+        dfInSights[col] = values
+        
+    return dInSights
+    
 
 if __name__ == '__main__':
 
