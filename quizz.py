@@ -387,7 +387,7 @@ _KHtmlQuizz = """
   
               {% for exr in quiz.exercices %}
   
-                <h4 id="{{quiz.id}}.{{exr.id}}">{{exr.index}}. {{exr.titre}}</h4>
+                <h4 id="{{quiz.id}}.{{etape.id}}.{{exr.id}}">{{exr.index}}. {{exr.titre}}</h4>
                 <div class="chapter" style="margin-left: 10px"> <!-- contenu exercice -->
   
                   <p>{{exr.lieu}}{{ ' (altitude %d m)' % exr.altitude if exr.altitude is not none }},
