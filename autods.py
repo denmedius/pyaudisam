@@ -399,7 +399,7 @@ class MCDSEngine(DSEngine):
                      End;
                      Data /Structure=Flat;
                      Fields={dataFields};
-                     Infile={dataFileName} /NoEcho;
+                     Infile={dataFileName} /{echoData};
                      End;
                      Estimate;
                      Distance{distDiscrSpecs};
@@ -420,6 +420,8 @@ class MCDSEngine(DSEngine):
     def buildCmdFile(self, **params):
 
         # Default params values
+        if 'logData' not in params:
+            params['logData'] = False
         if 'estimKeyFn' not in params:
             params['estimKeyFn'] = self.EstKeyFnDef
         if 'estimAdjustFn' not in params:
@@ -477,6 +479,7 @@ class MCDSEngine(DSEngine):
                                     survType=self.options.surveyType, distType=self.options.distanceType,
                                     distUnit=self.options.distanceUnit, areaUnit=self.options.areaUnit,
                                     dataFields=', '.join(self.dataFields), dataFileName=self.dataFileName,
+                                    echoData=('' if params['logData'] else 'No') + 'Echo',
                                     estKeyFn=params['estimKeyFn'], estAdjustFn=params['estimAdjustFn'],
                                     estCriterion=params['estimCriterion'], cvInterv=params['cvInterval'],
                                     distDiscrSpecs=distDiscrSpecs, gOFitSpecs=gOFitSpecs)
@@ -746,13 +749,14 @@ class MCDSAnalysis(DSAnalysis):
             if maxDist is not None:
                 assert distCuts[-1] < maxDist, 'Invalid last distance cut {}; should be empty < {}'.format(distCuts[-1], maxDist)
     
-    def __init__(self, engine, dataSet, name=None,
+    def __init__(self, engine, dataSet, name=None, logData=False,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
                  fitDistCuts=EngineClass.DistFitCutsDef, discrDistCuts=EngineClass.DistDiscrCutsDef):
         
         """
+            :param logData: if True, print input data in output log
             :param minDist: None or >=0 
             :param maxDist: None or > :param minDist:
             :param fitDistCuts: None or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
@@ -797,6 +801,7 @@ class MCDSAnalysis(DSAnalysis):
         super().__init__(engine, dataSet, name)
         
         # Save params.
+        self.logData = logData
         self.estimKeyFn = estimKeyFn
         self.estimAdjustFn = estimAdjustFn
         self.estimCriterion = estimCriterion
@@ -830,7 +835,7 @@ class MCDSAnalysis(DSAnalysis):
     def run(self, realRun=True):
         
         self.runStatus, self.runTime, self.runDir = \
-            self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun,
+            self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun, logData=self.logData,
                             estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
                             estimCriterion=self.estimCriterion, cvInterval=self.cvInterval,
                             minDist=self.minDist, maxDist=self.maxDist,
@@ -2101,13 +2106,13 @@ def selectSampleSightings(sSample, dfAllSights):
     
 # Add "abscence" sightings to field data collected on transects for a given sample
 # * dfInSights : input data table
-# * sampleCols : the names of the other sample id columns (taxon id not included)
+# * sampleCols : the names of the sample identification columns
 # * dfExpdTransects : the expected transects, as a data frame indexed by the transectId,
-#     an index with same name as the corresponding colum in dfInSights,
+#     an index with same name as the corresponding column in dfInSights,
 #     and with other info columns to duplicate in absence sightings
 def addAbsenceSightings(dfInSights, sampleCols, dfExpdTransects):
     
-    assert not dfInSights.empty, 'Error : Empty sightings data to complete !'
+    assert not dfInSights.empty, 'Error : Empty sightings data to add absence ones to !'
 
     # Use the 1st sightings of the sample to build the absence sightings prototype
     # (all null columns except for the sample identification ones, lefts as is)
