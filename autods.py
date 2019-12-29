@@ -212,7 +212,7 @@ class MCDSEngine(DSEngine):
     EstAdjustFns = ['POLY', 'HERMITE', 'COSINE']
     EstAdjustFnDef = EstAdjustFns[0]
 
-    # Estimator key functions (Order: Distance .chm doc, "MCDS Engine Stats File", note 2 below second table).
+    # Estimator adjustment terms selection criterion.
     EstCriterions = ['AIC', 'AICC', 'BIC', 'LR']
     EstCriterionDef = EstCriterions[0]
     
@@ -737,7 +737,7 @@ class MCDSAnalysis(DSAnalysis):
     def checkDistCuts(distCuts, minDist, maxDist):
         if distCuts is None:
             return # OK !
-        if isinstance(distCuts, int):
+        if isinstance(distCuts, int) or isinstance(distCuts, float):
             assert distCuts > 1, 'Invalid number of distance cuts {}; should be None or > 1'.format(distCuts)
         elif isinstance(distCuts, list):
             assert len(distCuts) > 0, 'Invalid distance cut list {}; should not be empty'.format(distCuts)
@@ -757,14 +757,14 @@ class MCDSAnalysis(DSAnalysis):
         
         """
             :param logData: if True, print input data in output log
-            :param minDist: None or >=0 
-            :param maxDist: None or > :param minDist:
-            :param fitDistCuts: None or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
+            :param minDist: None or NaN or >=0 
+            :param maxDist: None or NaN or > :param minDist:
+            :param fitDistCuts: None or NaN or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
                                 or list of distance values inside [:param minDist:, :param maxDist:]
-                                ... for model fitting
-            :param discrDistCuts: None or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
+                                ... for _model_fitting_
+            :param discrDistCuts: None or NaN or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
                                 or list of distance values inside [:param minDist:, :param maxDist:]
-                                ... for distance values discretisation
+                                ... for _distance_values_discretisation_
         """
         
         # Check engine
@@ -781,12 +781,20 @@ class MCDSAnalysis(DSAnalysis):
                'Invalid estimate criterion {}: should be in {}'.format(estimCriterion, engine.EstCriterions)
         assert cvInterval > 0 and cvInterval < 100, \
                'Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%[')
+        if isinstance(minDist, float) and np.isnan(minDist):
+            minDist = None # enforce minDist NaN => None for later
         assert minDist is None or minDist >= 0, \
-               'Invalid left truncation distance {}: should be None or >= 0'.format(minDist)
+               'Invalid left truncation distance {}: should be None/NaN or >= 0'.format(minDist)
+        if isinstance(maxDist, float) and np.isnan(maxDist):
+            maxDist = None # enforce maxDist NaN => None for later
         assert maxDist is None or minDist is None or minDist <= maxDist, \
                'Invalid right truncation distance {}:' \
-               ' should be None or >= left truncation distance if specified, or >= 0'.format(maxDist)
+               ' should be None/NaN or >= left truncation distance if specified, or >= 0'.format(maxDist)
+        if isinstance(fitDistCuts, float) and np.isnan(fitDistCuts):
+            fitDistCuts = None # enforce fitDistCuts NaN => None for later
         self.checkDistCuts(fitDistCuts, minDist, maxDist)
+        if isinstance(discrDistCuts, float) and np.isnan(discrDistCuts):
+            discrDistCuts = None # enforce discrDistCuts NaN => None for later
         self.checkDistCuts(discrDistCuts, minDist, maxDist)
         
         # Build name from main params if not specified
@@ -921,6 +929,10 @@ class DataSet(object):
         self._dfData = dfData
         self.decimalFields = decimalFields
         
+    def __len__(self):
+        
+        return len(self._dfData)
+    
     @property
     def dfData(self):
         
@@ -1258,6 +1270,9 @@ class ResultsReport(object):
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
     
+# Stops heavy Matplotlib memory leak in XXXReport.generatePlots below
+plt.ioff()
+
 # Results full reports class (Excel and HTML, targeting similar result as in Distance 6+)
 class ResultsFullReport(ResultsReport):
 
@@ -1319,6 +1334,10 @@ class ResultsFullReport(ResultsReport):
         dPlots = dict()
         for title, pld in plotsData.items():
             
+            # Create the target figure and one-only subplot.
+            fig = plt.figure(figsize=figSize)
+            axes = fig.subplots()
+            
             # Plot a figure from the plot data (3 possible types, from title).
             if 'Qq-plot' in title:
                 
@@ -1329,9 +1348,9 @@ class ResultsFullReport(ResultsReport):
                                        columns=['If the fit was perfect ...', 'Real observations'],
                                        index=np.linspace(0.5/n, 1.0-0.5/n, n))
                 
-                axes = df2Plot.plot(figsize=figSize, color=trColors, grid=grid,
-                                    xlim=(pld['xMin'], pld['xMax']),
-                                    ylim=(pld['yMin'], pld['yMax']))
+                df2Plot.plot(ax=axes, color=trColors, grid=grid,
+                             xlim=(pld['xMin'], pld['xMax']),
+                             ylim=(pld['yMin'], pld['yMax']))
 
             elif 'Detection Probability' in title:
                 
@@ -1342,9 +1361,9 @@ class ResultsFullReport(ResultsReport):
                                                 pld['yLabel'] + ' (fitted)'])
                 df2Plot.set_index(pld['xLabel'], inplace=True)
                 
-                axes = df2Plot.plot(figsize=figSize, color=trColors, grid=grid,
-                                    xlim=(pld['xMin'], pld['xMax']), 
-                                    ylim=(pld['yMin'], pld['yMax']))
+                df2Plot.plot(ax=axes, color=trColors, grid=grid,
+                             xlim=(pld['xMin'], pld['xMax']), 
+                             ylim=(pld['yMin'], pld['yMax']))
                 
                 aMTicks = axes.get_xticks()
                 axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
@@ -1360,9 +1379,9 @@ class ResultsFullReport(ResultsReport):
                                                 pld['yLabel'] + ' (fitted)'])
                 df2Plot.set_index(pld['xLabel'], inplace=True)
                 
-                axes = df2Plot.plot(figsize=figSize, color=trColors, grid=grid,
-                                    xlim=(pld['xMin'], pld['xMax']), 
-                                    ylim=(pld['yMin'], pld['yMax']))
+                df2Plot.plot(ax=axes, color=trColors, grid=grid,
+                             xlim=(pld['xMin'], pld['xMax']), 
+                             ylim=(pld['yMin'], pld['yMax']))
         
                 aMTicks = axes.get_xticks()
                 axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
@@ -1383,10 +1402,14 @@ class ResultsFullReport(ResultsReport):
                 
             # Generate an image file for the plot figure (forcing the specified patch background color).
             tgtFileName = tgtFileName + '.' + imgFormat
-            axes.figure.savefig(os.path.join(tgtFolder, tgtFileName),
+            fig.savefig(os.path.join(tgtFolder, tgtFileName),
                                 box_inches='tight', transparent=transparent,
                                 facecolor=axes.figure.get_facecolor(), edgecolor='none')
-            plt.close(axes.figure)
+
+            # Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
+            axes.clear()
+            fig.clear()
+            plt.close(fig)
 
             # Save image URL.
             dPlots[title] = tgtFileName
@@ -1438,7 +1461,8 @@ class ResultsFullReport(ResultsReport):
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=False),
                            details=dfsDet.render(), #escape=False, index=False),
-                           title=self.title, subtitle=self.subTitle, keywords=self.keywords,
+                           title=self.title, subtitle=self.subTitle,
+                           description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang], genDateTime=genDateTime)
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
 
@@ -1875,7 +1899,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         tmpl = self.getTemplateEnv().get_template('autods-pretop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(synthesis=dfSyn.to_html(escape=False),
-                           title=self.title, subtitle=self.subTitle, keywords=self.keywords,
+                           title=self.title, subtitle=self.subTitle,
+                           description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang], genDateTime=genDateTime)
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
 
