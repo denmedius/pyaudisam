@@ -11,6 +11,7 @@
 
 import sys
 import os, shutil
+import pathlib as pl
 import copy
 import tempfile
 import argparse
@@ -29,6 +30,8 @@ import jinja2
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
 
+# Actual package install dir.
+KInstDirPath = pl.Path(__file__).parent.absolute()
 
 # DSEngine (abstract) classes.
 class DSEngine(object):
@@ -43,32 +46,30 @@ class DSEngine(object):
     
     # Distance software detection params.
     DistanceSuppVers = [7, 6] # Lastest first.
-    DistancePossInstPaths = [sys.path[0], 
-                             os.path.join('C:\\', 'Program files (x86)'),
-                             os.path.join('C:\\', 'Program files')]
+    DistancePossInstPaths = [pl.Path('C:/Program files (x86)'), pl.Path('C:/Program files'), KInstDirPath]
 
     # Find given executable installation dir.
+    # Note: MCDS.exe is an autonomous executable : simply put it in a "Distance 7" subfolder
+    #       of this package's one, and it'll work ! Or else install Distance 7 (or later) the normal way :-)
     @staticmethod
     def findExecutable(exeFileName):
 
         exeFilePathName = None
         print('Looking for {} ...'.format(exeFileName))
-        for path in DSEngine.DistancePossInstPaths:
-            for ver in DSEngine.DistanceSuppVers:
-                exeFileDir = os.path.join(path, 'Distance ' + str(ver))
-                print(' - checking {} : '.format(exeFileDir), end='')
-                if not os.path.exists(os.path.join(exeFileDir, exeFileName)):
+        for ver in DSEngine.DistanceSuppVers:
+            for path in DSEngine.DistancePossInstPaths:
+                exeFN = path / 'Distance {}'.format(ver) / exeFileName
+                print(' - checking {} : '.format(exeFN), end='')
+                if not exeFN.exists():
                     print('no.')
                 else:
                     print('yes !')
-                    exeFilePathName = os.path.join(exeFileDir, exeFileName)
+                    exeFilePathName = exeFN
                     break
             if exeFilePathName:
                 break
 
-        if exeFilePathName:
-            print('{} found in {}'.format(exeFileName, exeFileDir))
-        else:
+        if not exeFilePathName:
             raise Exception('Could not find {} ; please install Distance software (V6 or later)'.format(exeFileName))
             
         return exeFilePathName
@@ -92,7 +93,7 @@ class DSEngine(object):
         self.options = self.OptionsClass(**options) 
         
         # Check and prepare workdir if needed, and save.
-        assert all(c not in workDir for c in self.ForbidPathChars), \
+        assert all(c not in str(workDir) for c in self.ForbidPathChars), \
                'Invalid character from "{}" in workDir folder "{}"' \
                .format(''.join(self.ForbidPathChars), workDir)
         self.workDir = workDir
@@ -226,7 +227,7 @@ class MCDSEngine(DSEngine):
     DistDiscrCutsDef = None # Distance values discretisation : None (keep exact values).
 
     # Executable 
-    ExeFilePathName = DSEngine.findExecutable(exeFileName='MCDS.exe')
+    ExeFilePathName = DSEngine.findExecutable('MCDS.exe')
 
     # Output stats specs : load from external files (extracts from Distance doc).
     @classmethod
@@ -235,7 +236,7 @@ class MCDSEngine(DSEngine):
         print('MCDS : Loading output stats specs ...')
         
         # Output stats row specifications
-        fileName = 'mcds-stat-row-specs.txt'
+        fileName = KInstDirPath / 'mcds/stat-row-specs.txt'
         print('*', fileName)
         with open(fileName, mode='r', encoding='utf8') as fStatRowSpecs:
             statRowSpecLines = [line.rstrip('\n') for line in fStatRowSpecs.readlines() if not line.startswith('#')]
@@ -246,7 +247,7 @@ class MCDSEngine(DSEngine):
             assert not cls.DfStatRowSpecs.empty, 'Empty MCDS stats row specs'
         
         # Module and stats number to description table
-        fileName = 'mcds-stat-mod-specs.txt'
+        fileName = KInstDirPath / 'mcds/stat-mod-specs.txt'
         print('*', fileName)
         with open(fileName, mode='r', encoding='utf8') as fStatModSpecs:
             statModSpecLines = [line.rstrip('\n') for line in fStatModSpecs.readlines() if not line.startswith('#')]
@@ -297,7 +298,7 @@ class MCDSEngine(DSEngine):
         cls.MIStatModCols = pd.MultiIndex.from_tuples(indexItems)
     
         # Notes about stats.
-        fileName = 'mcds-stat-mod-notes.txt'
+        fileName = KInstDirPath / 'mcds/stat-mod-notes.txt'
         print('*', fileName)
         with open(fileName, mode='r', encoding='utf8') as fStatModNotes:
             statModNoteLines = [line.rstrip('\n') for line in fStatModNotes.readlines() if not line.startswith('#')]
@@ -306,7 +307,7 @@ class MCDSEngine(DSEngine):
             assert not cls.DfStatModNotes.empty, 'Empty MCDS stats module notes'
             
         # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
-        fileName = 'mcds-stat-mod-trans.txt'
+        fileName = KInstDirPath / 'mcds/stat-mod-trans.txt'
         print('*', fileName)
         cls.DfStatModColsTrans = pd.read_csv(fileName, sep='\t')
         cls.DfStatModColsTrans.set_index(['Module', 'Statistic', 'Figure'], inplace=True)
@@ -903,12 +904,15 @@ class DataSet(object):
     
     def __init__(self, source, decimalFields=list()):
         
-        assert (isinstance(source, str) and os.path.isfile(source)) \
+        if isinstance(source, str):
+            source = pl.Path(source)
+        
+        assert (isinstance(source, pl.Path) and source.exists()) \
                or isinstance(source, pd.DataFrame), \
                'source must be a pandas.DataFrame or an existing filename'
         
-        if isinstance(source, str):
-            ext = os.path.splitext(source)[1].lower()
+        if isinstance(source, pl.PurePath):
+            ext = source.suffix.lower()
             assert ext in self.SupportedFileExts, \
                    'Unsupported source file type {}: not from {{{}}}' \
                    .format(ext, ','.join(self.SupportedFileExts))
@@ -956,6 +960,9 @@ class ResultsSet(object):
                'customCols must be None or a pd.MultiIndex'
         assert miCustomCols is None or len(miCustomCols.levels) == 3, \
                'customCols must have 3 levels if not None'
+        if dComputedCols is None:
+            dComputedCols = dict()
+            dfComputedColTrans = pd.DataFrame()
         
         self.analysisClass = analysisClass
         self.engineClass = analysisClass.EngineClass
@@ -1028,7 +1035,8 @@ class ResultsSet(object):
             self.rightColOrder = True # No need to do it again, until next append() !
         
         # This is also documentation line !
-        assert isinstance(self._dfData.columns, pd.MultiIndex)
+        if not self._dfData.empty:
+            assert isinstance(self._dfData.columns, pd.MultiIndex)
         
         # Don't return columns with no relevant data.
         return self._dfData.dropna(how='all', axis='columns')
@@ -1234,16 +1242,15 @@ class ResultsReport(object):
     # Install needed attached files for HTML report.
     def installAttFiles(self, attFiles):
         
-        attSrcDir = os.path.join('AutoDS', 'report')
         for fn in attFiles:
-            shutil.copy(os.path.join(attSrcDir, fn), self.tgtFolder)        
+            shutil.copy(KInstDirPath / 'report' / fn, self.tgtFolder)        
     
     # Get Jinja2 template environment for HTML reports.
     def getTemplateEnv(self):
         
         # Build and configure jinja2 environnement if not already done.
         if self.tmplEnv is None:
-            self.tmplEnv = jinja2.Environment(loader=jinja2.FileSystemLoader('.'),
+            self.tmplEnv = jinja2.Environment(loader=jinja2.FileSystemLoader([KInstDirPath]),
                                               trim_blocks=True, lstrip_blocks=True)
             #self.tmplEnv.filters.update(trace=_jcfPrint2StdOut) # Template debugging ...
 
@@ -1270,9 +1277,6 @@ class ResultsReport(object):
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
     
-# Stops heavy Matplotlib memory leak in XXXReport.generatePlots below
-plt.ioff()
-
 # Results full reports class (Excel and HTML, targeting similar result as in Distance 6+)
 class ResultsFullReport(ResultsReport):
 
@@ -1330,6 +1334,11 @@ class ResultsFullReport(ResultsReport):
         
         imgFormat = imgFormat.lower()
         
+        # Stops heavy Matplotlib memory leak in XXXReport.generatePlots below (WTF !?)
+        wasInter = plt.isinteractive()
+        if wasInter:
+            plt.ioff()
+
         # For each plot, 
         dPlots = dict()
         for title, pld in plotsData.items():
@@ -1414,6 +1423,10 @@ class ResultsFullReport(ResultsReport):
             # Save image URL.
             dPlots[title] = tgtFileName
                 
+        # Restore pyplot interactive mode as it was before entering this function.
+        if wasInter:
+            plt.ion()
+
         return dPlots
     
     # Top page
@@ -1457,7 +1470,7 @@ class ResultsFullReport(ResultsReport):
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-        tmpl = self.getTemplateEnv().get_template('autods-top.htpl')
+        tmpl = self.getTemplateEnv().get_template('mcds/top.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=False),
                            details=dfsDet.render(), #escape=False, index=False),
@@ -1493,7 +1506,7 @@ class ResultsFullReport(ResultsReport):
 
         # 2. 2nd pass : Generate
         topHtmlPathName = self.targetFilePathName(suffix='.html')
-        tmpl = self.getTemplateEnv().get_template('autods-anlys.htpl')
+        tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
         engineClass = self.resultsSet.engineClass
         trCustCols = self.resultsSet.transCustomColumns(self.lang)
         
@@ -1896,7 +1909,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-        tmpl = self.getTemplateEnv().get_template('autods-pretop.htpl')
+        tmpl = self.getTemplateEnv().get_template('mcds/pretop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(synthesis=dfSyn.to_html(escape=False),
                            title=self.title, subtitle=self.subTitle,

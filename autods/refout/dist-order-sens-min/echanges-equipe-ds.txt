@@ -1,0 +1,163 @@
+TURMER	A+B=208	1 décimale	10 mn	Uniform Cos
+
+Auto. = bien mieux
+
+Win10 AutoMCDS et Win 7 Distance => différence :
+
+  . Distance Chi2p=5e-8, KSp=0 : Valeurs appelées "Mauvais" dans la suite
+  . Auto Chi2p=0.82, KSp=0.96 : Valeurs appelées "Bon" dans la suite
+  . Tableau de résultats des combinaisons possibles outil - données :
+  
+             Données   Distance   AutoDS  Distance +Espace  +PtZero     +Tri
+     Win7 Distance     Mauvais      _
+     Win7 mcds.exe     Mauvais     Bon
+     Win10 AutoDS         _        Bon
+     Win10 mcds.exe    Mauvais     Bon            Mauvais    Mauvais    Mauvais
+	 
+=> Pb de formatage des données ?
+    - cmd-win10-data-dist-esp : suppression espace avant valeurs distance, et distance + effort : Mauvais
+    - cmd-win10-data-dist-ptz : Ajout de .0 à la fin des distance entières : Mauvais
+	
+=> Pb d'ordre des données (en respectant le tri par point) ?
+    - cmd-win10-data-dist-tri : tri des données par point et par dists croissantes (différent des 2 autres cas) : Mauvais
+
+
+NB: source TURMER = refin\ACDC2019-Papyrus-DonneesBrutesPourAutoDS.xlsx (en fait, tout ACDC 2019 papier)
+	. NB: sélection via filtre auto. Excel TURMER => même ordre que refin/ACDC2019-Papyrus-TURMER-AB-10mn-1dec-dist.txt
+	. source pour calcul distance = refin/ACDC2019-Papyrus-TURMER-AB-10mn-1dec-dist.txt
+	  généré à partir de refin\ACDC2019-Papyrus-DonneesBrutesPourAutoDS.xlsx
+	  mais qui donne un fichier d'entrée pour MCDS d'ordre différent
+	  (et avec des espaces en plus dans les colonnes numérique, et les distances entières non terminées par .0)
+	. source pour calculs Auto = le même fichier refin/ACDC2019-Papyrus-TURMER-AB-10mn-1dec-dist.txt
+	  qui donne un fichier d'entrée pour MCDS de même ordre exactement
+	. NB: le tri croissant par point est cependant respecté dans TOUS les cas (Distance et Auto)
+	. dans Distance, 1 seule analyse = la cible modèle Uniform Cos
+	
+Ordre des données et DS :
+- Distance change parfois l'ordre des données qu'on lui fournit lors de l'import,
+   lors de la génération du fichier d'entrée pour MCDS (pas pour l'affichage dans l'interface)
+   (Cf. ex. ci-dessus), qu'elles soient triées par point ou pas au préalable
+- Cet ordre semble :
+  * ne PAS avoir d'importance pour AIC, GOF (Chi2, KS et cie), EDR/ESW et P Détect !
+    (test effctué TURMER ACDC 2019 10mn Papier AB 1déc HNorCos et UnifCos, avec données triées par point,
+     mais pas dist, et données non triées par point, mais par distance, et alphabétique en +)
+  * en avoir une grande pour D !
+    (test effctué TURMER ACDC 2019 10mn Papier AB 1déc HNorCos et UnifCos, avec données triées par point,
+     mais pas dist, et données non triées par point, mais par distance, et alphabétique en +)
+  * quand les données sont triées par point, c'est bien mieux.
+  
+Question en conséquence sur formum Distance => Cf. refout/dist-order-sens-min/dist-order-sens.odt
+
+===========================
+Et sur l'ordre des données = tri par point ...
+
+----- Mail original -----
+> De: jpmeuret@free.fr
+> À: "francois guelin" <francois.guelin@orange.fr>
+> Cc: "gilles saulas" <gilles.saulas@orange.fr>, "Hugo Samain" <hugo.samain@gmail.com>
+> Envoyé: Samedi 3 Août 2019 17:03:16
+> Objet: Re: Distance : Sensibilité des résultats à l'ordre des données d'entrée
+> 
+> Salut à tous.
+> 
+> 2 choses sur ce sujet :
+> 
+> 1) Oui, les données à importer dans Distance doivent être groupées
+>    par point, c'est expliqué dans la doc. de Distance 7
+>    (depuis la 4 au moins paraît-il)
+>    ... mais bon, il faut tomber dessus :
+> 
+>    => chapitre 5 "Data in Distance"
+>       . "Getting data into Distance"
+>         - "Data import"
+>           * "Introduction to data import"
+>               5ème paragraphe
+> 
+>    "While the order of the columns is not important, the order of the
+>    rows is.
+>     Before importing data into Distance, you should sort by stratum
+>     label
+>     (if you’re importing more than one stratum), then sample
+>     (transect) label.
+>     This ensures that all data from the same strata are together, and
+>     within
+>     this all data from the same sample (transect) within strata are
+>     together.
+>     The order of observations within samples is not important."
+> 
+>    en pied de message, la réponse à cette même question
+>    posée sur le forum Distance ... qui m'a orienté :-)
+> 
+> 2) Je viens de poster ma question sur le forum Distance :
+>    résultats parfois sensibles de manière importante à l'ordre
+>    des distances dans le fichier d'entrée de Distance,
+>    (étant entendu que les données sont bien groupées par point
+>     par ailleurs).
+> 
+>    En pièces attachées, le ZIP contenant le texte de la question
+>    (dist-order-sens.txt) et les fichiers de données d'entrée
+>    et de résultats d'analyses correspondant, pour référence.
+> 
+> Je vous tiens au courant.
+> 
+> A bientôt.
+> 
+> Jean-Philippe.
+> 
+> ======================================
+> Subject: Data grouping : a critical import step ?
+> 
+> Joel Jorgensen
+> 03/11/2005
+> Traduire le message en français
+> Hi all:
+> 
+>     While recently using DISTANCE 4.1, I was surprised by a few
+>     density outputs that seemed to be way off and out of line with other similar
+> analyses.  After much consternation, I finally figured it out.  I was
+> manipulating (sorting, filtering, etc.) the data in CSV format in MS
+> Excel to produce several sub-files to simplify the import and
+> analysis process.    In doing so, the columns that would eventually be labeled
+> Region, Point Transect, or Line Transect were not in order.  And if a
+> unique label (i.e. point transect) appeared several times and not in
+> the same place (other labels were ahead and behind it in the order,
+> before it appeared again), DISTANCE recognized the label as new, separate
+> and unique.......even though the label is identical.   The result was a =
+> ridiculously low density output because the number of samples was =
+> (inappropriately) increased.  After re-organizing the data, the
+> problem was corrected and the densities made sense (Effective Strip Width =
+> remained constant, however).
+>     So is it correct that data MUST be properly ordered at all times
+>     in the higher layers (everything above "observation") before importing
+> it into DISTANCE?  This fundamental step may be widely known and
+> embraced among most users.  Newer users such as myself that are digesting a
+> lot of other procedures may, however, overlook it.   Especially if their
+> data are only mildly out of order. =20
+> 
+> -Joel Jorgensen
+> University of Nebraska at Omaha
+> 
+> -------------------------------
+> 04/11/2005
+>  
+> Hi Joel,
+> 
+> You are quite correct that one must sort the data by stratum label
+> and
+> sample (transect) label before importing it.  This is in the help
+> page
+> "Introduction to Data Import", after the short example file, but I
+> agree it is rather crypic:
+> "Notice that all transects from the same stratum are grouped
+> together, and all observations from the same transect are grouped together."
+> 
+> I have added another paragraph on this to that help page which makes
+> it more explicit, and gives an example of what happens if you don't sort
+> correctly.
+> Hopefully this, and your posting, will help people avoid the same
+> problems you had.  The new help page will come out with the next release of
+> Distance.
+> 
+> Cheers,
+> 
+>  - Len Thomas

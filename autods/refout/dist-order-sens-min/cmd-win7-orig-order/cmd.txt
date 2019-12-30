@@ -1,0 +1,36 @@
+output.txt
+log.txt
+stats.txt
+boostrap.txt
+None
+None
+Options;
+Type=Point;
+Distance=Radial /Measure='Meter';
+Area /Units='Hectare';
+Object=Single;
+SF=1;
+Selection=Sequential;
+Lookahead=1;
+Maxterms=5;
+Confidence=95;
+Print=Selection;
+End;
+Data /Structure=Flat;
+Fields=STR_LABEL, STR_AREA, SMP_LABEL, SMP_EFFORT, DISTANCE;
+Infile=data.txt;
+End;
+Estimate;
+Distance;
+Density=All;
+Encounter=All;
+Detection=All;
+Size=All;
+Estimator /Key=UN /Adjust=CO /Criterion=AIC;
+Monotone=Strict;
+Pick=AIC;
+GOF;
+Cluster /Bias=GXLOG;
+VarN=Empirical;
+End;
+

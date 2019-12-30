@@ -1,0 +1,73 @@
+Date: 2019-08-03
+From: LPO Auvergne Distance Sampling team
+To: Distance Forum
+
+Object: MCDS.exe sensitive to distance data sort order (inside transect grouping) ?
+
+Hello.
+
+While validating a python program for automating Distance Sampling analyses through MCDS.exe,
+we've encountered a few strange cases linked sightings order in input data files for MCDS.exe.
+
+Let me explain one of these cases :
+* from the same point transect sample (Turdus merula sightings in Auvergne, France, april to june, 2019),
+* we ran the same simple CDS analyses with Half-normal Cosine and Uniform Cosine models
+  (nothing else special, no distance truncation, ...) :
+  
+  1) through Distance 7.3 software,
+  2) through direct use of MCDS.exe command line.
+        $ cd <into the data.txt + cmd.txt folder>
+        $ "C:\Program Files (x86)\Distance 7\MCDS.exe" 0, cmd.txt
+  
+For these analyses, when comparing method 1 and 2, the results were :
+* rigourously identical for the Half-normal Cosine,
+* quite different for the Uniform Cosine model, with quite same AIC, but double / half estimate density (!).
+
+After investigating, it appears that :
+1) Distance 7.3 (under Windows 7) has slightly changed the order of imported sightings before calling MCDS.exe :
+   the sightings were still sorted by point, but for some points, they were no more in the order of the original
+   data file imported into Distance ;
+   the order change was systematic, whatever model, Uniform Cosine or Half-normal Cosine, whatever analysis execution ;
+   and subsequent re-runs (after cleanup) of the same analyses, or subsequent tries to rebuild the Distance projects
+   from scratch ... didn't change anything : always the same order change and results.
+   Note: To access the data passed to MCDS.exe, we activated the data logging, and also the Debug mode.
+2) MCDS.exe produced different results for the same input data set and Uniform Cosine analysis model,
+   when the sigthings were not in the same order (but still sorted by point) ;
+   but the results remained the same whatever method for the Half-normal Cosine model.
+
+Isn't this sensitivy to data order some kind of bug or weakness of MCDS.exe ?
+
+Is this simply due to a "bad quality" of our sample that makes the Uniform Cosine model fitting not / pourly applicable ?
+(hence the computation warning : ** Warning: Parameters are being constrained to obtain monotonicity. **)
+
+What is you recommandation as a workaround for this, if any :
+* change data order ? (as here, a sort by increasing distance inside each point seems to improve things)
+* anything else ?
+
+For reference, you'll find attached a zip archive with the following :
+* file "dist-order-sens.xlsx" : the results of 3 analyses run with the same sample data for the Uniform Cosine model,
+  1 analysis per line :
+  - case "dist-win7-dist-order" : run with Distance 7.3 (method 1), results collected by hand in the results window,
+  - case "cmd-win7-dist-order" : run directly by command line (method 2), with input data to MCDS.exe
+      copied from Distance run (previous line), and results collected by hand in the output.txt file,
+	  100% identical to the first line,
+  - case "cmd-win7-orig-order" : run directly by command line (method 2), with input data to MCDS.exe
+      generated "by hand", in the same order of the sample data file given to Distance in line 1,
+	  and results collected by hand in the output.txt file.
+* sub-folder "dist-win7-dist-order" : a reconstructed by hand file set for a MCDS.exe run by Distance 7.3,
+  with MCDS.exe input data.txt and cmd.txt (got through Debug mode), and output files log.txt and output.txt
+  with contents copied and pasted from Distance analysis result window.
+* sub-folder "cmd-win7-dist-order" : run directly by commande line (method 2), with input data to MCDS.exe
+  copied from Distance run (previous line), and "natural" output files of MCDS.exe, mainly stats.txt,
+  output.txt and log.txt,
+* sub-folder "cmd-win7-orig-order" : run directly by commande line (method 2), with input data to MCDS.exe
+  generated "by hand", in the same order of the sample data file given to Distance in line 1,
+  and "natural" output files of MCDS.exe, mainly stats.txt, output.txt and log.txt.
+* file "dist-win7.dst" and subfolder "dist-win7.dat" : the Distance 7.3 project used for this test,
+* file "import-data-set.txt" : the sample data imported to Distance 7.3 for this test, and slightly reformated
+  into data.txt for the MCDS.exe direct run "cmd-win7-orig-order".
+  Note fro myself: Same data as in refin/ACDC2019-Papyrus-TURMER-AB-10mn-1dec-dist.txt
+* file "dist-order-sens.txt" : this message :-)
+
+Thanks in advance for your help.
+
