@@ -13,6 +13,7 @@
 
 import sys
 import pathlib as pl
+import shutil
 import argparse
 
 import numpy as np
@@ -155,7 +156,7 @@ class MCDSAnalysis(DSAnalysis):
                                    'Dist Tronc Gche', 'Dist Tronc Drte', 'Tranch Dist Mod', 'Tranch Dist Discr'] \
                                   + DSAnalysis.DRunRunColumnTrans['fr']))
     
-    def run(self, realRun=True):
+    def run(self, realRun=True, postCleanup=False):
         
         self.runStatus, self.runTime, self.runDir = \
             self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun, logData=self.logData,
@@ -175,9 +176,25 @@ class MCDSAnalysis(DSAnalysis):
             
         print()
         
+        # Post cleanup if requested.
+        if postCleanup:
+            self.cleanup()
+        
         # Return a result, event if not run or MCDS crashed or ...
         return sResults
     
+    def cleanup(self):
+    
+        if 'runDir' in dir(self):
+        
+            runDir = pl.Path(self.runDir)
+            
+            # Take extra precautions before rm -fr :-) (14 files inside after a report generation)
+            if runDir.is_dir() and not runDir.is_symlink() and len(list(runDir.rglob('*'))) < 15:
+                shutil.rmtree(self.runDir)
+            else:
+                print('Warning: Refused to remove suspect analysis run folder "{}"'.format(self.runDir))
+        
     def wasRun(self):
         return self.engine.wasRun(self.runStatus)
     

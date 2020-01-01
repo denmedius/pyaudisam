@@ -19,5 +19,5 @@ __version__ = 0.9
 
 from .engine import MCDSEngine
 from .analysis import MCDSAnalysis#, MCDSPreAnalyser, MCDSAnalyser
-from .data import DataSet, SampleDataSet, MCDSResultsSet#, AnalysesSpecsSet
+from .data import SampleDataSet, MCDSResultsSet#, FieldDataSet, AnalysesSpecsSet
 from .report import MCDSResultsPreReport, MCDSResultsFullReport
