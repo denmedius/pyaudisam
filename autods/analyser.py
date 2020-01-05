@@ -18,6 +18,9 @@ from collections import OrderedDict as odict
 import numpy as np
 import pandas as pd
 
+import logging
+
+logger = logging.getLogger('autods')
 
 # An explicit tabular set of analysis specs (1 analysis per row, all explicited parameters)
 class AnalysisSpecSet(object):

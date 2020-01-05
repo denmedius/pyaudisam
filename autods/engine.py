@@ -23,6 +23,9 @@ from collections import OrderedDict as odict, namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
+import logging
+
+logger = logging.getLogger('autods')
 
 # Actual package install dir.
 KInstDirPath = pl.Path(__file__).parent.resolve()
@@ -50,15 +53,14 @@ class DSEngine(object):
     def findExecutable(exeFileName):
 
         exeFilePathName = None
-        print('Looking for {} ...'.format(exeFileName))
+        logger.debug('Looking for {} ...'.format(exeFileName))
         for ver in DSEngine.DistanceSuppVers:
             for path in DSEngine.DistancePossInstPaths:
                 exeFN = path / 'Distance {}'.format(ver) / exeFileName
-                print(' - checking {} : '.format(exeFN), end='')
                 if not exeFN.exists():
-                    print('no.')
+                    logger.debug('  Checking {} : No,'.format(exeFN))
                 else:
-                    print('yes !')
+                    logger.info('Found {} here: {}.'.format(exeFileName, exeFN))
                     exeFilePathName = exeFN
                     break
             if exeFilePathName:
@@ -119,18 +121,18 @@ class DSEngine(object):
     @classmethod
     def matchDataFields(cls, srcFields, tgtAliasREs=odict()):
         
-        print('Matching required data columns:', end=' ')
+        logger.debug('Matching required data columns:')
         
         # Try and match required data columns.
         matFields = list()
         matDecFields = list()
         for tgtField in tgtAliasREs:
-            print(tgtField, end='=')
+            logger.debug(' * ' + tgtField + ':')
             foundTgtField = False
             for srcField in srcFields:
                 for pat in tgtAliasREs[tgtField]:
                     if re.search(pat, srcField, flags=re.IGNORECASE):
-                        print(srcField, end=', ')
+                        logger.debug('  . ' + srcField)
                         matFields.append(srcField)
                         if tgtField in cls.DecimalFields:
                             matDecFields.append(srcField)
@@ -145,7 +147,7 @@ class DSEngine(object):
         # Extra fields.
         extFields = [field for field in srcFields if field not in matFields]
 
-        print('... success.')
+        logger.debug('... success.')
         
         return matFields, matDecFields, extFields
 
@@ -172,7 +174,7 @@ class DSEngine(object):
             
             self.runDir = os.path.join(self.workDir, forceSubFolder)
             
-        print('Will run in', self.runDir)
+        logger.debug('Will run in ' + str(self.runDir))
         
         # Define input and output file pathnames
         def pathName(fileName):
@@ -228,11 +230,11 @@ class MCDSEngine(DSEngine):
     @classmethod
     def loadStatSpecs(cls, nMaxAdjParams=10):
         
-        print('MCDS : Loading output stats specs ...')
+        logger.debug('MCDS : Loading output stats specs ...')
         
         # Output stats row specifications
         fileName = KInstDirPath / 'mcds/stat-row-specs.txt'
-        print('*', fileName)
+        logger.debug('* ' + str(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatRowSpecs:
             statRowSpecLines = [line.rstrip('\n') for line in fStatRowSpecs.readlines() if not line.startswith('#')]
             statRowSpecs =  [(statRowSpecLines[i].strip(), statRowSpecLines[i+1].strip()) \
@@ -243,7 +245,7 @@ class MCDSEngine(DSEngine):
         
         # Module and stats number to description table
         fileName = KInstDirPath / 'mcds/stat-mod-specs.txt'
-        print('*', fileName)
+        logger.debug('* ' + str(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatModSpecs:
             statModSpecLines = [line.rstrip('\n') for line in fStatModSpecs.readlines() if not line.startswith('#')]
             reModSpecNumName = re.compile('(.+) – (.+)')
@@ -294,7 +296,7 @@ class MCDSEngine(DSEngine):
     
         # Notes about stats.
         fileName = KInstDirPath / 'mcds/stat-mod-notes.txt'
-        print('*', fileName)
+        logger.debug('* ' + str(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatModNotes:
             statModNoteLines = [line.rstrip('\n') for line in fStatModNotes.readlines() if not line.startswith('#')]
             statModNotes =  [(int(line[:2]), line[2:].strip()) for line in statModNoteLines if line]
@@ -303,12 +305,12 @@ class MCDSEngine(DSEngine):
             
         # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
         fileName = KInstDirPath / 'mcds/stat-mod-trans.txt'
-        print('*', fileName)
+        logger.debug('* ' + str(fileName))
         cls.DfStatModColsTrans = pd.read_csv(fileName, sep='\t')
         cls.DfStatModColsTrans.set_index(['Module', 'Statistic', 'Figure'], inplace=True)
         
-        print('MCDS : Loaded output stats specs.')
-        print()
+        logger.debug('MCDS : Loaded output stats specs.')
+        logger.debug('')
         
     # Accessors to dynamic class variables.
     @classmethod
@@ -391,7 +393,7 @@ class MCDSEngine(DSEngine):
                      Lookahead=1;
                      Maxterms=5;
                      Confidence={cvInterv};
-                     Print=Selection;
+                     print=Selection;
                      End;
                      Data /Structure=Flat;
                      Fields={dataFields};
@@ -484,7 +486,7 @@ class MCDSEngine(DSEngine):
         with open(self.cmdFileName, mode='w', encoding='utf-8') as cmdFile:
             cmdFile.write(cmdTxt)
 
-        print('Commands written to', self.cmdFileName)
+        logger.debug('Commands written to ' + str(self.cmdFileName))
 
         return self.cmdFileName
     
@@ -510,14 +512,14 @@ class MCDSEngine(DSEngine):
         else:
             extraFields.clear()
         
-        print('Final data columns in order:', exportFields)
+        logger.debug('Final data columns export order: ' + str(exportFields))
         
         # Put columns in the right order (first data fields ... first, in the same order)
         dfExport = dataSet.dfData[exportFields].copy()
 
         # Prepare safe export of decimal data with may be some NaNs
         allDecFields = set(matchDecFields + dataSet.decimalFields).intersection(exportFields)
-        print('Decimal columns:', allDecFields)
+        logger.debug('Decimal columns: ' + str(allDecFields))
         for field in allDecFields:
             dfExport[field] = dfExport[field].apply(self.safeFloat2Str, decPt=decPoint)
                 
@@ -538,7 +540,7 @@ class MCDSEngine(DSEngine):
         # Export.
         dfExport.to_csv(self.dataFileName, index=False, sep='\t', encoding='utf-8', header=None)
         
-        print('Data MCDS-exported to', self.dataFileName)
+        logger.debug('Data MCDS-exported to ' + str(self.dataFileName))
         
         return self.dataFileName
     
@@ -579,14 +581,14 @@ class MCDSEngine(DSEngine):
         # Call executable (no " around cmdFile, don't forget the space after ',', ...)
         cmd = '"{}" 0, {}'.format(self.ExeFilePathName, cmdFileName)
         if realRun:
-            print('Running MCDS :', cmd)
+            logger.info('Running MCDS : ' + cmd)
             self.runTime = pd.Timestamp.now()
             self.runStatus = os.system(cmd)
-            print('Done : status =', self.runStatus)
+            logger.info('Run MCDS : status = ' + str(self.runStatus))
             
         # ... unless specified not to (input files generated, but no execution).
         else:
-            print('Not running MCDS :', cmd)
+            logger.info('Not running MCDS : ' + cmd)
             self.runTime = pd.NaT
             self.runStatus = self.RCNotRun
 
@@ -597,7 +599,7 @@ class MCDSEngine(DSEngine):
     # Warning: No support for more than 1 stratum, 1 sample, 1 estimator.
     def decodeStats(self):
 
-        print('Decoding', self.statsFileName, end=' ... ')
+        logger.debug('Decoding ' + str(self.statsFileName) + ' ... ')
         
         # 1. Load table (text format, with space separated and fixed width columns,
         #    columns headers from self.DfStatRowSpecs)
@@ -644,7 +646,7 @@ class MCDSEngine(DSEngine):
         dfStats.set_index(['modDesc', 'statDesc', 'Figure'], inplace=True)
 
         # That's all folks !
-        print('done.')
+        logger.debug('Done decoding stats.')
         
         return dfStats.T.iloc[0]
 
@@ -700,7 +702,7 @@ class MCDSEngine(DSEngine):
         dfExport.to_csv(tgtFilePathName, index=False, sep='\t', encoding='utf-8',
                         header=self.distanceFields(self.options.firstDataFields) + extraFields)
 
-        print('Data Distance-exported to', tgtFilePathName)
+        logger.debug('Data Distance-exported to ' + tgtFilePathName)
         
         return tgtFilePathName
    

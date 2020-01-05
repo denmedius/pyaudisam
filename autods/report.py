@@ -27,6 +27,9 @@ import jinja2
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
 
+import logging
+
+logger = logging.getLogger('autods')
 
 # Actual package install dir.
 KInstDirPath = pl.Path(__file__).parent.resolve()
@@ -297,7 +300,7 @@ class ResultsFullReport(ResultsReport):
     # Top page
     def toHtmlAllAnalyses(self):
         
-        print('Top page ...')
+        logger.info('Top page ...')
         
         # Generate post-processed and translated synthesis table.
         # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
@@ -359,7 +362,7 @@ class ResultsFullReport(ResultsReport):
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
         dfDetRes = self.resultsSet.dfTransData(self.lang)
 
-        print('Analyses pages ({}) ...'.format(len(dfSynthRes)))
+        logger.info('Analyses pages ({}) ...'.format(len(dfSynthRes)))
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons)
         #    with the sorted order if any
@@ -378,7 +381,7 @@ class ResultsFullReport(ResultsReport):
         for lblAnlys in dfSynthRes.index:
             
             sAnlysCustCols = dfDetRes.loc[lblAnlys, trCustCols]
-            print('  #{}'.format(lblAnlys), ' '.join(['{}={}'.format(k, v) for k, v in sAnlysCustCols.iteritems()]))
+            logger.info('  #{}'.format(lblAnlys) + ' '.join(['{}={}'.format(k, v) for k, v in sAnlysCustCols.iteritems()]))
         
             anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
 
@@ -426,7 +429,7 @@ class ResultsFullReport(ResultsReport):
         # Generate report page for each analysis
         self.toHtmlEachAnalysis()
 
-        print('... done.')
+        logger.info('... done.')
                 
         return topHtmlPathName
 
@@ -744,7 +747,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     # Top page
     def toHtmlAllAnalyses(self):
         
-        print('Top page ...')
+        logger.info('Top page ...')
         
         # Generate the table to display from raw results 
         # (index + 5 columns : sample, params, results, ProbDens plot, DetProb plot)
@@ -808,7 +811,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # Generate top report page.
         topHtmlPathName = self.toHtmlAllAnalyses()
 
-        print('... done.')
+        logger.info('... done.')
                 
         return topHtmlPathName
 

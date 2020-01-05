@@ -19,6 +19,10 @@ import argparse
 import numpy as np
 import pandas as pd
 
+import logging
+
+logger = logging.getLogger('autods')
+
 #import engine as adse # Bad: double import of 'engine' averall.
 from autods.engine import DSEngine, MCDSEngine # Good
 #import autods.engine as adse # Also good.
@@ -174,8 +178,6 @@ class MCDSAnalysis(DSAnalysis):
         if self.success() or self.warnings():
             sResults = sResults.append(self.engine.decodeStats())
             
-        print()
-        
         # Post cleanup if requested.
         if postCleanup:
             self.cleanup()
@@ -193,7 +195,7 @@ class MCDSAnalysis(DSAnalysis):
             if runDir.is_dir() and not runDir.is_symlink() and len(list(runDir.rglob('*'))) < 15:
                 shutil.rmtree(self.runDir)
             else:
-                print('Warning: Refused to remove suspect analysis run folder "{}"'.format(self.runDir))
+                logger.warning('Refused to remove suspect analysis run folder "{}"'.format(self.runDir))
         
     def wasRun(self):
         return self.engine.wasRun(self.runStatus)
@@ -252,6 +254,8 @@ if __name__ == '__main__':
     dResults = analysis.run(realRun=not args.debug)
     
     # Print results
-    print('Results:\n' + '\n'.join('* {}: {}'.format(k, v) for k, v in dResults.items()))
+    logger.debug('Results:')
+    for k, v in dResults.items():
+        logger.debug('* {}: {}'.format(k, v))
 
     sys.exit(analysis.runStatus)

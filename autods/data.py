@@ -20,6 +20,10 @@ from collections import OrderedDict as odict
 import numpy as np
 import pandas as pd
 
+import logging
+
+logger = logging.getLogger('autods')
+
 from autods.analysis import DSAnalysis, MCDSAnalysis
 
 
@@ -321,7 +325,6 @@ class ResultsSet(object):
         # Enforce right columns order.
         if not(self._dfData.empty or self.rightColOrder):
             
-            #print('dfData: reordering')
             miTgtColumns = self.miAnalysisCols
             if self.miCustomCols is not None:
                 miTgtColumns = self.miCustomCols.append(miTgtColumns)
@@ -432,7 +435,7 @@ class MCDSResultsSet(ResultsSet):
     # Post-computations.
     def postComputeColumns(self):
         
-        #print('postComputeColumns: ...')
+        #logger.debug('postComputeColumns: ...')
         
         # Compute Delta AIC (AIC - min(group)) per { species, periods, precision, duration } group.
         # a. Minimum AIC per group
@@ -444,7 +447,7 @@ class MCDSResultsSet(ResultsSet):
         df2Join.columns = pd.MultiIndex.from_tuples([self.DeltaAicColInd])
         
         # c. Join the column to the target data-frame
-        #print(self._dfData.columns, df2Join.columns)
+        #logger.debug(str(self._dfData.columns) + ', ' + str(df2Join.columns))
         self._dfData = self._dfData.join(df2Join, on=aicGroupColInds)
         
         # d. Compute delta-AIC in-place
