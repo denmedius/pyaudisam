@@ -127,7 +127,7 @@ class ResultsReport(object):
     # To be specialized in derived classes (here, we do nothing) !
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatDataOneAnalysisData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatEachAnalysisData(self, dfTrData, sort=True, convert=True, round=True, style=True):
         
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
@@ -137,7 +137,7 @@ class ResultsReport(object):
     # To be specialized in derived classes (here, we do nothing) !
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatDataAllAnalysesData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round=True, style=True):
         
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
@@ -353,7 +353,7 @@ class ResultsFullReport(ResultsReport):
     
     # Analyses pages.
     PlotImgFormat = 'png'
-    def toHtmlOneAnalysis(self):
+    def toHtmlEachAnalysis(self):
         
         # Generate translated synthesis and detailed tables.
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
@@ -363,7 +363,7 @@ class ResultsFullReport(ResultsReport):
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons)
         #    with the sorted order if any
-        dfSynthRes = self.finalFormatOneAnalysisData(dfSynthRes, convert=False, round=False, style=False).data
+        dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, convert=False, round=False, style=False).data
         sCurrUrl = dfSynthRes[self.trRunFolderCol]
         sCurrUrl = sCurrUrl.apply(lambda path: self.targetFilePathName(tgtFolder=path, prefix='index', suffix='.html'))
         sCurrUrl = sCurrUrl.apply(lambda path: os.path.relpath(path, self.tgtFolder).replace(os.sep, '/'))
@@ -385,12 +385,12 @@ class ResultsFullReport(ResultsReport):
             # Postprocess synthesis table :
             dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
             dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n+1))
-            dfsSyn = self.finalFormatOneAnalysisData(dfSyn)
+            dfsSyn = self.finalformatEachAnalysisData(dfSyn)
             
             # Postprocess detailed table :
             dfDet = dfDetRes.loc[lblAnlys].to_frame().T
             dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n+1))
-            dfsDet = self.finalFormatOneAnalysisData(dfDet, convert=False, round=False)
+            dfsDet = self.finalformatEachAnalysisData(dfDet, convert=False, round=False)
             
             # Generate analysis report page.
             genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -424,7 +424,7 @@ class ResultsFullReport(ResultsReport):
         topHtmlPathName = self.toHtmlAllAnalyses()
 
         # Generate report page for each analysis
-        self.toHtmlOneAnalysis()
+        self.toHtmlEachAnalysis()
 
         print('... done.')
                 
@@ -567,8 +567,8 @@ class MCDSResultsFullReport(ResultsFullReport):
         # Reducing float precision
         if round:
             
-            dColDecimals = { **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P',
-                                                    'PDetec', 'Min PDetec', 'Max PDetec'] },
+            dColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
+                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                                     'Density', 'Min Density', 'Max Density', 'CoefVar Density'] } }
             df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() if col in df.columns })
@@ -615,7 +615,7 @@ class MCDSResultsFullReport(ResultsFullReport):
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    finalFormatOneAnalysisData = finalFormatAllAnalysesData
+    finalformatEachAnalysisData = finalFormatAllAnalysesData
 
 
 # A specialized pre-report for MCDS analyses, with actual output formating
@@ -628,7 +628,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Synthesis table': 'Synthesis table',
                        'Click on analysis # for details': 'Click on analysis number to get to detailed report',
                        'Sample': 'Sample', 'Parameters': 'Parameters', 'Results': 'Results',
-                       'PDF': 'Detection probability density',
+                       'ProbDens': 'Detection probability density (PDF)',
+                       'DetProb': 'Detection probability',
                        'Detailed results': 'Detailed results',
                        'Download Excel': 'Download as Excel(TM) file',
                        'Summary computation log': 'Summary computation log',
@@ -641,7 +642,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Synthesis table': 'Tableau de synthèse',
                        'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
                        'Sample': 'Echantillon', 'Parameters': 'Paramètres', 'Results': 'Résultats',
-                       'PDF': 'Densité de probabilité de détection',
+                       'ProbDens': 'Densité de probabilité de détection (DdP)',
+                       'DetProb': 'Probabilité de détection',
                        'Detailed results': 'Résultats en détails',
                        'Download Excel': 'Télécharger le classeur Excel (TM)',
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
@@ -666,7 +668,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                        sampleCols, paramCols, resultCols, anlysSynthCols=None, 
-                       pdfPlotHeight=256, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+                       plotsHeight=256, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols=anlysSynthCols, dCustomTrans=self.DCustTrans, lang=lang,
@@ -675,14 +677,14 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         self.sampleCols = sampleCols
         self.paramCols = paramCols
         self.resultCols = resultCols
-        self.pdfPlotHeight = pdfPlotHeight
+        self.plotsHeight = plotsHeight
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
     # in the "one analysis at a time" case.
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatAllAnalysisData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round=True, style=True):
         
         # Sorting
         df = dfTrData
@@ -706,8 +708,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # Reducing float precision
         if round:
             
-            dColDecimals = { **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P',
-                                                    'PDetec', 'Min PDetec', 'Max PDetec'] },
+            dColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
+                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                                     'Density', 'Min Density', 'Max Density', 'CoefVar Density'] } }
             df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() if col in df.columns })
@@ -729,22 +731,23 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     
         #return ''.join('<p>{}: {}</p>'.format(k, v) for k, v in dictOrSeries.items())
         
-    def pdfImageHtmlElement(self, runFolder):
+    def plotImageHtmlElement(self, runFolder, plotImgPrfx):
         
-        for pdfInd in range(3, 0, -1):
-            pdfFileName = '{}{}.{}'.format(self.PlotImgPrfxProbDens, pdfInd, self.PlotImgFormat)
-            if os.path.isfile(os.path.join(runFolder, pdfFileName)):
+        for plotInd in range(3, 0, -1):
+            plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.PlotImgFormat)
+            if os.path.isfile(os.path.join(runFolder, plotFileName)):
                 return '<img src="./{}/{}" style="height: {}px" />' \
-                       .format(self.relativeRunFolderUrl(runFolder), pdfFileName, self.pdfPlotHeight)
+                       .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.plotsHeight)
         
-        return 'PDF image file not found'
+        return '{} plot image file not found'.format(plotImgPrfx)
         
     # Top page
     def toHtmlAllAnalyses(self):
         
         print('Top page ...')
         
-        # Generate the table to display from raw results (index + 4 columns : sample, params, results, PDF plot)
+        # Generate the table to display from raw results 
+        # (index + 5 columns : sample, params, results, ProbDens plot, DetProb plot)
         # 1. Get translated and post-formated detailed results
         dfDet = self.resultsSet.dfTransData(self.lang)
         dfsDet = self.finalFormatAllAnalysesData(dfDet)
@@ -760,7 +763,10 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         dfSyn = pd.DataFrame(dict(Sample=dfDet[sampleTrCols].apply(self.series2VertTable, axis='columns'),
                                   Parameters=dfDet[paramTrCols].apply(self.series2VertTable, axis='columns'),
                                   Results=dfDet[resultTrCols].apply(self.series2VertTable, axis='columns'),
-                                  PDF=dfDet[self.trRunFolderCol].apply(self.pdfImageHtmlElement)))
+                                  ProbDens=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                            plotImgPrfx=self.PlotImgPrfxProbDens),
+                                  DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                           plotImgPrfx=self.PlotImgPrfxDetProb)))
         
         dfSyn.index = \
             dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
@@ -796,8 +802,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         self.installAttFiles(self.AttachedFiles)
             
         # Generate full report page for each analysis
-        # (done first to have PDF image files generated for top report page generation just below).
-        self.toHtmlOneAnalysis()
+        # (done first to have plot image files generated for top report page generation just below).
+        self.toHtmlEachAnalysis()
         
         # Generate top report page.
         topHtmlPathName = self.toHtmlAllAnalyses()
