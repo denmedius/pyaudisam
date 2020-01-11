@@ -180,7 +180,7 @@ def addSurveyAreaInfo(dfInSights, dAreaInfo):
 # * No change made afterwards on decimal precision : provide what you need !
 # * No change made afterwards on the order of rows : provide what you need !
 # * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
-#   and even OpenDoc .ods file with pandas >= 0.25
+#   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
 class SampleDataSet(object):
     
     SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
@@ -214,8 +214,10 @@ class SampleDataSet(object):
             assert ext in self.SupportedFileExts, \
                    'Unsupported source file type {}: not from {{{}}}' \
                    .format(ext, ','.join(self.SupportedFileExts))
-            if ext in ['.xlsx', '.ods']:
+            if ext in ['.xlsx']:
                 dfData = pd.read_excel(source)
+            elif ext in ['.ods']:
+                dfData = pd.read_excel(source, engine='odf')
             elif ext in ['.csv', '.txt']:
                 dfData = self.csv2df(source, decCols=decimalFields, sep='\t')
         else:
@@ -243,7 +245,7 @@ class SampleDataSet(object):
     @dfData.setter
     def dfData(self, dfData):
         
-        raise NotImplementedError('No changed allowed to data ; create a new dataset !')
+        raise NotImplementedError('No change allowed to data ; create a new dataset !')
         
 # A result set for multiple analyses from the same engine.
 # With ability to prepend custom heading columns to the engine output stat ones.
@@ -391,17 +393,31 @@ class ResultsSet(object):
         
         return dfTrData
 
-    # Save data to Excel.
+    # Save data to an Excel worksheet (XLSX format).
     def toExcel(self, fileName, sheetName=None):
         
         self.dfData.to_excel(fileName, sheet_name=sheetName or 'AllResults')
 
-    # Load (overwrite) data from Excel (assuming ctor params match with Excel sheet column names and list,
-    # which can well be ensured by using the same ctor params as used for saving !).
+    # Save data to an Open Document worksheet (ODS format).
+    def toOpenDoc(self, fileName, sheetName=None):
+        
+        raise NotImplementedError('Can\'t export to OpenDoc yet')
+        #self.dfData.to_excel(fileName, sheet_name=sheetName or 'AllResults', engine='odf')
+
+    # Load (overwrite) data from an Excel worksheet (XLSX format), assuming ctor params match with Excel sheet
+    # column names and list, which can well be ensured by using the same ctor params as used for saving !
     def fromExcel(self, fileName, sheetName=None):
         
         self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 'AllResults', 
                                     header=[0, 1, 2], skiprows=[3], index_col=0)
+
+    # Load (overwrite) data from an Open Document worksheet (ODS format), assuming ctor params match
+    # with ODF sheet column names and list, hich can well be ensured by using the same ctor params as used for saving !
+    # Notes: Needs odfpy module and pandas.version >= 0.25.1
+    def fromOpenDoc(self, fileName, sheetName=None):
+        
+        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 'AllResults', 
+                                    header=[0, 1, 2], skiprows=[3], index_col=0, engine='odf')
 
         
 # A specialized results set for MCDS analyses,
