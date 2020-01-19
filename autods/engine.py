@@ -230,6 +230,9 @@ class MCDSEngine(DSEngine):
     @classmethod
     def loadStatSpecs(cls, nMaxAdjParams=10):
         
+        if MCDSEngine.DfStatRowSpecs is not None:
+            return
+        
         logger.debug('MCDS : Loading output stats specs ...')
         
         # Output stats row specifications
@@ -359,8 +362,7 @@ class MCDSEngine(DSEngine):
                  surveyType='Point', distanceType='Radial'):
         
         # Initialize some class variables.
-        if MCDSEngine.DfStatRowSpecs is None:
-            MCDSEngine.loadStatSpecs()    
+        MCDSEngine.loadStatSpecs()    
 
         # Check options
         assert surveyType in self.SurveyTypes, \

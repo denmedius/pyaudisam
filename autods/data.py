@@ -101,20 +101,19 @@ def individualiseMonoCategoricalCounts(dfInSights, countColumns):
     # Done.
     return dfOutSights
 
-# Add transect effort = number of passes made
-def addTransectEffort(dfInSights, transectCol, passesCol):
-    
-    dfPointEffort = dfInSights[[transectCol, passesCol]].groupby(transectCol).nunique()
-    dfPointEffort = dfPointEffort[[passesCol]].rename(columns=dict(Passage='Effort'))
-    
-    return dfInSights.join(dfPointEffort, on='Point')
-    
-# Select sample sightings from an all-samples sightings table
+# Select sample sightings from an all-samples sightings table,
+# and compute the associated total sample effort.
 # * dSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
 #             keys being columns of dfAllSights (dict protocol : dict, pd.Series, ...)
 # * dfAllSights : the all-samples (individual) sightings table to search into
-def selectSampleSightings(dSample, dfAllSights):
+# * dfAllEffort : effort values for each transect x passing done, for the all-sample survey
+# * transIdCols : name of the input dfAllEffort and dSample columns to identify the transects (not passings)
+# * passIdCol : name of the input dfAllEffort and dSample column to identify the passings (not transects)
+# * effortCol : name of the input dfAllEffort and output effort column to add / replace
+def selectSampleSightings(dSample, dfAllSights, dfAllEffort,
+                          transIdCols=['Transect'], passIdCol='Passing', effortCol='Effort'):
     
+    # Select sightings
     dfSampSights = dfAllSights
     for key, values in dSample.items():
         values = str(values) # For ints as strings that get forced to int in io sometimes (ex. from_excel)
@@ -123,14 +122,25 @@ def selectSampleSightings(dSample, dfAllSights):
         else:
             dfSampSights = dfSampSights[dfSampSights[key].astype(str) == values]
 
-    return dfSampSights
+    # Compute sample effort
+    passings = dSample[passIdCol]
+    if '+' in passings:
+        dfSampEffort = dfAllEffort[dfAllEffort[passIdCol].astype(str).isin(passings.split('+'))]
+    else:
+        dfSampEffort = dfAllEffort[dfAllEffort[passIdCol].astype(str) == passings]
+    dfSampEffort = dfSampEffort[transIdCols + [effortCol]].groupby(transIdCols).sum()
+    
+    # Add effort column
+    dfSampSights = dfSampSights.join(dfSampEffort, on=transIdCols)
+
+    return dfSampSights, dfSampEffort
     
 # Add "abscence" sightings to field data collected on transects for a given sample
 # * dfInSights : input data table
 # * sampleCols : the names of the sample identification columns
 # * dfExpdTransects : the expected transects, as a data frame indexed by the transectId,
 #     an index with same name as the corresponding column in dfInSights,
-#     and with other info columns to duplicate in absence sightings
+#     and with other info columns to duplicate in absence sightings (at least the effort value)
 def addAbsenceSightings(dfInSights, sampleCols, dfExpdTransects):
     
     assert not dfInSights.empty, 'Error : Empty sightings data to add absence ones to !'
@@ -427,7 +437,7 @@ class MCDSResultsSet(ResultsSet):
     DeltaAicColInd = ('detection probability', 'Delta AIC', 'Value')
     Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
 
-    # * miSampleCols : defaults to miCustomCols if None
+    # * miSampleCols : only for delta AIC computation ; defaults to miCustomCols if None
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None):
         
         # Setup computed columns specs.

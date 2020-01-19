@@ -523,6 +523,8 @@ class MCDSResultsFullReport(ResultsFullReport):
     
     @staticmethod
     def shortenDistCuts(distCuts):
+        if isinstance(distCuts, int) or isinstance(distCuts, float):
+            return distCuts
         short = str(distCuts)
         if short in ['None', 'nan']:
             return None
@@ -570,11 +572,14 @@ class MCDSResultsFullReport(ResultsFullReport):
         # Reducing float precision
         if round:
             
-            dColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
-                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
-                             **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                                    'Density', 'Min Density', 'Max Density', 'CoefVar Density'] } }
-            df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() if col in df.columns })
+            KDColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
+                              **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
+                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
+                                                     'Density', 'Min Density',
+                                                     'Max Density', 'CoefVar Density',
+                                                     'Left Trunc Dist', 'Right Trunc Dist'] } }
+            df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(KDColDecimals).items() \
+                                              if col in df.columns })
         
         # Styling
         dfs = df.style
