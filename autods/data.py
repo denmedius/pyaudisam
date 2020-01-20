@@ -66,13 +66,15 @@ def separateMultiCategoricalCounts(dfInSights, countColumns):
     # Done.
     return dfOutSights
 
-# Transform a multi-individual mono-categorical sightings set into an equivalent mono-individual mono-categorical sightings set
-# that is where no sightings has more that one individual per category (keeping the same total counts).
+# Transform a multi-individual mono-categorical sightings set into an equivalent mono-individual
+# mono-categorical sightings set, that is where no sightings has more that one individual
+# per category (keeping the same total counts).
 # Highly optimized version.
 # Ex: A sightings set with 2 mono-categorical count columns nMales and nFemales
-#     * in tyhe input set, you may have 1 sightings with nMales = 3 and nFemales = 0 (but none with nMales and nFemales > 0)
-#     * in the output set, this sightings have been separated in 3 distinct ones (all other properties left untouched) :
-#       all with nMales = 1 and nFemales = 0.
+#     * in tyhe input set, you may have 1 sightings with nMales = 3 and nFemales = 0
+#       (but none with nMales and nFemales > 0)
+#     * in the output set, this sightings have been separated in 3 distinct ones
+#       (all other properties left untouched) : all with nMales = 1 and nFemales = 0.
 def individualiseMonoCategoricalCounts(dfInSights, countColumns):
     
     # For each count column
@@ -106,7 +108,7 @@ def individualiseMonoCategoricalCounts(dfInSights, countColumns):
 # * dSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
 #             keys being columns of dfAllSights (dict protocol : dict, pd.Series, ...)
 # * dfAllSights : the all-samples (individual) sightings table to search into
-# * dfAllEffort : effort values for each transect x passing done, for the all-sample survey
+# * dfAllEffort : effort values for each transect x passing really done, for the all-sample survey
 # * transIdCols : name of the input dfAllEffort and dSample columns to identify the transects (not passings)
 # * passIdCol : name of the input dfAllEffort and dSample column to identify the passings (not transects)
 # * effortCol : name of the input dfAllEffort and output effort column to add / replace
