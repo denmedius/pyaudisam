@@ -23,6 +23,8 @@ from collections import OrderedDict as odict, namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
+import concurrent.futures as cofu
+
 import logging
 
 logger = logging.getLogger('autods')
@@ -32,6 +34,9 @@ KInstDirPath = pl.Path(__file__).parent.resolve()
 
 
 # DSEngine (abstract) classes.
+# An engine for running multiple DS analyses with same options (engine ctor params),
+# but various parameters (run() parameters), possibly as parallel threads / processes.
+# Warning: No option change allowed while started analyses are running / all their getResults() have returned.
 class DSEngine(object):
     
     # Options possible values.
@@ -74,7 +79,12 @@ class DSEngine(object):
     # Specifications of output stats.
     DfStatRowSpecs, DfStatModSpecs, DfStatModNotes, MIStatModCols, DfStatModColTrans = None, None, None, None, None
     
+    # Ctor.
+    # :param: parallel : if True, run analyses through parallel threads
+    # :param: threads : max number of threads running at the same time
+    #                   (1 is like parallel == False, None means 5 x nb of CPU)
     def __init__(self, workDir='.', # As a simple str, or a pl.Path
+                 parallel=False, threads=None,
                  distanceUnit='Meter', areaUnit='Hectare', **options):
 
         # Check base options
@@ -95,7 +105,11 @@ class DSEngine(object):
                .format(''.join(self.ForbidPathChars), workDir)
         self.workDir = pl.Path(workDir)
         self.workDir.mkdir(exist_ok=True)
-            
+        logger.info('DSEngine work folder: {}'.format(self.workDir.absolute()))
+        
+        # Create infrastructure for parallel runAnalysis().
+        self.executor = cofu.ThreadPoolExecutor(max_workers=1 if not parallel else threads)
+    
     # Possible regexps for auto-detection of columns to import from data sets / export
     # TODO: Complete for non 'Point transect' modes
     ImportFieldAliasREs = \
@@ -151,44 +165,27 @@ class DSEngine(object):
         
         return matFields, matDecFields, extFields
 
-    # Engine in/out file names.
-    CmdFileName = 'cmd.txt'
-    DataFileName = 'data.txt'
-    OutputFileName = 'output.txt'
-    LogFileName = 'log.txt'
-    StatsFileName = 'stats.txt'
-    PlotsFileName = 'plots.txt'
-        
-    # Setup run folder (all in and out files will go there)
-    def setupRunFolder(self, runPrefix='ds', forceSubFolder=None):
-        
-        if not forceSubFolder:
-            
-            # MCDS does not support folder and file names with spaces inside ...
-            # And one never knows ... replace other special chars also.
-            runPrefix = runPrefix.translate(str.maketrans({c:'-' for c in ' ,.:;()/'}))
-        
-            self.runDir = tempfile.mkdtemp(dir=self.workDir, prefix=runPrefix+'-')
-            
-        else:
-            
-            self.runDir = os.path.join(self.workDir, forceSubFolder)
-            
-        logger.debug('Will run in ' + str(self.runDir))
-        
-        # Define input and output file pathnames
-        def pathName(fileName):
-            return os.path.join(self.runDir, fileName)
-        
-        self.cmdFileName   = pathName(self.CmdFileName)
-        self.dataFileName  = pathName(self.DataFileName)
-        self.outFileName   = pathName(self.OutputFileName)
-        self.logFileName   = pathName(self.LogFileName)
-        self.statsFileName = pathName(self.StatsFileName)
-        self.plotsFileName  = pathName(self.PlotsFileName)
-        
-        return self.runDir
+    # Setup a thread & process safe run folder for an analysis
+    # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
+    def setupRunFolder(self, runPrefix=None):
 
+        # MCDS does not support folder and file names with spaces inside ...
+        # And one never knows ... remove any other special chars also.
+        if runPrefix is None:
+            runPrefix = ''
+        else:
+            runPrefix = runPrefix.translate(str.maketrans({c:'' for c in ' ,.:;()/'})) + '-'
+
+        return pl.Path(tempfile.mkdtemp(dir=self.workDir, prefix=runPrefix))
+
+    # Engine in/out file names.
+    CmdFileName    = 'cmd.txt'
+    DataFileName   = 'data.txt'
+    OutputFileName = 'output.txt'
+    LogFileName    = 'log.txt'
+    StatsFileName  = 'stats.txt'
+    PlotsFileName  = 'plots.txt'
+        
 # MCDS engine (Conventional Distance Sampling)
 class MCDSEngine(DSEngine):
     
@@ -237,7 +234,7 @@ class MCDSEngine(DSEngine):
         
         # Output stats row specifications
         fileName = KInstDirPath / 'mcds/stat-row-specs.txt'
-        logger.debug('* ' + str(fileName))
+        logger.debug('* {}'.format(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatRowSpecs:
             statRowSpecLines = [line.rstrip('\n') for line in fStatRowSpecs.readlines() if not line.startswith('#')]
             statRowSpecs =  [(statRowSpecLines[i].strip(), statRowSpecLines[i+1].strip()) \
@@ -248,7 +245,7 @@ class MCDSEngine(DSEngine):
         
         # Module and stats number to description table
         fileName = KInstDirPath / 'mcds/stat-mod-specs.txt'
-        logger.debug('* ' + str(fileName))
+        logger.debug('* {}'.format(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatModSpecs:
             statModSpecLines = [line.rstrip('\n') for line in fStatModSpecs.readlines() if not line.startswith('#')]
             reModSpecNumName = re.compile('(.+) – (.+)')
@@ -299,7 +296,7 @@ class MCDSEngine(DSEngine):
     
         # Notes about stats.
         fileName = KInstDirPath / 'mcds/stat-mod-notes.txt'
-        logger.debug('* ' + str(fileName))
+        logger.debug('* {}'.format(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatModNotes:
             statModNoteLines = [line.rstrip('\n') for line in fStatModNotes.readlines() if not line.startswith('#')]
             statModNotes =  [(int(line[:2]), line[2:].strip()) for line in statModNoteLines if line]
@@ -308,7 +305,7 @@ class MCDSEngine(DSEngine):
             
         # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
         fileName = KInstDirPath / 'mcds/stat-mod-trans.txt'
-        logger.debug('* ' + str(fileName))
+        logger.debug('* {}'.format(fileName))
         cls.DfStatModColsTrans = pd.read_csv(fileName, sep='\t')
         cls.DfStatModColsTrans.set_index(['Module', 'Statistic', 'Figure'], inplace=True)
         
@@ -356,12 +353,15 @@ class MCDSEngine(DSEngine):
 
         return cls.DfStatModColsTrans
         
-    # Ctor
-    def __init__(self, workDir='.',
+    # Ctor.
+    # :param: parallel : if True, run analyses through parallel threads
+    # :param: threads : max number of threads running at the same time
+    #                   (1 is like parallel == False, None means 5 x nb of CPU)
+    def __init__(self, workDir='.', parallel=False, threads=None,
                  distanceUnit='Meter', areaUnit='Hectare',
                  surveyType='Point', distanceType='Radial'):
         
-        # Initialize some class variables.
+        # Initialize dynamic class variables.
         MCDSEngine.loadStatSpecs()    
 
         # Check options
@@ -371,7 +371,7 @@ class MCDSEngine(DSEngine):
                'Invalid area unit{} : should be in {}'.format(distanceType, self.DistTypes)
         
         # Initialise base.
-        super().__init__(workDir=workDir, 
+        super().__init__(workDir=workDir, parallel=parallel, threads=threads,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType,
                          firstDataFields=self.FirstDataFields[surveyType])        
@@ -417,7 +417,8 @@ class MCDSEngine(DSEngine):
                   """.split('\n'))) + '\n'
     
     # Build command file from options and params
-    def buildCmdFile(self, **params):
+    # * runDir : pl.Path where to create cmd file.
+    def buildCmdFile(self, runDir, **params):
 
         # Default params values
         if 'logData' not in params:
@@ -471,26 +472,29 @@ class MCDSEngine(DSEngine):
 
         if maxDist is not None:
             distDiscrSpecs += ' /Width=' + str(maxDist)
-                
+            
         # b. Format contents string
-        cmdTxt = self.CmdTxt.format(output=self.outFileName, log=self.logFileName,
-                                    stats=self.statsFileName, plots=self.plotsFileName,
+        cmdTxt = self.CmdTxt.format(output=runDir/self.OutputFileName, log=runDir/self.LogFileName,
+                                    stats=runDir/self.StatsFileName, plots=runDir/self.PlotsFileName,
                                     bootstrap='None', bootpgrss='None', # No support for the moment.
                                     survType=self.options.surveyType, distType=self.options.distanceType,
                                     distUnit=self.options.distanceUnit, areaUnit=self.options.areaUnit,
-                                    dataFields=', '.join(self.dataFields), dataFileName=self.dataFileName,
+                                    dataFields=','.join(self.options.firstDataFields),
+                                    dataFileName=runDir/self.DataFileName,
                                     echoData=('' if params['logData'] else 'No') + 'Echo',
                                     estKeyFn=params['estimKeyFn'], estAdjustFn=params['estimAdjustFn'],
                                     estCriterion=params['estimCriterion'], cvInterv=params['cvInterval'],
                                     distDiscrSpecs=distDiscrSpecs, gOFitSpecs=gOFitSpecs)
 
         # Write file.
-        with open(self.cmdFileName, mode='w', encoding='utf-8') as cmdFile:
+        cmdFileName = runDir / self.CmdFileName
+        with open(cmdFileName, mode='w', encoding='utf-8') as cmdFile:
             cmdFile.write(cmdTxt)
 
-        logger.debug('Commands written to ' + str(self.cmdFileName))
+        logger.debug('Commands written to {}'.format(cmdFileName))
 
-        return self.cmdFileName
+        # Done.
+        return cmdFileName
     
     # Workaround pd.DataFrame.to_csv(float_format='%.xf') not working when NaNs in serie
     @staticmethod
@@ -529,22 +533,21 @@ class MCDSEngine(DSEngine):
 
     # Build MCDS input data file from data set.
     # Note: Data order not changed, same as in input dataSet !
+    # * runDir : pl.Path where to create data file.
     # TODO: Add support for covariate columns (through extraFields)
-    def buildDataFile(self, dataSet):
+    def buildDataFile(self, runDir, dataSet):
         
         # Build data to export (check and match mandatory columns, enforce order, ignore extra cols).
         dfExport, extraFields = \
             self.buildExportTable(dataSet, withExtraFields=False, decPoint='.')
         
-        # Save data fields for the engine : mandatory ones only
-        self.dataFields = self.options.firstDataFields
-        
         # Export.
-        dfExport.to_csv(self.dataFileName, index=False, sep='\t', encoding='utf-8', header=None)
+        dataFileName = runDir / self.DataFileName
+        dfExport.to_csv(dataFileName, index=False, sep='\t', encoding='utf-8', header=None)
         
-        logger.debug('Data MCDS-exported to ' + str(self.dataFileName))
+        logger.debug('Data MCDS-exported to {}'.format(dataFileName))
         
-        return self.dataFileName
+        return dataFileName
     
     # Run status codes (from MCDS documentation)
     RCNotRun      = 0
@@ -570,42 +573,58 @@ class MCDSEngine(DSEngine):
     def errors(cls, runCode):
         return runCode >= cls.RCErrors
     
-    # Run MCDS
-    def run(self, dataSet, runPrefix='mcds', realRun=True, **analysisParms):
+    # Run 1 MCDS analysis from the beginning to the end (blocking for the calling thread)
+    # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
+    def _runAnalysis(self, dataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
-        # Create a new exclusive run folder
-        self.setupRunFolder(runPrefix)
+        # Create a new exclusive thread and process-safe run folder
+        runDir = self.setupRunFolder(runPrefix)
+        logger.debug('Will run in {}'.format(runDir))
         
         # Generate data and command files into this folder
-        _ = self.buildDataFile(dataSet)
-        cmdFileName = self.buildCmdFile(**analysisParms)
+        self.buildDataFile(runDir, dataSet)
+        cmdFileName = self.buildCmdFile(runDir, **analysisParms)
         
         # Call executable (no " around cmdFile, don't forget the space after ',', ...)
         cmd = '"{}" 0, {}'.format(self.ExeFilePathName, cmdFileName)
         if realRun:
-            logger.info('Running MCDS : ' + cmd)
-            self.runTime = pd.Timestamp.now()
-            self.runStatus = os.system(cmd)
-            logger.info('Run MCDS : status = ' + str(self.runStatus))
+            logger.info('Running MCDS: ' + cmd)
+            runTime = pd.Timestamp.now()
+            runStatus = os.system(cmd)
+            logger.info('Run MCDS : status = ' + str(runStatus))
             
         # ... unless specified not to (input files generated, but no execution).
         else:
             logger.info('Not running MCDS : ' + cmd)
-            self.runTime = pd.NaT
-            self.runStatus = self.RCNotRun
+            runTime = pd.NaT
+            runStatus = self.RCNotRun
+            
+        # Extract and decode results.
+        if self.success(runStatus) or self.warnings(runStatus):
+            sResults = self.decodeStats(runDir)
+        else:
+            sResults = None
 
-        return self.runStatus, self.runTime, self.runDir
+        return runStatus, runTime, runDir, sResults
+    
+   # Start running an MCDS analysis
+    def run(self, dataSet, runPrefix='mcds', realRun=True, **analysisParms):
+        
+        # Submit analysis work and return a Future object to ask from and wait for its results.
+        return self.executor.submit(self._runAnalysis, dataSet, runPrefix, realRun, **analysisParms)
     
     # Decode output stats file to a value series
-    # Precondition: self.run(...)
+    # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
+    # * runDir : pl.Path where to find stats file.
     # Warning: No support for more than 1 stratum, 1 sample, 1 estimator.
-    def decodeStats(self):
+    def decodeStats(self, runDir):
 
-        logger.debug('Decoding ' + str(self.statsFileName) + ' ... ')
+        statsFileName = runDir / self.StatsFileName
+        logger.debug('Decoding stats from {} ...'.format(statsFileName))
         
         # 1. Load table (text format, with space separated and fixed width columns,
         #    columns headers from self.DfStatRowSpecs)
-        dfStats = pd.read_csv(self.statsFileName, sep=' +', engine='python', names=self.DfStatRowSpecs.index)
+        dfStats = pd.read_csv(statsFileName, sep=' +', engine='python', names=self.DfStatRowSpecs.index)
         
         # 2. Remove Stratum, Sample and Estimator columns (no support for multiple ones for the moment)
         dfStats.drop(columns=['Stratum', 'Sample', 'Estimator'], inplace=True)
@@ -632,7 +651,7 @@ class MCDSEngine(DSEngine):
         sKeepOnlyValueFig = ~dfStats.statNotes.apply(lambda s: pd.notnull(s) and '1' in s)
         sFigs2Drop = (dfStats.Figure != 'Value') & sKeepOnlyValueFig
         assert ~dfStats[sFigs2Drop & ((dfStats.Module != 2) | (dfStats.Statistic < 100))].Value.any(), \
-               'Warning: Somme so-called "N/A" figures are not zeroes !'
+               'Warning: Some so-called "N/A" figures are not zeroes !'
         
         # 7. Remove so-called N/A figures
         dfStats.drop(dfStats[sFigs2Drop].index, inplace=True)
@@ -648,35 +667,38 @@ class MCDSEngine(DSEngine):
         dfStats.set_index(['modDesc', 'statDesc', 'Figure'], inplace=True)
 
         # That's all folks !
-        logger.debug('Done decoding stats.')
+        logger.debug('Done decoding from {}.'.format(statsFileName))
         
         return dfStats.T.iloc[0]
 
     # Decode output log file to a string
-    # Precondition: self.run(...)
+    # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
+    # * runDir : string folder path-name where the analysis was run.
     @classmethod
-    def decodeLog(cls, anlysFolder):
+    def decodeLog(cls, runDir):
         
-        return dict(text=open(os.path.join(anlysFolder, cls.LogFileName)).read().strip())
+        return dict(text=open(runDir / cls.LogFileName).read().strip())
     
     # Decode output ... output file to a dict of chapters
-    # Precondition: self.run(...)
+    # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
+    # * runDir : string folder path-name where the analysis was run.
     @classmethod
-    def decodeOutput(cls, anlysFolder):
+    def decodeOutput(cls, runDir):
         
-        outLst = open(os.path.join(anlysFolder, cls.OutputFileName)).read().strip().split('\t')
+        outLst = open(runDir / cls.OutputFileName).read().strip().split('\t')
         
         return [dict(id=title.translate(str.maketrans({c:'' for c in ' ,.-:()/'})), 
                      title=title.strip(), text=text.strip('\n')) \
                 for title, text in [outLst[i:i+2] for i in range(0, len(outLst), 2)]]
             
     # Decode output plots file as a dict of plot dicts (key = output chapter title)
-    # Precondition: self.run(...)
+    # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
+    # * runDir : string folder path-name where the analysis was run.
     @classmethod
-    def decodePlots(cls, anlysFolder):
+    def decodePlots(cls, runDir):
         
         dPlots = dict()
-        lines = (line.strip() for line in open(os.path.join(anlysFolder, cls.PlotsFileName), 'r').readlines())
+        lines = (line.strip() for line in open(runDir / cls.PlotsFileName, 'r').readlines())
         for title in lines:
             
             title = title.strip()
@@ -694,20 +716,33 @@ class MCDSEngine(DSEngine):
 
         return dPlots
 
-    # Build Distance/MCDS input data file from data set.
-    def buildDistanceDataFile(self, dataSet, tgtFilePathName, withExtraFields=False):
+    # Build Distance/MCDS input data file from data set to given target folder and file name.
+    def buildDistanceDataFile(self, dataSet, tgtFilePathName, decimalPoint=',', withExtraFields=False):
                 
         # Build data to export (check and match mandatory columns, enforce order, keep other cols).
-        dfExport, extraFields = self.buildExportTable(dataSet, withExtraFields=withExtraFields, decPoint=',')
+        dfExport, extraFields = \
+            self.buildExportTable(dataSet, withExtraFields=withExtraFields, decPoint=decimalPoint)
         
         # Export.
         dfExport.to_csv(tgtFilePathName, index=False, sep='\t', encoding='utf-8',
                         header=self.distanceFields(self.options.firstDataFields) + extraFields)
 
-        logger.debug('Data Distance-exported to ' + tgtFilePathName)
+        logger.debug('Data Distance-exported to {}.'.format(tgtFilePathName))
         
         return tgtFilePathName
+        
+    # Terminate : release any used resource.
+    # Post-condition: Instance can no more run analyses.
+    def terminate(self):
+    
+        if self.executor is not None:
+            self.executor.shutdown()
+        self.executor = None
    
+    def __del__(self):
+    
+        self.terminate()
+        
 
 if __name__ == '__main__':
 

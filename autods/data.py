@@ -440,6 +440,7 @@ class MCDSResultsSet(ResultsSet):
     Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
 
     # * miSampleCols : only for delta AIC computation ; defaults to miCustomCols if None
+    #                  = the cols to use for grouping by sample
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None):
         
         # Setup computed columns specs.

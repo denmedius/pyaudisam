@@ -43,11 +43,18 @@ class DSAnalysis(object):
     DRunRunColumnTrans = dict(en=['ExCod', 'RunTime', 'RunFolder'],
                               fr=['CodEx', 'HeureExec', 'DossierExec'])
     
-    def __init__(self, engine, dataSet, name):
+    # Ctor
+    # * :param: engine : DS engine to use
+    # * :param: dataSet : data.SampleDataSet instance to use
+    # * :param: name : name (may be empty), used for prefixing run folders or so, only for user-friendliness
+    # * :param: customData : any custom data to be transported with the analysis object
+    #                        during run (left completely untouched)
+    def __init__(self, engine, dataSet, name, customData=None):
         
         self.engine = engine
         self.dataSet = dataSet
         self.name = name
+        self.customData = customData
         
 class MCDSAnalysis(DSAnalysis):
     
@@ -69,7 +76,7 @@ class MCDSAnalysis(DSAnalysis):
             if maxDist is not None:
                 assert distCuts[-1] < maxDist, 'Invalid last distance cut {}; should be empty < {}'.format(distCuts[-1], maxDist)
     
-    def __init__(self, engine, dataSet, name=None, logData=False,
+    def __init__(self, engine, dataSet, name=None, customData=None, logData=False,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
@@ -126,7 +133,7 @@ class MCDSAnalysis(DSAnalysis):
                 name += '-' + str(cvInterval)
 
         # Initialise base.
-        super().__init__(engine, dataSet, name)
+        super().__init__(engine, dataSet, name, customData)
         
         # Save params.
         self.logData = logData
@@ -160,31 +167,48 @@ class MCDSAnalysis(DSAnalysis):
                                    'Dist Tronc Gche', 'Dist Tronc Drte', 'Tranch Dist Mod', 'Tranch Dist Discr'] \
                                   + DSAnalysis.DRunRunColumnTrans['fr']))
     
+     # Start running the analysis, and return immediately (the associated cofu.Future object) :
+    # this begins an async. run ; you'll need to call getResults to wait for the real end of execution.
     def run(self, realRun=True, postCleanup=False):
         
-        self.runStatus, self.runTime, self.runDir = \
-            self.engine.run(dataSet=self.dataSet, runPrefix=self.name, realRun=realRun, logData=self.logData,
+        # Ask the engine to start running the analysis
+        self.future = \
+            self.engine.run(dataSet=self.dataSet, runPrefix=self.name,
+                            realRun=realRun, logData=self.logData,
                             estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
                             estimCriterion=self.estimCriterion, cvInterval=self.cvInterval,
                             minDist=self.minDist, maxDist=self.maxDist,
                             fitDistCuts=self.fitDistCuts, discrDistCuts=self.discrDistCuts)
         
-        # Load and decode output stats.
-        sResults = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
-                                   self.cvInterval, self.minDist, self.maxDist, self.fitDistCuts, self.discrDistCuts,
-                                   self.runStatus, self.runTime, self.runDir],
-                             index=self.MIRunColumns)
+        return self.future
+        
+    # Wait for the real end of analysis execution, and return its results.
+    # This terminates an async. run when returning.
+    def getResults(self, postCleanup=False):
+        
+        # TODO: Need to prevent calling again self.future.result() ? or no pb with this ?
+        
+        # Get analysis execution results, when the computation is finished (blocking)
+        self.runStatus, self.runTime, self.runDir, sResults = self.future.result()
+        
+        # Append the analysis stats (if any usable) to the input parameters.
+        sParams = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
+                                  self.cvInterval, self.minDist, self.maxDist, self.fitDistCuts, self.discrDistCuts,
+                                  self.runStatus, self.runTime, self.runDir],
+                            index=self.MIRunColumns)
         
         if self.success() or self.warnings():
-            sResults = sResults.append(self.engine.decodeStats())
+            sResults = sParams.append(sResults)
+        else:
+            sResults = sParams
             
         # Post cleanup if requested.
         if postCleanup:
             self.cleanup()
         
-        # Return a result, event if not run or MCDS crashed or ...
+        # Return a result, even if not run or MCDS crashed or ...
         return sResults
-    
+        
     def cleanup(self):
     
         if 'runDir' in dir(self):
