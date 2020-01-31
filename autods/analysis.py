@@ -26,6 +26,7 @@ logger = logging.getLogger('autods')
 #import engine as adse # Bad: double import of 'engine' averall.
 from autods.engine import DSEngine, MCDSEngine # Good
 #import autods.engine as adse # Also good.
+from autods.executor import Executor
 
 
 # Analysis (abstract) : Gather input params, data set, results, debug and log files
@@ -206,6 +207,8 @@ class MCDSAnalysis(DSAnalysis):
         if postCleanup:
             self.cleanup()
         
+        logger.debug('getResults: done')
+        
         # Return a result, even if not run or MCDS crashed or ...
         return sResults
         
@@ -214,24 +217,118 @@ class MCDSAnalysis(DSAnalysis):
         if 'runDir' in dir(self):
         
             runDir = pl.Path(self.runDir)
+            if runDir.is_dir():
             
-            # Take extra precautions before rm -fr :-) (14 files inside after a report generation)
-            if runDir.is_dir() and not runDir.is_symlink() and len(list(runDir.rglob('*'))) < 15:
-                shutil.rmtree(self.runDir)
-            else:
-                logger.warning('Refused to remove suspect analysis run folder "{}"'.format(self.runDir))
+                # Take extra precautions before rm -fr :-) (14 files inside after a report generation)
+                if not runDir.is_symlink() and len(list(runDir.rglob('*'))) < 15:
+                    logger.debug('Removing run folder "{}"'.format(runDir))
+                    shutil.rmtree(self.runDir)
+                else:
+                    logger.warning('Refused to remove suspect analysis run folder "{}"'.format(runDir))
         
     def wasRun(self):
+    
+        _ = self.getResults() # First, wait for end of actual run !
+        
         return self.engine.wasRun(self.runStatus)
     
     def success(self):
+   
+        _ = self.getResults() # First, wait for end of actual run !
+        
         return self.engine.success(self.runStatus)
     
     def warnings(self):
+    
+        _ = self.getResults() # First, wait for end of actual run !
+        
         return self.engine.warnings(self.runStatus)
     
     def errors(self):
+   
+        _ = self.getResults() # First, wait for end of actual run !
+        
         return self.engine.errors(self.runStatus)
+
+
+class MCDSPreAnalysis(MCDSAnalysis):
+    
+    EngineClass = MCDSAnalysis.EngineClass
+    
+    # * modelStrategy: iterable of dict(keyFn, adjSr=, estCrit, cvInt)
+    # * executor: Executor object to use for parallel execution of multiple pre-analyses instances
+    def __init__(self, engine, dataSet, name=None, customData=None, logData=False, executor=None,
+                 modelStrategy=[dict(keyFn='HNORMAL', adjSr='COSINE', estCrit='AIC', cvInt=95)],
+                 estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
+                 estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
+                 minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
+                 fitDistCuts=EngineClass.DistFitCutsDef, discrDistCuts=EngineClass.DistDiscrCutsDef):
+
+        super().__init__(engine, dataSet, name, customData, logData,
+                         estimKeyFn, estimAdjustFn, estimCriterion, cvInterval,
+                         minDist, maxDist, fitDistCuts, discrDistCuts)
+
+        self.modelStrategy = modelStrategy
+        self.executor = executor if executor is not None else Executor(parallel=False)
+    
+    def _run(self):
+
+        # Run models as planned in modelStrategy if something goes wrong
+        dAnlyses = dict()
+        for model in self.modelStrategy:
+
+            # Create and run analysis for the new model
+            modAbbrev = model['keyFn'][:3].lower() + '-' + model['adjSr'][:3].lower()
+            anlys = MCDSAnalysis(engine=self.engine, dataSet=self.dataSet,
+                                 name=self.name + '-' + modAbbrev, logData=False,
+                                 estimKeyFn=model['keyFn'], estimAdjustFn=model['adjSr'],
+                                 estimCriterion=model['estCrit'], cvInterval=model['cvInt'])
+            anlys.run()
+
+            # Stop here if run was OK.
+            if anlys.success(): # Note that this call is blocking ... waiting for anlys end.
+                dAnlyses['success'] = anlys
+                logger.info(logPrfx + '=> success.')
+                break
+
+            # Otherwise, save 1st Warning and 1st error or "no" result,
+            # and then go on (may be the next will be an OK or warning one)
+            elif anlys.warnings():
+                if 'warning' not in dAnlyses:
+                    dAnlyses['warning'] = anlys
+            elif 'error' not in dAnlyses:
+                dAnlyses['error'] = anlys
+
+        # Notify the best obtained result and retrieve analysis of.
+        if 'success' not in dAnlyses:
+            if 'warning' in dAnlyses:
+                anlys = dAnlyses['warning']
+                logger.info(logPrfx + '=> warnings.')
+            else:
+                anlys = dAnlyses['error']
+                logger.info(logPrfx + '=> errors.')
+
+        return anlys # Return best analysis.
+    
+    def run(self):
+
+        # Submit analysis work and return a Future object to ask from and wait for its results.
+        self.future = self.executor.submit(self._run)
+        
+        return self.future
+    
+    def getResults(self):
+        
+        # Get self result : the best analysis.
+        anlys = self.future.result()
+        
+        # Get execution results of this best analysis.
+        sResults = anlys.getResults()
+        
+        # Store best analysis other outputs ... as self ones
+        self.runStatus, self.runTime, self.runDir = anlys.runStatus, anlys.runTime, anlys.runDir
+        
+        return sResults
 
 
 if __name__ == '__main__':

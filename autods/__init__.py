@@ -13,6 +13,7 @@
 #  pandas 0.25
 #  matplotlib 3.1
 #  jinja2
+#  zoopt
 #  ... to be completed.
 
 # Module version
@@ -20,6 +21,7 @@ __version__ = 0.9
 
 # Module exports
 from .engine import MCDSEngine
-from .analysis import MCDSAnalysis#, MCDSPreAnalyser, MCDSAnalyser
-from .data import SampleDataSet, MCDSResultsSet#, FieldDataSet, AnalysesSpecsSet
+from .executor import Executor #, ImmediateFuture, SequentialExecutor
+from .analysis import MCDSAnalysis #, MCDSPreAnalyser, MCDSAnalyser
+from .data import SampleDataSet, MCDSResultsSet #, FieldDataSet, AnalysesSpecsSet
 from .report import MCDSResultsPreReport, MCDSResultsFullReport

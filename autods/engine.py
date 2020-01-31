@@ -23,9 +23,10 @@ from collections import OrderedDict as odict, namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
-import concurrent.futures as cofu
-
 import logging
+
+from autods.executor import Executor
+
 
 logger = logging.getLogger('autods')
 
@@ -80,11 +81,9 @@ class DSEngine(object):
     DfStatRowSpecs, DfStatModSpecs, DfStatModNotes, MIStatModCols, DfStatModColTrans = None, None, None, None, None
     
     # Ctor.
-    # :param: parallel : if True, run analyses through parallel threads
-    # :param: threads : max number of threads running at the same time
-    #                   (1 is like parallel == False, None means 5 x nb of CPU)
-    def __init__(self, workDir='.', # As a simple str, or a pl.Path
-                 parallel=False, threads=None,
+    # :param: workDir: As a simple str, or a pl.Path
+    # :param: executor: Executor object to use (None => a sequential one will be auto-generated)
+    def __init__(self, workDir='.', executor=None, 
                  distanceUnit='Meter', areaUnit='Hectare', **options):
 
         # Check base options
@@ -107,8 +106,8 @@ class DSEngine(object):
         self.workDir.mkdir(exist_ok=True)
         logger.info('DSEngine work folder: {}'.format(self.workDir.absolute()))
         
-        # Create infrastructure for parallel runAnalysis().
-        self.executor = cofu.ThreadPoolExecutor(max_workers=1 if not parallel else threads)
+        # Set executor for runAnalysis().
+        self.executor = executor if executor is not None else Executor(parallel=False)
     
     # Possible regexps for auto-detection of columns to import from data sets / export
     # TODO: Complete for non 'Point transect' modes
@@ -354,10 +353,9 @@ class MCDSEngine(DSEngine):
         return cls.DfStatModColsTrans
         
     # Ctor.
-    # :param: parallel : if True, run analyses through parallel threads
-    # :param: threads : max number of threads running at the same time
-    #                   (1 is like parallel == False, None means 5 x nb of CPU)
-    def __init__(self, workDir='.', parallel=False, threads=None,
+    # :param: workDir: As a simple str, or a pl.Path
+    # :param: executor: Executor object to use (None => a sequential one will be auto-generated)
+    def __init__(self, workDir='.', executor=None,
                  distanceUnit='Meter', areaUnit='Hectare',
                  surveyType='Point', distanceType='Radial'):
         
@@ -371,7 +369,7 @@ class MCDSEngine(DSEngine):
                'Invalid area unit{} : should be in {}'.format(distanceType, self.DistTypes)
         
         # Initialise base.
-        super().__init__(workDir=workDir, parallel=parallel, threads=threads,
+        super().__init__(workDir=workDir, executor=executor,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType,
                          firstDataFields=self.FirstDataFields[surveyType])        
