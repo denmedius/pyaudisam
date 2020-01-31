@@ -8,10 +8,10 @@
 # Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
 # License: GPL 3
 
-
-#import concurrent.futures as cofu
+import concurrent.futures as cofu
 
 import logging
+
 
 logger = logging.getLogger('autods')
 
@@ -31,7 +31,7 @@ class ImmediateFuture(object):
         return self._result
 
 
-class SequentialExecutor(object):
+class SequentialExecutor(cofu.Executor):
 
     """Non-parallel concurrent.futures.Executor minimal implementation
     """
@@ -43,7 +43,7 @@ class SequentialExecutor(object):
     # Precondition: threads is None or processes is None
     def __init__(self):
         
-        return # Nothing to do.
+        logger.debug('Starting a SequentialExecutor() ...')
             
     def submit(self, func, *args, **kwargs):
         
@@ -55,7 +55,7 @@ class SequentialExecutor(object):
     
     def shutdown(self, wait=True):
         
-        return # Nothing to do.
+        pass # Nothing to do.
         
         
 class Executor(object):
@@ -74,46 +74,44 @@ class Executor(object):
         
         self.realExor = None
         if parallel:
-            raise NotImplementedError('Executor(parallel=True)')
-            #if threads is not None:
-            #    if threads > 1:
-            #        self.realExor = \
-            #            cofu.ThreadPoolExecutor(max_workers=threads or None,
-            #                                    thread_name_prefix=name_prefix,
-            #                                    initializer=None, initargs=initargs)
-            #elif processes is not None:
-            #    if processes > 1:
-            #        self.realExor = \
-            #            cofu.ProcessPoolExecutor(max_workers=processes or None,
-            #                                     mp_context=mp_context,
-            #                                     initializer=initializer, initargs=initargs)
+            if threads is not None:
+                if threads > 1:
+                    self.realExor = \
+                        cofu.ThreadPoolExecutor(max_workers=threads or None,
+                                                thread_name_prefix=name_prefix,
+                                                initializer=None, initargs=initargs)
+                    logger.debug('Starting a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
+            elif processes is not None:
+                if processes > 1:
+                    self.realExor = \
+                        cofu.ProcessPoolExecutor(max_workers=processes or None,
+                                                 mp_context=mp_context,
+                                                 initializer=initializer, initargs=initargs)
+                    logger.debug('Starting a ProcessPoolExecutor(max_workers={})'.format(processes or 'None'))
                     
         if self.realExor is None:
             self.realExor = SequentialExecutor()
             
-        logger.debug('Executor: ' + self.realExor.__class__.__name__)
-            
     def submit(self, func, *args, **kwargs):
         
-        logger.debug('submit: begin ...')
-        
-        future = self.realExor.submit(func, *args, **kwargs)
-            
-        logger.debug('submit: end: ' + str(future))
-            
-        return future
+        return self.realExor.submit(func, *args, **kwargs)
     
-    def map(func, *iterables, timeout=None, chunksize=1):
+    def map(self, func, *iterables, timeout=None, chunksize=1):
         
         return self.realExor.map(func, *iterables, timeout=timeout, chunksize=chunksize)
-    
-    def shutdown(wait=True):
         
-        logger.debug('Executor.shutdown')
-            
+    def asCompleted(self, futures):
+    
+        return iter(futures) if isinstance(self.realExor, SequentialExecutor) \
+               else cofu.as_completed(futures)
+    
+    def shutdown(self, wait=True):
+        
+        clsName = self.realExor.__class__.__name__
+        
         self.realExor.shutdown(wait=wait)
-
-        logger.debug('Executor.shutdown: done')
+        
+        logger.debug(clsName + ' shut down.')
             
 
 if __name__ == '__main__':

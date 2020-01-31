@@ -185,12 +185,17 @@ class MCDSAnalysis(DSAnalysis):
         
     # Wait for the real end of analysis execution, and return its results.
     # This terminates an async. run when returning.
-    def getResults(self, postCleanup=False):
-        
-        # TODO: Need to prevent calling again self.future.result() ? or no pb with this ?
+    def _wait4Results(self):
         
         # Get analysis execution results, when the computation is finished (blocking)
-        self.runStatus, self.runTime, self.runDir, sResults = self.future.result()
+        self.runStatus, self.runTime, self.runDir, self.sResults = self.future.result()
+        
+    # Wait for the real end of analysis execution, and return its results.
+    # This terminates an async. run when returning.
+    def getResults(self, postCleanup=False):
+        
+        # Get analysis execution results, when the computation is finished (blocking)
+        self._wait4Results()
         
         # Append the analysis stats (if any usable) to the input parameters.
         sParams = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
@@ -198,19 +203,17 @@ class MCDSAnalysis(DSAnalysis):
                                   self.runStatus, self.runTime, self.runDir],
                             index=self.MIRunColumns)
         
-        if self.success() or self.warnings():
-            sResults = sParams.append(sResults)
+        if self.engine.success(self.runStatus) or self.engine.warnings(self.runStatus):
+            self.sResults = sParams.append(self.sResults)
         else:
-            sResults = sParams
+            self.sResults = sParams
             
         # Post cleanup if requested.
         if postCleanup:
             self.cleanup()
         
-        logger.debug('getResults: done')
-        
         # Return a result, even if not run or MCDS crashed or ...
-        return sResults
+        return self.sResults
         
     def cleanup(self):
     
@@ -228,25 +231,25 @@ class MCDSAnalysis(DSAnalysis):
         
     def wasRun(self):
     
-        _ = self.getResults() # First, wait for end of actual run !
+        self._wait4Results() # First, wait for end of actual run !
         
         return self.engine.wasRun(self.runStatus)
     
     def success(self):
    
-        _ = self.getResults() # First, wait for end of actual run !
+        self._wait4Results() # First, wait for end of actual run !
         
         return self.engine.success(self.runStatus)
     
     def warnings(self):
     
-        _ = self.getResults() # First, wait for end of actual run !
+        self._wait4Results() # First, wait for end of actual run !
         
         return self.engine.warnings(self.runStatus)
     
     def errors(self):
    
-        _ = self.getResults() # First, wait for end of actual run !
+        self._wait4Results() # First, wait for end of actual run !
         
         return self.engine.errors(self.runStatus)
 
@@ -257,6 +260,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
     
     # * modelStrategy: iterable of dict(keyFn, adjSr=, estCrit, cvInt)
     # * executor: Executor object to use for parallel execution of multiple pre-analyses instances
+    #             Note: Up to the caller to shut it down when no more needed (not owned).
     def __init__(self, engine, dataSet, name=None, customData=None, logData=False, executor=None,
                  modelStrategy=[dict(keyFn='HNORMAL', adjSr='COSINE', estCrit='AIC', cvInt=95)],
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
@@ -285,13 +289,13 @@ class MCDSPreAnalysis(MCDSAnalysis):
                                  estimCriterion=model['estCrit'], cvInterval=model['cvInt'])
             anlys.run()
 
-            # Stop here if run was OK.
+            # Stop here if run was OK, and save successful analysis.
             if anlys.success(): # Note that this call is blocking ... waiting for anlys end.
                 dAnlyses['success'] = anlys
                 logger.info(logPrfx + '=> success.')
                 break
 
-            # Otherwise, save 1st Warning and 1st error or "no" result,
+            # Otherwise, save 1st Warning and 1st error or "no" result analysis,
             # and then go on (may be the next will be an OK or warning one)
             elif anlys.warnings():
                 if 'warning' not in dAnlyses:

@@ -185,6 +185,19 @@ class DSEngine(object):
     StatsFileName  = 'stats.txt'
     PlotsFileName  = 'plots.txt'
         
+    # Shutdown : release any used resource.
+    # Post-condition: Instance can no more run analyses.
+    def shutdown(self, executor=True):
+    
+        if executor and self.executor is not None:
+            self.executor.shutdown()
+        self.executor = None
+   
+    def __del__(self):
+    
+        self.shutdown()
+
+
 # MCDS engine (Conventional Distance Sampling)
 class MCDSEngine(DSEngine):
     
@@ -728,18 +741,6 @@ class MCDSEngine(DSEngine):
         logger.debug('Data Distance-exported to {}.'.format(tgtFilePathName))
         
         return tgtFilePathName
-        
-    # Terminate : release any used resource.
-    # Post-condition: Instance can no more run analyses.
-    def terminate(self):
-    
-        if self.executor is not None:
-            self.executor.shutdown()
-        self.executor = None
-   
-    def __del__(self):
-    
-        self.terminate()
         
 
 if __name__ == '__main__':
