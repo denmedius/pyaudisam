@@ -223,3 +223,31 @@ div.chapter:hover {
  padding-bottom: 15px;
  color: #244c0c
 }
+
+.discr-table {
+ all: initial;
+ display: table
+ table-layout: fixed;
+ margin-left: auto;
+ margin-right: auto;
+}
+.discr-table tbody {
+ all: initial;
+}
+.discr-table th {
+ all: initial;
+ display: table-cell;
+}
+.discr-table tr {
+ all: initial;
+ display: table-row;
+ color: #244c0c
+}
+.discr-table td {
+ all: initial;
+ /* font-family: Arial, Helvetica, sans-serif;*/
+ font-family: "Liberation Serif", Georgia, serif;
+ display: table-cell;
+ width: 220px;
+ color: #244c0c
+}

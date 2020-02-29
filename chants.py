@@ -152,7 +152,7 @@ def _lireDossierSons(cheminDossier, dEspeces):
 
 
     dfSons['ordEspece'] = dfSons.espece.apply(lambda esp: 99 if esp not in dEspeces else dEspeces[esp].ordre)
-    dfSons.espece = dfSons.espece.apply(lambda esp: 'PicInconnu' if esp not in dEspeces else esp)
+    dfSons.espece = dfSons.espece.apply(lambda esp: 'EspeceInconnue' if esp not in dEspeces else esp)
 
     dfSons['ordTypManif'] = \
         dfSons.typManif.apply(lambda typ: 99 if typ not in _KDTypesManifs else _KDTypesManifs[typ].ordre)
@@ -707,6 +707,7 @@ KDGlossaire = \
   'jvq' : 'juvénile volant quémandant',
   'liq' : 'liquide',
   'm' : 'martellement(s)',
+  'rap' : 'râpeux',
   'rep' : 'réponse, se répondent',
   'roule' : 'roulé',
   'par' : 'parade',
