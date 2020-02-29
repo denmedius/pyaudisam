@@ -222,7 +222,7 @@ class MCDSAnalysis(DSAnalysis):
             runDir = pl.Path(self.runDir)
             if runDir.is_dir():
             
-                # Take extra precautions before rm -fr :-) (14 files inside after a report generation)
+                # Take extra precautions before rm -fr :-) (at least 14 files inside after a report generation)
                 if not runDir.is_symlink() and len(list(runDir.rglob('*'))) < 15:
                     logger.debug('Removing run folder "{}"'.format(runDir))
                     shutil.rmtree(self.runDir)
@@ -257,20 +257,22 @@ class MCDSAnalysis(DSAnalysis):
 class MCDSPreAnalysis(MCDSAnalysis):
     
     EngineClass = MCDSAnalysis.EngineClass
-    
-    # * modelStrategy: iterable of dict(keyFn, adjSr=, estCrit, cvInt)
+        
+    # * modelStrategy: iterable of dict(keyFn=, adjSr=, estCrit=, cvInt=)
     # * executor: Executor object to use for parallel execution of multiple pre-analyses instances
     #             Note: Up to the caller to shut it down when no more needed (not owned).
     def __init__(self, engine, dataSet, name=None, customData=None, logData=False, executor=None,
                  modelStrategy=[dict(keyFn='HNORMAL', adjSr='COSINE', estCrit='AIC', cvInt=95)],
-                 estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
-                 estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
+                 #estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
+                 #estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
                  fitDistCuts=EngineClass.DistFitCutsDef, discrDistCuts=EngineClass.DistDiscrCutsDef):
 
+        assert len(modelStrategy) > 0, 'MCDSPreAnalysis: Empty modelStrategy !'
+        
         super().__init__(engine, dataSet, name, customData, logData,
-                         estimKeyFn, estimAdjustFn, estimCriterion, cvInterval,
-                         minDist, maxDist, fitDistCuts, discrDistCuts)
+                         #estimKeyFn, estimAdjustFn, estimCriterion, cvInterval,
+                         minDist=minDist, maxDist=maxDist, fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
 
         self.modelStrategy = modelStrategy
         self.executor = executor if executor is not None else Executor(parallel=False)
@@ -281,8 +283,9 @@ class MCDSPreAnalysis(MCDSAnalysis):
         dAnlyses = dict()
         for model in self.modelStrategy:
 
-            # Create and run analysis for the new model
             modAbbrev = model['keyFn'][:3].lower() + '-' + model['adjSr'][:3].lower()
+
+            # Create and run analysis for the new model
             anlys = MCDSAnalysis(engine=self.engine, dataSet=self.dataSet,
                                  name=self.name + '-' + modAbbrev, logData=False,
                                  estimKeyFn=model['keyFn'], estimAdjustFn=model['adjSr'],
@@ -292,7 +295,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
             # Stop here if run was OK, and save successful analysis.
             if anlys.success(): # Note that this call is blocking ... waiting for anlys end.
                 dAnlyses['success'] = anlys
-                logger.info(logPrfx + '=> success.')
+                logger.info(anlys.name + ' => success.')
                 break
 
             # Otherwise, save 1st Warning and 1st error or "no" result analysis,
@@ -307,11 +310,13 @@ class MCDSPreAnalysis(MCDSAnalysis):
         if 'success' not in dAnlyses:
             if 'warning' in dAnlyses:
                 anlys = dAnlyses['warning']
-                logger.info(logPrfx + '=> warnings.')
+                logger.info(anlys.name + ' => warnings.')
             else:
                 anlys = dAnlyses['error']
-                logger.info(logPrfx + '=> errors.')
-
+                logger.info(anlys.name + ' => errors.')
+        else:
+            pass # anlys is dAnlyses['success'] already (see break above)..
+            
         return anlys # Return best analysis.
     
     def run(self):
