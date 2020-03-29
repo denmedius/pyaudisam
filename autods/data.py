@@ -85,7 +85,7 @@ def individualiseMonoCategoricalCounts(dfInSights, countColumns):
         dfOneCat = dfInSights[dfInSights[col] > 0]
         
         # Repeat each one by its count of individuals
-        dfIndiv = dfInSights.loc[np.repeat(dfOneCat.index.values, dfOneCat[col].values)]
+        dfIndiv = dfInSights.loc[np.repeat(dfOneCat.index.values, dfOneCat[col].astype(int).values)]
 
         # Replace non-zero counts by 1.
         dfIndiv.loc[dfIndiv[col] > 0, col] = 1
