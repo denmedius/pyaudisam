@@ -27,11 +27,6 @@ logger = logging.getLogger('autods')
 from autods.analysis import DSAnalysis, MCDSAnalysis
 
 
-# A tabular data set for producing on-demand sample data set from "raw sightings data" aka "field data"
-class FieldDataSet(object):
-
-    pass # Soon available, through functions just below :-)
-    
 # Transform a multi-categorical sightings set into an equivalent mono-categorical sightings set,
 # that is where no sightings has more that one category with positive count (keeping the same total counts).
 # Highly optimized version.
@@ -133,7 +128,7 @@ def selectSampleSightings(dSample, dfAllSights, dfAllEffort,
     dfSampEffort = dfSampEffort[transIdCols + [effortCol]].groupby(transIdCols).sum()
     
     # Add effort column
-    dfSampSights = dfSampSights.join(dfSampEffort, on=transIdCols)
+    dfSampSights = dfSampSights.drop(columns=effortCol, errors='ignore').join(dfSampEffort, on=transIdCols)
 
     return dfSampSights, dfSampEffort
     
@@ -186,6 +181,42 @@ def addSurveyAreaInfo(dfInSights, dAreaInfo):
     return dfInSights
     
 
+# TODO
+# A tabular data set for producing on-demand sample data sets from "raw sightings data" aka "field data"
+#class FieldDataSet(object):
+#
+#    def __init__(self, dfRawSightings, dfTransects, dAreaInfo, 
+#                       transIdCols='Transect', passIdCol='Pass', effortCol='Effort',
+#                       decimalCols=['Effort', 'Distance']):
+#        
+#        self.dfRawSightings = dfRawSightings
+#        self.dfTransects = dfTransects
+#        self.dAreaInfo = dAreaInfo
+#        self.transIdCols = transIdCols
+#        self.passIdCol = passIdCol
+#        self.effortCol = effortCol
+#        self.decimalCols = decimalCols
+#    
+#    # TODO : Integrate here all global functions above !
+#
+#    # Echantillonnage des données individualisées (construction d'un SampleDataSet)
+#    def sampleDataSet(self, sSample):
+#        
+#        # Select sample data.
+#        dfSampIndivObs, dfSampTransInfo = self.selectSampleSightings(sSample)
+#
+#        # Add absence sightings
+#        dfSampIndivObs = self.addAbsenceSightings(dfSampIndivObs, sampleCols=list(sSample.index))
+#
+#        # Add information about the studied geographical area
+#        dfSampIndivObs = self.addSurveyAreaInfo(dfSampIndivObs)
+#
+#        # Sort / group sightings by point (mandatory for MCDS analysis)
+#        dfSampIndivObs.sort_values(by=self.transIdCols, inplace=True)
+#
+#        # Create and return SampleDataSet instance.
+#        return SampleDataSet(dfSampIndivObs, decimalFields=self.decimalCols)   
+
 # A tabular input data set for multiple analyses on the same sample, with 1 or 0 individual per row
 # Warning:
 # * Only Point transect supported as for now
@@ -212,38 +243,47 @@ class SampleDataSet(object):
             df = pd.read_csv(fileName, sep=sep, decimal=',')
         return df
     
+    def _fromDataFile(self, sourceFpn):
+        
+        if isinstance(sourceFpn, str):
+            sourceFpn = pl.Path(sourceFpn)
+    
+        assert sourceFpn.exists(), 'Source file for SampleDataSet not found : ' + sourceFpn
+
+        ext = sourceFpn.suffix.lower()
+        assert ext in self.SupportedFileExts, \
+               'Unsupported source file type {}: not from {{{}}}' \
+               .format(ext, ','.join(self.SupportedFileExts))
+        if ext in ['.xlsx']:
+            dfData = pd.read_excel(sourceFpn)
+        elif ext in ['.ods']:
+            dfData = pd.read_excel(sourceFpn, engine='odf')
+        elif ext in ['.csv', '.txt']:
+            dfData = self.csv2df(sourceFpn, decCols=self.decimalFields, sep='\t')
+            
+        return dfData
+    
+    def _fromDataFrame(self, sourceDf):
+        
+        return sourceDf.copy()
+    
     def __init__(self, source, decimalFields=list()):
         
-        if isinstance(source, str):
-            source = pl.Path(source)
-        
-        assert (isinstance(source, pl.Path) and source.exists()) \
-               or isinstance(source, pd.DataFrame), \
-               'source must be a pandas.DataFrame or an existing filename'
-        
-        if isinstance(source, pl.Path):
-            ext = source.suffix.lower()
-            assert ext in self.SupportedFileExts, \
-                   'Unsupported source file type {}: not from {{{}}}' \
-                   .format(ext, ','.join(self.SupportedFileExts))
-            if ext in ['.xlsx']:
-                dfData = pd.read_excel(source)
-            elif ext in ['.ods']:
-                dfData = pd.read_excel(source, engine='odf')
-            elif ext in ['.csv', '.txt']:
-                dfData = self.csv2df(source, decCols=decimalFields, sep='\t')
-        else:
-            dfData = source.copy()
-        
-        assert not dfData.empty, 'No data in set'
-        assert len(dfData.columns) >= 5, 'Not enough columns (should be at leat 5)'
-        
-        assert all(field in dfData.columns for field in decimalFields), \
-               'Some declared decimal field(s) are not in source columns {}' \
-               .format(','.join(dfData.columns))
-        
-        self._dfData = dfData
         self.decimalFields = decimalFields
+
+        if isinstance(source, str) or isinstance(source, pl.Path):
+            self._dfData = self._fromDataFile(source)
+        elif isinstance(source, pd.DataFrame):
+            self._dfData = self._fromDataFrame(source)
+        else:
+            raise Exception('source for SampleDataSet must be a pandas.DataFrame or an existing file')
+        
+        assert not self._dfData.empty, 'No data in set'
+        assert len(self._dfData.columns) >= 5, 'Not enough columns (should be at leat 5)'
+        
+        missCols = [decFld for decFld in self.decimalFields if decFld not in self._dfData.columns]
+        assert not missCols, '{} declared decimal field(s) are not in source columns {} : {}' \
+                             .format(len(missCols), ','.join(self._dfData.columns), ','.join(missCols))
         
     def __len__(self):
         
@@ -258,7 +298,8 @@ class SampleDataSet(object):
     def dfData(self, dfData):
         
         raise NotImplementedError('No change allowed to data ; create a new dataset !')
-        
+
+
 # A result set for multiple analyses from the same engine.
 # With ability to prepend custom heading columns to the engine output stat ones.
 # And to get a 3-level multi-index columned or a mono-indexed translated columned version of the data table.

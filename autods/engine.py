@@ -109,22 +109,14 @@ class DSEngine(object):
         # Set executor for runAnalysis().
         self.executor = executor if executor is not None else Executor(parallel=False)
     
-    # Possible regexps for auto-detection of columns to import from data sets / export
-    # TODO: Complete for non 'Point transect' modes
+    # Possible regexps for auto-detection of columns to import from data sets / exports
+    # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK).
     ImportFieldAliasREs = \
         odict([('STR_LABEL', ['region', 'zone', 'secteur', 'strate', 'stratum']),
                ('STR_AREA', ['surface', 'area', 'ha', 'km2']),
-               ('SMP_LABEL', ['point', 'lieu', 'location']),
-               ('SMP_EFFORT', ['effort', 'passages', 'surveys', 'samplings']),
+               ('SMP_LABEL', ['point', 'lieu', 'location', 'transect']),
+               ('SMP_EFFORT', ['effort', 'passages', 'surveys', 'samplings', 'longueur', 'length']),
                ('DISTANCE', ['distance'])])
-    
-    # Associated Distance import fields.
-    DistanceFields = \
-        dict(STR_LABEL='Region*Label', STR_AREA='Region*Area', SMP_LABEL='Point transect*Label',
-             SMP_EFFORT='Point transect*Survey effort', DISTANCE='Observation*Radial distance')
-    
-    def distanceFields(self, dsFields):
-        return [self.DistanceFields[name] for name in dsFields]
     
     # Data fields of decimal type.
     # TODO: Complete for non 'Point transect' modes
@@ -203,13 +195,10 @@ class MCDSEngine(DSEngine):
     
     DistUnits = ['Meter']
     AreaUnit = ['Hectare']
-    SurveyTypes = ['Point'] #, 'Line'] #TODO : Add Line support
-    DistTypes = ['Radial'] #? 'Perpendicular', 'Radial & Angle']
+    SurveyTypes = ['Point', 'Line']
+    DistTypes = ['Radial', 'Perpendicular'] #, 'Radial & Angle']
     FirstDataFields = { 'Point' : ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE'],
-                      } #TODO : Add Line support
-    FirstDistanceExportFields = { 'Point' : ['Region*Label', 'Region*Area', 'Point transect*Label',
-                                             'Point transect*Survey effort', 'Observation*Radial distance'],
-                                } #TODO : Add Line support
+                        'Line' : ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE'] }
 
     # Estimator key functions (Order: Distance .chm doc, "MCDS Engine Stats File", note 2 below second table).
     EstKeyFns = ['UNIFORM', 'HNORMAL', 'NEXPON', 'HAZARD']
@@ -727,6 +716,23 @@ class MCDSEngine(DSEngine):
 
         return dPlots
 
+    # Associated Distance import fields.
+    DistanceFields = \
+        dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
+             SMP_LABEL='Point transect*Label', SMP_EFFORT='Point transect*Survey effort', DISTANCE='Observation*Radial distance')
+    
+    # Columns names for exporting to Distance import format with explicit columns headers.
+    FirstDistanceExportFields = \
+    { 'Point': dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
+                    SMP_LABEL='Point transect*Label', SMP_EFFORT='Point transect*Survey effort',
+                    DISTANCE='Observation*Radial distance'),
+      'Line':  dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
+                    SMP_LABEL='Line transect*Label', SMP_EFFORT='Line transect*Line length',
+                    DISTANCE='Observation*Perp distance') }
+ 
+    def distanceFields(self, dsFields):
+        return [self.FirstDistanceExportFields[self.options.surveyType][name] for name in dsFields]
+    
     # Build Distance/MCDS input data file from data set to given target folder and file name.
     def buildDistanceDataFile(self, dataSet, tgtFilePathName, decimalPoint=',', withExtraFields=False):
                 
