@@ -27,204 +27,11 @@ logger = logging.getLogger('autods')
 from autods.analysis import DSAnalysis, MCDSAnalysis
 
 
-# Transform a multi-categorical sightings set into an equivalent mono-categorical sightings set,
-# that is where no sightings has more that one category with positive count (keeping the same total counts).
-# Highly optimized version.
-# Ex: A sightings set with 2 categorical count columns nMales and nFemales
-#     * in the input set, you may have 1 sightings with nMales = 5 and nFemales = 2
-#     * in the output set, this sightings have been separated in 2 distinct ones (all other properties left untouched) :
-#       the 1st with nMales = 5 and nFemales = 0, the 2nd with nMales = 0 and nFemales = 2.
-def separateMultiCategoricalCounts(dfInSights, countColumns):
-    
-    # For each count column
-    ldfMonoCat = list()
-    for col in countColumns:
-
-        # Select rows with some individuals in this column
-        dfOneCat = dfInSights[dfInSights[col] > 0].copy()
-
-        # Set all other count cols to 0.
-        otherCols = countColumns.copy()
-        otherCols.remove(col)
-        dfOneCat[otherCols] = 0
-
-        # Store into a list for later
-        ldfMonoCat.append(dfOneCat)
-
-    # Concat all data frames into one.
-    dfOutSights = pd.concat(ldfMonoCat)
-
-    # Sort to "initial" order (easier to read), and reset index (for unique labels).
-    dfOutSights.sort_index(inplace=True)
-    dfOutSights.reset_index(inplace=True, drop=True)
-
-    # Done.
-    return dfOutSights
-
-# Transform a multi-individual mono-categorical sightings set into an equivalent mono-individual
-# mono-categorical sightings set, that is where no sightings has more that one individual
-# per category (keeping the same total counts).
-# Highly optimized version.
-# Ex: A sightings set with 2 mono-categorical count columns nMales and nFemales
-#     * in tyhe input set, you may have 1 sightings with nMales = 3 and nFemales = 0
-#       (but none with nMales and nFemales > 0)
-#     * in the output set, this sightings have been separated in 3 distinct ones
-#       (all other properties left untouched) : all with nMales = 1 and nFemales = 0.
-def individualiseMonoCategoricalCounts(dfInSights, countColumns):
-    
-    # For each count column
-    ldfIndiv = list()
-    for col in countColumns:
-        
-        # Select rows with some individuals in this column
-        dfOneCat = dfInSights[dfInSights[col] > 0]
-        
-        # Repeat each one by its count of individuals
-        dfIndiv = dfInSights.loc[np.repeat(dfOneCat.index.values, dfOneCat[col].astype(int).values)]
-
-        # Replace non-zero counts by 1.
-        dfIndiv.loc[dfIndiv[col] > 0, col] = 1
-        
-        # Store into a list for later
-        ldfIndiv.append(dfIndiv)
-        
-    # Concat all data frames into one.
-    dfOutSights = pd.concat(ldfIndiv)
-
-    # Sort to "initial" order (easier to read), and reset index (for unique labels).
-    dfOutSights.sort_index(inplace=True)
-    dfOutSights.reset_index(inplace=True, drop=True)
-    
-    # Done.
-    return dfOutSights
-
-# Select sample sightings from an all-samples sightings table,
-# and compute the associated total sample effort.
-# * dSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
-#             keys being columns of dfAllSights (dict protocol : dict, pd.Series, ...)
-# * dfAllSights : the all-samples (individual) sightings table to search into
-# * dfAllEffort : effort values for each transect x passing really done, for the all-sample survey
-# * transIdCols : name of the input dfAllEffort and dSample columns to identify the transects (not passings)
-# * passIdCol : name of the input dfAllEffort and dSample column to identify the passings (not transects)
-# * effortCol : name of the input dfAllEffort and output effort column to add / replace
-def selectSampleSightings(dSample, dfAllSights, dfAllEffort,
-                          transIdCols=['Transect'], passIdCol='Passing', effortCol='Effort'):
-    
-    # Select sightings
-    dfSampSights = dfAllSights
-    for key, values in dSample.items():
-        values = str(values) # For ints as strings that get forced to int in io sometimes (ex. from_excel)
-        if '+' in values:
-            dfSampSights = dfSampSights[dfSampSights[key].astype(str).isin(values.split('+'))]
-        else:
-            dfSampSights = dfSampSights[dfSampSights[key].astype(str) == values]
-
-    # Compute sample effort
-    passings = dSample[passIdCol]
-    if '+' in passings:
-        dfSampEffort = dfAllEffort[dfAllEffort[passIdCol].astype(str).isin(passings.split('+'))]
-    else:
-        dfSampEffort = dfAllEffort[dfAllEffort[passIdCol].astype(str) == passings]
-    dfSampEffort = dfSampEffort[transIdCols + [effortCol]].groupby(transIdCols).sum()
-    
-    # Add effort column
-    dfSampSights = dfSampSights.drop(columns=effortCol, errors='ignore').join(dfSampEffort, on=transIdCols)
-
-    return dfSampSights, dfSampEffort
-    
-# Add "abscence" sightings to field data collected on transects for a given sample
-# * dfInSights : input data table
-# * sampleCols : the names of the sample identification columns
-# * dfExpdTransects : the expected transects, as a data frame indexed by the transectId,
-#     an index with same name as the corresponding column in dfInSights,
-#     and with other info columns to duplicate in absence sightings (at least the effort value)
-def addAbsenceSightings(dfInSights, sampleCols, dfExpdTransects):
-    
-    assert not dfInSights.empty, 'Error : Empty sightings data to add absence ones to !'
-
-    # Use the 1st sightings of the sample to build the absence sightings prototype
-    # (all null columns except for the sample identification ones, lefts as is)
-    dAbscSightTmpl = dfInSights.iloc[0].to_dict()
-    dAbscSightTmpl.update({ k: None for k in dAbscSightTmpl.keys() if k not in sampleCols })
-    dAbscSightTmpl
-
-    # Determine missing transects for the sample
-    transectIdCol = dfExpdTransects.index.name
-    dfSampTransects = dfInSights.drop_duplicates(subset=transectIdCol)
-    dfSampTransects.set_index(transectIdCol, inplace=True)
-    dfSampTransects = dfSampTransects[dfExpdTransects.columns]
-
-    dfMissgTransects = dfExpdTransects.loc[dfExpdTransects.index.difference(dfSampTransects.index)]
-
-    # Generate the abscence sightings : 1 row per missing transect
-    ldAbscSights = list()
-
-    for _, sMissgTrans in dfMissgTransects.reset_index().iterrows():
-
-        dAbscSight = dAbscSightTmpl.copy() # Copy template sightings
-        dAbscSight.update(sMissgTrans.to_dict()) # Update transect columns only
-
-        ldAbscSights.append(dAbscSight)
-
-    # Add them to the input sightings
-    return dfInSights.append(pd.DataFrame(pd.DataFrame(ldAbscSights)))
-
-# Add survey area information to sightings data (in-place modification)
-# * dfInSights : input data table
-# * dAreaInfo : a column name to scalar or list-like dictionary-like data to add to the table
-#               (list-like data must match in length with the input table index)
-def addSurveyAreaInfo(dfInSights, dAreaInfo):
-    
-    for col, values in dAreaInfo.items():
-        dfInSights[col] = values
-        
-    return dfInSights
-    
-
-# TODO
-# A tabular data set for producing on-demand sample data sets from "raw sightings data" aka "field data"
-#class FieldDataSet(object):
-#
-#    def __init__(self, dfRawSightings, dfTransects, dAreaInfo, 
-#                       transIdCols='Transect', passIdCol='Pass', effortCol='Effort',
-#                       decimalCols=['Effort', 'Distance']):
-#        
-#        self.dfRawSightings = dfRawSightings
-#        self.dfTransects = dfTransects
-#        self.dAreaInfo = dAreaInfo
-#        self.transIdCols = transIdCols
-#        self.passIdCol = passIdCol
-#        self.effortCol = effortCol
-#        self.decimalCols = decimalCols
-#    
-#    # TODO : Integrate here all global functions above !
-#
-#    # Echantillonnage des données individualisées (construction d'un SampleDataSet)
-#    def sampleDataSet(self, sSample):
-#        
-#        # Select sample data.
-#        dfSampIndivObs, dfSampTransInfo = self.selectSampleSightings(sSample)
-#
-#        # Add absence sightings
-#        dfSampIndivObs = self.addAbsenceSightings(dfSampIndivObs, sampleCols=list(sSample.index))
-#
-#        # Add information about the studied geographical area
-#        dfSampIndivObs = self.addSurveyAreaInfo(dfSampIndivObs)
-#
-#        # Sort / group sightings by point (mandatory for MCDS analysis)
-#        dfSampIndivObs.sort_values(by=self.transIdCols, inplace=True)
-#
-#        # Create and return SampleDataSet instance.
-#        return SampleDataSet(dfSampIndivObs, decimalFields=self.decimalCols)   
-
-# A tabular input data set for multiple analyses on the same sample, with 1 or 0 individual per row
+# An abstract tabular data set built from various input sources.
 # Warning:
-# * Only Point transect supported as for now
-# * No change made afterwards on decimal precision : provide what you need !
-# * No change made afterwards on the order of rows : provide what you need !
 # * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
 #   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
-class SampleDataSet(object):
+class DataSet(object):
     
     SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
                         + (['.ods'] if version.parse(pd.__version__).release >= (0, 25) else [])
@@ -232,7 +39,7 @@ class SampleDataSet(object):
     # Wrapper around pd.read_csv for smart ./, decimal character management (pandas is not smart on this)
     # TODO: Make this more efficient
     @staticmethod
-    def csv2df(fileName, decCols, sep='\t'):
+    def _csv2df(fileName, decCols, sep='\t'):
         df = pd.read_csv(fileName, sep=sep)
         allRight = True
         for col in decCols:
@@ -243,48 +50,43 @@ class SampleDataSet(object):
             df = pd.read_csv(fileName, sep=sep, decimal=',')
         return df
     
-    def _fromDataFile(self, sourceFpn):
+    @classmethod
+    def _fromDataFile(cls, sourceFpn, decimalFields):
         
         if isinstance(sourceFpn, str):
             sourceFpn = pl.Path(sourceFpn)
     
-        assert sourceFpn.exists(), 'Source file for SampleDataSet not found : ' + sourceFpn
+        assert sourceFpn.exists(), 'Source file for DataSet not found : ' + sourceFpn
 
         ext = sourceFpn.suffix.lower()
-        assert ext in self.SupportedFileExts, \
+        assert ext in cls.SupportedFileExts, \
                'Unsupported source file type {}: not from {{{}}}' \
-               .format(ext, ','.join(self.SupportedFileExts))
+               .format(ext, ','.join(cls.SupportedFileExts))
         if ext in ['.xlsx']:
             dfData = pd.read_excel(sourceFpn)
         elif ext in ['.ods']:
             dfData = pd.read_excel(sourceFpn, engine='odf')
         elif ext in ['.csv', '.txt']:
-            dfData = self.csv2df(sourceFpn, decCols=self.decimalFields, sep='\t')
+            dfData = cls._csv2df(sourceFpn, decCols=decimalFields, sep='\t')
             
         return dfData
     
-    def _fromDataFrame(self, sourceDf):
+    @classmethod
+    def _fromDataFrame(cls, sourceDf):
         
         return sourceDf.copy()
     
-    def __init__(self, source, decimalFields=list()):
-        
-        self.decimalFields = decimalFields
-
+    def __init__(self, source, importDecFields=[]):
+    
         if isinstance(source, str) or isinstance(source, pl.Path):
-            self._dfData = self._fromDataFile(source)
+            self._dfData = self._fromDataFile(source, importDecFields)
         elif isinstance(source, pd.DataFrame):
             self._dfData = self._fromDataFrame(source)
         else:
-            raise Exception('source for SampleDataSet must be a pandas.DataFrame or an existing file')
-        
-        assert not self._dfData.empty, 'No data in set'
-        assert len(self._dfData.columns) >= 5, 'Not enough columns (should be at leat 5)'
-        
-        missCols = [decFld for decFld in self.decimalFields if decFld not in self._dfData.columns]
-        assert not missCols, '{} declared decimal field(s) are not in source columns {} : {}' \
-                             .format(len(missCols), ','.join(self._dfData.columns), ','.join(missCols))
-        
+            raise Exception('source for DataSet must be a pandas.DataFrame or an existing file')
+
+        assert not self._dfData.empty, 'No data in source data set'
+
     def __len__(self):
         
         return len(self._dfData)
@@ -298,6 +100,300 @@ class SampleDataSet(object):
     def dfData(self, dfData):
         
         raise NotImplementedError('No change allowed to data ; create a new dataset !')
+
+
+# A tabular data set for producing indivividuals data sets from "raw sightings data" aka "field data"
+# (with possibly multiple category counts on each row)
+# * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
+#   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+class FieldDataSet(DataSet):
+
+    # Ctor
+    # Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
+    # and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+    # * source: the input field data table
+    # * countCols: the category columns (each of them holds counts of individuals for the category)
+    # * addMonoCatCols: name and method of computing for columns to add after separating multi-categorical counts
+    #   (each column to add is computed through :
+    #      dfMonoCatSights[colName] = dfMonoCatSights[].apply(computeCol, axis='columns')
+    #      for colName, computeCol in addMonoCatCols.items()) 
+    def __init__(self, source, countCols, addMonoCatCols=dict(), importDecFields=[]):
+        
+        super().__init__(source, importDecFields)
+        
+        self.countCols = countCols
+        self.dCompdMonoCatColSpecs = addMonoCatCols
+        
+        self.dfIndivSights = None # Not yet computed.
+    
+    # Transform a multi-categorical sightings set into an equivalent mono-categorical sightings set,
+    # that is where no sightings has more that one category with positive count (keeping the same total counts).
+    # Highly optimized version.
+    # Ex: A sightings set with 2 categorical count columns nMales and nFemales
+    #     * in the input set, you may have 1 sightings with nMales = 5 and nFemales = 2
+    #     * in the output set, this sightings have been separated in 2 distinct ones (all other properties left untouched) :
+    #       the 1st with nMales = 5 and nFemales = 0, the 2nd with nMales = 0 and nFemales = 2.
+    @staticmethod
+    def _separateMultiCategoricalCounts(dfInSights, countColumns):
+        
+        # For each count column
+        ldfMonoCat = list()
+        for col in countColumns:
+
+            # Select rows with some individuals in this column
+            dfOneCat = dfInSights[dfInSights[col] > 0].copy()
+
+            # Set all other count cols to 0.
+            otherCols = countColumns.copy()
+            otherCols.remove(col)
+            dfOneCat[otherCols] = 0
+
+            # Store into a list for later
+            ldfMonoCat.append(dfOneCat)
+
+        # Concat all data frames into one.
+        dfOutSights = pd.concat(ldfMonoCat)
+
+        # Sort to "initial" order (easier to read), and reset index (for unique labels).
+        dfOutSights.sort_index(inplace=True)
+        dfOutSights.reset_index(inplace=True, drop=True)
+
+        # Done.
+        return dfOutSights
+
+    # Transform a multi-individual mono-categorical sightings set into an equivalent mono-individual
+    # mono-categorical sightings set, that is where no sightings has more that one individual
+    # per category (keeping the same total counts).
+    # Highly optimized version.
+    # Ex: A sightings set with 2 mono-categorical count columns nMales and nFemales
+    #     * in tyhe input set, you may have 1 sightings with nMales = 3 and nFemales = 0
+    #       (but none with nMales and nFemales > 0)
+    #     * in the output set, this sightings have been separated in 3 distinct ones
+    #       (all other properties left untouched) : all with nMales = 1 and nFemales = 0.
+    @staticmethod
+    def _individualiseMonoCategoricalCounts(dfInSights, countColumns):
+        
+        # For each category column
+        ldfIndiv = list()
+        for col in countColumns:
+            
+            # Select rows with some individuals in this column
+            dfOneCat = dfInSights[dfInSights[col] > 0]
+            
+            # Repeat each one by its count of individuals
+            dfIndiv = dfInSights.loc[np.repeat(dfOneCat.index.values, dfOneCat[col].astype(int).values)]
+
+            # Replace non-zero counts by 1.
+            dfIndiv.loc[dfIndiv[col] > 0, col] = 1
+            
+            # Store into a list for later
+            ldfIndiv.append(dfIndiv)
+            
+        # Concat all data frames into one.
+        dfOutSights = pd.concat(ldfIndiv)
+
+        # Sort to "initial" order (easier to read), and reset index (for unique labels).
+        dfOutSights.sort_index(inplace=True)
+        dfOutSights.reset_index(inplace=True, drop=True)
+        
+        # Done.
+        return dfOutSights
+        
+    # Access to the resulting individuals data set
+    def individualiseDataSet(self):
+    
+        # Compute only if not already done.
+        if self.dfIndivSights is None:
+        
+            # Separate multi-categorical counts
+            dfMonoCatSights = self._separateMultiCategoricalCounts(self._dfData, self.countCols)
+            
+            # Compute and add supplementary mono-categorical columns
+            for colName, computeCol in self.dCompdMonoCatColSpecs.items():
+                dfMonoCatSights[colName] = dfMonoCatSights[self.countCols].apply(computeCol, axis='columns')
+            
+            # Individualise mono-categorical counts
+            self.dfIndivSights = self._individualiseMonoCategoricalCounts(dfMonoCatSights, self.countCols)
+
+        return self.dfIndivSights
+        
+
+# A tabular data set for producing on-demand sample data sets from "individuals sightings data"
+# * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
+#   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+class IndividualsDataSet(DataSet):
+
+    # Ctor
+    # * dfTransects: Transects infos with columns : transectIdCols (n), passIdCol (1), effortCol (1)
+    #                If None, auto generated from input sightings
+    # * effortDefVal: if dfTransects is None and effortCol not in source table, use this constant value
+    def __init__(self, source, dSurveyArea, importDecFields=[], dfTransects=None,
+                       transectIdCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                       sampleDecFields=['Effort', 'Distance'], effortDefVal=1):
+        
+        super().__init__(source, importDecFields)
+        
+        self.dSurveyArea = dSurveyArea
+        self.transectIdCols = transectIdCols
+        self.passIdCol = passIdCol
+        self.effortCol = effortCol
+        self.sampleDecFields = sampleDecFields
+    
+        self.dfTransects = dfTransects
+        if self.dfTransects is None or self.dfTransects.empty:
+            self.dfTransects = \
+                self._extractTransects(self._dfData, transectIdCols=self.transectIdCols, passIdCol=self.passIdCol)
+
+    # Extract transect infos from individuals sightings
+    # * effortDefVal: if effortCol not in dfIndivSightings, create one with this constant value
+    @staticmethod
+    def _extractTransects(dfIndivSightings, transectIdCols=['Transect'], passIdCol='Pass', 
+                                            effortCol='Effort', effortDefVal=1):
+    
+        transSightCols = transectIdCols + [passIdCol]
+        if effortCol in dfIndivSightings.columns:
+            transSightCols.append(effortCol)
+        
+        dfTrans = dfIndivSightings[transSightCols]
+        
+        dfTrans = dfTrans.drop_duplicates()
+        
+        dfTrans.reset_index(drop=True, inplace=True)
+        
+        if effortCol not in dfTrans.columns:
+            dfTrans[effortCol] = effortDefVal
+
+        return dfTrans
+    
+    # Select sample sightings from an all-samples sightings table,
+    # and compute the associated total sample effort.
+    # * dSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
+    #             keys being columns of dfAllSights (dict protocol : dict, pd.Series, ...)
+    # * dfAllSights : the all-samples (individual) sightings table to search into
+    # * dfAllEffort : effort values for each transect x pass really done, for the all-sample survey
+    # * transectIdCols : name of the input dfAllEffort and dSample columns to identify the transects (not passes)
+    # * passIdCol : name of the input dfAllEffort and dSample column to identify the passes (not transects)
+    # * effortCol : name of the input dfAllEffort and output effort column to add / replace
+    @staticmethod
+    def _selectSampleSightings(dSample, dfAllSights, dfAllEffort,
+                               transectIdCols=['Transect'], passIdCol='Pass', effortCol='Effort'):
+        
+        # Select sightings
+        dfSampSights = dfAllSights
+        for key, values in dSample.items():
+            values = str(values) # For ints as strings that get forced to int in io sometimes (ex. from_excel)
+            if values and values not in ['nan', 'None']: # Empty value means "no selection criteria for this columns"
+                values = values.split('+') if '+' in values else [values]
+                dfSampSights = dfSampSights[dfSampSights[key].astype(str).isin(values)]
+
+        # Compute sample effort
+        passes = str(dSample[passIdCol]) # Same as above ...
+        if passes and passes not in ['nan', 'None']: # Same as above ...
+            passes = passes.split('+') if '+' in passes else [passes]
+            dfSampEffort = dfAllEffort[dfAllEffort[passIdCol].astype(str).isin(passes)]
+        else:
+            dfSampEffort = dfAllEffort
+        dfSampEffort = dfSampEffort[transectIdCols + [effortCol]].groupby(transectIdCols).sum()
+        
+        # Add effort column
+        dfSampSights = dfSampSights.drop(columns=effortCol, errors='ignore').join(dfSampEffort, on=transectIdCols)
+
+        return dfSampSights, dfSampEffort
+        
+    # Add "abscence" sightings to field data collected on transects for a given sample
+    # * dfInSights : input data table
+    # * sampleCols : the names of the sample identification columns
+    # * dfExpdTransects : the expected transects, as a data frame indexed by the transectId,
+    #     an index with same name as the corresponding column in dfInSights,
+    #     and with other info columns to duplicate in absence sightings (at least the effort value)
+    @staticmethod
+    def _addAbsenceSightings(dfInSights, sampleCols, dfExpdTransects):
+        
+        assert not dfInSights.empty, 'Error : Empty sightings data to add absence ones to !'
+
+        # Use the 1st sightings of the sample to build the absence sightings prototype
+        # (all null columns except for the sample identification ones, lefts as is)
+        dAbscSightTmpl = dfInSights.iloc[0].to_dict()
+        dAbscSightTmpl.update({ k: None for k in dAbscSightTmpl.keys() if k not in sampleCols })
+        dAbscSightTmpl
+
+        # Determine missing transects for the sample
+        transectIdCols = dfExpdTransects.index.name
+        dfSampTransects = dfInSights.drop_duplicates(subset=transectIdCols)
+        dfSampTransects.set_index(transectIdCols, inplace=True)
+        dfSampTransects = dfSampTransects[dfExpdTransects.columns]
+
+        dfMissgTransects = dfExpdTransects.loc[dfExpdTransects.index.difference(dfSampTransects.index)]
+
+        # Generate the abscence sightings : 1 row per missing transect
+        ldAbscSights = list()
+        for _, sMissgTrans in dfMissgTransects.reset_index().iterrows():
+
+            dAbscSight = dAbscSightTmpl.copy() # Copy template sightings
+            dAbscSight.update(sMissgTrans.to_dict()) # Update transect columns only
+
+            ldAbscSights.append(dAbscSight)
+
+        # Add them to the input sightings
+        return dfInSights.append(pd.DataFrame(pd.DataFrame(ldAbscSights)))
+
+    # Add survey area information to sightings data (in-place modification)
+    # * dfInSights : input data table
+    # * dSurveyArea : a column name to scalar dictionary-like data to add to the table
+    @staticmethod
+    def _addSurveyAreaInfo(dfInSights, dSurveyArea):
+        
+        for col, values in dSurveyArea.items():
+            dfInSights[col] = values
+            
+        return dfInSights
+    
+    # Sample individuals data for given sampling criteria, as a SampleDataSet.
+    # * dSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
+    #             keys being columns of dfAllSights (dict protocol : dict, pd.Series, ...)
+    def sampleDataSet(self, sSample):
+        
+        # Select sample data.
+        dfSampIndivObs, dfSampTransInfo = \
+            self._selectSampleSightings(dSample=sSample, dfAllSights=self._dfData,
+                                        dfAllEffort=self.dfTransects, transectIdCols=self.transectIdCols,
+                                        passIdCol=self.passIdCol, effortCol=self.effortCol)
+
+        # Add absence sightings
+        dfSampIndivObs = self._addAbsenceSightings(dfSampIndivObs, sampleCols=sSample.index, 
+                                                   dfExpdTransects=dfSampTransInfo)
+
+        # Add information about the studied geographical area
+        dfSampIndivObs = self._addSurveyAreaInfo(dfSampIndivObs, dSurveyArea=self.dSurveyArea)
+
+        # Create and return SampleDataSet instance (sort by transectIdCols : mandatory for MCDS analysis).
+        return SampleDataSet(dfSampIndivObs, decimalFields=self.sampleDecFields, sortFields=self.transectIdCols)   
+
+# A tabular input data set for multiple analyses on the same sample, with 1 or 0 individual per row
+# Warning:
+# * Only Point transect supported as for now
+# * No change made afterwards on decimal precision : provide what you need !
+# * Rows can be sorted if and as specified
+# * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
+#   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+class SampleDataSet(DataSet):
+    
+    def __init__(self, source, decimalFields=[], sortFields=[]):
+        
+        self.decimalFields = decimalFields
+
+        super().__init__(source, importDecFields=decimalFields)
+                
+        assert not self._dfData.empty, 'No data in set'
+        assert len(self._dfData.columns) >= 5, 'Not enough columns (should be at leat 5)'
+        
+        missCols = [decFld for decFld in self.decimalFields if decFld not in self._dfData.columns]
+        assert not missCols, '{} declared decimal field(s) are not in source columns {} : {}' \
+                             .format(len(missCols), ','.join(self._dfData.columns), ','.join(missCols))
+                             
+        # Sort / group sightings as specified
+        if sortFields:
+            self._dfData.sort_values(by=sortFields, inplace=True)
 
 
 # A result set for multiple analyses from the same engine.

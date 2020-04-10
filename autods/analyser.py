@@ -25,111 +25,112 @@ logger = logging.getLogger('autods')
 # An explicit tabular set of analysis specs (1 analysis per row, all explicited parameters)
 class AnalysisSpecSet(object):
 
-    pass # Soon available, through functions just below :-)
-    
-# Generation of a table of implicit "partial variant" specification,
-# from a list of possible data selection criteria for each variable.
-# "Partial variant" because its only about a sub-set of variants
-# * dVariants : { target columns name: list of possibles criteria for data selection }
-def implicitPartialVariantSpecs(dVariants):
-    
-    def fixedLengthList(toComplete, length):
-        return toComplete + [np.nan]*(length - len(toComplete))
-
-    nRows = max(len(l) for l in dVariants.values())
-
-    return pd.DataFrame({ colName : fixedLengthList(variants, nRows) for colName, variants in dVariants.items() })
-
-# Generation of a table of explicit "partial variant" specifications, from an implicit one
-# (= generate all combinations of variants)
-def explicitPartialVariantSpecs(dfImplSpecs):
-    
-    dfExplSpecs = dfImplSpecs[dfImplSpecs.columns[:1]].dropna()
-    
-    # For each implicit specs column (but the first)
-    for col in dfImplSpecs.columns[1:]:
+    # Generation of a table of implicit "partial variant" specification,
+    # from a list of possible data selection criteria for each variable.
+    # "Partial variant" because its only about a sub-set of variants
+    # * dVariants : { target columns name: list of possibles criteria for data selection }
+    @staticmethod
+    def implicitPartialVariantSpecs(dVariants):
         
-        # Get variants
-        sVariants = dfImplSpecs[col].dropna()
-        
-        # Duplicate current explicit table as much as variants are many
-        dfExplSpecs = dfExplSpecs.loc[np.repeat(dfExplSpecs.index.to_numpy(), len(sVariants))]
-        
-        # Add the new columns by tiling the variants along the whole index range
-        dfExplSpecs[col] = np.tile(sVariants.to_numpy(), len(dfExplSpecs) // len(sVariants))
-        
-        # Reset index for easy next duplication
-        dfExplSpecs.reset_index(inplace=True, drop=True)
+        def fixedLengthList(toComplete, length):
+            return toComplete + [np.nan]*(length - len(toComplete))
 
-    # Done.
-    return dfExplSpecs
+        nRows = max(len(l) for l in dVariants.values())
 
-# Generation of a table of explicit variant specifications,
-# from a set of implicit and explicit partial variant specs tables
-# * oddfPartSpecs : the odict of name => partial specs table
-#   Warning: implicit tables are only found by their name containing "_impl"
-def explicitVariantSpecs(oddfPartSpecs):
-    
-    assert len(oddfPartSpecs.keys()) > 0, "Error: Can't explicit variants with no partial variant"
-    
-    # Group partial specs tables with same column sets (according to column names)
-    odSameColsPsNames = odict() # { sorted(cols): [table names] }
-    
-    for psName, dfPsValues in oddfPartSpecs.items():
+        return pd.DataFrame({ colName : fixedLengthList(variants, nRows) for colName, variants in dVariants.items() })
+
+    # Generation of a table of explicit "partial variant" specifications, from an implicit one
+    # (= generate all combinations of variants)
+    @staticmethod
+    def explicitPartialVariantSpecs(dfImplSpecs):
         
-        colSetId = ':'.join(sorted(dfPsValues.columns))
-        if colSetId not in odSameColsPsNames:
-            odSameColsPsNames[colSetId] = list()
+        dfExplSpecs = dfImplSpecs[dfImplSpecs.columns[:1]].dropna()
+        
+        # For each implicit specs column (but the first)
+        for col in dfImplSpecs.columns[1:]:
             
-        odSameColsPsNames[colSetId].append(psName)
+            # Get variants
+            sVariants = dfImplSpecs[col].dropna()
+            
+            # Duplicate current explicit table as much as variants are many
+            dfExplSpecs = dfExplSpecs.loc[np.repeat(dfExplSpecs.index.to_numpy(), len(sVariants))]
+            
+            # Add the new columns by tiling the variants along the whole index range
+            dfExplSpecs[col] = np.tile(sVariants.to_numpy(), len(dfExplSpecs) // len(sVariants))
+            
+            # Reset index for easy next duplication
+            dfExplSpecs.reset_index(inplace=True, drop=True)
 
-    # For each group, concat. tables into one, after expliciting if needed
-    ldfExplPartSpecs = list()
+        # Done.
+        return dfExplSpecs
 
-    for lPsNames in odSameColsPsNames.values():
+    # Generation of a table of explicit variant specifications,
+    # from a set of implicit and explicit partial variant specs tables
+    # * oddfPartSpecs : the odict of name => partial specs table
+    #   Warning: implicit tables are only found by their name containing "_impl"
+    @staticmethod
+    def explicitVariantSpecs(oddfPartSpecs):
+        
+        assert len(oddfPartSpecs.keys()) > 0, "Error: Can't explicit variants with no partial variant"
+        
+        # Group partial specs tables with same column sets (according to column names)
+        odSameColsPsNames = odict() # { sorted(cols): [table names] }
+        
+        for psName, dfPsValues in oddfPartSpecs.items():
+            
+            colSetId = ':'.join(sorted(dfPsValues.columns))
+            if colSetId not in odSameColsPsNames:
+                odSameColsPsNames[colSetId] = list()
+                
+            odSameColsPsNames[colSetId].append(psName)
 
-        ldfSameColsPartSpecs= list()
-        for psName in lPsNames:
+        # For each group, concat. tables into one, after expliciting if needed
+        ldfExplPartSpecs = list()
 
-            dfPartSpecs = oddfPartSpecs[psName]
+        for lPsNames in odSameColsPsNames.values():
 
-            # Implicit specs case:
-            if '_impl' in psName:
+            ldfSameColsPartSpecs= list()
+            for psName in lPsNames:
 
-                dfPartSpecs = explicitPartialVariantSpecs(dfPartSpecs)
+                dfPartSpecs = oddfPartSpecs[psName]
 
-            # Now, specs are explicit.
-            ldfSameColsPartSpecs.append(dfPartSpecs)
+                # Implicit specs case:
+                if '_impl' in psName:
 
-        # Concat groups of same columns set explicit specs
-        ldfExplPartSpecs.append(pd.concat(ldfSameColsPartSpecs, ignore_index=True))
-    
-    # Combinaison des specs explicites (dans l'ordre)
-    dfExplSpecs = ldfExplPartSpecs[0]
+                    dfPartSpecs = AnalysisSpecSet.explicitPartialVariantSpecs(dfPartSpecs)
 
-    for dfExplPartSpecs in ldfExplPartSpecs[1:]:
+                # Now, specs are explicit.
+                ldfSameColsPartSpecs.append(dfPartSpecs)
 
-        commCols = [col for col in dfExplSpecs.columns if col in dfExplPartSpecs.columns]
+            # Concat groups of same columns set explicit specs
+            ldfExplPartSpecs.append(pd.concat(ldfSameColsPartSpecs, ignore_index=True))
+        
+        # Combinaison des specs explicites (dans l'ordre)
+        dfExplSpecs = ldfExplPartSpecs[0]
 
-        if commCols: # Any column in common : left join each left row to each matching right row
+        for dfExplPartSpecs in ldfExplPartSpecs[1:]:
 
-            dfExplSpecs = dfExplSpecs.join(dfExplPartSpecs.set_index(commCols), on=commCols)
+            commCols = [col for col in dfExplSpecs.columns if col in dfExplPartSpecs.columns]
 
-        else: # No columns in common : combine each left row with all right rows
+            if commCols: # Any column in common : left join each left row to each matching right row
 
-            nInitSpecs = len(dfExplSpecs)
+                dfExplSpecs = dfExplSpecs.join(dfExplPartSpecs.set_index(commCols), on=commCols)
 
-            dfExplSpecs = dfExplSpecs.loc[np.repeat(dfExplSpecs.index, len(dfExplPartSpecs))]
+            else: # No columns in common : combine each left row with all right rows
+
+                nInitSpecs = len(dfExplSpecs)
+
+                dfExplSpecs = dfExplSpecs.loc[np.repeat(dfExplSpecs.index, len(dfExplPartSpecs))]
+                dfExplSpecs.reset_index(drop=True, inplace=True)
+
+                dfExplPartSpecs = pd.DataFrame(data=np.tile(dfExplPartSpecs, [nInitSpecs, 1]), columns=dfExplPartSpecs.columns)
+
+                dfExplSpecs = pd.concat([dfExplSpecs, dfExplPartSpecs], axis='columns')
+
             dfExplSpecs.reset_index(drop=True, inplace=True)
-
-            dfExplPartSpecs = pd.DataFrame(data=np.tile(dfExplPartSpecs, [nInitSpecs, 1]), columns=dfExplPartSpecs.columns)
-
-            dfExplSpecs = pd.concat([dfExplSpecs, dfExplPartSpecs], axis='columns')
-
-        dfExplSpecs.reset_index(drop=True, inplace=True)
-    
-    # Done.
-    return dfExplSpecs
+        
+        # Done.
+        return dfExplSpecs
 
 # Analyser: Run a bunch of DS analyses on samples extracted from a sightings data set,
 #           according to a user-friendly set of analysis specs

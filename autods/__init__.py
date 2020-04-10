@@ -20,8 +20,9 @@
 __version__ = 0.9
 
 # Module exports
-from .engine import MCDSEngine
+from .engine import DSEngine, MCDSEngine
 from .executor import Executor #, ImmediateFuture, SequentialExecutor
 from .analysis import MCDSAnalysis, MCDSPreAnalysis # MCDSAnalyser
-from .data import SampleDataSet, MCDSResultsSet #, FieldDataSet, AnalysesSpecsSet
+from .analyser import AnalysisSpecSet #, MCDSAnalyser, MCDSPreAnalyser, MCDSParamsOptimiser
+from .data import DataSet, FieldDataSet, IndividualsDataSet, SampleDataSet, ResultsSet, MCDSResultsSet
 from .report import MCDSResultsPreReport, MCDSResultsFullReport

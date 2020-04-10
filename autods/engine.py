@@ -98,6 +98,9 @@ class DSEngine(object):
         self.OptionsClass = ntuple('Options', options.keys())
         self.options = self.OptionsClass(**options) 
         
+        # Set executor for runAnalysis().
+        self.executor = executor if executor is not None else Executor(parallel=False)
+        
         # Check and prepare workdir if needed, and save.
         assert all(c not in str(workDir) for c in self.ForbidPathChars), \
                'Invalid character from "{}" in workDir folder "{}"' \
@@ -105,9 +108,6 @@ class DSEngine(object):
         self.workDir = pl.Path(workDir)
         self.workDir.mkdir(exist_ok=True)
         logger.info('DSEngine work folder: {}'.format(self.workDir.absolute()))
-        
-        # Set executor for runAnalysis().
-        self.executor = executor if executor is not None else Executor(parallel=False)
     
     # Possible regexps for auto-detection of columns to import from data sets / exports
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK).
@@ -146,7 +146,7 @@ class DSEngine(object):
                 if foundTgtField:
                     break
             if not foundTgtField:
-                raise Exception('Error: Failed to find a match for expected {} in dataset columns {}' \
+                raise Exception('Error: Failed to find a match for expected {} in sample data set columns {}' \
                                 .format(tgtField, srcFields))
         
         # Extra fields.
@@ -505,13 +505,13 @@ class MCDSEngine(DSEngine):
             strVal = strVal.replace('.', decPt)
         return strVal
 
-    # Build input data table from data set (check and match mandatory columns, enforce order).
+    # Build input data table from a sample data set (check and match mandatory columns, enforce order).
     # TODO: Add support for covariate columns (through extraFields)
-    def buildExportTable(self, dataSet, withExtraFields=True, decPoint='.'):
+    def buildExportTable(self, sampleDataSet, withExtraFields=True, decPoint='.'):
         
-        # Match dataSet table columns to MCDS expected fields from possible aliases
+        # Match sampleDataSet table columns to MCDS expected fields from possible aliases
         matchFields, matchDecFields, extraFields = \
-            self.matchDataFields(dataSet.dfData.columns, self.ImportFieldAliasREs)
+            self.matchDataFields(sampleDataSet.dfData.columns, self.ImportFieldAliasREs)
         exportFields = matchFields
         if withExtraFields:
             exportFields += extraFields
@@ -521,25 +521,25 @@ class MCDSEngine(DSEngine):
         logger.debug('Final data columns export order: ' + str(exportFields))
         
         # Put columns in the right order (first data fields ... first, in the same order)
-        dfExport = dataSet.dfData[exportFields].copy()
+        dfExport = sampleDataSet.dfData[exportFields].copy()
 
         # Prepare safe export of decimal data with may be some NaNs
-        allDecFields = set(matchDecFields + dataSet.decimalFields).intersection(exportFields)
+        allDecFields = set(matchDecFields + sampleDataSet.decimalFields).intersection(exportFields)
         logger.debug('Decimal columns: ' + str(allDecFields))
         for field in allDecFields:
             dfExport[field] = dfExport[field].apply(self.safeFloat2Str, decPt=decPoint)
                 
         return dfExport, extraFields
 
-    # Build MCDS input data file from data set.
-    # Note: Data order not changed, same as in input dataSet !
+    # Build MCDS input data file from a sample data set.
+    # Note: Data order not changed, same as in input sampleDataSet !
     # * runDir : pl.Path where to create data file.
     # TODO: Add support for covariate columns (through extraFields)
-    def buildDataFile(self, runDir, dataSet):
+    def buildDataFile(self, runDir, sampleDataSet):
         
         # Build data to export (check and match mandatory columns, enforce order, ignore extra cols).
         dfExport, extraFields = \
-            self.buildExportTable(dataSet, withExtraFields=False, decPoint='.')
+            self.buildExportTable(sampleDataSet, withExtraFields=False, decPoint='.')
         
         # Export.
         dataFileName = runDir / self.DataFileName
@@ -575,14 +575,14 @@ class MCDSEngine(DSEngine):
     
     # Run 1 MCDS analysis from the beginning to the end (blocking for the calling thread)
     # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
-    def _runAnalysis(self, dataSet, runPrefix='mcds', realRun=True, **analysisParms):
+    def _runAnalysis(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
         # Create a new exclusive thread and process-safe run folder
         runDir = self.setupRunFolder(runPrefix)
         logger.debug('Will run in {}'.format(runDir))
         
         # Generate data and command files into this folder
-        self.buildDataFile(runDir, dataSet)
+        self.buildDataFile(runDir, sampleDataSet)
         cmdFileName = self.buildCmdFile(runDir, **analysisParms)
         
         # Call executable (no " around cmdFile, don't forget the space after ',', ...)
@@ -608,10 +608,10 @@ class MCDSEngine(DSEngine):
         return runStatus, runTime, runDir, sResults
     
    # Start running an MCDS analysis
-    def run(self, dataSet, runPrefix='mcds', realRun=True, **analysisParms):
+    def run(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
         # Submit analysis work and return a Future object to ask from and wait for its results.
-        return self.executor.submit(self._runAnalysis, dataSet, runPrefix, realRun, **analysisParms)
+        return self.executor.submit(self._runAnalysis, sampleDataSet, runPrefix, realRun, **analysisParms)
     
     # Decode output stats file to a value series
     # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
@@ -733,12 +733,12 @@ class MCDSEngine(DSEngine):
     def distanceFields(self, dsFields):
         return [self.FirstDistanceExportFields[self.options.surveyType][name] for name in dsFields]
     
-    # Build Distance/MCDS input data file from data set to given target folder and file name.
-    def buildDistanceDataFile(self, dataSet, tgtFilePathName, decimalPoint=',', withExtraFields=False):
+    # Build Distance/MCDS input data file from a sample data set to given target folder and file name.
+    def buildDistanceDataFile(self, sampleDataSet, tgtFilePathName, decimalPoint=',', withExtraFields=False):
                 
         # Build data to export (check and match mandatory columns, enforce order, keep other cols).
         dfExport, extraFields = \
-            self.buildExportTable(dataSet, withExtraFields=withExtraFields, decPoint=decimalPoint)
+            self.buildExportTable(sampleDataSet, withExtraFields=withExtraFields, decPoint=decimalPoint)
         
         # Export.
         dfExport.to_csv(tgtFilePathName, index=False, sep='\t', encoding='utf-8',
