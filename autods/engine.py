@@ -158,6 +158,7 @@ class DSEngine(object):
 
     # Setup a thread & process safe run folder for an analysis
     # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
+    # Note: Not a classmethod because it uses self.workDir
     def setupRunFolder(self, runPrefix=None):
 
         # MCDS does not support folder and file names with spaces inside ...
@@ -418,6 +419,7 @@ class MCDSEngine(DSEngine):
     
     # Build command file from options and params
     # * runDir : pl.Path where to create cmd file.
+    # Note: Not a classmethod because it uses self.options
     def buildCmdFile(self, runDir, **params):
 
         # Default params values
@@ -507,11 +509,12 @@ class MCDSEngine(DSEngine):
 
     # Build input data table from a sample data set (check and match mandatory columns, enforce order).
     # TODO: Add support for covariate columns (through extraFields)
-    def buildExportTable(self, sampleDataSet, withExtraFields=True, decPoint='.'):
+    @classmethod
+    def buildExportTable(cls, sampleDataSet, withExtraFields=True, decPoint='.'):
         
         # Match sampleDataSet table columns to MCDS expected fields from possible aliases
         matchFields, matchDecFields, extraFields = \
-            self.matchDataFields(sampleDataSet.dfData.columns, self.ImportFieldAliasREs)
+            cls.matchDataFields(sampleDataSet.dfData.columns, cls.ImportFieldAliasREs)
         exportFields = matchFields
         if withExtraFields:
             exportFields += extraFields
@@ -527,7 +530,7 @@ class MCDSEngine(DSEngine):
         allDecFields = set(matchDecFields + sampleDataSet.decimalFields).intersection(exportFields)
         logger.debug('Decimal columns: ' + str(allDecFields))
         for field in allDecFields:
-            dfExport[field] = dfExport[field].apply(self.safeFloat2Str, decPt=decPoint)
+            dfExport[field] = dfExport[field].apply(cls.safeFloat2Str, decPt=decPoint)
                 
         return dfExport, extraFields
 
@@ -535,14 +538,15 @@ class MCDSEngine(DSEngine):
     # Note: Data order not changed, same as in input sampleDataSet !
     # * runDir : pl.Path where to create data file.
     # TODO: Add support for covariate columns (through extraFields)
-    def buildDataFile(self, runDir, sampleDataSet):
+    @classmethod
+    def buildDataFile(cls, runDir, sampleDataSet):
         
         # Build data to export (check and match mandatory columns, enforce order, ignore extra cols).
         dfExport, extraFields = \
-            self.buildExportTable(sampleDataSet, withExtraFields=False, decPoint='.')
+            cls.buildExportTable(sampleDataSet, withExtraFields=False, decPoint='.')
         
         # Export.
-        dataFileName = runDir / self.DataFileName
+        dataFileName = runDir / cls.DataFileName
         dfExport.to_csv(dataFileName, index=False, sep='\t', encoding='utf-8', header=None)
         
         logger.debug('Data MCDS-exported to {}'.format(dataFileName))
@@ -617,14 +621,15 @@ class MCDSEngine(DSEngine):
     # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
     # * runDir : pl.Path where to find stats file.
     # Warning: No support for more than 1 stratum, 1 sample, 1 estimator.
-    def decodeStats(self, runDir):
+    @classmethod
+    def decodeStats(cls, runDir):
 
-        statsFileName = runDir / self.StatsFileName
+        statsFileName = runDir / cls.StatsFileName
         logger.debug('Decoding stats from {} ...'.format(statsFileName))
         
         # 1. Load table (text format, with space separated and fixed width columns,
-        #    columns headers from self.DfStatRowSpecs)
-        dfStats = pd.read_csv(statsFileName, sep=' +', engine='python', names=self.DfStatRowSpecs.index)
+        #    columns headers from cls.DfStatRowSpecs)
+        dfStats = pd.read_csv(statsFileName, sep=' +', engine='python', names=cls.DfStatRowSpecs.index)
         
         # 2. Remove Stratum, Sample and Estimator columns (no support for multiple ones for the moment)
         dfStats.drop(columns=['Stratum', 'Sample', 'Estimator'], inplace=True)
@@ -634,19 +639,18 @@ class MCDSEngine(DSEngine):
         dfStats = dfStats.stack().reset_index()
         dfStats.rename(columns={'level_0': 'id', 'level_3': 'Figure', 0: 'Value'}, inplace=True)
 
-        # 4. Fix multiple Module=2 & Statistic=3 rows (before joining with self.DfStatModSpecs)
+        # 4. Fix multiple Module=2 & Statistic=3 rows (before joining with cls.DfStatModSpecs)
         newStatNum = 200
         for lbl, sRow in dfStats[(dfStats.Module == 2) & (dfStats.Statistic == 3)].iterrows():
             if dfStats.loc[lbl, 'Figure'] == 'Value':
                 newStatNum += 1
             dfStats.loc[lbl, 'Statistic'] = newStatNum
-        newStatNum = 201
         
         # 5. Add descriptive / naming columns for modules and statistics,
-        #    from self.DfStatModSpecs (more user friendly than numeric ids + help for detecting N/A figures)
-        dfStats = dfStats.join(self.DfStatModSpecs, on=['Module', 'Statistic'])
+        #    from cls.DfStatModSpecs (more user friendly than numeric ids + help for detecting N/A figures)
+        dfStats = dfStats.join(cls.DfStatModSpecs, on=['Module', 'Statistic'])
         
-        # 6. Check that supposed N/A figures (as told by self.dfStatModuleSpecs.statNotes) are really such
+        # 6. Check that supposed N/A figures (as told by cls.DfStatModSpecs.statNotes) are really such
         #    Warning: There seems to be a bug in MCDS with Module=2 & Statistic=10x : some Cv values not always 0 ...
         sKeepOnlyValueFig = ~dfStats.statNotes.apply(lambda s: pd.notnull(s) and '1' in s)
         sFigs2Drop = (dfStats.Figure != 'Value') & sKeepOnlyValueFig
@@ -658,9 +662,9 @@ class MCDSEngine(DSEngine):
         
         # 8. Make some values more readable.
         lblKeyFn = (dfStats.Module == 2) & (dfStats.Statistic == 13)
-        dfStats.loc[lblKeyFn, 'Value'] = dfStats.loc[lblKeyFn, 'Value'].astype(int).apply(lambda n: self.EstKeyFns[n-1])
+        dfStats.loc[lblKeyFn, 'Value'] = dfStats.loc[lblKeyFn, 'Value'].astype(int).apply(lambda n: cls.EstKeyFns[n-1])
         lblAdjFn = (dfStats.Module == 2) & (dfStats.Statistic == 14)
-        dfStats.loc[lblAdjFn, 'Value'] = dfStats.loc[lblAdjFn, 'Value'].astype(int).apply(lambda n: self.EstAdjustFns[n-1])
+        dfStats.loc[lblAdjFn, 'Value'] = dfStats.loc[lblAdjFn, 'Value'].astype(int).apply(lambda n: cls.EstAdjustFns[n-1])
         
         # 9. Final indexing
         dfStats = dfStats.reindex(columns=['modDesc', 'statDesc', 'Figure', 'Value'])
