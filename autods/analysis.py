@@ -174,7 +174,7 @@ class MCDSAnalysis(DSAnalysis):
         
         # Ask the engine to start running the analysis
         self.future = \
-            self.engine.run(dataSet=self.dataSet, runPrefix=self.name,
+            self.engine.run(sampleDataSet=self.dataSet, runPrefix=self.name,
                             realRun=realRun, logData=self.logData,
                             estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
                             estimCriterion=self.estimCriterion, cvInterval=self.cvInterval,
@@ -263,15 +263,12 @@ class MCDSPreAnalysis(MCDSAnalysis):
     #             Note: Up to the caller to shut it down when no more needed (not owned).
     def __init__(self, engine, dataSet, name=None, customData=None, logData=False, executor=None,
                  modelStrategy=[dict(keyFn='HNORMAL', adjSr='COSINE', estCrit='AIC', cvInt=95)],
-                 #estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
-                 #estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
                  fitDistCuts=EngineClass.DistFitCutsDef, discrDistCuts=EngineClass.DistDiscrCutsDef):
 
         assert len(modelStrategy) > 0, 'MCDSPreAnalysis: Empty modelStrategy !'
         
         super().__init__(engine, dataSet, name, customData, logData,
-                         #estimKeyFn, estimAdjustFn, estimCriterion, cvInterval,
                          minDist=minDist, maxDist=maxDist, fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
 
         self.modelStrategy = modelStrategy

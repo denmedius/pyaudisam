@@ -41,9 +41,19 @@ class AnalysisSpecSet(object):
 
     # Generation of a table of explicit "partial variant" specifications, from an implicit one
     # (= generate all combinations of variants)
+    # * implSpecs: implicit partial specs object, as a DataFrame, taken as is,
+    #              or a dict, preprocessed through implicitPartialVariantSpecs
     @staticmethod
-    def explicitPartialVariantSpecs(dfImplSpecs):
+    def explicitPartialVariantSpecs(implSpecs):
+    
+        # Convert spec from dict to DataFrame if needed.
+        if isinstance(implSpecs, dict):
+            dfImplSpecs = AnalysisSpecSet.implicitPartialVariantSpecs(implSpecs)
+        else:
+            assert isinstance(implSpecs, pd.DataFrame)
+            dfImplSpecs = implSpecs
         
+        # First columns kept as is.
         dfExplSpecs = dfImplSpecs[dfImplSpecs.columns[:1]].dropna()
         
         # For each implicit specs column (but the first)
@@ -65,13 +75,24 @@ class AnalysisSpecSet(object):
         return dfExplSpecs
 
     # Generation of a table of explicit variant specifications,
-    # from a set of implicit and explicit partial variant specs tables
-    # * oddfPartSpecs : the odict of name => partial specs table
+    # from a set of implicit and explicit partial variant specs objects 
+    # * odPartSpecs : the odict of name => partial specs objects,
+    #                 each as a DataFrame, taken as is, or a dict, preprocessed through implicitPartialVariantSpecs.
     #   Warning: implicit tables are only found by their name containing "_impl"
     @staticmethod
-    def explicitVariantSpecs(oddfPartSpecs):
+    def explicitVariantSpecs(odPartSpecs):
         
-        assert len(oddfPartSpecs.keys()) > 0, "Error: Can't explicit variants with no partial variant"
+        assert len(odPartSpecs) > 0, "Error: Can't explicit variants with no partial variant"
+        
+        # Convert any implicit partial variant spec from dict to DataFrame if needed.
+        oddfPartSpecs = odict()
+        
+        for psName, psValues in odPartSpecs.items():
+            if isinstance(psValues, dict):
+                oddfPartSpecs[psName] = AnalysisSpecSet.implicitPartialVariantSpecs(psValues)
+            else:
+                assert isinstance(psValues, pd.DataFrame)
+                oddfPartSpecs[psName] = psValues
         
         # Group partial specs tables with same column sets (according to column names)
         odSameColsPsNames = odict() # { sorted(cols): [table names] }
@@ -132,11 +153,12 @@ class AnalysisSpecSet(object):
         # Done.
         return dfExplSpecs
 
-# Analyser: Run a bunch of DS analyses on samples extracted from a sightings data set,
+
+# Analyser: Run a bunch of DS analyses on samples extracted from a field sightings data set,
 #           according to a user-friendly set of analysis specs
 class Analyser(object):
 
-    def __init__(self, rawDataSet, dfSampleSet, rawAnlysSpecs):
+    def __init__(self, fieldDataSet, dfSampleSet, rawAnlysSpecs):
 
         pass # Soon available ...
     
