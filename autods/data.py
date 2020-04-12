@@ -627,6 +627,7 @@ class MCDSResultsSet(ResultsSet):
             return np.nan
         chi2AllColInds = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
                           for i in range(3, 0, -1)]
+        chi2AllColInds = [col for col in chi2AllColInds if col in self._dfData.columns]
         self._dfData[self.Chi2ColInd] = self._dfData[chi2AllColInds].apply(determineChi2, axis='columns')
 
 
