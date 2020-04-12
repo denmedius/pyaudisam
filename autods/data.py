@@ -402,7 +402,7 @@ class SampleDataSet(DataSet):
 class ResultsSet(object):
     
     def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None,
-                       dComputedCols=None, dfComputedColTrans=None):
+                       dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
         
         assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
         assert miCustomCols is None or isinstance(miCustomCols, pd.MultiIndex), \
@@ -412,6 +412,7 @@ class ResultsSet(object):
         if dComputedCols is None:
             dComputedCols = dict()
             dfComputedColTrans = pd.DataFrame()
+        assert len(sortCols) == len(sortAscend), 'sortCols and sortAscend must have same length'
         
         self.analysisClass = analysisClass
         self.engineClass = analysisClass.EngineClass
@@ -428,6 +429,11 @@ class ResultsSet(object):
         self.dfAnalysisColTrans = self.dfAnalysisColTrans.append(dfComputedColTrans)
         self.dfCustomColTrans = dfCustomColTrans
         
+        # Sorting parameters (after postComuting)
+        self.sortCols = sortCols
+        self.sortAscend = sortAscend
+        
+        # Non-constant data members
         self._dfData = pd.DataFrame() # The real data (frame).
         self.rightColOrder = False # self._dfData columns are assumed to be in a wrong order.
         self.postComputed = False # Post-computation not yet done.
@@ -462,7 +468,7 @@ class ResultsSet(object):
     @property
     def dfData(self):
         
-        # Do post-computation if not already done.
+        # Do post-computation and sorting if not already done.
         if not(self._dfData.empty or self.postComputed):
             
             # Make sure we jave a MultiIndex for columns (append breaks this, not fromExcel)
@@ -472,6 +478,10 @@ class ResultsSet(object):
             # Post-compute as specified (or not).
             self.postComputeColumns()
             self.postComputed = True # No need to do it again !
+            
+            # Sort as/if specified.
+            if self.sortCols:
+                self._dfData.sort_values(by=self.sortCols, ascending=self.sortAscend, inplace=True)
         
         # Enforce right columns order.
         if not(self._dfData.empty or self.rightColOrder):
@@ -578,7 +588,8 @@ class MCDSResultsSet(ResultsSet):
 
     # * miSampleCols : only for delta AIC computation ; defaults to miCustomCols if None
     #                  = the cols to use for grouping by sample
-    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None):
+    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None,
+                       sortCols=[], sortAscend=[]):
         
         # Setup computed columns specs.
         dCompCols = odict([(self.DeltaAicColInd, 22), # Right before AIC
@@ -589,7 +600,8 @@ class MCDSResultsSet(ResultsSet):
 
         # Initialise base.
         super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
-                                       dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                       dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                       sortCols=sortCols, sortAscend=sortAscend)
         
         self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
         
@@ -599,6 +611,7 @@ class MCDSResultsSet(ResultsSet):
         return self.dfCustomColTrans.loc[self.miSampleCols, lang].to_list()
     
     # Post-computations.
+    KMaxChi2 = 3 # TODO: Really a constant, or actually depends on some analysis params ?
     def postComputeColumns(self):
         
         #logger.debug('postComputeColumns: ...')
@@ -626,9 +639,10 @@ class MCDSResultsSet(ResultsSet):
                     return chi2
             return np.nan
         chi2AllColInds = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
-                          for i in range(3, 0, -1)]
+                          for i in range(self.KMaxChi2, 0, -1)]
         chi2AllColInds = [col for col in chi2AllColInds if col in self._dfData.columns]
-        self._dfData[self.Chi2ColInd] = self._dfData[chi2AllColInds].apply(determineChi2, axis='columns')
+        if chi2AllColInds:
+            self._dfData[self.Chi2ColInd] = self._dfData[chi2AllColInds].apply(determineChi2, axis='columns')
 
 
 if __name__ == '__main__':
