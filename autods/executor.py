@@ -82,6 +82,7 @@ class Executor(object):
                                                 initializer=None, initargs=initargs)
                     logger.debug('Starting a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
             elif processes is not None:
+                raise NotImplementedError('Not yet available for multi-process scheme')
                 if processes > 1:
                     self.realExor = \
                         cofu.ProcessPoolExecutor(max_workers=processes or None,

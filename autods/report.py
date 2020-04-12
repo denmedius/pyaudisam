@@ -381,7 +381,7 @@ class ResultsFullReport(ResultsReport):
         for lblAnlys in dfSynthRes.index:
             
             sAnlysCustCols = dfDetRes.loc[lblAnlys, trCustCols]
-            logger.info('  #{}'.format(lblAnlys) + ' '.join(['{}={}'.format(k, v) for k, v in sAnlysCustCols.iteritems()]))
+            logger.info('  #{} '.format(lblAnlys) + ' '.join(['{}={}'.format(k, v) for k, v in sAnlysCustCols.iteritems()]))
         
             anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
 
