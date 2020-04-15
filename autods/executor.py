@@ -113,6 +113,10 @@ class Executor(object):
         self.realExor.shutdown(wait=wait)
         
         logger.debug(clsName + ' shut down.')
+        
+    def __del__(self):
+    
+        self.shutdown()
             
 
 if __name__ == '__main__':
