@@ -115,8 +115,8 @@ class DSEngine(object):
         odict([('STR_LABEL', ['region', 'zone', 'secteur', 'strate', 'stratum']),
                ('STR_AREA', ['surface', 'area', 'ha', 'km2']),
                ('SMP_LABEL', ['point', 'lieu', 'location', 'transect']),
-               ('SMP_EFFORT', ['effort', 'passages', 'surveys', 'samplings', 'longueur', 'length']),
-               ('DISTANCE', ['distance'])])
+               ('SMP_EFFORT', ['effort', 'passes', 'surveys', 'samplings', 'longueur', 'length']),
+               ('DISTANCE', ['dist'])])
     
     # Data fields of decimal type.
     # TODO: Complete for non 'Point transect' modes
