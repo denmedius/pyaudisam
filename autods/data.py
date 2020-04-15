@@ -56,7 +56,7 @@ class DataSet(object):
         if isinstance(sourceFpn, str):
             sourceFpn = pl.Path(sourceFpn)
     
-        assert sourceFpn.exists(), 'Source file for DataSet not found : ' + sourceFpn
+        assert sourceFpn.exists(), 'Source file for DataSet not found : {}'.format(sourceFpn)
 
         ext = sourceFpn.suffix.lower()
         assert ext in cls.SupportedFileExts, \
@@ -125,6 +125,9 @@ class FieldDataSet(DataSet):
         self.dCompdMonoCatColSpecs = addMonoCatCols
         
         self.dfIndivSights = None # Not yet computed.
+        
+        logger.info('Field data : {} sightings'.format(len(self)))
+
     
     # Transform a multi-categorical sightings set into an equivalent mono-categorical sightings set,
     # that is where no sightings has more that one category with positive count (keeping the same total counts).
@@ -241,8 +244,14 @@ class IndividualsDataSet(DataSet):
     
         self.dfTransects = dfTransects
         if self.dfTransects is None or self.dfTransects.empty:
-            self.dfTransects = \
-                self._extractTransects(self._dfData, transectIdCols=self.transectIdCols, passIdCol=self.passIdCol)
+            self.dfTransects = self._extractTransects(self._dfData, transectIdCols=self.transectIdCols,
+                                                      passIdCol=self.passIdCol, effortDefVal=effortDefVal)
+
+        # A cache used by sampleDataSet to optimise consecutive calls with same sample specs (happens often).
+        self._sdsSampleDataSetCache = None
+        self._sSampleSpecsCache = None
+        
+        logger.info('Individuals data : {} sightings, {} transects'.format(len(self), len(self.dfTransects)))
 
     # Extract transect infos from individuals sightings
     # * effortDefVal: if effortCol not in dfIndivSightings, create one with this constant value
@@ -349,25 +358,34 @@ class IndividualsDataSet(DataSet):
         return dfInSights
     
     # Sample individuals data for given sampling criteria, as a SampleDataSet.
-    # * dSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
+    # * sSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
     #             keys being columns of dfAllSights (dict protocol : dict, pd.Series, ...)
-    def sampleDataSet(self, sSample):
+    def sampleDataSet(self, sSampleSpecs):
+        
+        # Don't redo what have just been done.
+        if self._sSampleSpecsCache is not None and self._sSampleSpecsCache.equals(sSampleSpecs):
+            return self._sdsSampleDataSetCache
         
         # Select sample data.
         dfSampIndivObs, dfSampTransInfo = \
-            self._selectSampleSightings(dSample=sSample, dfAllSights=self._dfData,
+            self._selectSampleSightings(dSample=sSampleSpecs, dfAllSights=self._dfData,
                                         dfAllEffort=self.dfTransects, transectIdCols=self.transectIdCols,
                                         passIdCol=self.passIdCol, effortCol=self.effortCol)
 
         # Add absence sightings
-        dfSampIndivObs = self._addAbsenceSightings(dfSampIndivObs, sampleCols=sSample.index, 
+        dfSampIndivObs = self._addAbsenceSightings(dfSampIndivObs, sampleCols=sSampleSpecs.index, 
                                                    dfExpdTransects=dfSampTransInfo)
 
         # Add information about the studied geographical area
         dfSampIndivObs = self._addSurveyAreaInfo(dfSampIndivObs, dSurveyArea=self.dSurveyArea)
 
-        # Create and return SampleDataSet instance (sort by transectIdCols : mandatory for MCDS analysis).
-        return SampleDataSet(dfSampIndivObs, decimalFields=self.sampleDecFields, sortFields=self.transectIdCols)   
+        # Create SampleDataSet instance (sort by transectIdCols : mandatory for MCDS analysis) and save it into cache.
+        self._sdsSampleDataSetCache = \
+            SampleDataSet(dfSampIndivObs, decimalFields=self.sampleDecFields, sortFields=self.transectIdCols)
+        self._sSampleSpecsCache = sSampleSpecs
+        
+        # Done.
+        return self._sdsSampleDataSetCache
 
 # A tabular input data set for multiple analyses on the same sample, with 1 or 0 individual per row
 # Warning:
@@ -395,6 +413,7 @@ class SampleDataSet(DataSet):
         if sortFields:
             self._dfData.sort_values(by=sortFields, inplace=True)
 
+        logger.info('Sample data : {} sightings'.format(len(self)))
 
 # A result set for multiple analyses from the same engine.
 # With ability to prepend custom heading columns to the engine output stat ones.
@@ -529,23 +548,34 @@ class ResultsSet(object):
             
         return dfColTrans
         
-    # Access a mono-indexed translated columns version of the data table
-    def dfTransData(self, lang='en', subset=None):
+    # Access a (column) subset of the data table
+    def dfSubData(self, subset=None, copy=False):
         
-        assert lang in ['en', 'fr'], 'No support for "{}" language'.format(lang)
         assert subset is None or isinstance(subset, list) or isinstance(subset, pd.MultiIndex), \
                'subset columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
-        
+
         # Make a copy of / extract selected columns of dfData.
         if subset is None:
-            dfTrData = self.dfData
+            dfSubData = self.dfData
         else:
             if isinstance(subset, list):
                 miSubset = pd.MultiIndex.from_tuples(subset)
             else: # pd.MultiIndex
                 miSubset = subset
-            dfTrData = self.dfData.reindex(columns=miSubset)
-        dfTrData = dfTrData.copy()
+            dfSubData = self.dfData.reindex(columns=miSubset)
+        
+        if copy:
+            dfSubData = dfSubData.copy()
+            
+        return dfSubData
+
+    # Access a mono-indexed translated columns version of the data table
+    def dfTransData(self, lang='en', subset=None):
+        
+        assert lang in ['en', 'fr'], 'No support for "{}" language'.format(lang)
+        
+        # Extract and copy selected columns of dfData.
+        dfTrData = self.dfSubData(subset=subset, copy=True)
         
         # Translate column names.
         dfTrData.columns = [self.transTable()[lang].get(col, str(col)) for col in dfTrData.columns]
@@ -553,15 +583,17 @@ class ResultsSet(object):
         return dfTrData
 
     # Save data to an Excel worksheet (XLSX format).
-    def toExcel(self, fileName, sheetName=None):
+    def toExcel(self, fileName, sheetName=None, lang=None, subset=None, engine='openpyxl'):
         
-        self.dfData.to_excel(fileName, sheet_name=sheetName or 'AllResults')
+        dfOutData = self.dfSubData(subset=subset) if lang is None else self.dfTransData(subset=subset, lang=lang)
+        
+        dfOutData.to_excel(fileName, sheet_name=sheetName or 'AllResults', engine=engine)
 
     # Save data to an Open Document worksheet (ODS format).
-    def toOpenDoc(self, fileName, sheetName=None):
+    # Warning: Not yet implements as of pandas 0.25.3
+    def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None):
         
-        raise NotImplementedError('Can\'t export to OpenDoc yet')
-        #self.dfData.to_excel(fileName, sheet_name=sheetName or 'AllResults', engine='odf')
+        return self.toExcel(fileName, sheetName, lang, subset, engine='odf')
 
     # Load (overwrite) data from an Excel worksheet (XLSX format), assuming ctor params match with Excel sheet
     # column names and list, which can well be ensured by using the same ctor params as used for saving !
