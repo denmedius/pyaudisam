@@ -27,15 +27,25 @@ logger = logging.getLogger('autods')
 from autods.analysis import DSAnalysis, MCDSAnalysis
 
 
-# An abstract tabular data set built from various input sources.
-# Warning:
-# * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
-#   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+# An tabular data set built from various input sources (only 1 table supported).
+# * source : input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
+#    and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+# * decimalFields: for smart ./, decimal character management in CSV sources (pandas is not smart on this)
+# * separator: columns separator for CSV sources
+# * sheetName: name of the sheet to read from, for multi-sheet data files (like Excel or Open Doc. workbooks)
 class DataSet(object):
     
-    SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
-                        + (['.ods'] if version.parse(pd.__version__).release >= (0, 25) else [])
+    def __init__(self, source, importDecFields=[], separator='\t', sheet=None):
     
+        if isinstance(source, str) or isinstance(source, pl.Path):
+            self._dfData = self._fromDataFile(source, importDecFields, separator, sheet)
+        elif isinstance(source, pd.DataFrame):
+            self._dfData = self._fromDataFrame(source)
+        else:
+            raise Exception('source for DataSet must be a pandas.DataFrame or an existing file')
+
+        assert not self._dfData.empty, 'No data in source data set'
+
     # Wrapper around pd.read_csv for smart ./, decimal character management (pandas is not smart on this)
     # TODO: Make this more efficient
     @staticmethod
@@ -50,8 +60,11 @@ class DataSet(object):
             df = pd.read_csv(fileName, sep=sep, decimal=',')
         return df
     
+    SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
+                        + (['.ods'] if version.parse(pd.__version__).release >= (0, 25) else [])
+    
     @classmethod
-    def _fromDataFile(cls, sourceFpn, decimalFields):
+    def _fromDataFile(cls, sourceFpn, decimalFields, separator='\t', sheet=None):
         
         if isinstance(sourceFpn, str):
             sourceFpn = pl.Path(sourceFpn)
@@ -63,11 +76,11 @@ class DataSet(object):
                'Unsupported source file type {}: not from {{{}}}' \
                .format(ext, ','.join(cls.SupportedFileExts))
         if ext in ['.xlsx']:
-            dfData = pd.read_excel(sourceFpn)
+            dfData = pd.read_excel(sourceFpn, sheet_name=sheet or 0)
         elif ext in ['.ods']:
-            dfData = pd.read_excel(sourceFpn, engine='odf')
+            dfData = pd.read_excel(sourceFpn, sheet_name=sheet or 0, engine='odf')
         elif ext in ['.csv', '.txt']:
-            dfData = cls._csv2df(sourceFpn, decCols=decimalFields, sep='\t')
+            dfData = cls._csv2df(sourceFpn, decCols=decimalFields, sep=separator)
             
         return dfData
     
@@ -76,17 +89,6 @@ class DataSet(object):
         
         return sourceDf.copy()
     
-    def __init__(self, source, importDecFields=[]):
-    
-        if isinstance(source, str) or isinstance(source, pl.Path):
-            self._dfData = self._fromDataFile(source, importDecFields)
-        elif isinstance(source, pd.DataFrame):
-            self._dfData = self._fromDataFrame(source)
-        else:
-            raise Exception('source for DataSet must be a pandas.DataFrame or an existing file')
-
-        assert not self._dfData.empty, 'No data in source data set'
-
     def __len__(self):
         
         return len(self._dfData)
@@ -117,9 +119,9 @@ class FieldDataSet(DataSet):
     #   (each column to add is computed through :
     #      dfMonoCatSights[colName] = dfMonoCatSights[].apply(computeCol, axis='columns')
     #      for colName, computeCol in addMonoCatCols.items()) 
-    def __init__(self, source, countCols, addMonoCatCols=dict(), importDecFields=[]):
+    def __init__(self, source, countCols, addMonoCatCols=dict(), importDecFields=[], separator='\t', sheet=None):
         
-        super().__init__(source, importDecFields)
+        super().__init__(source, importDecFields, separator, sheet)
         
         self.countCols = countCols
         self.dCompdMonoCatColSpecs = addMonoCatCols
@@ -232,9 +234,10 @@ class IndividualsDataSet(DataSet):
     # * effortDefVal: if dfTransects is None and effortCol not in source table, use this constant value
     def __init__(self, source, dSurveyArea, importDecFields=[], dfTransects=None,
                        transectIdCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleDecFields=['Effort', 'Distance'], effortDefVal=1):
+                       sampleDecFields=['Effort', 'Distance'], effortDefVal=1, 
+                       separator='\t', sheet=None):
         
-        super().__init__(source, importDecFields)
+        super().__init__(source, importDecFields, separator, sheet)
         
         self.dSurveyArea = dSurveyArea
         self.transectIdCols = transectIdCols
@@ -396,11 +399,11 @@ class IndividualsDataSet(DataSet):
 #   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
 class SampleDataSet(DataSet):
     
-    def __init__(self, source, decimalFields=[], sortFields=[]):
+    def __init__(self, source, decimalFields=[], sortFields=[], separator='\t', sheet=None):
         
         self.decimalFields = decimalFields
 
-        super().__init__(source, importDecFields=decimalFields)
+        super().__init__(source, importDecFields=decimalFields, separator=separator, sheet=sheet)
                 
         assert not self._dfData.empty, 'No data in set'
         assert len(self._dfData.columns) >= 5, 'Not enough columns (should be at leat 5)'
