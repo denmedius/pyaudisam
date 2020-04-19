@@ -229,26 +229,28 @@ class FieldDataSet(DataSet):
 class IndividualsDataSet(DataSet):
 
     # Ctor
-    # * dfTransects: Transects infos with columns : transectIdCols (n), passIdCol (1), effortCol (1)
+    # * dfTransects: Transects infos with columns : transectPlaceCols (n), passIdCol (1), effortCol (1)
     #                If None, auto generated from input sightings
-    # * effortDefVal: if dfTransects is None and effortCol not in source table, use this constant value
+    # * effortConstVal: if dfTransects is None and effortCol not in source table, use this constant value
     def __init__(self, source, dSurveyArea, importDecFields=[], dfTransects=None,
-                       transectIdCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleDecFields=['Effort', 'Distance'], effortDefVal=1, 
+                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                       sampleDecFields=['Effort', 'Distance'], effortConstVal=1, 
                        separator='\t', sheet=None):
         
         super().__init__(source, importDecFields, separator, sheet)
         
         self.dSurveyArea = dSurveyArea
-        self.transectIdCols = transectIdCols
+        self.transectPlaceCols = transectPlaceCols
         self.passIdCol = passIdCol
         self.effortCol = effortCol
         self.sampleDecFields = sampleDecFields
     
         self.dfTransects = dfTransects
         if self.dfTransects is None or self.dfTransects.empty:
-            self.dfTransects = self._extractTransects(self._dfData, transectIdCols=self.transectIdCols,
-                                                      passIdCol=self.passIdCol, effortDefVal=effortDefVal)
+            self.dfTransects = self._extractTransects(self._dfData, transectPlaceCols=self.transectPlaceCols,
+                                                      passIdCol=self.passIdCol, effortConstVal=effortConstVal)
+        elif effortCol not in self.dfTransects.columns:
+            self.dfTransects[effortCol] = effortConstVal
 
         # A cache used by sampleDataSet to optimise consecutive calls with same sample specs (happens often).
         self._sdsSampleDataSetCache = None
@@ -257,23 +259,23 @@ class IndividualsDataSet(DataSet):
         logger.info('Individuals data : {} sightings, {} transects'.format(len(self), len(self.dfTransects)))
 
     # Extract transect infos from individuals sightings
-    # * effortDefVal: if effortCol not in dfIndivSightings, create one with this constant value
+    # * effortConstVal: if effortCol not in dfIndivSightings, create one with this constant value
     @staticmethod
-    def _extractTransects(dfIndivSightings, transectIdCols=['Transect'], passIdCol='Pass', 
-                                            effortCol='Effort', effortDefVal=1):
+    def _extractTransects(dfIndivSightings, transectPlaceCols=['Transect'], passIdCol='Pass', 
+                                            effortCol='Effort', effortConstVal=1):
     
-        transSightCols = transectIdCols + [passIdCol]
+        transCols = transectPlaceCols + [passIdCol]
         if effortCol in dfIndivSightings.columns:
-            transSightCols.append(effortCol)
+            transCols.append(effortCol)
         
-        dfTrans = dfIndivSightings[transSightCols]
+        dfTrans = dfIndivSightings[transCols]
         
         dfTrans = dfTrans.drop_duplicates()
         
         dfTrans.reset_index(drop=True, inplace=True)
         
         if effortCol not in dfTrans.columns:
-            dfTrans[effortCol] = effortDefVal
+            dfTrans[effortCol] = effortConstVal
 
         return dfTrans
     
@@ -283,12 +285,12 @@ class IndividualsDataSet(DataSet):
     #             keys being columns of dfAllSights (dict protocol : dict, pd.Series, ...)
     # * dfAllSights : the all-samples (individual) sightings table to search into
     # * dfAllEffort : effort values for each transect x pass really done, for the all-sample survey
-    # * transectIdCols : name of the input dfAllEffort and dSample columns to identify the transects (not passes)
+    # * transectPlaceCols : name of the input dfAllEffort and dSample columns to identify the transects (not passes)
     # * passIdCol : name of the input dfAllEffort and dSample column to identify the passes (not transects)
     # * effortCol : name of the input dfAllEffort and output effort column to add / replace
     @staticmethod
     def _selectSampleSightings(dSample, dfAllSights, dfAllEffort,
-                               transectIdCols=['Transect'], passIdCol='Pass', effortCol='Effort'):
+                               transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort'):
         
         # Select sightings
         dfSampSights = dfAllSights
@@ -305,17 +307,17 @@ class IndividualsDataSet(DataSet):
             dfSampEffort = dfAllEffort[dfAllEffort[passIdCol].astype(str).isin(passes)]
         else:
             dfSampEffort = dfAllEffort
-        dfSampEffort = dfSampEffort[transectIdCols + [effortCol]].groupby(transectIdCols).sum()
+        dfSampEffort = dfSampEffort[transectPlaceCols + [effortCol]].groupby(transectPlaceCols).sum()
         
         # Add effort column
-        dfSampSights = dfSampSights.drop(columns=effortCol, errors='ignore').join(dfSampEffort, on=transectIdCols)
+        dfSampSights = dfSampSights.drop(columns=effortCol, errors='ignore').join(dfSampEffort, on=transectPlaceCols)
 
         return dfSampSights, dfSampEffort
         
     # Add "abscence" sightings to field data collected on transects for a given sample
     # * dfInSights : input data table
     # * sampleCols : the names of the sample identification columns
-    # * dfExpdTransects : the expected transects, as a data frame indexed by the transectId,
+    # * dfExpdTransects : the expected transects, as a data frame indexed by the transectPlace,
     #     an index with same name as the corresponding column in dfInSights,
     #     and with other info columns to duplicate in absence sightings (at least the effort value)
     @staticmethod
@@ -330,9 +332,9 @@ class IndividualsDataSet(DataSet):
         dAbscSightTmpl
 
         # Determine missing transects for the sample
-        transectIdCols = dfExpdTransects.index.name
-        dfSampTransects = dfInSights.drop_duplicates(subset=transectIdCols)
-        dfSampTransects.set_index(transectIdCols, inplace=True)
+        transectPlaceCols = dfExpdTransects.index.name
+        dfSampTransects = dfInSights.drop_duplicates(subset=transectPlaceCols)
+        dfSampTransects.set_index(transectPlaceCols, inplace=True)
         dfSampTransects = dfSampTransects[dfExpdTransects.columns]
 
         dfMissgTransects = dfExpdTransects.loc[dfExpdTransects.index.difference(dfSampTransects.index)]
@@ -372,7 +374,7 @@ class IndividualsDataSet(DataSet):
         # Select sample data.
         dfSampIndivObs, dfSampTransInfo = \
             self._selectSampleSightings(dSample=sSampleSpecs, dfAllSights=self._dfData,
-                                        dfAllEffort=self.dfTransects, transectIdCols=self.transectIdCols,
+                                        dfAllEffort=self.dfTransects, transectPlaceCols=self.transectPlaceCols,
                                         passIdCol=self.passIdCol, effortCol=self.effortCol)
 
         # Add absence sightings
@@ -382,9 +384,9 @@ class IndividualsDataSet(DataSet):
         # Add information about the studied geographical area
         dfSampIndivObs = self._addSurveyAreaInfo(dfSampIndivObs, dSurveyArea=self.dSurveyArea)
 
-        # Create SampleDataSet instance (sort by transectIdCols : mandatory for MCDS analysis) and save it into cache.
+        # Create SampleDataSet instance (sort by transectPlaceCols : mandatory for MCDS analysis) and save it into cache.
         self._sdsSampleDataSetCache = \
-            SampleDataSet(dfSampIndivObs, decimalFields=self.sampleDecFields, sortFields=self.transectIdCols)
+            SampleDataSet(dfSampIndivObs, decimalFields=self.sampleDecFields, sortFields=self.transectPlaceCols)
         self._sSampleSpecsCache = sSampleSpecs
         
         # Done.
@@ -547,7 +549,7 @@ class ResultsSet(object):
         
         dfColTrans = self.dfAnalysisColTrans
         if self.dfCustomColTrans is not None:
-            dfColTrans = self.dfCustomColTrans.append(dfColTrans)
+            dfColTrans = self.dfCustomColTrans.append(dfColTrans, sort=False)
             
         return dfColTrans
         

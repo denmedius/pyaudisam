@@ -232,37 +232,27 @@ class DSAnalyser(object):
 # MCDSAnalyser: Run a bunch of MCDS analyses
 class MCDSAnalyser(DSAnalyser):
 
-    def __init__(self, dfIndivObs, dfTransects=None, effortDefVal=1, dSurveyArea=dict(), 
+    def __init__(self, dfIndivObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                        resultsHeadCols=dict(before=[], sample=[], after=[]), abbrevCol='AnlysAbbrev',
-                       transectIdCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleDecFields=['Effort', 'Distance'], workDir='.'):
 
         self.dfIndivObs = dfIndivObs
-        self.dfTransects = dfTransects
-        self.effortDefVal = effortDefVal
 
-        self.dSurveyArea = dSurveyArea
-        
         self.resultsHeadCols = resultsHeadCols
         self.abbrevCol = abbrevCol
-        
-        self.transectIdCols = transectIdCols
-        self.passIdCol = passIdCol
-        self.effortCol = effortCol
-        self.sampleDecFields = sampleDecFields
-    
+            
         self.workDir = workDir
 
         # Individualised data (all samples)
-        self._ids = IndividualsDataSet(self.dfIndivObs, dfTransects=self.dfTransects,
-                                       effortDefVal=self.effortDefVal, dSurveyArea=self.dSurveyArea,
-                                       transectIdCols=self.transectIdCols, passIdCol=self.passIdCol,
-                                       effortCol=self.effortCol, sampleDecFields=self.sampleDecFields)
+        self._ids = IndividualsDataSet(dfIndivObs, dfTransects=dfTransects, effortConstVal=effortConstVal,
+                                       dSurveyArea=dSurveyArea, transectPlaceCols=transectPlaceCols,
+                                       passIdCol=passIdCol, effortCol=effortCol, sampleDecFields=sampleDecFields)
 
-    def run(self, dfAnlysExplSpecs, dSpecsCols2AnlysParams=dict(), threads=1, processes=0):
+    def run(self, dfAnlysExplSpecs, dAnlysParamsSpecs=dict(), threads=1, processes=0):
     
         """Run specified analysis
-           :param:dSpecsCols2AnlysParams MCDS analysis param name to dfAnlysExplSpecs column name
+           :param:dAnlysParamsSpecs MCDS analysis param name to dfAnlysExplSpecs column name
              (or const value) mapping ; for possible param. names, see MCDSAnalysis ctor ;
              missing ones won't be passed to MCDSAnalysis ctor ;
              dict. values can be a column name of dfAnlysExplSpecs or a const value replacment
@@ -323,7 +313,7 @@ class MCDSAnalyser(DSAnalyser):
             dAnlysParams = { parName: sAnSpec[colNameOrVal] \
                                       if isinstance(colNameOrVal, str) and colNameOrVal in sAnSpec.index \
                                       else colNameOrVal
-                             for parName, colNameOrVal in dSpecsCols2AnlysParams.items() }
+                             for parName, colNameOrVal in dAnlysParamsSpecs.items() }
 
             # Analysis object
             anlys = MCDSAnalysis(engine=self._mcds, dataSet=sds, name=sAnSpec[self.abbrevCol],
