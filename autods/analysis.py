@@ -46,14 +46,14 @@ class DSAnalysis(object):
     
     # Ctor
     # * :param: engine : DS engine to use
-    # * :param: dataSet : data.SampleDataSet instance to use
+    # * :param: sampleDataSet : data.SampleDataSet instance to use
     # * :param: name : name (may be empty), used for prefixing run folders or so, only for user-friendliness
     # * :param: customData : any custom data to be transported with the analysis object
     #                        during run (left completely untouched)
-    def __init__(self, engine, dataSet, name, customData=None):
+    def __init__(self, engine, sampleDataSet, name, customData=None):
         
         self.engine = engine
-        self.dataSet = dataSet
+        self.sampleDataSet = sampleDataSet
         self.name = name
         self.customData = customData
         
@@ -77,7 +77,7 @@ class MCDSAnalysis(DSAnalysis):
             if maxDist is not None:
                 assert distCuts[-1] < maxDist, 'Invalid last distance cut {}; should be empty < {}'.format(distCuts[-1], maxDist)
     
-    def __init__(self, engine, dataSet, name=None, customData=None, logData=False,
+    def __init__(self, engine, sampleDataSet, name=None, customData=None, logData=False,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
@@ -134,7 +134,7 @@ class MCDSAnalysis(DSAnalysis):
                 name += '-' + str(cvInterval)
 
         # Initialise base.
-        super().__init__(engine, dataSet, name, customData)
+        super().__init__(engine, sampleDataSet, name, customData)
         
         # Save params.
         self.logData = logData
@@ -174,7 +174,7 @@ class MCDSAnalysis(DSAnalysis):
         
         # Ask the engine to start running the analysis
         self.future = \
-            self.engine.run(sampleDataSet=self.dataSet, runPrefix=self.name,
+            self.engine.run(sampleDataSet=self.sampleDataSet, runPrefix=self.name,
                             realRun=realRun, logData=self.logData,
                             estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
                             estimCriterion=self.estimCriterion, cvInterval=self.cvInterval,
@@ -261,14 +261,14 @@ class MCDSPreAnalysis(MCDSAnalysis):
     # * modelStrategy: iterable of dict(keyFn=, adjSr=, estCrit=, cvInt=)
     # * executor: Executor object to use for parallel execution of multiple pre-analyses instances
     #             Note: Up to the caller to shut it down when no more needed (not owned).
-    def __init__(self, engine, dataSet, name=None, customData=None, logData=False, executor=None,
+    def __init__(self, engine, sampleDataSet, name=None, customData=None, logData=False, executor=None,
                  modelStrategy=[dict(keyFn='HNORMAL', adjSr='COSINE', estCrit='AIC', cvInt=95)],
                  minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
                  fitDistCuts=EngineClass.DistFitCutsDef, discrDistCuts=EngineClass.DistDiscrCutsDef):
 
         assert len(modelStrategy) > 0, 'MCDSPreAnalysis: Empty modelStrategy !'
         
-        super().__init__(engine, dataSet, name, customData, logData,
+        super().__init__(engine, sampleDataSet, name, customData, logData,
                          minDist=minDist, maxDist=maxDist, fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
 
         self.modelStrategy = modelStrategy
@@ -283,7 +283,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
             modAbbrev = model['keyFn'][:3].lower() + '-' + model['adjSr'][:3].lower()
 
             # Create and run analysis for the new model
-            anlys = MCDSAnalysis(engine=self.engine, dataSet=self.dataSet,
+            anlys = MCDSAnalysis(engine=self.engine, sampleDataSet=self.sampleDataSet,
                                  name=self.name + '-' + modAbbrev, logData=False,
                                  estimKeyFn=model['keyFn'], estimAdjustFn=model['adjSr'],
                                  estimCriterion=model['estCrit'], cvInterval=model['cvInt'])
@@ -366,7 +366,7 @@ if __name__ == '__main__':
     args = argser.parse_args()
     
     # Load data set.
-    dataSet = SampleDataSet(source=args.dataFile)
+    sampleDataSet = SampleDataSet(source=args.dataFile)
 
     # Create DS engine
     engine = MCDSEngine(workDir=args.workDir,
@@ -374,7 +374,7 @@ if __name__ == '__main__':
                         surveyType='Point', distanceType='Radial')
 
     # Create and run analysis
-    analysis = MCDSAnalysis(engine=engine, dataSet=dataSet, name=args.engineType,
+    analysis = MCDSAnalysis(engine=engine, sampleDataSet=sampleDataSet, name=args.engineType,
                             estimKeyFn=args.keyFn, estimAdjustFn=args.adjustFn,
                             estimCriterion=args.criterion, cvInterval=args.cvInterval)
 

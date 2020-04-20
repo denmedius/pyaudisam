@@ -376,8 +376,14 @@ class IndividualsDataSet(DataSet):
             self._selectSampleSightings(dSample=sSampleSpecs, dfAllSights=self._dfData,
                                         dfAllEffort=self.dfTransects, transectPlaceCols=self.transectPlaceCols,
                                         passIdCol=self.passIdCol, effortCol=self.effortCol)
+                                        
+        # DOn't go on if no selected data.
+        if dfSampIndivObs.empty:
+            logger.warning('No data selected for this specs: {}'.format(sSampleSpecs.to_dict()))
+            return None
 
         # Add absence sightings
+        print(sSampleSpecs.index)
         dfSampIndivObs = self._addAbsenceSightings(dfSampIndivObs, sampleCols=sSampleSpecs.index, 
                                                    dfExpdTransects=dfSampTransInfo)
 
@@ -466,6 +472,30 @@ class ResultsSet(object):
         
         return len(self._dfData)
     
+    def copy(self, withData=True):
+    
+        """Clone function (shallow), with optional (deep) data copy"""
+    
+        # 1. Call ctor without computed columns stuff (we no more have initial data)
+        clone = ResultsSet(analysisClass=self.analysisClass, sortCols=[], sortAscend=[],
+                           miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans)
+    
+        # 2. Complete clone initialisation.
+        # 3-level multi-index columns (module, statistic, figure)
+        clone.miAnalysisCols = self.miAnalysisCols
+        clone.computedCols = self.computedCols
+        
+        # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
+        clone.dfAnalysisColTrans = self.dfAnalysisColTrans
+        
+        # Copy data if needed.
+        if withData:
+            clone._dfData = self._dfData.copy()
+            clone.rightColOrder = self.rightColOrder
+            clone.postComputed = self.postComputed
+
+        return clone
+        
     # sResult : Series for result cols values
     # sCustomHead : Series for custom cols values
     def append(self, sResult, sCustomHead=None):
@@ -494,7 +524,7 @@ class ResultsSet(object):
         
         # Do post-computation and sorting if not already done.
         if not(self._dfData.empty or self.postComputed):
-            
+        
             # Make sure we jave a MultiIndex for columns (append breaks this, not fromExcel)
             if not isinstance(self._dfData.columns, pd.MultiIndex):
                 self._dfData.columns = pd.MultiIndex.from_tuples(self._dfData.columns)
@@ -521,8 +551,16 @@ class ResultsSet(object):
             assert isinstance(self._dfData.columns, pd.MultiIndex)
         
         # Don't return columns with no relevant data.
-        return self._dfData.dropna(how='all', axis='columns')
+        self._dfData.dropna(how='all', axis='columns', inplace=True)
 
+        # Done.
+        return self._dfData.copy()
+
+    @property
+    def columns(self):
+    
+        return self.dfData.columns
+        
     @dfData.setter
     def dfData(self, dfData):
         
@@ -561,18 +599,18 @@ class ResultsSet(object):
 
         # Make a copy of / extract selected columns of dfData.
         if subset is None:
-            dfSubData = self.dfData
+            dfSbData = self.dfData
         else:
             if isinstance(subset, list):
                 miSubset = pd.MultiIndex.from_tuples(subset)
             else: # pd.MultiIndex
                 miSubset = subset
-            dfSubData = self.dfData.reindex(columns=miSubset)
+            dfSbData = self.dfData.reindex(columns=miSubset)
         
         if copy:
-            dfSubData = dfSubData.copy()
+            dfSbData = dfSbData.copy()
             
-        return dfSubData
+        return dfSbData
 
     # Access a mono-indexed translated columns version of the data table
     def dfTransData(self, lang='en', subset=None):
@@ -604,7 +642,7 @@ class ResultsSet(object):
     # column names and list, which can well be ensured by using the same ctor params as used for saving !
     def fromExcel(self, fileName, sheetName=None):
         
-        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 'AllResults', 
+        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
                                     header=[0, 1, 2], skiprows=[3], index_col=0)
 
     # Load (overwrite) data from an Open Document worksheet (ODS format), assuming ctor params match
@@ -612,9 +650,141 @@ class ResultsSet(object):
     # Notes: Needs odfpy module and pandas.version >= 0.25.1
     def fromOpenDoc(self, fileName, sheetName=None):
         
-        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 'AllResults', 
+        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
                                     header=[0, 1, 2], skiprows=[3], index_col=0, engine='odf')
 
+    @staticmethod
+    def _closeness(sLeftRight):
+
+        """
+        Relative closeness of 2 numbers : -round(log10((actual - reference) / max(abs(actual), abs(reference))), 1)
+        = Compute the order of magnitude that separate the difference to the absolute max. of the two values.
+        
+        The greater it is, the lower the relative difference
+           Ex: 3 = 10**3 ratio between difference absolue max. of the two,
+               +inf = NO difference at all,
+               0 = bad, one of the two is 0, and the other not.
+               
+        See unitary test in unintests notebook.
+        """
+
+        x, y = sLeftRight.to_list()
+        
+        # Special cases with 1 NaN, or 1 or more inf => all different
+        if np.isnan(x):
+            if not np.isnan(y):
+                return 0 # All different
+        elif np.isnan(y):
+            return 0 # All different
+        
+        if np.isinf(x) or np.isinf(y):
+            return 0 # All different
+        
+        # Normal case
+        c = abs(x - y)
+        if not np.isnan(c) and c != 0:
+            c = c / max(abs(x), abs(y))
+        
+        return np.inf if c == 0 else round(-np.log10(c), 1)
+
+    # Make results cell values hashable (and especially analysis model params)
+    # * needed for use in indexes (hashability)
+    # * needed to cope with to_excel/read_excel unconsistent None management
+    @staticmethod
+    def _toHashable(value):
+    
+        if isinstance(value, list):
+            hValue = str([float(v) for v in value])
+        elif pd.isnull(value):
+            hValue = 'None'
+        elif isinstance(value, (int, float)):
+            hValue = value
+        elif isinstance(value, str):
+            if ',' in value: # Assumed already somewhat stringified list
+                hValue = str([float(v) for v in value.strip('[]').split(',')])
+            else:
+                hValue = str(value)
+        else:
+            hValue = str(value)
+        
+        return hValue
+    
+    def compare(self, rsOther, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
+    
+        """
+        Compare 2 results sets.
+        
+        Parameters:
+        :param list subsetCols: on a subset of columns,
+        :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
+        :param float dropCloser: with only rows with all cell closeness > dropCloser
+                                 (default: np.inf => all cols and rows kept).
+        :param bool dropNans: with only rows with all cell closeness > dropCloser or of NaN value ('cause NaN != Nan :-(.
+        :returns: a diagnostic DataFrame with same columns and merged index, with a "closeness" value
+                  for each cell (see _closeness method) ; rows with closeness > dropCloser are yet dropped.
+        """
+        
+        # Retrieve data to compare.
+        dfLeft = self.dfData
+        dfRight = rsOther.dfData
+        
+        # Check input columns
+        dColsSets = { 'Subset column': subsetCols, 'Index column': indexCols }
+        for colsSetName, colsSet in dColsSets.items():
+            for col in colsSet:
+                if col not in dfLeft.columns:
+                    raise KeyError('{} {} not in left result set'.format(colsSetName, col))
+                if col not in dfRight.columns:
+                    raise KeyError('{} {} not in right result set'.format(colsSetName, col))
+        
+        # Set specified cols as the index (after making them hashable) and sort it.
+        dfLeft[indexCols] = dfLeft[indexCols].applymap(self._toHashable)
+        dfLeft.set_index(indexCols, inplace=True)
+        dfLeft = dfLeft.sort_index() # Not inplace: don't modify a copy/slice
+
+        dfRight[indexCols] = dfRight[indexCols].applymap(self._toHashable)
+        dfRight.set_index(indexCols, inplace=True)
+        dfRight = dfRight.sort_index() # Idem
+
+        # Filter data to compare (subset of columns).
+        if subsetCols:
+            dfLeft = dfLeft[subsetCols]
+            dfRight = dfRight[subsetCols]
+
+        # Append mutually missing rows to the 2 tables => a complete and identical index.
+        anyCol = dfLeft.columns[0] # Need one, whichever.
+        dfLeft = dfLeft.join(dfRight[[anyCol]], rsuffix='_r', how='outer')
+        dfLeft.drop(columns=dfLeft.columns[-1], inplace=True)
+        dfRight = dfRight.join(dfLeft[[anyCol]], rsuffix='_l', how='outer')
+        dfRight.drop(columns=dfRight.columns[-1], inplace=True)
+
+        # Compare : Compute closeness 
+        nColLevels = dfLeft.columns.nlevels
+        KRightCol = 'tmp' if nColLevels == 1 else tuple('tmp{}'.format(i) for i in range(nColLevels))
+        dfRelDiff = dfLeft.copy()
+        exception = False
+        for leftCol in dfLeft.columns:
+            dfRelDiff[KRightCol] = dfRight[leftCol]
+            try:
+                dfRelDiff[leftCol] = dfRelDiff[[leftCol, KRightCol]].apply(self._closeness, axis='columns')
+            except TypeError as exc:
+                logger.error('Column {} : {}'.format(leftCol, exc))
+                exception = True
+            dfRelDiff.drop(columns=[KRightCol], inplace=True)
+            
+        if exception:
+            raise TypeError('Stopping: Some columns could not be compared')
+            
+        # Complete comparison : rows with index not in both frames forced to all-0 closeness
+        # (of course they should result so ... unless some NaNs here and there : fix this)
+        dfRelDiff.loc[dfLeft[~dfLeft.index.isin(dfRight.index)].index, :] = 0
+        dfRelDiff.loc[dfRight[~dfRight.index.isin(dfLeft.index)].index, :] = 0
+        
+        # Drop rows and columns with closeness over the threshold (or of NaN value if authorized)
+        sbRows2Drop = dfRelDiff.applymap(lambda v: v > dropCloser or (dropNans and pd.isnull(v))).all(axis='columns')
+        dfRelDiff.drop(dfRelDiff[sbRows2Drop].index, axis='index', inplace=True)
+        
+        return dfRelDiff
         
 # A specialized results set for MCDS analyses,
 # with extra. post-computed columns : Delta AIC, Chi2 P
@@ -641,7 +811,24 @@ class MCDSResultsSet(ResultsSet):
                                        sortCols=sortCols, sortAscend=sortAscend)
         
         self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
-        
+    
+    def copy(self, withData=True):
+    
+        """Clone function, with optional data copy"""
+    
+        # Create new instance with same ctor params.
+        clone = MCDSResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                               miSampleCols=self.miSampleCols,
+                               sortCols=self.sortCols, sortAscend=self.sortAscend)
+
+        # Copy data if needed.
+        if withData:
+            clone._dfData = self._dfData.copy()
+            clone.rightColOrder = self.rightColOrder
+            clone.postComputed = self.postComputed
+
+        return clone
+    
     # Get translate names of custom columns
     def transSampleColumns(self, lang):
         

@@ -304,6 +304,8 @@ class MCDSAnalyser(DSAnalyser):
 
             # Select data sample to process
             sds = self._ids.sampleDataSet(sAnSpec[sampleCols])
+            if not sds:
+                continue
 
             # Columns to prepend to analysis results at the end
             sResHead = sAnSpec[custCols].copy()
@@ -316,7 +318,7 @@ class MCDSAnalyser(DSAnalyser):
                              for parName, colNameOrVal in dAnlysParamsSpecs.items() }
 
             # Analysis object
-            anlys = MCDSAnalysis(engine=self._mcds, dataSet=sds, name=sAnSpec[self.abbrevCol],
+            anlys = MCDSAnalysis(engine=self._mcds, sampleDataSet=sds, name=sAnSpec[self.abbrevCol],
                                  customData=sResHead, logData=False, **dAnlysParams)
 
             # Start running pre-analysis in parallel, but don't wait for it's finished, go on
