@@ -24,7 +24,7 @@ import logging
 
 logger = logging.getLogger('autods')
 
-from autods.data import IndividualsDataSet, MCDSResultsSet
+from autods.data import MonoCategoryDataSet, MCDSResultsSet
 from autods.executor import Executor
 from autods.engine import MCDSEngine
 from autods.analysis import MCDSAnalysis
@@ -245,7 +245,7 @@ class MCDSAnalyser(DSAnalyser):
         self.workDir = workDir
 
         # Individualised data (all samples)
-        self._ids = IndividualsDataSet(dfIndivObs, dfTransects=dfTransects, effortConstVal=effortConstVal,
+        self._ids = MonoCategoryDataSet(dfIndivObs, dfTransects=dfTransects, effortConstVal=effortConstVal,
                                        dSurveyArea=dSurveyArea, transectPlaceCols=transectPlaceCols,
                                        passIdCol=passIdCol, effortCol=effortCol, sampleDecFields=sampleDecFields)
 

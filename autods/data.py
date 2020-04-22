@@ -99,13 +99,13 @@ class DataSet(object):
         return self._dfData
 
     @dfData.setter
-    def dfData(self, dfData):
+    def dfData(self, dfData_):
         
         raise NotImplementedError('No change allowed to data ; create a new dataset !')
 
 
-# A tabular data set for producing indivividuals data sets from "raw sightings data" aka "field data"
-# (with possibly multiple category counts on each row)
+# A tabular data set for producing mono-category or even indivividuals data sets
+# from "raw sightings data", aka "field data" (with possibly multiple category counts on each row)
 # * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
 #   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
 class FieldDataSet(DataSet):
@@ -115,7 +115,7 @@ class FieldDataSet(DataSet):
     # and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
     # * source: the input field data table
     # * countCols: the category columns (each of them holds counts of individuals for the category)
-    # * addMonoCatCols: name and method of computing for columns to add after separating multi-categorical counts
+    # * addMonoCatCols: name and method of computing for columns to add after separating multi-category counts
     #   (each column to add is computed through :
     #      dfMonoCatSights[colName] = dfMonoCatSights[].apply(computeCol, axis='columns')
     #      for colName, computeCol in addMonoCatCols.items()) 
@@ -127,19 +127,34 @@ class FieldDataSet(DataSet):
         self.dCompdMonoCatColSpecs = addMonoCatCols
         
         self.dfIndivSights = None # Not yet computed.
+        self.dfMonoCatSights = None # Idem.
         
         logger.info('Field data : {} sightings'.format(len(self)))
 
+    @property
+    def dfData(self):
+        
+        return self._dfData
+
+    @dfData.setter
+    def dfData(self, dfData_):
+        
+        assert sorted(self._dfData.columns) == sorted(dfData_.columns), 'Can\'t set data with diffent columns'
+        
+        self._dfData = dfData_
+        
+        self.dfIndivSights = None # Not yet computed.
+        self.dfMonoCatSights = None # Idem.
     
-    # Transform a multi-categorical sightings set into an equivalent mono-categorical sightings set,
+    # Transform a multi-category sightings set into an equivalent mono-category sightings set,
     # that is where no sightings has more that one category with positive count (keeping the same total counts).
     # Highly optimized version.
-    # Ex: A sightings set with 2 categorical count columns nMales and nFemales
+    # Ex: A sightings set with 2 category count columns nMales and nFemales
     #     * in the input set, you may have 1 sightings with nMales = 5 and nFemales = 2
     #     * in the output set, this sightings have been separated in 2 distinct ones (all other properties left untouched) :
     #       the 1st with nMales = 5 and nFemales = 0, the 2nd with nMales = 0 and nFemales = 2.
     @staticmethod
-    def _separateMultiCategoricalCounts(dfInSights, countColumns):
+    def _separateMultiCategoryCounts(dfInSights, countColumns):
         
         # For each count column
         ldfMonoCat = list()
@@ -166,17 +181,17 @@ class FieldDataSet(DataSet):
         # Done.
         return dfOutSights
 
-    # Transform a multi-individual mono-categorical sightings set into an equivalent mono-individual
-    # mono-categorical sightings set, that is where no sightings has more that one individual
+    # Transform a multi-individual mono-category sightings set into an equivalent mono-individual
+    # mono-category sightings set, that is where no sightings has more that one individual
     # per category (keeping the same total counts).
     # Highly optimized version.
-    # Ex: A sightings set with 2 mono-categorical count columns nMales and nFemales
+    # Ex: A sightings set with 2 mono-category count columns nMales and nFemales
     #     * in tyhe input set, you may have 1 sightings with nMales = 3 and nFemales = 0
     #       (but none with nMales and nFemales > 0)
     #     * in the output set, this sightings have been separated in 3 distinct ones
     #       (all other properties left untouched) : all with nMales = 1 and nFemales = 0.
     @staticmethod
-    def _individualiseMonoCategoricalCounts(dfInSights, countColumns):
+    def _individualiseMonoCategoryCounts(dfInSights, countColumns):
         
         # For each category column
         ldfIndiv = list()
@@ -204,29 +219,38 @@ class FieldDataSet(DataSet):
         # Done.
         return dfOutSights
         
-    # Access to the resulting individuals data set
-    def individualiseDataSet(self):
+    # Access to the resulting mono-category data set
+    def monoCategorise(self):
+    
+        # Compute only if not already done.
+        if self.dfMonoCatSights is None:
+        
+            # Separate multi-category counts
+            self.dfMonoCatSights = self._separateMultiCategoryCounts(self._dfData, self.countCols)
+            
+            # Compute and add supplementary mono-category columns
+            for colName, computeCol in self.dCompdMonoCatColSpecs.items():
+                self.dfMonoCatSights[colName] = self.dfMonoCatSights[self.countCols].apply(computeCol, axis='columns')
+        
+        return self.dfMonoCatSights
+    
+    # Access to the resulting individuals data set 
+    # = a mono-category data set with individualised data : 1 individuals per row
+    def individualise(self):
     
         # Compute only if not already done.
         if self.dfIndivSights is None:
         
-            # Separate multi-categorical counts
-            dfMonoCatSights = self._separateMultiCategoricalCounts(self._dfData, self.countCols)
-            
-            # Compute and add supplementary mono-categorical columns
-            for colName, computeCol in self.dCompdMonoCatColSpecs.items():
-                dfMonoCatSights[colName] = dfMonoCatSights[self.countCols].apply(computeCol, axis='columns')
-            
-            # Individualise mono-categorical counts
-            self.dfIndivSights = self._individualiseMonoCategoricalCounts(dfMonoCatSights, self.countCols)
+            # Individualise mono-category counts
+            self.dfIndivSights = self._individualiseMonoCategoryCounts(self.monoCategorise(), self.countCols)
 
         return self.dfIndivSights
         
 
-# A tabular data set for producing on-demand sample data sets from "individuals sightings data"
-# * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
-#   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
-class IndividualsDataSet(DataSet):
+# A tabular data set for producing on-demand sample data sets from "mono-category sightings data"
+# * Input support provided for pandas.DataFrame (from FirldDataSet.indivulaise/monoCategorise),
+#   Excel .xlsx file, tab-separated .csv/.txt files, and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+class MonoCategoryDataSet(DataSet):
 
     # Ctor
     # * dfTransects: Transects infos with columns : transectPlaceCols (n), passIdCol (1), effortCol (1)
@@ -258,6 +282,18 @@ class IndividualsDataSet(DataSet):
         
         logger.info('Individuals data : {} sightings, {} transects'.format(len(self), len(self.dfTransects)))
 
+    @property
+    def dfData(self):
+        
+        return self._dfData
+
+    @dfData.setter
+    def dfData(self, dfData_):
+        
+        assert sorted(self._dfData.columns) == sorted(dfData_.columns), 'Can\'t set data with diffent columns'
+        
+        self._dfData = dfData_
+    
     # Extract transect infos from individuals sightings
     # * effortConstVal: if effortCol not in dfIndivSightings, create one with this constant value
     @staticmethod

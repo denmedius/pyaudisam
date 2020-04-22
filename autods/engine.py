@@ -92,7 +92,7 @@ class DSEngine(object):
         assert areaUnit in self.AreaUnits, \
                'Invalid area unit {}: should be in {}'.format(areaUnit, self.AreaUnits)
         
-        # Save specific options (as a named tuple for easier use).
+        # Save specific options (as a named tuple for easier use through dot operator).
         options = copy.deepcopy(options)
         options.update(distanceUnit=distanceUnit, areaUnit=areaUnit)
         self.OptionsClass = ntuple('Options', options.keys())
@@ -109,18 +109,20 @@ class DSEngine(object):
         self.workDir.mkdir(exist_ok=True)
         logger.info('DSEngine work folder: {}'.format(self.workDir.absolute()))
     
-    # Possible regexps for auto-detection of columns to import from data sets / exports
+    # Possible regexps for auto-detection of columns to import (into Distance / MCDS) from data sets / exports
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK).
     ImportFieldAliasREs = \
         odict([('STR_LABEL', ['region', 'zone', 'secteur', 'strate', 'stratum']),
                ('STR_AREA', ['surface', 'area', 'ha', 'km2']),
                ('SMP_LABEL', ['point', 'lieu', 'location', 'transect']),
                ('SMP_EFFORT', ['effort', 'passes', 'surveys', 'samplings', 'longueur', 'length']),
-               ('DISTANCE', ['dist'])])
+               ('DISTANCE', ['dist']),
+               ('ANGLE', ['angl', 'azim', 'direct']),
+               ('SIZE', ['nombre', 'nb', 'indiv', 'obj', 'tail', 'num', 'siz'])]) # Cluster size
     
     # Data fields of decimal type.
     # TODO: Complete for non 'Point transect' modes
-    DecimalFields = ['SMP_EFFORT', 'DISTANCE']
+    DecimalFields = ['SMP_EFFORT', 'DISTANCE', 'ANGLE']
     
     # Match srcFields with tgtAliasREs ones ; keep remaining ones ; sort decimal fields.
     @classmethod
@@ -146,8 +148,8 @@ class DSEngine(object):
                 if foundTgtField:
                     break
             if not foundTgtField:
-                raise Exception('Error: Failed to find a match for expected {} in sample data set columns {}' \
-                                .format(tgtField, srcFields))
+                raise KeyError('Could not find a match for expected field {} in sample data set columns [{}]' \
+                                .format(tgtField, ', '.join(srcFields)))
         
         # Extra fields.
         extFields = [field for field in srcFields if field not in matFields]
@@ -194,12 +196,14 @@ class DSEngine(object):
 # MCDS engine (Conventional Distance Sampling)
 class MCDSEngine(DSEngine):
     
-    DistUnits = ['Meter']
-    AreaUnit = ['Hectare']
+    # Possible suervy types and distance types.
     SurveyTypes = ['Point', 'Line']
-    DistTypes = ['Radial', 'Perpendicular'] #, 'Radial & Angle']
-    FirstDataFields = { 'Point' : ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE'],
-                        'Line' : ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE'] }
+    DistTypes = ['Radial', 'Perpendicular', 'Radial & Angle']
+    
+    # First data fields in exports for distance / MCDS importing
+    # (N/A ones may get removed before use, according to distance type and clustering options).
+    FirstDataFields = { 'Point' : ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE', 'SIZE'],
+                        'Line' : ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE', 'ANGLE', 'SIZE'] }
 
     # Estimator key functions (Order: Distance .chm doc, "MCDS Engine Stats File", note 2 below second table).
     EstKeyFns = ['UNIFORM', 'HNORMAL', 'NEXPON', 'HAZARD']
@@ -360,7 +364,7 @@ class MCDSEngine(DSEngine):
     # :param: executor: Executor object to use (None => a sequential one will be auto-generated)
     def __init__(self, workDir='.', executor=None,
                  distanceUnit='Meter', areaUnit='Hectare',
-                 surveyType='Point', distanceType='Radial'):
+                 surveyType='Point', distanceType='Radial', clustering=False):
         
         # Initialize dynamic class variables.
         MCDSEngine.loadStatSpecs()    
@@ -369,14 +373,23 @@ class MCDSEngine(DSEngine):
         assert surveyType in self.SurveyTypes, \
                'Invalid survey type {} : should be in {}'.format(surveyType, self.SurveyTypes)
         assert distanceType in self.DistTypes, \
-               'Invalid area unit{} : should be in {}'.format(distanceType, self.DistTypes)
+               'Invalid distance type {} : should be in {}'.format(distanceType, self.DistTypes)
         
+        # Specialise class level regexps for matching import fields,
+        #according to distance type and clustering options
+        self.importFieldAliasREs = self.ImportFieldAliasREs.copy()
+        if not clustering:
+            del self.importFieldAliasREs['SIZE']
+        if distanceType != 'Radial & Angle':
+            del self.importFieldAliasREs['ANGLE']            
+    
         # Initialise base.
+        firstDataFields = [fld for fld in self.FirstDataFields[surveyType] if fld in self.importFieldAliasREs]
         super().__init__(workDir=workDir, executor=executor,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
-                         surveyType=surveyType, distanceType=distanceType,
-                         firstDataFields=self.FirstDataFields[surveyType])        
-    
+                         surveyType=surveyType, distanceType=distanceType, clustering=clustering,
+                         firstDataFields=firstDataFields)
+                         
     # Command file template (for str.format()ing).
     CmdTxt = \
         '\n'.join(map(str.strip,
@@ -509,12 +522,11 @@ class MCDSEngine(DSEngine):
 
     # Build input data table from a sample data set (check and match mandatory columns, enforce order).
     # TODO: Add support for covariate columns (through extraFields)
-    @classmethod
-    def buildExportTable(cls, sampleDataSet, withExtraFields=True, decPoint='.'):
+    def buildExportTable(self, sampleDataSet, withExtraFields=True, decPoint='.'):
         
         # Match sampleDataSet table columns to MCDS expected fields from possible aliases
         matchFields, matchDecFields, extraFields = \
-            cls.matchDataFields(sampleDataSet.dfData.columns, cls.ImportFieldAliasREs)
+            self.matchDataFields(sampleDataSet.dfData.columns, self.importFieldAliasREs)
         exportFields = matchFields
         if withExtraFields:
             exportFields += extraFields
@@ -530,7 +542,7 @@ class MCDSEngine(DSEngine):
         allDecFields = set(matchDecFields + sampleDataSet.decimalFields).intersection(exportFields)
         logger.debug('Decimal columns: ' + str(allDecFields))
         for field in allDecFields:
-            dfExport[field] = dfExport[field].apply(cls.safeFloat2Str, decPt=decPoint)
+            dfExport[field] = dfExport[field].apply(self.safeFloat2Str, decPt=decPoint)
                 
         return dfExport, extraFields
 
@@ -538,15 +550,14 @@ class MCDSEngine(DSEngine):
     # Note: Data order not changed, same as in input sampleDataSet !
     # * runDir : pl.Path where to create data file.
     # TODO: Add support for covariate columns (through extraFields)
-    @classmethod
-    def buildDataFile(cls, runDir, sampleDataSet):
+    def buildDataFile(self, runDir, sampleDataSet):
         
         # Build data to export (check and match mandatory columns, enforce order, ignore extra cols).
         dfExport, extraFields = \
-            cls.buildExportTable(sampleDataSet, withExtraFields=False, decPoint='.')
+            self.buildExportTable(sampleDataSet, withExtraFields=False, decPoint='.')
         
         # Export.
-        dataFileName = runDir / cls.DataFileName
+        dataFileName = runDir / self.DataFileName
         dfExport.to_csv(dataFileName, index=False, sep='\t', encoding='utf-8', header=None)
         
         logger.debug('Data MCDS-exported to {}'.format(dataFileName))
@@ -614,6 +625,13 @@ class MCDSEngine(DSEngine):
    # Start running an MCDS analysis
     def run(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
+        # Check really options
+        assert self.options.surveyType == 'Point', \
+               'Not yet implemented survey type {}'.format(self.options.surveyType)
+        assert self.options.distanceType == 'Radial', \
+               'Not yet implemented distance type {}'.format(self.options.distanceType)
+        
+        # Check implememented options.
         # Submit analysis work and return a Future object to ask from and wait for its results.
         return self.executor.submit(self._runAnalysis, sampleDataSet, runPrefix, realRun, **analysisParms)
     
@@ -729,10 +747,12 @@ class MCDSEngine(DSEngine):
     FirstDistanceExportFields = \
     { 'Point': dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
                     SMP_LABEL='Point transect*Label', SMP_EFFORT='Point transect*Survey effort',
-                    DISTANCE='Observation*Radial distance'),
+                    DISTANCE='Observation*Radial distance',
+                    SIZE='Observation*Cluster size'),
       'Line':  dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
                     SMP_LABEL='Line transect*Label', SMP_EFFORT='Line transect*Line length',
-                    DISTANCE='Observation*Perp distance') }
+                    DISTANCE='Observation*Perp distance', ANGLE='Observation*Angle',
+                    SIZE='Observation*Cluster size') }
  
     def distanceFields(self, dsFields):
         return [self.FirstDistanceExportFields[self.options.surveyType][name] for name in dsFields]
@@ -743,7 +763,7 @@ class MCDSEngine(DSEngine):
         # Build data to export (check and match mandatory columns, enforce order, keep other cols).
         dfExport, extraFields = \
             self.buildExportTable(sampleDataSet, withExtraFields=withExtraFields, decPoint=decimalPoint)
-        
+                
         # Export.
         dfExport.to_csv(tgtFilePathName, index=False, sep='\t', encoding='utf-8',
                         header=self.distanceFields(self.options.firstDataFields) + extraFields)

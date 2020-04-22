@@ -24,5 +24,5 @@ from .engine import DSEngine, MCDSEngine
 from .executor import Executor
 from .analysis import MCDSAnalysis, MCDSPreAnalysis
 from .analyser import DSAnalyser, MCDSAnalyser #, MCDSPreAnalyser, MCDSParamsOptimiser
-from .data import DataSet, FieldDataSet, IndividualsDataSet, SampleDataSet, ResultsSet, MCDSResultsSet
+from .data import DataSet, FieldDataSet, MonoCategoryDataSet, SampleDataSet, ResultsSet, MCDSResultsSet
 from .report import MCDSResultsPreReport, MCDSResultsFullReport
