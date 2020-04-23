@@ -53,8 +53,8 @@ Et sur l'ordre des données = tri par point ...
 
 ----- Mail original -----
 > De: jpmeuret@free.fr
-> À: "francois guelin" <francois.guelin@orange.fr>
-> Cc: "gilles saulas" <gilles.saulas@orange.fr>, "Hugo Samain" <hugo.samain@gmail.com>
+> À: "francois guelin"
+> Cc: "gilles saulas", "Hugo Samain" 
 > Envoyé: Samedi 3 Août 2019 17:03:16
 > Objet: Re: Distance : Sensibilité des résultats à l'ordre des données d'entrée
 > 
