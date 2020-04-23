@@ -23,6 +23,6 @@ __version__ = 0.9
 from .engine import DSEngine, MCDSEngine
 from .executor import Executor
 from .analysis import MCDSAnalysis, MCDSPreAnalysis
-from .analyser import DSAnalyser, MCDSAnalyser #, MCDSPreAnalyser, MCDSParamsOptimiser
+from .analyser import DSAnalyser, MCDSAnalyser, MCDSPreAnalyser #, MCDSParamsOptimiser
 from .data import DataSet, FieldDataSet, MonoCategoryDataSet, SampleDataSet, ResultsSet, MCDSResultsSet
 from .report import MCDSResultsPreReport, MCDSResultsFullReport

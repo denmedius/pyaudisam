@@ -13,10 +13,12 @@
 
 import sys
 
-from collections import OrderedDict as odict
 import pathlib as pl
 from packaging import version
 
+import copy
+
+from collections import OrderedDict as odict, namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
@@ -27,13 +29,15 @@ logger = logging.getLogger('autods')
 from autods.data import MonoCategoryDataSet, MCDSResultsSet
 from autods.executor import Executor
 from autods.engine import MCDSEngine
-from autods.analysis import MCDSAnalysis
+from autods.analysis import MCDSAnalysis, MCDSPreAnalysis
 
 
-# Analyser: Run a bunch of DS analyses on samples extracted from an individualised sightings data set,
-#           according to a user-friendly set of analysis specs
-# Abstract class.
 class DSAnalyser(object):
+
+    """Run a bunch of DS analyses on samples extracted from an individualised sightings data set,
+       according to a user-friendly set of analysis specs
+       Abstract class.
+    """
 
     # Generation of a table of implicit "partial variant" specification,
     # from a list of possible data selection criteria for each variable.
@@ -229,25 +233,133 @@ class DSAnalyser(object):
         return dfExplSpecs
 
 
-# MCDSAnalyser: Run a bunch of MCDS analyses
-class MCDSAnalyser(DSAnalyser):
-
-    def __init__(self, dfIndivObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       resultsHeadCols=dict(before=[], sample=[], after=[]), abbrevCol='AnlysAbbrev',
+    def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
+                       resultsHeadCols=dict(before=['AnlysNum', 'Sample'], after=['AnlysAbbrev'], 
+                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
+                       abbrevCol='AnlysAbbrev',
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleDecFields=['Effort', 'Distance'], workDir='.'):
+                       sampleDecFields=['Effort', 'Distance'],
+                       distanceUnit='Meter', areaUnit='Hectare',
+                       workDir='.', **options):
+                       
+        """Ctor
+            :param pd.DataFrame dfMonoCatObs: mono-category data from FieldDataSet.monoCategorise() or individualise()
+            :param pd.DataFrame dfTransects: Transects infos with columns : transectPlaceCols (n), passIdCol (1),
+                effortCol (1) ; if None, auto generated from input sightings
+            :param effortConstVal: if dfTransects is None and effortCol not in source table, use this constant value
+            :param resultsHeadCols: dict of list of column names (from dfMonoCatObs) to use in order
+                to build results (right) header columns ; 'sample' columns are sample selection columns.
+            :param options: See DSEngine
+        """
 
-        self.dfIndivObs = dfIndivObs
+        self.dfMonoCatObs = dfMonoCatObs
 
         self.resultsHeadCols = resultsHeadCols
         self.abbrevCol = abbrevCol
             
         self.workDir = workDir
 
+        # Save specific options (as a named tuple for easier use through dot operator).
+        options = copy.deepcopy(options)
+        options.update(distanceUnit=distanceUnit, areaUnit=areaUnit)
+        self.OptionsClass = ntuple('Options', options.keys())
+        self.options = self.OptionsClass(**options) 
+        
         # Individualised data (all samples)
-        self._ids = MonoCategoryDataSet(dfIndivObs, dfTransects=dfTransects, effortConstVal=effortConstVal,
-                                       dSurveyArea=dSurveyArea, transectPlaceCols=transectPlaceCols,
-                                       passIdCol=passIdCol, effortCol=effortCol, sampleDecFields=sampleDecFields)
+        self._mcDataSet = \
+            MonoCategoryDataSet(dfMonoCatObs, dfTransects=dfTransects, effortConstVal=effortConstVal,
+                                dSurveyArea=dSurveyArea, transectPlaceCols=transectPlaceCols,
+                                passIdCol=passIdCol, effortCol=effortCol, sampleDecFields=sampleDecFields)
+                                
+        # Analysis engine and executor.
+        self._executor = None
+        self._engine = None
+
+
+# MCDSAnalyser: Run a bunch of MCDS analyses
+class MCDSAnalyser(DSAnalyser):
+
+    def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
+                       resultsHeadCols=dict(before=['AnlysNum', 'Sample'], after=['AnlysAbbrev'], 
+                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
+                       abbrevCol='AnlysAbbrev',
+                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                       sampleDecFields=['Effort', 'Distance'],
+                       distanceUnit='Meter', areaUnit='Hectare',
+                       surveyType='Point', distanceType='Radial', clustering=False,
+                       workDir='.'):
+
+        super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
+                         effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
+                         resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol,
+                         transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
+                         sampleDecFields=sampleDecFields,
+                         distanceUnit=distanceUnit, areaUnit=areaUnit,
+                         surveyType=surveyType, distanceType=distanceType, clustering=clustering,
+                         workDir=workDir)
+                         
+    def setupResults(self):
+    
+        """Build an empty results objects.
+        """
+    
+        # Results object construction
+        # a. Sample multi-index columns
+        sampleSelCols = self.resultsHeadCols['sample']
+        sampMCols = [('header (sample)', col, 'Value') for col in sampleSelCols]
+        miSampCols = pd.MultiIndex.from_tuples(sampMCols)
+
+        # b. Full custom multi-index columns to prepend to raw analysis results
+        beforeCols = self.resultsHeadCols['before']
+        custMCols = [('header (head)', col, 'Value') for col in beforeCols]
+        custMCols += sampMCols
+        
+        afterCols = self.resultsHeadCols['after']
+        custMCols += [('header (tail)', col, 'Value') for col in afterCols]
+
+        customCols = beforeCols + sampleSelCols + afterCols
+        miCustCols = pd.MultiIndex.from_tuples(custMCols)
+
+        # c. Translation for it (well, only one language forced for all ...)
+        dfCustColTrans = pd.DataFrame(index=miCustCols, data={ lang: customCols for lang in ['fr', 'en'] })
+
+        # d. And finally, the result object
+        results = MCDSResultsSet(miCustomCols=miCustCols, 
+                                 dfCustomColTrans=dfCustColTrans, miSampleCols=miSampCols)
+
+        return results
+    
+    def _getResults(self, dAnlyses):
+    
+        """Wait for and gather dAnalyses (MCDSAnalysis futures) results into a MCDSResultsSet 
+        """
+    
+        # Results object construction
+        results = self.setupResults()
+
+        # For each analysis as it gets completed (first completed => first yielded)
+        for anlysFut in self._executor.asCompleted(dAnlyses):
+            
+            # Retrieve analysis object from its associated future object
+            anlys = dAnlyses[anlysFut]
+            
+            # Get analysis results
+            sResult = anlys.getResults()
+
+            # Get custom header values, and set target index (= columns) for results
+            sCustomHead = anlys.customData
+            sCustomHead.index = results.miCustomCols
+
+            # Save results
+            results.append(sResult, sCustomHead=sCustomHead)
+
+        # Terminate analysis executor
+        self._executor.shutdown()
+
+        # Terminate analysis engine
+        self._engine.shutdown()
+
+        return results
 
     def run(self, dfAnlysExplSpecs, dAnlysParamsSpecs=dict(), threads=1, processes=0):
     
@@ -259,38 +371,19 @@ class MCDSAnalyser(DSAnalyser):
            :param:threads, :param:processes Number of parallel threads / processes to use (default: no parallelism)
         """
     
-        # Results object construction
-        # a. Sample multi-index columns (for deltaAIC computation)
-        sampleCols = self.resultsHeadCols['sample']
-        sampMCols = [('sample', col, 'Value') for col in sampleCols]
-        miSampCols = pd.MultiIndex.from_tuples(sampMCols)
-
-        # b. Full custom multi-index columns to prepend to raw analysis results
-        beforeCols = self.resultsHeadCols['before']
-        custMCols = [('sample', col, 'Value') for col in beforeCols]
-        custMCols += sampMCols
-        
-        afterCols = self.resultsHeadCols['after']
-        custMCols += [('more', col, 'Value') for col in afterCols]
-
-        custCols = beforeCols + sampleCols + afterCols
-        miCustCols = pd.MultiIndex.from_tuples(custMCols)
-
-        # c. Translation for it
-        dfCustColTrans = pd.DataFrame(index=miCustCols, data={ lang: custCols for lang in ['fr', 'en'] })
-
-        # d. And finally, the result object
-        results = MCDSResultsSet(miCustomCols=miCustCols, 
-                                 dfCustomColTrans=dfCustColTrans, miSampleCols=miSampCols)
-
         # Executor (parallel or séquential).
         self._executor = Executor(parallel=threads > 1 or processes > 1, threads=threads, processes=processes)
 
         # MCDS analysis engine
-        self._mcds = MCDSEngine(workDir=self.workDir, executor=self._executor, 
-                                distanceUnit='Meter', areaUnit='Hectare',
-                                surveyType='Point', distanceType='Radial')
+        self._engine = MCDSEngine(workDir=self.workDir, executor=self._executor, 
+                                  distanceUnit=self.options.distanceUnit, areaUnit=self.options.areaUnit,
+                                  surveyType=self.options.surveyType, distanceType=self.options.distanceType,
+                                  clustering=self.options.clustering)
 
+        # Custom columns for results.
+        customCols = \
+            self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
+        
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 and processes <= 1 \
                  else '{} parallel {}'.format(threads if threads > 1 \
@@ -299,17 +392,12 @@ class MCDSAnalyser(DSAnalyser):
         dAnlyses = dict()
         for anInd, sAnSpec in dfAnlysExplSpecs.iterrows():
             
-            # Sample abbreviation
-            logger.info('#{} : {}'.format(anInd+1, sAnSpec[self.abbrevCol]))
+            logger.info('#{}/{} : {}'.format(anInd+1, len(dfAnlysExplSpecs), sAnSpec[self.abbrevCol]))
 
             # Select data sample to process
-            sds = self._ids.sampleDataSet(sAnSpec[sampleCols])
+            sds = self._mcDataSet.sampleDataSet(sAnSpec[self.resultsHeadCols['sample']])
             if not sds:
                 continue
-
-            # Columns to prepend to analysis results at the end
-            sResHead = sAnSpec[custCols].copy()
-            sResHead.index = miCustCols
 
             # Analysis parameters
             dAnlysParams = { parName: sAnSpec[colNameOrVal] \
@@ -318,8 +406,8 @@ class MCDSAnalyser(DSAnalyser):
                              for parName, colNameOrVal in dAnlysParamsSpecs.items() }
 
             # Analysis object
-            anlys = MCDSAnalysis(engine=self._mcds, sampleDataSet=sds, name=sAnSpec[self.abbrevCol],
-                                 customData=sResHead, logData=False, **dAnlysParams)
+            anlys = MCDSAnalysis(engine=self._engine, sampleDataSet=sds, name=sAnSpec[self.abbrevCol],
+                                 customData=sAnSpec[customCols].copy(), logData=False, **dAnlysParams)
 
             # Start running pre-analysis in parallel, but don't wait for it's finished, go on
             anlysFut = anlys.run()
@@ -331,24 +419,9 @@ class MCDSAnalyser(DSAnalyser):
 
         logger.info('All analyses started ; now waiting for their end, and results ...')
 
-        # For each analysis as it gets completed (first completed => first yielded)
-        for anlysFut in self._executor.asCompleted(dAnlyses):
-            
-            # Retrieve analysis object from its associated future object
-            anlys = dAnlyses[anlysFut]
-            
-            # Get analysis results
-            sResult = anlys.getResults()
-
-            # Save results with header
-            results.append(sResult, sCustomHead=anlys.customData)
-
-        # Terminate analysis executor
-        self._executor.shutdown()
-
-        # Terminate analysis engine
-        self._mcds.shutdown()
-
+        # Wait for and gaher results of all analyses.
+        results = self._getResults(dAnlyses)
+        
         # Done.
         logger.info('Analyses completed.')
 
@@ -357,13 +430,101 @@ class MCDSAnalyser(DSAnalyser):
     def shutdown(self):
     
         # Final clean-up in case not already done (some exception in run ?)
-        self._mcds.shutdown()
+        self._engine.shutdown()
         self._executor.shutdown()
         
     def __del__(self):
     
         self.shutdown()
 
+# Default strategy for model choice sequence (if one fails, take next in order, and so on)
+ModelEstimCritDef = 'AIC'
+ModelCVIntervalDef = 95
+ModelStrategyDef = [dict(keyFn=kf, adjSr='COSINE', estCrit=ModelEstimCritDef, cvInt=ModelCVIntervalDef) \
+                     for kf in['HNORMAL', 'HAZARD', 'UNIFORM', 'NEXPON']]
+
+# MCDSPreAnalyser: Run a bunch of MCDS pre-analyses
+class MCDSPreAnalyser(MCDSAnalyser):
+
+
+    def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
+                       resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
+                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
+                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort', abbrevCol='SampAbbrev',
+                       sampleDecFields=['Effort', 'Distance'],
+                       distanceUnit='Meter', areaUnit='Hectare',
+                       surveyType='Point', distanceType='Radial', clustering=False,
+                       workDir='.'):
+
+        super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
+                         effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
+                         resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol,
+                         transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
+                         sampleDecFields=sampleDecFields,
+                         distanceUnit=distanceUnit, areaUnit=areaUnit,
+                         surveyType=surveyType, distanceType=distanceType, clustering=clustering,
+                         workDir=workDir)
+
+    def run(self, dfSamplesExplSpecs, dModelStrategy=ModelStrategyDef, threads=1, processes=0):
+    
+        """Run specified analysis
+           :param threads:, :param processes: Number of parallel threads / processes to use (default: no parallelism)
+        """
+    
+        # Executor (parallel or séquential).
+        self._executor = Executor(parallel=threads > 1 or processes > 1, threads=threads, processes=processes)
+
+        # MCDS analysis engine (a sequential one: 'cause MCDSPreAnalysis does the parallel stuff itself).
+        self._engine = MCDSEngine(workDir=self.workDir,
+                                  distanceUnit=self.options.distanceUnit, areaUnit=self.options.areaUnit,
+                                  surveyType=self.options.surveyType, distanceType=self.options.distanceType,
+                                  clustering=self.options.clustering)
+
+        # Custom columns for results.
+        customCols = \
+            self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
+        
+        # For each sample to analyse :
+        runHow = 'in sequence' if threads <= 1 and processes <= 1 \
+                 else '{} parallel {}'.format(threads if threads > 1 \
+                                              else processes, 'threads' if threads > 1 else 'processes')
+        logger.info('Running {} MCDS pre-analyses ({}) ...'.format(len(dfSamplesExplSpecs), runHow))
+        
+        dAnlyses = dict()
+        for anInd, sAnSpec in dfSamplesExplSpecs.iterrows():
+            
+            logger.info('#{}/{} : {}'.format(anInd+1, len(dfSamplesExplSpecs), sAnSpec[self.abbrevCol]))
+
+            # Select data sample to process
+            sds = self._mcDataSet.sampleDataSet(sAnSpec[self.resultsHeadCols['sample']])
+            if not sds:
+                continue # No data => no analysis.
+
+            # Pre-analysis object
+            anlys = MCDSPreAnalysis(engine=self._engine, executor=self._executor,
+                                    sampleDataSet=sds, name=sAnSpec[self.abbrevCol],
+                                    customData=sAnSpec[customCols].copy(),
+                                    logData=False, modelStrategy=dModelStrategy)
+
+            # Start running pre-analysis in parallel, but don't wait for it's finished, go on
+            anlysFut = anlys.run()
+            
+            # Store pre-analysis object and associated "future" for later use (should be running soon or later).
+            dAnlyses[anlysFut] = anlys
+            
+            # Next analysis (loop).
+
+        logger.info('All analyses started ; now waiting for their end, and results ...')
+
+        # Wait for and gaher results of all analyses.
+        results = self._getResults(dAnlyses)
+        
+        # Done.
+        logger.info('Analyses completed.')
+
+        return results
+        
+        
 if __name__ == '__main__':
 
     sys.exit(0)

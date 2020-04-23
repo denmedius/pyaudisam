@@ -2,8 +2,8 @@
 *.out
 *.csv
 *.txt
-*.xlsx
 *.xls
+*.xlsx
 *.xml
 *.kml
 *.html
@@ -35,6 +35,9 @@ __pycache__
 
 tmp
 ACDC
+SHOC
+STOC
+EPOC
 PlateauFromages
 odp2reveal
 dr05-*
