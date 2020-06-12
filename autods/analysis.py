@@ -83,16 +83,28 @@ class MCDSAnalysis(DSAnalysis):
                  minDist=EngineClass.DistMinDef, maxDist=EngineClass.DistMaxDef, 
                  fitDistCuts=EngineClass.DistFitCutsDef, discrDistCuts=EngineClass.DistDiscrCutsDef):
         
-        """
-            :param logData: if True, print input data in output log
-            :param minDist: None or NaN or >=0 
-            :param maxDist: None or NaN or > :param minDist:
-            :param fitDistCuts: None or NaN or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
-                                or list of distance values inside [:param minDist:, :param maxDist:]
-                                ... for _model_fitting_
-            :param discrDistCuts: None or NaN or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
-                                or list of distance values inside [:param minDist:, :param maxDist:]
-                                ... for _distance_values_discretisation_
+        """Ctor
+        
+        Parameters:
+        :param engine: DS engine to use
+        :param sampleDataSet: SampleDataSet instance to use
+        :param name: used for prefixing run folders (sure to be automatically unique anyway),
+            analysis names, and so on, only for user-friendliness and deasier debugging ;
+            default: None => auto-generated from optimisation parameters
+        :param customData: custom data for the run to ship through
+        :param estimKeyFn: fitting estimator key function (see Distance documentation)
+        :param estimAdjustFn: fitting estimator adjustment series
+        :param estimCriterion: criterion for judging goodness of fit
+        :param cvInterval:  confidence value interval (%)
+        :param logData: if True, print input data in output log
+        :param minDist: left truncation distance ; None or NaN or >=0 
+        :param maxDist: right truncation distance ; None or NaN or > :param minDist:
+        :param fitDistCuts: number of distance intervals for _model_fitting_
+            None or NaN or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
+            or list of distance values inside [:param minDist:, :param maxDist:]
+        :param discrDistCuts: number of distance intervals for _distance_values_discretisation_
+            None or NaN or int = number of equal sub-intervals of [:param minDist:, :param maxDist:] 
+            or list of distance values inside [:param minDist:, :param maxDist:]
         """
         
         # Check engine
@@ -170,16 +182,16 @@ class MCDSAnalysis(DSAnalysis):
     
      # Start running the analysis, and return immediately (the associated cofu.Future object) :
     # this begins an async. run ; you'll need to call getResults to wait for the real end of execution.
-    def run(self, realRun=True, postCleanup=False):
+    def submit(self, realRun=True):
         
         # Ask the engine to start running the analysis
         self.future = \
-            self.engine.run(sampleDataSet=self.sampleDataSet, runPrefix=self.name,
-                            realRun=realRun, logData=self.logData,
-                            estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
-                            estimCriterion=self.estimCriterion, cvInterval=self.cvInterval,
-                            minDist=self.minDist, maxDist=self.maxDist,
-                            fitDistCuts=self.fitDistCuts, discrDistCuts=self.discrDistCuts)
+            self.engine.submitAnalysis(sampleDataSet=self.sampleDataSet, runPrefix=self.name,
+                                       realRun=realRun, logData=self.logData,
+                                       estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
+                                       estimCriterion=self.estimCriterion, cvInterval=self.cvInterval,
+                                       minDist=self.minDist, maxDist=self.maxDist,
+                                       fitDistCuts=self.fitDistCuts, discrDistCuts=self.discrDistCuts)
         
         return self.future
         
@@ -287,7 +299,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
                                  name=self.name + '-' + modAbbrev, logData=False,
                                  estimKeyFn=model['keyFn'], estimAdjustFn=model['adjSr'],
                                  estimCriterion=model['estCrit'], cvInterval=model['cvInt'])
-            anlys.run()
+            anlys.submit()
 
             # Stop here if run was OK, and save successful analysis.
             if anlys.success(): # Note that this call is blocking ... waiting for anlys end.
@@ -316,7 +328,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
             
         return anlys # Return best analysis.
     
-    def run(self):
+    def submit(self):
 
         # Submit analysis work and return a Future object to ask from and wait for its results.
         self.future = self.executor.submit(self._run)
@@ -346,7 +358,7 @@ if __name__ == '__main__':
     argser = argparse.ArgumentParser(description='Run a distance sampling analysis using a DS engine from Distance software')
 
     argser.add_argument('-g', '--debug', dest='debug', action='store_true', default=False, 
-                        help='Folder where to store DS analyses subfolders and output files')
+                        help='Generate input data files, but don\'t run analysis')
     argser.add_argument('-w', '--workdir', type=str, dest='workDir', default='.',
                         help='Folder where to store DS analyses subfolders and output files')
     argser.add_argument('-e', '--engine', type=str, dest='engineType', default='MCDS', choices=['MCDS'],
@@ -378,7 +390,7 @@ if __name__ == '__main__':
                             estimKeyFn=args.keyFn, estimAdjustFn=args.adjustFn,
                             estimCriterion=args.criterion, cvInterval=args.cvInterval)
 
-    dResults = analysis.run(realRun=not args.debug)
+    dResults = analysis.submit(realRun=not args.debug)
     
     # Print results
     logger.debug('Results:')
