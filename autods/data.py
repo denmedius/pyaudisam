@@ -27,15 +27,20 @@ logger = logging.getLogger('autods')
 from autods.analysis import DSAnalysis, MCDSAnalysis
 
 
-# An tabular data set built from various input sources (only 1 table supported).
-# * source : input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
-#    and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
-# * decimalFields: for smart ./, decimal character management in CSV sources (pandas is not smart on this)
-# * separator: columns separator for CSV sources
-# * sheetName: name of the sheet to read from, for multi-sheet data files (like Excel or Open Doc. workbooks)
 class DataSet(object):
+
+    """"A tabular data set built from various input sources (only 1 table supported)"""
     
     def __init__(self, source, importDecFields=[], separator='\t', sheet=None):
+    
+        """Ctor
+        :param source: input support provided for pandas.DataFrame, Excel .xlsx file,
+             tab-separated .csv/.txt files, and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+        :param decimalFields: for smart ./, decimal character management in CSV sources (pandas is not smart on this)
+        :param separator: columns separator for CSV sources
+        :param sheet: name of the sheet to read from, for multi-sheet data files
+                                (like Excel or Open Doc. workbooks)
+        """
     
         if isinstance(source, str) or isinstance(source, pl.Path):
             self._dfData = self._fromDataFile(source, importDecFields, separator, sheet)
@@ -412,15 +417,14 @@ class MonoCategoryDataSet(DataSet):
             self._selectSampleSightings(dSample=sSampleSpecs, dfAllSights=self._dfData,
                                         dfAllEffort=self.dfTransects, transectPlaceCols=self.transectPlaceCols,
                                         passIdCol=self.passIdCol, effortCol=self.effortCol)
-                                        
-        # DOn't go on if no selected data.
+        
+        # Don't go on if no selected data.
         if dfSampIndivObs.empty:
             logger.warning('No data selected for this specs: {}'.format(sSampleSpecs.to_dict()))
             return None
 
         # Add absence sightings
-        print(sSampleSpecs.index)
-        dfSampIndivObs = self._addAbsenceSightings(dfSampIndivObs, sampleCols=sSampleSpecs.index, 
+        dfSampIndivObs = self._addAbsenceSightings(dfSampIndivObs, sampleCols=sSampleSpecs.index,
                                                    dfExpdTransects=dfSampTransInfo)
 
         # Add information about the studied geographical area
@@ -462,37 +466,48 @@ class SampleDataSet(DataSet):
 
         logger.info('Sample data : {} sightings'.format(len(self)))
 
-# A result set for multiple analyses from the same engine.
-# With ability to prepend custom heading columns to the engine output stat ones.
-# And to get a 3-level multi-index columned or a mono-indexed translated columned version of the data table.
+
 class ResultsSet(object):
     
-    def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None,
+    """
+    A tabular result set for some computation process repeated multiple times with different input / results,
+    each process result(s) being given as a pd.Series (1 row for the target table) or a pd.DataFrame (multiple rows).
+    
+    With ability to prepend custom heading columns to each process results ones
+    (same value for each 1-process results rows).
+    
+    The columns of the internal pd.DataFrame, like those of each process result(s), can be a multi-index.
+    
+    Support for column translation is included (a mono-indexed).
+    """
+
+    def __init__(self, miCols, dfColTrans=None, miCustomCols=None, dfCustomColTrans=None,
                        dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
+                       
+        """Ctor
         
-        assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
-        assert miCustomCols is None or isinstance(miCustomCols, pd.MultiIndex), \
-               'customCols must be None or a pd.MultiIndex'
-        assert miCustomCols is None or len(miCustomCols.levels) == 3, \
-               'customCols must have 3 levels if not None'
+        :param miCols: process results columns (MultiIndex or not)
+        :param miCustomCols: custom columns to prepend (on the left) to process results columns (MultiIndex or not)
+        """
+        
+        assert len(sortCols) == len(sortAscend), 'sortCols and sortAscend must have same length'
+
+        # Columns stuff.
         if dComputedCols is None:
             dComputedCols = dict()
             dfComputedColTrans = pd.DataFrame()
-        assert len(sortCols) == len(sortAscend), 'sortCols and sortAscend must have same length'
-        
-        self.analysisClass = analysisClass
-        self.engineClass = analysisClass.EngineClass
-    
-        # 3-level multi-index columns (module, statistic, figure)
-        self.miAnalysisCols = analysisClass.MIRunColumns.append(self.engineClass.statModCols())
+
+        self.miCols = miCols
         for col, ind in dComputedCols.items(): # Add post-computed columns at the right place
-            self.miAnalysisCols = self.miAnalysisCols.insert(ind, col)
+            self.miCols = self.miCols.insert(ind, col)
         self.computedCols = list(dComputedCols.keys())
         self.miCustomCols = miCustomCols
         
+        self.isMultiIndexedCols = isinstance(miCols, pd.MultiIndex)
+        
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        self.dfAnalysisColTrans = analysisClass.DfRunColumnTrans.append(self.engineClass.statModColTrans())
-        self.dfAnalysisColTrans = self.dfAnalysisColTrans.append(dfComputedColTrans)
+        self.dfColTrans = dfColTrans
+        self.dfColTrans = self.dfColTrans.append(dfComputedColTrans)
         self.dfCustomColTrans = dfCustomColTrans
         
         # Sorting parameters (after postComuting)
@@ -508,21 +523,25 @@ class ResultsSet(object):
         
         return len(self._dfData)
     
+    @property
+    def columns(self):
+    
+        return self.dfData.columns
+        
     def copy(self, withData=True):
     
         """Clone function (shallow), with optional (deep) data copy"""
     
-        # 1. Call ctor without computed columns stuff (we no more have initial data)
-        clone = ResultsSet(analysisClass=self.analysisClass, sortCols=[], sortAscend=[],
-                           miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans)
+        # 1. Call ctor without computed columns stuff for now and here (we no more have initial data)
+        clone = ResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                           sortCols=[], sortAscend=[])
     
         # 2. Complete clone initialisation.
-        # 3-level multi-index columns (module, statistic, figure)
-        clone.miAnalysisCols = self.miAnalysisCols
+        clone.miCols = self.miCols
         clone.computedCols = self.computedCols
         
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        clone.dfAnalysisColTrans = self.dfAnalysisColTrans
+        clone.dfColTrans = self.dfColTrans
         
         # Copy data if needed.
         if withData:
@@ -531,20 +550,44 @@ class ResultsSet(object):
             clone.postComputed = self.postComputed
 
         return clone
+
+    def append(self, sdfResult, sCustomHead=None):
         
-    # sResult : Series for result cols values
-    # sCustomHead : Series for custom cols values
-    def append(self, sResult, sCustomHead=None):
+        """Append row(s) of results to the all-results table
+        :param sdfResult: the Series (1 row) or DataFrame (N rows) to append
+        :param sCustomHead: Series holding custom cols values, to prepend (left) to each row of sdfResult,
+            before appending to the internal table.
         
+          |---- custom heading columns ----|---- real results (from sdfResult) ----|
+          |          |          |          |         |         |         |         |
+          |               ...              |                  ...                  |
+          |                ( data already there before append)                     |
+          |               ...              |                  ...                  |
+          |          |          |          |         |         |         |         |
+          --------------------------------------------------------------------------
+          |     x     |    y    |    z     |    a1   |    b1   |    c1   |    d1   |<- append(5 rows)
+          |     x     |    y    |    z     |    a2   |    b2   |    c2   |    d2   |
+          | (from sCustomHead, replicated) | (from sdfResult: here a 5-row table)  | 
+          |     x     |    y    |    z     |    a4   |    b4   |    c4   |    d4   |
+          |     x     |    y    |    z     |    a5   |    b5   |    c5   |    d5   |
+          --------------------------------------------------------------------------
+        """
+
         assert not self.postComputed, 'Can\'t append after columns post-computation'
         
-        assert isinstance(sResult, pd.Series), 'sResult : Can only append a pd.Series'
-        assert sCustomHead is None or isinstance(sCustomHead, pd.Series), 'sCustom : Can only append a pd.Series'
+        assert isinstance(sdfResult, (pd.Series, pd.DataFrame)), \
+               'sdfResult : Can only append a pd.Series or pd.DataFrame'
+        assert sCustomHead is None or isinstance(sCustomHead, pd.Series), \
+               'sCustom : Can only append a pd.Series'
         
         if sCustomHead is not None:
-            sResult = sCustomHead.append(sResult)
+            if isinstance(sdfResult, pd.Series):
+                sdfResult = sCustomHead.append(sdfResult)
+            else:
+                sdfResult = pd.concat([pd.DataFrame([sCustomHead]*len(sdfResult)), 
+                                       sdfResult.set_index(dfCustomHead.index)], axis='columns')
         
-        self._dfData = self._dfData.append(sResult, ignore_index=True)
+        self._dfData = self._dfData.append(sdfResult, ignore_index=True)
         
         # Appending (or concat'ing) often changes columns order
         self.rightColOrder = False
@@ -561,8 +604,8 @@ class ResultsSet(object):
         # Do post-computation and sorting if not already done.
         if not(self._dfData.empty or self.postComputed):
         
-            # Make sure we jave a MultiIndex for columns (append breaks this, not fromExcel)
-            if not isinstance(self._dfData.columns, pd.MultiIndex):
+            # Make sure we keep a MultiIndex for columns if it was the case (append breaks this, not fromExcel)
+            if self.isMultiIndexedCols and not isinstance(self._dfData.columns, pd.MultiIndex):
                 self._dfData.columns = pd.MultiIndex.from_tuples(self._dfData.columns)
             
             # Post-compute as specified (or not).
@@ -576,7 +619,7 @@ class ResultsSet(object):
         # Enforce right columns order.
         if not(self._dfData.empty or self.rightColOrder):
             
-            miTgtColumns = self.miAnalysisCols
+            miTgtColumns = self.miCols
             if self.miCustomCols is not None:
                 miTgtColumns = self.miCustomCols.append(miTgtColumns)
             self._dfData = self._dfData.reindex(columns=miTgtColumns)
@@ -592,11 +635,6 @@ class ResultsSet(object):
         # Done.
         return self._dfData.copy()
 
-    @property
-    def columns(self):
-    
-        return self.dfData.columns
-        
     @dfData.setter
     def dfData(self, dfData):
         
@@ -618,30 +656,35 @@ class ResultsSet(object):
         
         return self.dfCustomColTrans[lang].to_list()
     
-    # Build translation table for lang from custom one and analysis one
+    # Build translation table for lang (from custom and other columns)
     def transTable(self):
         
-        dfColTrans = self.dfAnalysisColTrans
+        dfColTrans = self.dfColTrans
         if self.dfCustomColTrans is not None:
             dfColTrans = self.dfCustomColTrans.append(dfColTrans, sort=False)
             
         return dfColTrans
         
-    # Access a (column) subset of the data table
     def dfSubData(self, subset=None, copy=False):
+    
+        """Get a subset of the all-results table columns
+        :param subset: columns to select, as a list(string) or pd.Index when mono-indexed columns
+                                       or as a list(tuple(string*)) or pd.MultiIndex wehn multi-indexed.
+        :param copy: if True, return a full copy of the data, not a "reference" to the internal table
+        """
         
-        assert subset is None or isinstance(subset, list) or isinstance(subset, pd.MultiIndex), \
+        assert subset is None or isinstance(subset, list) or isinstance(subset, (pd.Index, pd.MultiIndex)), \
                'subset columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
 
         # Make a copy of / extract selected columns of dfData.
         if subset is None:
             dfSbData = self.dfData
         else:
-            if isinstance(subset, list):
-                miSubset = pd.MultiIndex.from_tuples(subset)
-            else: # pd.MultiIndex
-                miSubset = subset
-            dfSbData = self.dfData.reindex(columns=miSubset)
+            if self.isMultiIndexedCols and isinstance(subset, list):
+                iSubset = pd.MultiIndex.from_tuples(subset)
+            else:
+                iSubset = subset
+            dfSbData = self.dfData.reindex(columns=iSubset)
         
         if copy:
             dfSbData = dfSbData.copy()
@@ -664,7 +707,8 @@ class ResultsSet(object):
     # Save data to an Excel worksheet (XLSX format).
     def toExcel(self, fileName, sheetName=None, lang=None, subset=None, engine='openpyxl'):
         
-        dfOutData = self.dfSubData(subset=subset) if lang is None else self.dfTransData(subset=subset, lang=lang)
+        dfOutData = self.dfSubData(subset=subset) \
+                    if lang is None else self.dfTransData(subset=subset, lang=lang)
         
         dfOutData.to_excel(fileName, sheet_name=sheetName or 'AllResults', engine=engine)
 
@@ -674,15 +718,17 @@ class ResultsSet(object):
         
         return self.toExcel(fileName, sheetName, lang, subset, engine='odf')
 
-    # Load (overwrite) data from an Excel worksheet (XLSX format), assuming ctor params match with Excel sheet
-    # column names and list, which can well be ensured by using the same ctor params as used for saving !
+    # Load (overwrite) data from an Excel worksheet (XLSX format),
+    # assuming ctor params match with ODF sheet column names and list,
+    # which can well be ensured by using the same ctor params as used for saving !
     def fromExcel(self, fileName, sheetName=None):
         
         self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
                                     header=[0, 1, 2], skiprows=[3], index_col=0)
 
-    # Load (overwrite) data from an Open Document worksheet (ODS format), assuming ctor params match
-    # with ODF sheet column names and list, hich can well be ensured by using the same ctor params as used for saving !
+    # Load (overwrite) data from an Open Document worksheet (ODS format),
+    # assuming ctor params match with ODF sheet column names and list,
+    # which can well be ensured by using the same ctor params as used for saving !
     # Notes: Needs odfpy module and pandas.version >= 0.25.1
     def fromOpenDoc(self, fileName, sheetName=None):
         
@@ -821,10 +867,65 @@ class ResultsSet(object):
         dfRelDiff.drop(dfRelDiff[sbRows2Drop].index, axis='index', inplace=True)
         
         return dfRelDiff
+
+class AnalysisResultsSet(ResultsSet):
+    
+    """
+    A result set for multiple analyses from the same engine.
+    
+    Internal columns index is a 3-level multi-index.
+    """
+    
+    def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None,
+                       dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
         
-# A specialized results set for MCDS analyses,
-# with extra. post-computed columns : Delta AIC, Chi2 P
-class MCDSResultsSet(ResultsSet):
+        assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
+        assert miCustomCols is None \
+               or (isinstance(miCustomCols, pd.MultiIndex) and len(miCustomCols.levels) == 3), \
+               'customCols must be None or a 3 level pd.MultiIndex'
+        
+        self.analysisClass = analysisClass
+        self.engineClass = analysisClass.EngineClass
+
+        # 3-level multi-index columns (module, statistic, figure)
+        miCols = analysisClass.MIRunColumns.append(self.engineClass.statModCols())
+        
+        # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
+        dfColTrans = analysisClass.DfRunColumnTrans.append(self.engineClass.statModColTrans())
+        
+        super().__init__(miCols=miCols, dfColTrans=dfColTrans,
+                         miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
+                         dComputedCols=dComputedCols, dfComputedColTrans=dfComputedColTrans,
+                         sortCols=sortCols, sortAscend=sortAscend)
+    
+    def copy(self, withData=True):
+    
+        """Clone function (shallow), with optional (deep) data copy"""
+    
+        # 1. Call ctor without computed columns stuff (we no more have initial data)
+        clone = AnalysisResultsSet(analysisClass=self.analysisClass,
+                                   miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                                   sortCols=[], sortAscend=[])
+    
+        # 2. Complete clone initialisation.
+        # 3-level multi-index columns (module, statistic, figure)
+        clone.miCols = self.miCols
+        clone.computedCols = self.computedCols
+        
+        # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
+        clone.dfColTrans = self.dfColTrans
+        
+        # Copy data if needed.
+        if withData:
+            clone._dfData = self._dfData.copy()
+            clone.rightColOrder = self.rightColOrder
+            clone.postComputed = self.postComputed
+
+        return clone
+                
+class MCDSAnalysisResultsSet(AnalysisResultsSet):
+
+    """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
     
     DeltaAicColInd = ('detection probability', 'Delta AIC', 'Value')
     Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
@@ -853,9 +954,9 @@ class MCDSResultsSet(ResultsSet):
         """Clone function, with optional data copy"""
     
         # Create new instance with same ctor params.
-        clone = MCDSResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                               miSampleCols=self.miSampleCols,
-                               sortCols=self.sortCols, sortAscend=self.sortAscend)
+        clone = MCDSAnalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                                       miSampleCols=self.miSampleCols,
+                                       sortCols=self.sortCols, sortAscend=self.sortAscend)
 
         # Copy data if needed.
         if withData:
@@ -869,9 +970,19 @@ class MCDSResultsSet(ResultsSet):
     def transSampleColumns(self, lang):
         
         return self.dfCustomColTrans.loc[self.miSampleCols, lang].to_list()
+
+    MaxChi2Tests = 3 # TODO: Really a constant, or actually depends on some analysis params ?
+    Chi2AllColInds = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
+                      for i in range(MaxChi2Tests, 0, -1)]
     
+    @staticmethod
+    def determineChi2Value(sChi2AllDists):
+        for chi2 in sChi2AllDists:
+            if not np.isnan(chi2):
+                return chi2
+        return np.nan
+
     # Post-computations.
-    KMaxChi2 = 3 # TODO: Really a constant, or actually depends on some analysis params ?
     def postComputeColumns(self):
         
         #logger.debug('postComputeColumns: ...')
@@ -893,16 +1004,60 @@ class MCDSResultsSet(ResultsSet):
         self._dfData[self.DeltaAicColInd] = self._dfData[aicColInd] - self._dfData[self.DeltaAicColInd]
 
         # Compute determined Chi2 test probability (last value of all the tests done).
-        def determineChi2(sChi2All):
-            for chi2 in sChi2All:
-                if not np.isnan(chi2):
-                    return chi2
-            return np.nan
-        chi2AllColInds = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
-                          for i in range(self.KMaxChi2, 0, -1)]
-        chi2AllColInds = [col for col in chi2AllColInds if col in self._dfData.columns]
+        chi2AllColInds = [col for col in self.Chi2AllColInds if col in self._dfData.columns]
         if chi2AllColInds:
-            self._dfData[self.Chi2ColInd] = self._dfData[chi2AllColInds].apply(determineChi2, axis='columns')
+            self._dfData[self.Chi2ColInd] = self._dfData[chi2AllColInds].apply(self.determineChi2Value, axis='columns')
+
+class OptimisationResultsSet(ResultsSet):
+    
+    """A specialized results set for DS analyses optimisations"""
+    
+    
+    def __init__(self, optimisationClass, miCustomCols=None, dfCustomColTrans=None,
+                       dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
+        
+        assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
+        assert miCustomCols is None \
+               or (isinstance(miCustomCols, pd.MultiIndex) and len(miCustomCols.levels) == 3), \
+               'customCols must be None or a 3 level pd.MultiIndex'
+        
+        self.optimisationClass = optimisationClass
+        
+        # Optimisation results columns
+        miCols = optimisationClass.RunColumns
+        
+        # DataFrame for translating column names
+        dfColTrans = optimisationClass.DfRunColumnTrans
+        
+        # Initialize base class.
+        super().__init__(miCols=miCols, dfColTrans=dfColTrans,
+                         miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
+                         sortCols=sortCols, sortAscend=sortAscend)
+    
+    def copy(self, withData=True):
+    
+        """Clone function (shallow), with optional (deep) data copy"""
+    
+        # 1. Call ctor without computed columns stuff (we no more have initial data)
+        clone = AnalysisResultsSet(analysisClass=self.analysisClass,
+                                   miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                                   sortCols=[], sortAscend=[])
+    
+        # 2. Complete clone initialisation.
+        # 3-level multi-index columns (module, statistic, figure)
+        clone.miCols = self.miCols
+        clone.computedCols = self.computedCols
+        
+        # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
+        clone.dfColTrans = self.dfColTrans
+        
+        # Copy data if needed.
+        if withData:
+            clone._dfData = self._dfData.copy()
+            clone.rightColOrder = self.rightColOrder
+            clone.postComputed = self.postComputed
+
+        return clone
 
 
 if __name__ == '__main__':
