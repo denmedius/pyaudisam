@@ -36,14 +36,9 @@ class SequentialExecutor(cofu.Executor):
     """Non-parallel concurrent.futures.Executor minimal implementation
     """
 
-    # * threads (None): 0 for auto-number (5 x nb of actual CPUs), 1 <=> parallel = False
-    # * process (None): 0 for auto-number (nb of actual CPUs, 1 <=> parallel = False 
-    # * name_prefix: only for multi-threading
-    # * mp_context: only for multi-processing
-    # Precondition: threads is None or processes is None
     def __init__(self):
         
-        logger.debug('Starting a SequentialExecutor() ...')
+        logger.debug('Started the SequentialExecutor.')
             
     def submit(self, func, *args, **kwargs):
         
@@ -55,7 +50,7 @@ class SequentialExecutor(cofu.Executor):
     
     def shutdown(self, wait=True):
         
-        pass # Nothing to do.
+        pass
         
         
 class Executor(object):
@@ -63,6 +58,9 @@ class Executor(object):
     """Wrapper class for simpler concurrent.futures.Executor interface,
        and access to added non-parallel SequentialExecutor
     """
+
+    # The only SequentialExecutor (only one needed)
+    TheSeqExor = None
 
     # * threads (None): 0 for auto-number (5 x nb of actual CPUs), 1 <=> parallel = False
     # * process (None): 0 for auto-number (nb of actual CPUs, 1 <=> parallel = False 
@@ -80,7 +78,7 @@ class Executor(object):
                         cofu.ThreadPoolExecutor(max_workers=threads or None,
                                                 thread_name_prefix=name_prefix,
                                                 initializer=None, initargs=initargs)
-                    logger.debug('Starting a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
+                    logger.debug('Started a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
             elif processes is not None:
                 raise NotImplementedError('Not yet available for multi-process scheme')
                 if processes > 1:
@@ -88,12 +86,16 @@ class Executor(object):
                         cofu.ProcessPoolExecutor(max_workers=processes or None,
                                                  mp_context=mp_context,
                                                  initializer=initializer, initargs=initargs)
-                    logger.debug('Starting a ProcessPoolExecutor(max_workers={})'.format(processes or 'None'))
+                    logger.debug('Started a ProcessPoolExecutor(max_workers={})'.format(processes or 'None'))
                     
         if self.realExor is None:
-            self.realExor = SequentialExecutor()
+            if self.TheSeqExor is None:
+                self.TheSeqExor = SequentialExecutor()
+            self.realExor = self.TheSeqExor
             
     def submit(self, func, *args, **kwargs):
+    
+        assert self.realExor is not None, 'Can\'t submit after shutdown'
         
         return self.realExor.submit(func, *args, **kwargs)
     
@@ -107,12 +109,11 @@ class Executor(object):
                else cofu.as_completed(futures)
     
     def shutdown(self, wait=True):
-        
-        clsName = self.realExor.__class__.__name__
-        
-        self.realExor.shutdown(wait=wait)
-        
-        logger.debug(clsName + ' shut down.')
+              
+        if self.realExor is not None and self.realExor is not self.TheSeqExor:
+            self.realExor.shutdown(wait=wait)
+            logger.debug(self.realExor.__class__.__name__ + ' shut down.')
+        self.realExor = None
         
     def __del__(self):
     
