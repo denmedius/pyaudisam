@@ -13,12 +13,15 @@
 
 import sys
 
+import re
 import pathlib as pl
 from packaging import version
 
 import copy
 
-from collections import OrderedDict as odict, namedtuple as ntuple
+from collections import OrderedDict as odict
+from collections import namedtuple as ntuple
+
 import numpy as np
 import pandas as pd
 
@@ -26,7 +29,7 @@ import logging
 
 logger = logging.getLogger('autods')
 
-from autods.data import MonoCategoryDataSet, MCDSResultsSet
+from autods.data import MonoCategoryDataSet, MCDSAnalysisResultsSet
 from autods.executor import Executor
 from autods.engine import MCDSEngine
 from autods.analysis import MCDSAnalysis, MCDSPreAnalysis
@@ -35,7 +38,8 @@ from autods.analysis import MCDSAnalysis, MCDSPreAnalysis
 class DSAnalyser(object):
 
     """Run a bunch of DS analyses on samples extracted from an individualised sightings data set,
-       according to a user-friendly set of analysis specs
+       according to a user-friendly set of analysis specs,
+       + Tools for building analysis variants specifications and explicitating them.
        Abstract class.
     """
 
@@ -141,10 +145,38 @@ class DSAnalyser(object):
               dfExplSpecs[colName] = dfExplSpecs.apply(computeCol, axis='columns')
               for colName, computeCol in computedCols.items()) 
 
+        TODO: Translate to english
+        
+        odPartSpecs est donc un dictionnaire ordonné de tables de specs partielles.
+        * chaque table donne un sous-ensemble (ou la totalité) des colonnes de variantes d'analyses,
+        * chaque table peut être implicite ou explicite :
+            * explicite : toutes les combinaisons désirées sont données pour les colonnes de la table,
+            * implicite : dans chaque colonne, verticalement, on donne la liste des variantes possibles
+              (chaque colonne n'aura donc pas la même longueur) ; l'explicitation consistera à générer
+              automatiquement la totalité des combinaisons possibles des valeurs données dans les colonnes,
+            * le type des tables est déterminé par leur nom : implicite s'il contient "_impl",
+              explicite sinon.
+        * plusieurs tables peuvent avoir les mêmes colonnes :
+            * chacune peut être soit implicite, soit explicite, peu importe,
+            * une fois explicitées, elles doivent cependant fournir des lignes ne se recouvrant pas,
+            * cela permet de spécifier facilement des combinaisons différentes pour des sous-ensembles
+              distincts de valeurs d'un sous-ensemble donné de colonnes,
+            * avant de les combiner avec les autres tables, on les concatène verticalement en 1 seule
+              après explicitation individuelle,
+        * les tables qui n'ont aucune colonne en commun avec les autres produiront
+          la combinatoire complète des combinaisons obtenues par explicitation des colonnes la précédant,
+        * celles qui ont certaines (mais pas toutes) colonnes en communs avec celles qui la précèdent
+          permettent de produire des variantes spécifiques pour ces colonnes : elles feront l'objet
+          d'une jointure à gauche avec ces tables précédentes,
+        * car l'algorithme d'explicitation - fusion des tables suit leur ordre dans le classeur,
+          une fois faite l'explicitation - concaténation verticale des tables de même jeux de colonnes.
+          
+        N.B. Pas prévu, mais ça marche : pour imposer des valeurs de paramètres vides,
+             il suffit de fournit une table vide, avec les entêtes correspondants (exemple avec ACDC).
         """
         
-        # Load partial variant specs from source (trivial if given as an odict).
-        odPartSpecs = partSpecs if isinstance(partSpecs, odict) else cls._loadPartSpecsFromFile(partSpecs)
+        # Load partial variant specs from source (trivial if given as a dict).
+        odPartSpecs = partSpecs if isinstance(partSpecs, dict) else cls._loadPartSpecsFromFile(partSpecs)
         assert len(odPartSpecs) > 0, "Error: Can't explicit variants with no partial variant"
         
         # Convert any implicit partial variant spec from dict to DataFrame if needed.
@@ -275,19 +307,69 @@ class DSAnalyser(object):
         self._executor = None
         self._engine = None
 
+    # Possible regexps (values) for auto-detection of analyser _internal_ parameter spec names (keys)
+    # from explicit _user_ spec columns
+    # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
+    #  and case is ignored during searching).
+    Int2UserSpecREs = odict([])
 
-# MCDSAnalyser: Run a bunch of MCDS analyses
+    @staticmethod
+    def userSpec2ParamNames(userSpecCols, int2UserSpecREs):
+
+        logger.debug('Matching user spec. columns:')
+
+        parNames = list()
+        for specName in userSpecCols:
+            try:
+                parName = next(iter(parName for parName in int2UserSpecREs \
+                                    if any(re.search(pat, specName, flags=re.IGNORECASE) \
+                                           for pat in int2UserSpecREs[parName])))
+                logger.debug(' * "{}" => {}'.format(specName, parName))
+                parNames.append(parName)
+            except StopIteration:
+                raise KeyError('Could not match user spec. column "{}" in sample data set columns [{}]' \
+                                .format(specName, ', '.join(int2UserSpecREs.keys())))
+
+        logger.debug('... success.')
+
+        return parNames
+    
+    def checkUserSpecs(self, dfAnlysExplSpecs, anlysParamSpecCols):
+    
+        """Check user specified analyses params for usability.
+        
+        Use it before calling analyser.run(dfAnlysExplSpecs, anlysParamSpecCols, ...)
+        
+        Parameters:
+           :param pd.DataFrame dfAnlysExplSpecs: analysis params table
+           :param list anlysParamSpecCols: columns of dfAnlysExplSpecs for analysis specs
+           :param threads:, :param processes: Number of parallel threads / processes to use
+              (default: no parallelism)
+              
+        :raise: KeyError if any column could not be matched with some of the expected parameter names.
+        """
+    
+         # Try and convert explicit. analysis spec. columns to the internal parameter names.
+        _ = self.userSpec2ParamNames(anlysParamSpecCols, self.Int2UserSpecREs)
+        
+        return all(col in dfAnlysExplSpecs.columns for col in anlysParamSpecCols) 
+
 class MCDSAnalyser(DSAnalyser):
 
+    """Run a bunch of MCDS analyses"""
+
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       resultsHeadCols=dict(before=['AnlysNum', 'Sample'], after=['AnlysAbbrev'], 
+                       resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        abbrevCol='AnlysAbbrev',
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleDecFields=['Effort', 'Distance'],
                        distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False,
-                       workDir='.'):
+                       workDir='.', logData=False,
+                       defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
+                       defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef, defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
+                       defFitDistCuts=MCDSEngine.DistFitCutsDef, defDiscrDistCuts=MCDSEngine.DistDiscrCutsDef):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
@@ -298,6 +380,72 @@ class MCDSAnalyser(DSAnalyser):
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          workDir=workDir)
                          
+        self.logData = logData
+        self.defEstimKeyFn = defEstimKeyFn
+        self.defEstimAdjustFn = defEstimAdjustFn
+        self.defEstimCriterion = defEstimCriterion
+        self.defCVInterval = defCVInterval
+        self.defMinDist = defMinDist
+        self.defMaxDist = defMaxDist
+        self.defFitDistCuts = defFitDistCuts
+        self.defDiscrDistCuts = defDiscrDistCuts
+                         
+    # Analyser internal parameter spec names, for which a match should be found (when one is needed)
+    # with user explicit optimisation specs used in run() calls.
+    IntSpecEstimKeyFn = 'EstimKeyFn'
+    IntSpecEstimAdjustFn = 'EstimAdjustFn'
+    IntSpecEstimCriterion = 'EstimCriterion'
+    IntSpecCVInterval = 'CvInterval'
+    IntSpecMinDist = 'MinDist' # Left truncation distance
+    IntSpecMaxDist = 'MaxDist' # Right truncation distance
+    IntSpecFitDistCuts = 'FitDistCuts'
+    IntSpecDiscrDistCuts = 'DiscrDistCuts'
+
+    # Possible regexps (values) for auto-detection of analyser _internal_ parameter spec names (keys)
+    # from explicit _user_ spec columns
+    # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
+    #  and case is ignored during searching).
+    Int2UserSpecREs = \
+      odict([(IntSpecEstimKeyFn,     ['ke[a-z]*[\.\-_ ]*f', 'f[o]?n[a-z]*[\.\-_ ]*cl']),
+             (IntSpecEstimAdjustFn,  ['ad[a-z]*[\.\-_ ]*s', 's[éa-z]*[\.\-_ ]*aj']),
+             (IntSpecEstimCriterion, ['crit[èa-z]*[\.\-_ ]*']),
+             (IntSpecCVInterval,     ['conf[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*int',
+                                      'in[o]?n[a-z]*[\.\-_ ]*conf']),
+             (IntSpecMinDist,        ['min[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*min',
+                                      'tr[a-z]*[\.\-_ ]*g[ca]', 'le[a-z]*[\.\-_ ]*tr']),
+             (IntSpecMaxDist,        ['max[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*max',
+                                      'tr[a-z]*[\.\-_ ]*d[rt]', 'le[a-z]*[\.\-_ ]*tr']),
+             (IntSpecFitDistCuts,    ['fit[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*mod']),
+             (IntSpecDiscrDistCuts,  ['dis[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*dis'])])
+
+    # Analysis object ctor parameter names (MUST match exactly: check in analysis submodule !).
+    ParmEstimKeyFn = 'estimKeyFn'
+    ParmEstimAdjustFn = 'estimAdjustFn'
+    ParmEstimCriterion = 'estimCriterion'
+    ParmCVInterval = 'cvInterval'
+    ParmMinDist = 'minDist'
+    ParmMaxDist = 'maxDist'
+    ParmFitDistCuts = 'fitDistCuts'
+    ParmDiscrDistCuts = 'discrDistCuts'
+
+    def _getAnalysisParams(self, sAnIntSpec):
+    
+        """Retrieve analysis parameters, from user specs and default values
+        
+        :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
+        
+        :return: dict(estimKeyFn=, estimAdjustFn=, estimCriterion=, cvInterval=,
+                      minDist=, maxDist=, fitDistCuts=, discrDistCuts=)
+        """
+        return { self.ParmEstimKeyFn: sAnIntSpec.get(self.IntSpecEstimKeyFn, self.defEstimKeyFn),
+                 self.ParmEstimAdjustFn: sAnIntSpec.get(self.IntSpecEstimAdjustFn, self.defEstimAdjustFn),
+                 self.ParmEstimCriterion: sAnIntSpec.get(self.IntSpecEstimCriterion, self.defEstimCriterion),
+                 self.ParmCVInterval: sAnIntSpec.get(self.IntSpecCVInterval, self.defCVInterval),
+                 self.ParmMinDist: sAnIntSpec.get(self.IntSpecMinDist, self.defMinDist),
+                 self.ParmMaxDist: sAnIntSpec.get(self.IntSpecMaxDist, self.defMaxDist),
+                 self.ParmFitDistCuts: sAnIntSpec.get(self.IntSpecFitDistCuts, self.defFitDistCuts),
+                 self.ParmDiscrDistCuts: sAnIntSpec.get(self.IntSpecDiscrDistCuts, self.defDiscrDistCuts) }
+
     def setupResults(self):
     
         """Build an empty results objects.
@@ -324,14 +472,12 @@ class MCDSAnalyser(DSAnalyser):
         dfCustColTrans = pd.DataFrame(index=miCustCols, data={ lang: customCols for lang in ['fr', 'en'] })
 
         # d. And finally, the result object
-        results = MCDSResultsSet(miCustomCols=miCustCols, 
-                                 dfCustomColTrans=dfCustColTrans, miSampleCols=miSampCols)
-
-        return results
+        return MCDSAnalysisResultsSet(miCustomCols=miCustCols, 
+                                      dfCustomColTrans=dfCustColTrans, miSampleCols=miSampCols)
     
     def _getResults(self, dAnlyses):
     
-        """Wait for and gather dAnalyses (MCDSAnalysis futures) results into a MCDSResultsSet 
+        """Wait for and gather dAnalyses (MCDSAnalysis futures) results into a MCDSAnalysisResultsSet 
         """
     
         # Results object construction
@@ -361,13 +507,18 @@ class MCDSAnalyser(DSAnalyser):
 
         return results
 
-    def run(self, dfAnlysExplSpecs, dAnlysParamsSpecs=dict(), threads=1, processes=0):
+    def run(self, dfAnlysExplSpecs, anlysParamSpecCols, threads=1, processes=0):
     
-        """Run specified analysis
+        """Run specified analyses
+        
+        Call checkUserSpecs(...) before this to make sure user specs are OK
+        
+        Parameters:
            :param:dAnlysParamsSpecs MCDS analysis param name to dfAnlysExplSpecs column name
              (or const value) mapping ; for possible param. names, see MCDSAnalysis ctor ;
              missing ones won't be passed to MCDSAnalysis ctor ;
              dict. values can be a column name of dfAnlysExplSpecs or a const value replacment
+           :param list anlysParamSpecCols: columns of dfAnlysExplSpecs for analysis specs
            :param:threads, :param:processes Number of parallel threads / processes to use (default: no parallelism)
         """
     
@@ -384,6 +535,9 @@ class MCDSAnalyser(DSAnalyser):
         customCols = \
             self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
         
+        # Convert explicit. analysis spec. columns to the internal parameter names.
+        anlysIntParmSpecCols = self.userSpec2ParamNames(anlysParamSpecCols, self.Int2UserSpecREs)
+        
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 and processes <= 1 \
                  else '{} parallel {}'.format(threads if threads > 1 \
@@ -399,18 +553,18 @@ class MCDSAnalyser(DSAnalyser):
             if not sds:
                 continue
 
-            # Analysis parameters
-            dAnlysParams = { parName: sAnSpec[colNameOrVal] \
-                                      if isinstance(colNameOrVal, str) and colNameOrVal in sAnSpec.index \
-                                      else colNameOrVal
-                             for parName, colNameOrVal in dAnlysParamsSpecs.items() }
-
+            # Build optimisation params specs series with parameters internal names.
+            sAnIntSpec = sAnSpec[anlysParamSpecCols].set_axis(anlysIntParmSpecCols, inplace=False)
+            
+            # Get analysis parameters from user specs and default values.
+            dAnlysParams = self._getAnalysisParams(sAnIntSpec)
+            
             # Analysis object
             anlys = MCDSAnalysis(engine=self._engine, sampleDataSet=sds, name=sAnSpec[self.abbrevCol],
-                                 customData=sAnSpec[customCols].copy(), logData=False, **dAnlysParams)
+                                 customData=sAnSpec[customCols].copy(), logData=self.logData, **dAnlysParams)
 
             # Start running pre-analysis in parallel, but don't wait for it's finished, go on
-            anlysFut = anlys.run()
+            anlysFut = anlys.submit()
             
             # Store pre-analysis object and associated "future" for later use (should be running soon or later).
             dAnlyses[anlysFut] = anlys
@@ -419,7 +573,7 @@ class MCDSAnalyser(DSAnalyser):
 
         logger.info('All analyses started ; now waiting for their end, and results ...')
 
-        # Wait for and gaher results of all analyses.
+        # Wait for and gather results of all analyses.
         results = self._getResults(dAnlyses)
         
         # Done.
@@ -467,7 +621,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
     def run(self, dfSamplesExplSpecs, dModelStrategy=ModelStrategyDef, threads=1, processes=0):
     
-        """Run specified analysis
+        """Run specified analyses
            :param threads:, :param processes: Number of parallel threads / processes to use (default: no parallelism)
         """
     
@@ -507,7 +661,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                                     logData=False, modelStrategy=dModelStrategy)
 
             # Start running pre-analysis in parallel, but don't wait for it's finished, go on
-            anlysFut = anlys.run()
+            anlysFut = anlys.submit()
             
             # Store pre-analysis object and associated "future" for later use (should be running soon or later).
             dAnlyses[anlysFut] = anlys
