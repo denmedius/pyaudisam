@@ -36,13 +36,13 @@ KInstDirPath = pl.Path(__file__).parent.resolve()
 
 # DSEngine (abstract) classes.
 # An engine for running multiple DS analyses with same options (engine ctor params),
-# but various parameters (run() parameters), possibly as parallel threads / processes.
+# but various parameters (submitAnalysis() parameters), possibly as parallel threads / processes.
 # Warning: No option change allowed while started analyses are running / all their getResults() have returned.
 class DSEngine(object):
     
     # Options possible values.
-    DistUnits = ['Meter']
-    AreaUnits = ['Hectare']
+    DistUnits = ['Meter', 'Kilometer', 'Mile', 'Inch', 'Feet', 'Yard', 'Nautical mile']
+    AreaUnits = ['Hectare', 'Acre'] + ['Sq. ' + distUnit for distUnit in DistUnits]
     
     # Forbidden chars in workDir path name (Distance DS engines are real red necks)
     # TODO: stronger protection (more special chars ? more generic method, through re ?)
@@ -316,7 +316,6 @@ class MCDSEngine(DSEngine):
         cls.DfStatModColsTrans.set_index(['Module', 'Statistic', 'Figure'], inplace=True)
         
         logger.debug('MCDS : Loaded output stats specs.')
-        logger.debug('')
         
     # Accessors to dynamic class variables.
     @classmethod
@@ -623,7 +622,7 @@ class MCDSEngine(DSEngine):
         return runStatus, runTime, runDir, sResults
     
    # Start running an MCDS analysis
-    def run(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
+    def submitAnalysis(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
         # Check really options
         assert self.options.surveyType == 'Point', \
