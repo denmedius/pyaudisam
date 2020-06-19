@@ -25,15 +25,71 @@ from collections import namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
-import logging
+import autods.log as log
 
-logger = logging.getLogger('autods')
+logger = log.logger('autods')
 
-from autods.data import MonoCategoryDataSet, MCDSAnalysisResultsSet
+from autods.data import MonoCategoryDataSet, ResultsSet
 from autods.executor import Executor
 from autods.engine import MCDSEngine
-from autods.analysis import MCDSAnalysis, MCDSPreAnalysis
+from autods.analysis import DSAnalysis, MCDSAnalysis, MCDSPreAnalysis
 
+
+class AnalysisResultsSet(ResultsSet):
+    
+    """
+    A result set for multiple analyses from the same engine.
+    
+    Internal columns index is a 3-level multi-index.
+    """
+    
+    def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None,
+                       dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
+        
+        assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
+        assert miCustomCols is None \
+               or (isinstance(miCustomCols, pd.MultiIndex) and len(miCustomCols.levels) == 3), \
+               'customCols must be None or a 3 level pd.MultiIndex'
+        
+        self.analysisClass = analysisClass
+        self.engineClass = analysisClass.EngineClass
+
+        # 3-level multi-index columns (module, statistic, figure)
+        miCols = analysisClass.MIRunColumns.append(self.engineClass.statModCols())
+        
+        # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
+        dfColTrans = analysisClass.DfRunColumnTrans.append(self.engineClass.statModColTrans())
+        
+        super().__init__(miCols=miCols, dfColTrans=dfColTrans,
+                         miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
+                         dComputedCols=dComputedCols, dfComputedColTrans=dfComputedColTrans,
+                         sortCols=sortCols, sortAscend=sortAscend)
+    
+    def copy(self, withData=True):
+    
+        """Clone function (shallow), with optional (deep) data copy"""
+    
+        # 1. Call ctor without computed columns stuff (we no more have initial data)
+        clone = AnalysisResultsSet(analysisClass=self.analysisClass,
+                                   miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                                   sortCols=[], sortAscend=[])
+    
+        # 2. Complete clone initialisation.
+        # 3-level multi-index columns (module, statistic, figure)
+        clone.miCols = self.miCols
+        clone.computedCols = self.computedCols
+        
+        # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
+        clone.dfColTrans = self.dfColTrans
+        
+        # Copy data if needed.
+        if withData:
+            clone._dfData = self._dfData.copy()
+            clone.rightColOrder = self.rightColOrder
+            clone.postComputed = self.postComputed
+
+        return clone
+                
 
 class DSAnalyser(object):
 
@@ -270,7 +326,7 @@ class DSAnalyser(object):
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        abbrevCol='AnlysAbbrev',
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleDecFields=['Effort', 'Distance'],
+                       sampleDecCols=['Effort', 'Distance'],
                        distanceUnit='Meter', areaUnit='Hectare',
                        workDir='.', **options):
                        
@@ -301,7 +357,7 @@ class DSAnalyser(object):
         self._mcDataSet = \
             MonoCategoryDataSet(dfMonoCatObs, dfTransects=dfTransects, effortConstVal=effortConstVal,
                                 dSurveyArea=dSurveyArea, transectPlaceCols=transectPlaceCols,
-                                passIdCol=passIdCol, effortCol=effortCol, sampleDecFields=sampleDecFields)
+                                passIdCol=passIdCol, effortCol=effortCol, sampleDecFields=sampleDecCols)
                                 
         # Analysis engine and executor.
         self._executor = None
@@ -343,16 +399,104 @@ class DSAnalyser(object):
         Parameters:
            :param pd.DataFrame dfAnlysExplSpecs: analysis params table
            :param list anlysParamSpecCols: columns of dfAnlysExplSpecs for analysis specs
-           :param threads:, :param processes: Number of parallel threads / processes to use
-              (default: no parallelism)
               
         :raise: KeyError if any column could not be matched with some of the expected parameter names.
+
+        :return: False if any column from anlysParamSpecCols could not be found in dfAnlysExplSpecs columns.
         """
     
          # Try and convert explicit. analysis spec. columns to the internal parameter names.
         _ = self.userSpec2ParamNames(anlysParamSpecCols, self.Int2UserSpecREs)
         
         return all(col in dfAnlysExplSpecs.columns for col in anlysParamSpecCols) 
+
+
+class MCDSAnalysisResultsSet(AnalysisResultsSet):
+
+    """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
+    
+    DeltaAicColInd = ('detection probability', 'Delta AIC', 'Value')
+    Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
+
+    # * miSampleCols : only for delta AIC computation ; defaults to miCustomCols if None
+    #                  = the cols to use for grouping by sample
+    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None,
+                       sortCols=[], sortAscend=[]):
+        
+        # Setup computed columns specs.
+        dCompCols = odict([(self.DeltaAicColInd, 22), # Right before AIC
+                           (self.Chi2ColInd, 24)]) # Right before all Chi2 tests 
+        dfCompColTrans = \
+            pd.DataFrame(index=dCompCols.keys(),
+                         data=dict(en=['Delta AIC', 'Chi2 P'], fr=['Delta AIC', 'Chi2 P']))
+
+        # Initialise base.
+        super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
+                                       dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                       sortCols=sortCols, sortAscend=sortAscend)
+        
+        self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
+    
+    def copy(self, withData=True):
+    
+        """Clone function, with optional data copy"""
+    
+        # Create new instance with same ctor params.
+        clone = MCDSAnalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                                       miSampleCols=self.miSampleCols,
+                                       sortCols=self.sortCols, sortAscend=self.sortAscend)
+
+        # Copy data if needed.
+        if withData:
+            clone._dfData = self._dfData.copy()
+            clone.rightColOrder = self.rightColOrder
+            clone.postComputed = self.postComputed
+
+        return clone
+    
+    # Get translate names of custom columns
+    def transSampleColumns(self, lang):
+        
+        return self.dfCustomColTrans.loc[self.miSampleCols, lang].to_list()
+
+    MaxChi2Tests = 3 # TODO: Really a constant, or actually depends on some analysis params ?
+    Chi2AllColInds = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
+                      for i in range(MaxChi2Tests, 0, -1)]
+    
+    @staticmethod
+    def determineChi2Value(sChi2AllDists):
+        for chi2 in sChi2AllDists:
+            if not np.isnan(chi2):
+                return chi2
+        return np.nan
+
+    # Post-computations.
+    def postComputeColumns(self):
+        
+        #logger.debug('postComputeColumns: ...')
+        
+        # Compute Delta AIC (AIC - min(group)) per { species, periods, precision, duration } group.
+        # a. Minimum AIC per group
+        aicColInd = ('detection probability', 'AIC value', 'Value')
+        aicGroupColInds = self.miSampleCols.to_list()
+        df2Join = self._dfData.groupby(aicGroupColInds)[[aicColInd]].min()
+        
+        # b. Rename computed columns to target
+        df2Join.columns = pd.MultiIndex.from_tuples([self.DeltaAicColInd])
+        
+        # c. Join the column to the target data-frame
+        #logger.debug(str(self._dfData.columns) + ', ' + str(df2Join.columns))
+        self._dfData = self._dfData.join(df2Join, on=aicGroupColInds)
+        
+        # d. Compute delta-AIC in-place
+        self._dfData[self.DeltaAicColInd] = self._dfData[aicColInd] - self._dfData[self.DeltaAicColInd]
+
+        # Compute determined Chi2 test probability (last value of all the tests done).
+        chi2AllColInds = [col for col in self.Chi2AllColInds if col in self._dfData.columns]
+        if chi2AllColInds:
+            self._dfData[self.Chi2ColInd] = \
+                self._dfData[chi2AllColInds].apply(self.determineChi2Value, axis='columns')
+
 
 class MCDSAnalyser(DSAnalyser):
 
@@ -363,7 +507,7 @@ class MCDSAnalyser(DSAnalyser):
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        abbrevCol='AnlysAbbrev',
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleDecFields=['Effort', 'Distance'],
+                       sampleDecCols=['Effort', 'Distance'],
                        distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False,
                        workDir='.', logData=False,
@@ -375,7 +519,7 @@ class MCDSAnalyser(DSAnalyser):
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
                          resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol,
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
-                         sampleDecFields=sampleDecFields,
+                         sampleDecCols=sampleDecCols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          workDir=workDir)
@@ -410,13 +554,13 @@ class MCDSAnalyser(DSAnalyser):
              (IntSpecEstimAdjustFn,  ['ad[a-z]*[\.\-_ ]*s', 's[éa-z]*[\.\-_ ]*aj']),
              (IntSpecEstimCriterion, ['crit[èa-z]*[\.\-_ ]*']),
              (IntSpecCVInterval,     ['conf[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*int',
-                                      'in[o]?n[a-z]*[\.\-_ ]*conf']),
+                                      'int[a-z]*[\.\-_ ]*conf']),
              (IntSpecMinDist,        ['min[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*min',
                                       'tr[a-z]*[\.\-_ ]*g[ca]', 'le[a-z]*[\.\-_ ]*tr']),
              (IntSpecMaxDist,        ['max[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*max',
                                       'tr[a-z]*[\.\-_ ]*d[rt]', 'le[a-z]*[\.\-_ ]*tr']),
              (IntSpecFitDistCuts,    ['fit[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*mod']),
-             (IntSpecDiscrDistCuts,  ['dis[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*dis'])])
+             (IntSpecDiscrDistCuts,  ['disc[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*disc'])])
 
     # Analysis object ctor parameter names (MUST match exactly: check in analysis submodule !).
     ParmEstimKeyFn = 'estimKeyFn'
@@ -605,7 +749,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                        resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort', abbrevCol='SampAbbrev',
-                       sampleDecFields=['Effort', 'Distance'],
+                       sampleDecCols=['Effort', 'Distance'],
                        distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False,
                        workDir='.'):
@@ -614,7 +758,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
                          resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol,
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
-                         sampleDecFields=sampleDecFields,
+                         sampleDecCols=sampleDecCols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          workDir=workDir)

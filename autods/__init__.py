@@ -20,22 +20,22 @@
 __version__ = 0.9
 
 # Sub-module exports
+from .log import logger
+
 from .engine import DSEngine, MCDSEngine
 
 from .executor import Executor
 
 from .analysis import DSAnalysis, MCDSAnalysis, MCDSPreAnalysis
 
-from .analyser import DSAnalyser, MCDSAnalyser, MCDSPreAnalyser
+from .analyser import DSAnalyser, MCDSAnalyser, MCDSAnalysisResultsSet, MCDSPreAnalyser
 
 from .optimisation import Interval, DSOptimisation, MCDSTruncationOptimisation, \
-                          MCDSZeroOrderTruncationOptimisation
+                          MCDSZerothOrderTruncationOptimisation
 
-from .optimiser import DSParamsOptimiser, MCDSTruncationOptimiser
+from .optimiser import DSParamsOptimiser, MCDSTruncationOptimiser, MCDSZerothOrderTruncationOptimiser
 
-from .data import DataSet, FieldDataSet, MonoCategoryDataSet, SampleDataSet, \
-                  ResultsSet, AnalysisResultsSet, MCDSAnalysisResultsSet, \
-                  OptimisationResultsSet #, MCDSOptimisationAnalysisResultsSet
+from .data import DataSet, FieldDataSet, MonoCategoryDataSet, SampleDataSet, ResultsSet
 
 from .report import MCDSResultsPreReport, MCDSResultsFullReport
 

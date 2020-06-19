@@ -24,17 +24,17 @@ from collections import OrderedDict as odict, namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
-import logging
-
 import zoopt
 
-from autods.engine import MCDSEngine
-from autods.data import MCDSAnalysisResultsSet
-from autods.analysis import MCDSAnalysis
-from autods.executor import Executor
+import autods.log as log
 
-# The local logger
-logger = logging.getLogger('autods')
+logger = log.logger('autods')
+
+from autods.executor import Executor
+from autods.engine import MCDSEngine
+from autods.analysis import MCDSAnalysis
+from autods.analyser import MCDSAnalysisResultsSet
+
 
 class Interval(object):
 
@@ -79,7 +79,7 @@ class DSOptimisation(object):
     
     def __init__(self, engine, sampleDataSet, name=None,
                  executor=None, customData=None, error=None,
-                 expr2optimise='chi2', minimiseExpr=False, **optimCoreOptions):
+                 expr2Optimise='chi2', minimiseExpr=False, **optimCoreOptions):
         
         """Ctor
 
@@ -96,9 +96,9 @@ class DSOptimisation(object):
                       in order to prevent real submission, but still for keeping trace
                       of unrun optimisations in optimiser results table :
                       the optimisation then always returns at least a 1-row (empty/null) result + errors.
-        :param string expr2optimise: Math. expression (python syntax) to optimise,
+        :param string expr2Optimise: Math. expression (python syntax) to optimise,
                       using analyses results var. names inside (see derived classes for details)
-        :param minimiseExpr: True for minimisation of expr2optimise, false for maximisation
+        :param minimiseExpr: True for minimisation of expr2Optimise, false for maximisation
         :param optimCoreOptions: dict of specific options for the optimising core below
         """
         
@@ -108,10 +108,10 @@ class DSOptimisation(object):
         self.name = name
         self.customData = customData
         self.setupError = error
-        self.expr2optimise = expr2optimise
+        self.expr2Optimise = expr2Optimise
         self.minimiseExpr = minimiseExpr
         self.optimCoreOptions = optimCoreOptions
-
+        
     def _run(self, repeats=1, onlyBest=None, *args, **kwargs):
         
         """Really do the optimisation work : run the optimiser for this
@@ -119,7 +119,7 @@ class DSOptimisation(object):
         :param onlyBest: When repeating, number of best optimisations to retain (default = repeats)
         :param *args, **kwargs: other _run params
         :return: List of "solutions", each as an odict with target analysis params in the ctor order
-                 and then { expr2optimise: analysis value }
+                 and then { expr2Optimise: analysis value }
         """
 
         raise NotImplementedError('DSOptimisation is an abstract class : implement _run in a derived class')
@@ -178,13 +178,14 @@ class MCDSTruncationOptimisation(DSOptimisation):
     
     EngineClass = MCDSEngine
         
-    def __init__(self, engine, sampleDataSet, name=None, executor=None,
-                 distanceField='Distance', customData=None, logData=False, error=None,
+    def __init__(self, engine, sampleDataSet, name=None, executor=None, 
+                 distanceField='Distance', customData=None, 
+                 logData=False, error=None,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=None, maxDist=None, fitDistCutsFctr=None, discrDistCutsFctr=None,
                  fitDistCuts=None, discrDistCuts=None,
-                 expr2optimise='chi2', minimiseExpr=False, **optimCoreOptions):
+                 expr2Optimise='chi2', minimiseExpr=False, **optimCoreOptions):
 
         """Ctor
         
@@ -280,7 +281,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         # Initialise base.
         super().__init__(engine, sampleDataSet, name=name, 
                          executor=executor, customData=customData, error=error,
-                         expr2optimise=expr2optimise, minimiseExpr=minimiseExpr, **optimCoreOptions)
+                         expr2Optimise=expr2Optimise, minimiseExpr=minimiseExpr, **optimCoreOptions)
         
         # Save / compute params.
         # a. Analysis
@@ -339,12 +340,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
         
         return resInd
 
-    @classmethod
-    def _getAnalysisResultValue(cls, resultExpr, sResults):
+    def _getAnalysisResultValue(self, resultExpr, sResults):
         
-        dLocals = { alias: sResults[name] for alias, name in cls.AnlysResultIndex.items() \
-                                          if name in sResults.index }
-        
+        dLocals = { alias: sResults[name] for alias, name in self.AnlysResultIndex.items() \
+                                          if name in sResults.index.to_list() }
         try:
             value = eval(resultExpr, None, dLocals)
         except Exception as exc:
@@ -421,7 +420,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         # actual (not default) analysis and optimisation params.
         sHead = pd.Series(data=[self.name, self.estimKeyFn, self.estimAdjustFn,
                                 self.estimCriterion, self.cvInterval,
-                                '{}({})'.format('min' if self.minimiseExpr else 'max', self.expr2optimise),
+                                '{}({})'.format('min' if self.minimiseExpr else 'max', self.expr2Optimise),
                                 str(self.minDist), str(self.maxDist),
                                 str(self.fitDistCuts), str(self.discrDistCuts)],
                           index=self.RunColumns)
@@ -430,48 +429,69 @@ class MCDSTruncationOptimisation(DSOptimisation):
         return pd.DataFrame(data=[sHead.append(pd.Series(optRes)) for optRes in lodOptimResults])
 
 
-class MCDSZeroOrderTruncationOptimisation(MCDSTruncationOptimisation):
+class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
     
     """Zero-order optimisation (no derivation used) for MCDS analyses distance truncations
     """
     
     EngineClass = MCDSEngine
         
-    # Function for parsing optimisation specs (see optimiser.DSOptimiser._parseOptimCoreUserSpecs)
-    def zoopt(a='racos', mxi=0, tv=None):
+    @staticmethod
+    def zoopt(a='racos', mxr=4, mxi=100, tv=None):
+    
+        """Function for parsing optimisation specs:
+        * see optimiser.DSOptimiser._parseOptimCoreUserSpecs)
+        * see zoopt module for details
+        
+        Parameters:
+        :param a: algorithm to use: 'racos' (RACOS (AAAI'16) and Sequential RACOS (AAAI'17))
+                                    or 'poss' (Pareto Optimisation Subset Selection (NIPS'15))
+        :param mxr: max nb of retries on zoopt.Opt.min (exception); <= 0 => no retry
+        :param mxi: max nb of iterations; default 100; 0 => no limit => use terminal value
+        :param tv: terminal value
+        """
     
         dParms = dict(core='zoopt')
         
-        if a != 'racos':
+        if a != 'racos': # Default zoopt value
             dParms.update(algorithm=a)
-        if mxi != 0:
+            
+        mxi = max(0, mxi)
+        if mxi != 0: # Default zoopt value
             dParms.update(maxIters=mxi)
-        if tv is not None:
+
+        mxr = max(0, mxr)
+        if mxr != 4: # Default value
+            dParms.update(maxRetries=mxr)
+            
+        if tv is not None: # Default zoopt value
             dParms.update(termValue=tv)
             
         return dParms
 
     CoreName = 'zoopt'
-    CoreParamNames = ['algorithm', 'maxIters', 'termValue']
+    CoreParamNames = ['algorithm', 'maxRetries', 'maxIters', 'termValue']
     CoreUserSpecParser = zoopt
     
     Parameter = ntuple('Parameter', ['name', 'interval', 'continuous', 'ordered'],
                                     defaults=['unknown', Interval(), True, True])
     
-    def __init__(self, engine, sampleDataSet, name=None, 
-                 distanceField='Distance', customData=None, executor=None, logData=False, error=None,
+    def __init__(self, engine, sampleDataSet, name=None,
+                 distanceField='Distance', customData=None,
+                 executor=None, logData=False, error=None,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=None, maxDist=None, fitDistCutsFctr=None, discrDistCutsFctr=None,
                  fitDistCuts=None, discrDistCuts=None,
-                 expr2optimise='chi2', minimiseExpr=False, 
-                 algorithm='racos', maxIters=0, termValue=None): # CoreParamNames !
+                 expr2Optimise='chi2', minimiseExpr=False, 
+                 algorithm='racos', maxRetries=4, maxIters=100, termValue=None): # CoreParamNames !
 
         """Ctor
         Other parameters: See base class
         
         ZOOpt specific parameters:
-        :param algorithm: Zero Order optimisation algorithm to use (among ['racos', 'poss'])
+        :param algorithm: Zeroth Order optimisation algorithm to use (among ['racos', 'poss'])
+        :param maxRetries: Max number of retries on optim. core failure ; default: 4 => 4 retries = 5 tries
         :param maxIters: Number of iterations that stop optimisation algorithm when reached ; default: 0 => no limit
         :param termValue: Value that stops optimisation algorithm when reached ; default: None => no such termination
         """
@@ -485,8 +505,8 @@ class MCDSZeroOrderTruncationOptimisation(MCDSTruncationOptimisation):
                          minDist=minDist, maxDist=maxDist,
                          fitDistCutsFctr=fitDistCutsFctr, discrDistCutsFctr=discrDistCutsFctr,
                          fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts,
-                         expr2optimise=expr2optimise, minimiseExpr=minimiseExpr,
-                         algorithm=algorithm, maxIters=maxIters, termValue=termValue)
+                         expr2Optimise=expr2Optimise, minimiseExpr=minimiseExpr,
+                         algorithm=algorithm, maxRetries=maxRetries, maxIters=maxIters, termValue=termValue)
 
         # Prepare optimisation parameters.
         self.parameters = odict()
@@ -506,7 +526,7 @@ class MCDSZeroOrderTruncationOptimisation(MCDSTruncationOptimisation):
         logger.debug('ZOOptimisation({})'.format(dict(self.parameters)))
         
         # Columns names for each optimisation result row (see _run).
-        self.resultsCols = ['SetupStatus', 'SubmitStatus', self.expr2optimise] + list(self.parameters.keys())
+        self.resultsCols = ['SetupStatus', 'SubmitStatus', self.expr2Optimise] + list(self.parameters.keys())
         
         # zoopt optimiser initialisation.
         self.zooptDims = \
@@ -518,7 +538,11 @@ class MCDSZeroOrderTruncationOptimisation(MCDSTruncationOptimisation):
         self.zooptObjtv = zoopt.Objective(func=self._function, dim=self.zooptDims)
 
         self.zooptParams = zoopt.Parameter(algorithm=algorithm, budget=maxIters, terminal_value=termValue)
-        
+
+        # Retry-of-failure stuff
+        self.maxRetries = max(maxRetries, 0)
+        self.retries = 0 # Just to keep track ...
+
     def _function(self, solution):
     
         """The function to minimise : called as many times as needed by zoopt kernel.
@@ -529,26 +553,43 @@ class MCDSZeroOrderTruncationOptimisation(MCDSTruncationOptimisation):
         params = dict(zip(self.parameters.keys(), solution.get_x()))
         
         # Run analysis and get value.
-        anlysValue = self._runOneAnalysis(valueExpr=self.expr2optimise, **params)
+        anlysValue = self._runOneAnalysis(valueExpr=self.expr2Optimise, **params)
         
         # Compute function value from analysis value.
         return self.functionValue(anlysValue)
     
+    def _optimize(self):
+
+        nTriesLeft = maxTries = self.maxRetries + 1
+        while True:
+            try:
+                return zoopt.Opt.min(self.zooptObjtv, self.zooptParams)
+            except Exception as exc:
+                nTriesLeft -= 1
+                if nTriesLeft > 0:
+                    self.retries += 1 # Just to keep track.
+                    logger.warning('zoopt.Opt.min retry #{} on {}'.format(maxTries - nTriesLeft, exc),
+                                   exc_info=True)
+                else:
+                    logger.warning('zoopt.Opt.min failed after #{} tries on {}'.format(maxTries, exc))
+                    return None #raise
+
     def _run(self, repeats=1, onlyBest=None, error=None, *args, **kwargs):
         
         """Really do the optimisation work (use the optimisation core for this).
         (this method is called by the executor thread/process that takes it from the submit queue)
         :return: List of "solutions", each as an odict with target analysis params in the ctor order
-                 preceded by { expr2optimise: analysis value }
+                 preceded by { expr2Optimise: analysis value }
         """
         
-        # When self.setupError or (submit) error, simply return an well-formed but empty results.
+        # When self.setupError or (submit) error, simply return a well-formed but empty results.
         if self.setupError or error:
             return [odict(zip(self.resultsCols, 
                               [self.setupError, error] + [None]*(len(self.resultsCols))))]
             
-        # Run the requested optimisations and get solutions.
-        solutions = [zoopt.Opt.min(self.zooptObjtv, self.zooptParams) for _ in range(repeats)]
+        # Run the requested optimisations and get the solutions (ignore None).
+        solutions = [self._optimize() for _ in range(repeats)]
+        solutions = [sol for sol in solutions if sol is not None]
         
         # Keep only best solutions if requested.
         if onlyBest is not None and len(solutions) >= onlyBest:

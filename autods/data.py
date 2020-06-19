@@ -20,9 +20,9 @@ from collections import OrderedDict as odict
 import numpy as np
 import pandas as pd
 
-import logging
+import autods.log as log
 
-logger = logging.getLogger('autods')
+logger = log.logger('autods')
 
 from autods.analysis import DSAnalysis, MCDSAnalysis
 
@@ -578,14 +578,14 @@ class ResultsSet(object):
         assert isinstance(sdfResult, (pd.Series, pd.DataFrame)), \
                'sdfResult : Can only append a pd.Series or pd.DataFrame'
         assert sCustomHead is None or isinstance(sCustomHead, pd.Series), \
-               'sCustom : Can only append a pd.Series'
+               'sCustomHead : Can only append a pd.Series'
         
         if sCustomHead is not None:
             if isinstance(sdfResult, pd.Series):
                 sdfResult = sCustomHead.append(sdfResult)
             else:
                 sdfResult = pd.concat([pd.DataFrame([sCustomHead]*len(sdfResult)), 
-                                       sdfResult.set_index(dfCustomHead.index)], axis='columns')
+                                       sdfResult.reset_index(drop=True)], axis='columns')
         
         self._dfData = self._dfData.append(sdfResult, ignore_index=True)
         
@@ -626,7 +626,7 @@ class ResultsSet(object):
             self.rightColOrder = True # No need to do it again, until next append() !
         
         # This is also documentation line !
-        if not self._dfData.empty:
+        if self.isMultiIndexedCols and not self._dfData.empty:
             assert isinstance(self._dfData.columns, pd.MultiIndex)
         
         # Don't return columns with no relevant data.
@@ -867,197 +867,6 @@ class ResultsSet(object):
         dfRelDiff.drop(dfRelDiff[sbRows2Drop].index, axis='index', inplace=True)
         
         return dfRelDiff
-
-class AnalysisResultsSet(ResultsSet):
-    
-    """
-    A result set for multiple analyses from the same engine.
-    
-    Internal columns index is a 3-level multi-index.
-    """
-    
-    def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None,
-                       dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
-        
-        assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
-        assert miCustomCols is None \
-               or (isinstance(miCustomCols, pd.MultiIndex) and len(miCustomCols.levels) == 3), \
-               'customCols must be None or a 3 level pd.MultiIndex'
-        
-        self.analysisClass = analysisClass
-        self.engineClass = analysisClass.EngineClass
-
-        # 3-level multi-index columns (module, statistic, figure)
-        miCols = analysisClass.MIRunColumns.append(self.engineClass.statModCols())
-        
-        # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
-        dfColTrans = analysisClass.DfRunColumnTrans.append(self.engineClass.statModColTrans())
-        
-        super().__init__(miCols=miCols, dfColTrans=dfColTrans,
-                         miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
-                         dComputedCols=dComputedCols, dfComputedColTrans=dfComputedColTrans,
-                         sortCols=sortCols, sortAscend=sortAscend)
-    
-    def copy(self, withData=True):
-    
-        """Clone function (shallow), with optional (deep) data copy"""
-    
-        # 1. Call ctor without computed columns stuff (we no more have initial data)
-        clone = AnalysisResultsSet(analysisClass=self.analysisClass,
-                                   miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                                   sortCols=[], sortAscend=[])
-    
-        # 2. Complete clone initialisation.
-        # 3-level multi-index columns (module, statistic, figure)
-        clone.miCols = self.miCols
-        clone.computedCols = self.computedCols
-        
-        # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        clone.dfColTrans = self.dfColTrans
-        
-        # Copy data if needed.
-        if withData:
-            clone._dfData = self._dfData.copy()
-            clone.rightColOrder = self.rightColOrder
-            clone.postComputed = self.postComputed
-
-        return clone
-                
-class MCDSAnalysisResultsSet(AnalysisResultsSet):
-
-    """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
-    
-    DeltaAicColInd = ('detection probability', 'Delta AIC', 'Value')
-    Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
-
-    # * miSampleCols : only for delta AIC computation ; defaults to miCustomCols if None
-    #                  = the cols to use for grouping by sample
-    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None,
-                       sortCols=[], sortAscend=[]):
-        
-        # Setup computed columns specs.
-        dCompCols = odict([(self.DeltaAicColInd, 22), # Right before AIC
-                           (self.Chi2ColInd, 24)]) # Right before all Chi2 tests 
-        dfCompColTrans = \
-            pd.DataFrame(index=dCompCols.keys(),
-                         data=dict(en=['Delta AIC', 'Chi2 P'], fr=['Delta AIC', 'Chi2 P']))
-
-        # Initialise base.
-        super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
-                                       dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
-                                       sortCols=sortCols, sortAscend=sortAscend)
-        
-        self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
-    
-    def copy(self, withData=True):
-    
-        """Clone function, with optional data copy"""
-    
-        # Create new instance with same ctor params.
-        clone = MCDSAnalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                                       miSampleCols=self.miSampleCols,
-                                       sortCols=self.sortCols, sortAscend=self.sortAscend)
-
-        # Copy data if needed.
-        if withData:
-            clone._dfData = self._dfData.copy()
-            clone.rightColOrder = self.rightColOrder
-            clone.postComputed = self.postComputed
-
-        return clone
-    
-    # Get translate names of custom columns
-    def transSampleColumns(self, lang):
-        
-        return self.dfCustomColTrans.loc[self.miSampleCols, lang].to_list()
-
-    MaxChi2Tests = 3 # TODO: Really a constant, or actually depends on some analysis params ?
-    Chi2AllColInds = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
-                      for i in range(MaxChi2Tests, 0, -1)]
-    
-    @staticmethod
-    def determineChi2Value(sChi2AllDists):
-        for chi2 in sChi2AllDists:
-            if not np.isnan(chi2):
-                return chi2
-        return np.nan
-
-    # Post-computations.
-    def postComputeColumns(self):
-        
-        #logger.debug('postComputeColumns: ...')
-        
-        # Compute Delta AIC (AIC - min(group)) per { species, periods, precision, duration } group.
-        # a. Minimum AIC per group
-        aicColInd = ('detection probability', 'AIC value', 'Value')
-        aicGroupColInds = self.miSampleCols.to_list()
-        df2Join = self._dfData.groupby(aicGroupColInds)[[aicColInd]].min()
-        
-        # b. Rename computed columns to target
-        df2Join.columns = pd.MultiIndex.from_tuples([self.DeltaAicColInd])
-        
-        # c. Join the column to the target data-frame
-        #logger.debug(str(self._dfData.columns) + ', ' + str(df2Join.columns))
-        self._dfData = self._dfData.join(df2Join, on=aicGroupColInds)
-        
-        # d. Compute delta-AIC in-place
-        self._dfData[self.DeltaAicColInd] = self._dfData[aicColInd] - self._dfData[self.DeltaAicColInd]
-
-        # Compute determined Chi2 test probability (last value of all the tests done).
-        chi2AllColInds = [col for col in self.Chi2AllColInds if col in self._dfData.columns]
-        if chi2AllColInds:
-            self._dfData[self.Chi2ColInd] = self._dfData[chi2AllColInds].apply(self.determineChi2Value, axis='columns')
-
-class OptimisationResultsSet(ResultsSet):
-    
-    """A specialized results set for DS analyses optimisations"""
-    
-    
-    def __init__(self, optimisationClass, miCustomCols=None, dfCustomColTrans=None,
-                       dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
-        
-        assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
-        assert miCustomCols is None \
-               or (isinstance(miCustomCols, pd.MultiIndex) and len(miCustomCols.levels) == 3), \
-               'customCols must be None or a 3 level pd.MultiIndex'
-        
-        self.optimisationClass = optimisationClass
-        
-        # Optimisation results columns
-        miCols = optimisationClass.RunColumns
-        
-        # DataFrame for translating column names
-        dfColTrans = optimisationClass.DfRunColumnTrans
-        
-        # Initialize base class.
-        super().__init__(miCols=miCols, dfColTrans=dfColTrans,
-                         miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
-                         sortCols=sortCols, sortAscend=sortAscend)
-    
-    def copy(self, withData=True):
-    
-        """Clone function (shallow), with optional (deep) data copy"""
-    
-        # 1. Call ctor without computed columns stuff (we no more have initial data)
-        clone = AnalysisResultsSet(analysisClass=self.analysisClass,
-                                   miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                                   sortCols=[], sortAscend=[])
-    
-        # 2. Complete clone initialisation.
-        # 3-level multi-index columns (module, statistic, figure)
-        clone.miCols = self.miCols
-        clone.computedCols = self.computedCols
-        
-        # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        clone.dfColTrans = self.dfColTrans
-        
-        # Copy data if needed.
-        if withData:
-            clone._dfData = self._dfData.copy()
-            clone.rightColOrder = self.rightColOrder
-            clone.postComputed = self.postComputed
-
-        return clone
 
 
 if __name__ == '__main__':
