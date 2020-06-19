@@ -27,9 +27,9 @@ import jinja2
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
 
-import logging
+import autods.log as log
 
-logger = logging.getLogger('autods')
+logger = log.logger('autods')
 
 # Actual package install dir.
 KInstDirPath = pl.Path(__file__).parent.resolve()

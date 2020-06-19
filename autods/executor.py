@@ -10,10 +10,9 @@
 
 import concurrent.futures as cofu
 
-import logging
+import autods.log as log
 
-
-logger = logging.getLogger('autods')
+logger = log.logger('autods')
 
 
 class ImmediateFuture(object):
@@ -111,13 +110,13 @@ class Executor(object):
     def shutdown(self, wait=True):
               
         if self.realExor is not None and self.realExor is not self.TheSeqExor:
-            self.realExor.shutdown(wait=wait)
             logger.debug(self.realExor.__class__.__name__ + ' shut down.')
+            self.realExor.shutdown(wait=wait)
         self.realExor = None
         
-    def __del__(self):
-    
-        self.shutdown()
+#    def __del__(self):
+#    
+#        self.shutdown()
             
 
 if __name__ == '__main__':

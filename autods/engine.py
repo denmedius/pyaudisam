@@ -23,12 +23,12 @@ from collections import OrderedDict as odict, namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
-import logging
+import autods.log as log
+
+logger = log.logger('autods')
 
 from autods.executor import Executor
 
-
-logger = logging.getLogger('autods')
 
 # Actual package install dir.
 KInstDirPath = pl.Path(__file__).parent.resolve()

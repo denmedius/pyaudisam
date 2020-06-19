@@ -19,9 +19,9 @@ import argparse
 import numpy as np
 import pandas as pd
 
-import logging
+import autods.log as log
 
-logger = logging.getLogger('autods')
+logger = log.logger('autods')
 
 #import engine as adse # Bad: double import of 'engine' averall.
 from autods.engine import DSEngine, MCDSEngine # Good
