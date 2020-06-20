@@ -19,7 +19,7 @@ import pathlib as pl
 import shutil
 import argparse
 
-from collections import OrderedDict as odict, namedtuple as ntuple
+from collections import namedtuple as ntuple
 
 import numpy as np
 import pandas as pd
@@ -28,7 +28,7 @@ import zoopt
 
 import autods.log as log
 
-logger = log.logger('autods')
+logger = log.logger('ads.opn')
 
 from autods.executor import Executor
 from autods.engine import MCDSEngine
@@ -65,9 +65,82 @@ class Interval(object):
             self.min = min
             self.max = max
         
-    def __str__(self):
+    def check(self, order=False, minRange=(None, None), maxRange=(None, None)):
+    
+        errors = list() # No error by default.
+        
+        if order and self.min > self.max:
+            errors.append(f'min:{self.min} > max:{self.max}')
+            
+        if minRange[0] is not None and self.min < minRange[0]:
+            errors.append(f'min:{self.min} < {minRange[0]}')
+        if minRange[1] is not None and self.min > minRange[1]:
+            errors.append(f'min:{self.min} > {minRange[1]}')
+        
+        if maxRange[0] is not None and self.max < maxRange[0]:
+            errors.append(f'max:{self.max} < {maxRange[0]}')
+        if maxRange[1] is not None and self.max > maxRange[1]:
+            errors.append(f'max:{self.max} > {maxRange[1]}')
+        
+        return ', '.join(errors)
+        
+    def __repr__(self):
+    
         return '[{}, {}]'.format(self.min, self.max)
         
+
+class Error(object):
+
+    """Error class for shipping error messages to the end user"""
+
+    def __init__(self, error=None, head=''):
+        
+        """Ctor
+        
+        Parameters:
+        :param error: string or Error
+        :error head: string ; ignored if error is an Error
+        """
+    
+        self.heads = list()
+        self.errors = list()
+        
+        if head or error:
+            self.append(error, head)
+        
+    def append(self, error, head=''):
+    
+        """Append an error to an other
+        
+        Parameters:
+        :param error: string or Error
+        :error head: string ; ignored if error is an Error
+        """
+        
+        if isinstance(error, self.__class__):
+            self.heads += error.heads
+            self.errors += error.errors
+        else:
+            self.heads.append(head)
+            self.errors.append(error)
+        
+    def __repr__(self):
+    
+        msgs = list()
+        prvHd = ''
+        for hd, err in zip(self.heads, self.errors):
+            msg = ''
+            if hd != prvHd and hd:
+                msg += hd + ' : '
+            msg += err
+            msgs.append(msg)
+            prvHd = hd
+        return ' & '.join(msgs)
+        
+    def __bool__(self):
+    
+        return any(err for err in self.errors)
+
 
 class DSOptimisation(object):
     
@@ -118,7 +191,7 @@ class DSOptimisation(object):
         :param repeats: Number of times to repeat the optimisation
         :param onlyBest: When repeating, number of best optimisations to retain (default = repeats)
         :param *args, **kwargs: other _run params
-        :return: List of "solutions", each as an odict with target analysis params in the ctor order
+        :return: List of "solutions", each as a dict with target analysis params in the ctor order
                  and then { expr2Optimise: analysis value }
         """
 
@@ -180,7 +253,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         
     def __init__(self, engine, sampleDataSet, name=None, executor=None, 
                  distanceField='Distance', customData=None, 
-                 logData=False, error=None,
+                 logData=False, autoClean=True, error=None,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=None, maxDist=None, fitDistCutsFctr=None, discrDistCutsFctr=None,
@@ -191,6 +264,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
         
         Parameters (see base class, specific ones only here):
         :param distanceField: Name of distance data column in sampleDataSet table
+        :param autoClean: if True, cleanup MCDS produced files after collecting each analysis results
+        :param error: a string for explaining any pre-init error that'll prevent the optimisation from running,
+                      but will keep producing results (null of course) ;
+                      this is done for keeping trace of unrun optimisations in results table (1 empty/null row).
 
         Fixed analysis parameters (see MCDSAnalysis):
         :param estimKeyFn: 
@@ -219,20 +296,22 @@ class MCDSTruncationOptimisation(DSOptimisation):
         assert isinstance(engine, MCDSEngine), 'Engine must be an MCDSEngine'
         
         # Check analysis params
-        assert len(estimKeyFn) >= 2 and estimKeyFn in [kf[:len(estimKeyFn)] for kf in engine.EstKeyFns], \
-               'Invalid estimate key function {}: should be in {} or at least 2-char abreviations' \
-               .format(estimKeyFn, engine.EstKeyFns)
-        assert len(estimAdjustFn) >= 2 \
-               and estimAdjustFn in [kf[:len(estimAdjustFn)] for kf in engine.EstAdjustFns], \
-               'Invalid estimate adjust function {}: should be in {} or at least 2-char abreviations' \
-               .format(estimAdjustFn, engine.EstAdjustFns)
-        assert estimCriterion in engine.EstCriterions, \
-               'Invalid estimate criterion {}: should be in {}'.format(estimCriterion, engine.EstCriterions)
-        assert cvInterval > 0 and cvInterval < 100, \
-               'Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%[')
+        moreError = Error()
+        if not (len(estimKeyFn) >= 2 and estimKeyFn in [kf[:len(estimKeyFn)] for kf in engine.EstKeyFns]):
+            moreError.append('Invalid estimate key function {}: should be in {} or at least 2-char abreviations'
+                             .format(estimKeyFn, engine.EstKeyFns))
+        if not (len(estimAdjustFn) >= 2 \
+                and estimAdjustFn in [kf[:len(estimAdjustFn)] for kf in engine.EstAdjustFns]):
+            moreError.append('Invalid estimate adjust function {}: should be in {} or at least 2-char abreviations'
+                             .format(estimAdjustFn, engine.EstAdjustFns))
+        if not (estimCriterion in engine.EstCriterions):
+            moreError.append('Invalid estimate criterion {}: should be in {}'
+                             .format(estimCriterion, engine.EstCriterions))
+        if not (cvInterval > 0 and cvInterval < 100):
+            moreError.append('Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%['))
                
-        assert any(optPar is not None for optPar in [minDist, maxDist, fitDistCuts, discrDistCuts]), \
-               'At least 1 analysis parameters have to be optimised'
+        if not any(optPar is not None for optPar in [minDist, maxDist, fitDistCuts, discrDistCuts]):
+            moreError.append('At least 1 analysis parameter has to be optimised')
                
         if minDist is not None:
             minDist = Interval(minDist)
@@ -247,27 +326,29 @@ class MCDSTruncationOptimisation(DSOptimisation):
         if discrDistCuts is not None:
             discrDistCuts = Interval(discrDistCuts)
 
-        assert minDist is None or 0 <= minDist.min < minDist.max, \
-               'Invalid left truncation distance {}'.format(minDist)
-        assert maxDist is None or maxDist == 'auto' or 0 <= maxDist.min < maxDist.max, \
-               'Invalid right truncation distance {}'.format(maxDist)
-        assert minDist is None or maxDist is None or minDist.max < maxDist.min, \
-               'Max left truncation distance {} must be lower than min right one {}' \
-               .format(minDist.max, maxDist.min)
+        if not (minDist is None or 0 <= minDist.min < minDist.max):
+            moreError.append('Invalid left truncation distance {}'.format(minDist))
+        if not (maxDist is None or maxDist == 'auto' or 0 <= maxDist.min < maxDist.max):
+            moreError.append('Invalid right truncation distance {}'.format(maxDist))
+        if not (minDist is None or maxDist is None or minDist.max < maxDist.min):
+            moreError.append('Max left truncation distance {} must be lower than min right one {}'
+                             .format(minDist.max, maxDist.min))
         
-        assert fitDistCutsFctr is None or 0 <= fitDistCutsFctr.min < fitDistCutsFctr.max, \
-               'Invalid mult. factor for number of fitting distance cuts {}'.format(fitDistCutsFctr)
-        assert discrDistCutsFctr is None or 0 <= discrDistCutsFctr.min < discrDistCutsFctr.max, \
-               'Invalid mult. factor number of distance discretisation {}'.format(discrDistCutsFctr)
+        if not (fitDistCutsFctr is None or 2 <= fitDistCutsFctr.min < fitDistCutsFctr.max):
+            moreError.append('Invalid mult. factor for number of fitting distance cuts {}'.format(fitDistCutsFctr))
+        if not (discrDistCutsFctr is None or 2 <= discrDistCutsFctr.min < discrDistCutsFctr.max):
+            moreError.append('Invalid mult. factor number for distance discretisation cuts {}'.format(discrDistCutsFctr))
         
-        assert not(fitDistCutsFctr is not None and fitDistCuts is not None), \
-               'Can\'t specify both absolute value and mult. factor for number of discretisation distance cuts'
-        assert fitDistCuts is None or 0 <= fitDistCuts.min < fitDistCuts.max, \
-               'Invalid number of fitting distance cuts {}'.format(fitDistCuts)
-        assert not(discrDistCutsFctr is not None and discrDistCuts is not None), \
-               'Can\'t specify both absolute value and mult. factor for number of discretisation distance cuts'
-        assert discrDistCuts is None or 0 <= discrDistCuts.min < discrDistCuts.max, \
-               'Invalid number of distance discretisation {}'.format(discrDistCuts)
+        if not (fitDistCutsFctr is None or fitDistCuts is None):
+            moreError.append('Can\'t specify both absolute value and mult. factor'
+                             ' for number of discretisation distance cuts')
+        if not (fitDistCuts is None or 2 <= fitDistCuts.min < fitDistCuts.max):
+            moreError.append('Invalid number of fitting distance cuts {}'.format(fitDistCuts))
+        if not (discrDistCutsFctr is None or discrDistCuts is None):
+            moreError.append('Can\'t specify both absolute value and mult. factor'
+                             ' for number of discretisation distance cuts')
+        if not (discrDistCuts is None or 2 <= discrDistCuts.min < discrDistCuts.max):
+            moreError.append('Invalid number of distance discretisation cuts {}'.format(discrDistCuts))
         
         # Build name from main params if not specified
         if name is None:
@@ -278,14 +359,23 @@ class MCDSTruncationOptimisation(DSOptimisation):
                 fields.append(str(cvInterval))
             name = '-'.join(fields)
 
+        # Show and merge errors if any.
+        if moreError:
+            logger.warning('Error while checking optimisation params: ' + str(moreError))
+            if error:
+                error.append(moreError)
+            else:
+                error = moreError
+        
         # Initialise base.
         super().__init__(engine, sampleDataSet, name=name, 
                          executor=executor, customData=customData, error=error,
                          expr2Optimise=expr2Optimise, minimiseExpr=minimiseExpr, **optimCoreOptions)
-        
+                
         # Save / compute params.
         # a. Analysis
         self.logData = logData
+        self.autoClean = autoClean
         self.estimKeyFn = estimKeyFn
         self.estimAdjustFn = estimAdjustFn
         self.estimCriterion = estimCriterion
@@ -324,33 +414,37 @@ class MCDSTruncationOptimisation(DSOptimisation):
         return sResults
 
     # Alias and name / index (in analysis results) of results values available for analysis value computation
+    # And the worst possible value for each, for (bad) default value when not present in results for some reason.
+    # Warning: Don't use np.nan as these worst values : at least zoopt doesn't like it !
     AnlysResultIndex = \
-        dict(chi2=('detection probability', 'chi-square test probability determined', 'Value'),
-             ks=('detection probability', 'Kolmogorov-Smirnov test probability', 'Value'),
-             cvmuw=('detection probability', 'Cramér-von Mises (uniform weighting) test probability', 'Value'),
-             cvmcw=('detection probability', 'Cramér-von Mises (cosine weighting) test probability', 'Value'))
+        dict(chi2=(('detection probability', 'chi-square test probability determined', 'Value'), 0),
+             ks=(('detection probability', 'Kolmogorov-Smirnov test probability', 'Value'), 0),
+             cvmuw=(('detection probability', 'Cramér-von Mises (uniform weighting) test probability', 'Value'), 0),
+             cvmcw=(('detection probability', 'Cramér-von Mises (cosine weighting) test probability', 'Value'), 0))
 
-    @classmethod
-    def _getAnalysisResultIndex(cls, resultName):
-        
-        if resultName in cls.AnlysResultIndex:
-            resInd = cls.AnlysResultIndex[resultName]
-        else:
-            raise NotImplementedError(f'Don\'t know where to find {resultName}')
-        
-        return resInd
+#    @classmethod
+#    def _getAnalysisResultIndex(cls, resultName):
+#        
+#        if resultName in cls.AnlysResultIndex:
+#            resInd = cls.AnlysResultIndex[resultName]
+#        else:
+#            raise NotImplementedError(f'Don\'t know where to find {resultName}')
+#        
+#        return resInd
 
     def _getAnalysisResultValue(self, resultExpr, sResults):
         
-        dLocals = { alias: sResults[name] for alias, name in self.AnlysResultIndex.items() \
-                                          if name in sResults.index.to_list() }
+        dLocals = { alias: sResults.get(name, worst) for alias, (name, worst) in self.AnlysResultIndex.items() }
+                                          
+        logger.debug2('_getAnalysisResultValue: locals={}'.format(dLocals))
+        
         try:
             value = eval(resultExpr, None, dLocals)
+            if np.isnan(value):
+                value = self.invalidFuncValue
         except Exception as exc:
             value = self.invalidFuncValue
             logger.warning('Failed to evaluate {} : {}'.format(resultExpr, exc))
-        
-        logger.debug('_getAnalysisResultValue: {} = {} (locals={})'.format(resultExpr, value, dLocals))
         
         return value
 
@@ -368,8 +462,9 @@ class MCDSTruncationOptimisation(DSOptimisation):
         dNameFlds = dict(l=minDist, r=maxDist, f=fitDistCuts, d=discrDistCuts)
         nameSufx = ''.join(c+str(int(v)) for c, v in dNameFlds.items() if v is not None)
 
-        logger.debug(f'runAnalysis(minDist={minDist}, maxDist={maxDist},' \
-                      'fitDistCuts={fitDistCuts}, discrDistCuts={discrDistCuts}) ...')
+        logger.debug1(f'Running analysis (minDist={minDist}, maxDist={maxDist},' \
+                       'fitDistCuts={fitDistCuts}, discrDistCuts={discrDistCuts}) ...')
+                      
         anlys = MCDSAnalysis(engine=self.engine, sampleDataSet=self.sampleDataSet,
                              name=self.name + '-' + nameSufx, logData=self.logData,
                              estimKeyFn=self.estimKeyFn, estimAdjustFn=self.estimAdjustFn,
@@ -379,14 +474,12 @@ class MCDSTruncationOptimisation(DSOptimisation):
 
         anlys.submit()
         
-        sResults = anlys.getResults(postCleanup=True)
+        sResults = anlys.getResults(postCleanup=self.autoClean)
 
         # Post-process results, and compute analysis values (_the_ values to optimise).
         if anlys.success() or anlys.warnings():
 
             sResults = self._postProcessAnalysisResults(sResults)
-
-            #logger.debug('Analysis results = {}'.format(sResults.to_dict()))
 
             value = self._getAnalysisResultValue(valueExpr, sResults) 
         
@@ -394,7 +487,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
 
             value = self.invalidFuncValue
 
-        #logger.debug(f'=> {valueExpr} = {value}')
+        logger.debug('Analysis result value : {} = {}'.format(valueExpr, value))
 
         return value
     
@@ -437,7 +530,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
     EngineClass = MCDSEngine
         
     @staticmethod
-    def zoopt(a='racos', mxr=4, mxi=100, tv=None):
+    def zoopt(a='racos', mxr=0, mxi=100, tv=None):
     
         """Function for parsing optimisation specs:
         * see optimiser.DSOptimiser._parseOptimCoreUserSpecs)
@@ -461,7 +554,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
             dParms.update(maxIters=mxi)
 
         mxr = max(0, mxr)
-        if mxr != 4: # Default value
+        if mxr != 0: # Default value
             dParms.update(maxRetries=mxr)
             
         if tv is not None: # Default zoopt value
@@ -478,20 +571,20 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
     
     def __init__(self, engine, sampleDataSet, name=None,
                  distanceField='Distance', customData=None,
-                 executor=None, logData=False, error=None,
+                 executor=None, logData=False, autoClean=True, error=None,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=None, maxDist=None, fitDistCutsFctr=None, discrDistCutsFctr=None,
                  fitDistCuts=None, discrDistCuts=None,
                  expr2Optimise='chi2', minimiseExpr=False, 
-                 algorithm='racos', maxRetries=4, maxIters=100, termValue=None): # CoreParamNames !
+                 algorithm='racos', maxRetries=0, maxIters=100, termValue=None): # CoreParamNames !
 
         """Ctor
         Other parameters: See base class
         
         ZOOpt specific parameters:
         :param algorithm: Zeroth Order optimisation algorithm to use (among ['racos', 'poss'])
-        :param maxRetries: Max number of retries on optim. core failure ; default: 4 => 4 retries = 5 tries
+        :param maxRetries: Max number of retries on optim. core failure ; default: 0 => 0 retries = 1 try
         :param maxIters: Number of iterations that stop optimisation algorithm when reached ; default: 0 => no limit
         :param termValue: Value that stops optimisation algorithm when reached ; default: None => no such termination
         """
@@ -499,7 +592,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         # Initialise base.
         super().__init__(engine, sampleDataSet, name=name,
                          distanceField=distanceField, customData=customData,
-                         executor=executor, logData=logData, error=error,
+                         executor=executor, logData=logData, autoClean=autoClean, error=error,
                          estimKeyFn=estimKeyFn, estimAdjustFn=estimAdjustFn,
                          estimCriterion=estimCriterion, cvInterval=cvInterval,
                          minDist=minDist, maxDist=maxDist,
@@ -509,7 +602,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                          algorithm=algorithm, maxRetries=maxRetries, maxIters=maxIters, termValue=termValue)
 
         # Prepare optimisation parameters.
-        self.parameters = odict()
+        self.parameters = dict()
         if self.minDist is not None:
             self.parameters.update(minDist=self.Parameter(name='MinDist', interval=self.minDist,
                                                           continuous=True, ordered=True))
@@ -523,7 +616,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
             self.parameters.update(discrDistCuts=self.Parameter(name='DiscrDistCuts', interval=self.discrDistCuts,
                                                                 continuous=False, ordered=True))
         
-        logger.debug('ZOOptimisation({})'.format(dict(self.parameters)))
+        logger.info('ZOOptimisation({})'.format(self.parameters))
         
         # Columns names for each optimisation result row (see _run).
         self.resultsCols = ['SetupStatus', 'SubmitStatus', self.expr2Optimise] + list(self.parameters.keys())
@@ -539,7 +632,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
 
         self.zooptParams = zoopt.Parameter(algorithm=algorithm, budget=maxIters, terminal_value=termValue)
 
-        # Retry-of-failure stuff
+        # Retry-on-failure stuff
         self.maxRetries = max(maxRetries, 0)
         self.retries = 0 # Just to keep track ...
 
@@ -578,14 +671,14 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         
         """Really do the optimisation work (use the optimisation core for this).
         (this method is called by the executor thread/process that takes it from the submit queue)
-        :return: List of "solutions", each as an odict with target analysis params in the ctor order
+        :return: List of "solutions", each as a dict with target analysis params in the ctor order
                  preceded by { expr2Optimise: analysis value }
         """
         
         # When self.setupError or (submit) error, simply return a well-formed but empty results.
         if self.setupError or error:
-            return [odict(zip(self.resultsCols, 
-                              [self.setupError, error] + [None]*(len(self.resultsCols))))]
+            return [dict(zip(self.resultsCols, 
+                             [self.setupError, error] + [None]*(len(self.resultsCols))))]
             
         # Run the requested optimisations and get the solutions (ignore None).
         solutions = [self._optimize() for _ in range(repeats)]
@@ -596,9 +689,9 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
             solutions = sorted(solutions, key=lambda sol: sol.get_value(), reverse=self.minimiseExpr)[:onlyBest]
         
         # Extract target results.
-        return [odict(zip(self.resultsCols,
-                          [None, None, self.analysisValue(sol.get_value())] \
-                          + sol.get_x())) for sol in solutions]
+        return [dict(zip(self.resultsCols,
+                         [None, None, self.analysisValue(sol.get_value())] \
+                         + sol.get_x())) for sol in solutions]
 
 
 if __name__ == '__main__':

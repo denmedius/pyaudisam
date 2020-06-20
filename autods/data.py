@@ -22,7 +22,7 @@ import pandas as pd
 
 import autods.log as log
 
-logger = log.logger('autods')
+logger = log.logger('ads.dat')
 
 from autods.analysis import DSAnalysis, MCDSAnalysis
 
@@ -558,7 +558,7 @@ class ResultsSet(object):
         :param sCustomHead: Series holding custom cols values, to prepend (left) to each row of sdfResult,
             before appending to the internal table.
         
-          |---- custom heading columns ----|---- real results (from sdfResult) ----|
+          |---- custom heading columns ----|---- real results ---------------------|
           |          |          |          |         |         |         |         |
           |               ...              |                  ...                  |
           |                ( data already there before append)                     |
@@ -583,9 +583,9 @@ class ResultsSet(object):
         if sCustomHead is not None:
             if isinstance(sdfResult, pd.Series):
                 sdfResult = sCustomHead.append(sdfResult)
-            else:
-                sdfResult = pd.concat([pd.DataFrame([sCustomHead]*len(sdfResult)), 
-                                       sdfResult.reset_index(drop=True)], axis='columns')
+            else: # DataFrame
+                dfCustomHead = pd.DataFrame([sCustomHead]*len(sdfResult)).reset_index(drop=True)
+                sdfResult = pd.concat([dfCustomHead, sdfResult], axis='columns')
         
         self._dfData = self._dfData.append(sdfResult, ignore_index=True)
         

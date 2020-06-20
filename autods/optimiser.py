@@ -27,14 +27,14 @@ import pandas as pd
 
 import autods.log as log
 
-logger = log.logger('autods')
+logger = log.logger('ads.opr')
 
 from autods.data import MonoCategoryDataSet, ResultsSet
 from autods.executor import Executor
 from autods.engine import MCDSEngine
 from autods.analyser import DSAnalyser, MCDSAnalyser
-from autods.optimisation import Interval, DSOptimisation, MCDSTruncationOptimisation, \
-                                MCDSZerothOrderTruncationOptimisation
+from autods.optimisation import Interval, Error, DSOptimisation, \
+                                MCDSTruncationOptimisation, MCDSZerothOrderTruncationOptimisation
 
 
 class OptimisationResultsSet(ResultsSet):
@@ -203,54 +203,12 @@ class DSParamsOptimiser(object):
                (IntSpecSubmitParams,     ['sub[a-z]*[\.\-_ ]*par', 'par[a-z]*[\.\-_ ]*sou',
                                           'run[a-z]*[\.\-_ ]*par', 'par[a-z]*[\.\-_ ]*ex'])])
 
-    class InputError(object):
-
-        """Optimisation parameter(s) or input data error"""
-
-        def __init__(self, error=None, head=''):
-            
-            """Ctor
-            
-            Parameters:
-            :param error: string or InputError
-            :error head: string ; ignored if error is an InputError
-            """
-        
-            self.heads = list()
-            self.errors = list()
-            
-            if head or error:
-                self.append(error, head)
-            
-        def append(self, error, head=''):
-        
-            """Append an error to an other
-            
-            Parameters:
-            :param error: string or InputError
-            :error head: string ; ignored if error is an InputError
-            """
-            if isinstance(error, self.__class__):
-                self.heads += error.heads
-                self.errors += error.errors
-            else:
-                self.heads.append(head)
-                self.errors.append(error)
-            
-        def __repr__(self):
-        
-            return ' & '.join(hd + ' : ' + err for hd, err in zip(self.heads, self.errors))
-            
-        def __bool__(self):
-        
-            return any(err for err in self.errors)
-
     # Types for user specs parsing (see usage below)
     Auto = ntuple('Auto', ['none'], defaults=[None])
 
     @classmethod
     def _parseUserSpec(cls, spec, globals=dict(), locals=dict(),
-                       oneStrArg=False, nullOrEmpty=InputError, errIfNotA=[]):
+                       oneStrArg=False, nullOrEmpty=Error, errIfNotA=[]):
                                   
         """Parse parameter(s) user spec with python-like simple expression syntax from given rules 
         
@@ -260,18 +218,18 @@ class DSParamsOptimiser(object):
         :param oneStrArg: assume function call syntax with 1 single string argument
                 (ex: input "f(x,y)" is tranformed to "f('x,y')" before calling eval)
         :param nullOrEmpty: return value for null of empty spec ; not checked against errIfNotA
-            (default: InputError => an instance of InputError with error description inside)
+            (default: Error => an instance of Error with error description inside)
         :param errIfNotA: list of autorised output types ; empty => any type
         
-        :return: a 2-value tuple : (None or an InputError instance, parsed value or None in case of error)
+        :return: a 2-value tuple : (None or an Error instance, parsed value or None in case of error)
         """
     
         # Empty or Null cases
         if pd.isnull(spec) or (isinstance(spec, str) and not spec.strip()):
         
-            if nullOrEmpty is cls.InputError:
+            if nullOrEmpty is Error:
                 parsedValue = None
-                parseError = cls.InputError('Should be specified ; did you mean "auto" ?')
+                parseError = Error('Should be specified ; did you mean "auto" ?')
             else:
                 parsedValue = nullOrEmpty
                 parseError = None
@@ -289,13 +247,13 @@ class DSParamsOptimiser(object):
             parsedValue = eval(spec, globals, locals)
             if errIfNotA and not isinstance(parsedValue, tuple(errIfNotA)):
                 error = 'Not a {}'.format(', '.join(t.__name__ for t in errIfNotA))
-                parseError = cls.InputError(head=spec, error=error)
+                parseError = Error(head=spec, error=error)
                 parsedValue = None
             else:
                 parseError = None
         except Exception as exc:
             parsedValue = None
-            parseError = cls.InputError(head=spec, error=str(exc))
+            parseError = Error(head=spec, error=str(exc))
         
         return parseError, parsedValue
     
@@ -314,7 +272,7 @@ class DSParamsOptimiser(object):
         :param spec: None or np.nan or string spec to parse
         :param errIfNotA: list of autorised output types ; empty => any type
         
-        :return: a 2-value tuple : (None or an InputError instance, parsed value or None in case of error)
+        :return: a 2-value tuple : (None or an Error instance, parsed value or None in case of error)
                  Parsed value may result None or an instance of AbsInterval, MultInterval, OutliersMethod, Auto
         """
 
@@ -341,7 +299,7 @@ class DSParamsOptimiser(object):
 
     @classmethod
     def _parseOptimCoreUserSpecs(cls, spec, globals=dict(), locals=dict(),
-                                 nullOrEmpty=InputError, errIfNotA=[]):
+                                 nullOrEmpty=Error, errIfNotA=[]):
     
         """Parse user spec for optimisation core parameters
         
@@ -350,10 +308,10 @@ class DSParamsOptimiser(object):
         :param globals: dict of globals for rules (we use eval function for parsing !)
         :param locals: dict of locals for rules (we use eval function for parsing !)
         :param nullOrEmpty: return value for null of empty spec ; not checked against errIfNotA
-            (default: InputError => an instance of InputError with error description inside)
+            (default: Error => an instance of Error with error description inside)
         :param errIfNotA: list of autorised output types ; empty => any type
         
-        :return: a 2-value tuple : (None or an InputError instance, parsed value or None in case of error)
+        :return: a 2-value tuple : (None or an Error instance, parsed value or None in case of error)
                  Parsed value may result None or an instance of AbsInterval, MultInterval, OutliersMethod, Auto
         """
 
@@ -385,7 +343,7 @@ class DSParamsOptimiser(object):
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
                            syntax: IntSpecExpr2Optimise => <min|max>(math. expr)
 
-        :return: None or an InputError instance, dict(expr2Optimise=..., minimiseExpr=...) or None
+        :return: None or an Error instance, dict(expr2Optimise=..., minimiseExpr=...) or None
         
         Ex: max(aic), min(1/aic/ks)"""
 
@@ -427,7 +385,7 @@ class DSParamsOptimiser(object):
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
                            syntax: IntSpecExpr2Optimise => <opt. core name>(**{k:v})
                            
-        :return: None or an InputError instance, dict(core=..., **{key:value}) or None
+        :return: None or an Error instance, dict(core=..., **{key:value}) or None
         """
         
         raise NotImplementedError('Abstract class: implement in a derived class')
@@ -443,7 +401,7 @@ class DSParamsOptimiser(object):
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
                            syntax: IntSpecSubmitParams => <rep|repeat>(n=<num>[, kb=<num>])
                            
-        :return: None or an InputError instance, dict(=..., **{k:v}) or None
+        :return: None or an Error instance, dict(=..., **{k:v}) or None
         
         Ex: dict(repeats=, onlyBest=, ...)"""
 
@@ -613,7 +571,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
         
-        :return: a 2-value tuple (None or an InputError instance,
+        :return: a 2-value tuple (None or an Error instance,
                                   dict(estimKeyFn=, estimAdjustFn=, estimCriterion=, cvInterval=) or None)
         """
         
@@ -648,11 +606,14 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     
         """Compute optimisation intervals of an optimisation, from user specs and default parameters
 
+        Some checks for final values are done, may be resulting in an Error.
+        
+        Parameters:
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
                            syntax: sequence of <key>=<value> separated by ','
         :param sSampleDists: sample sightings recorded distances
         
-        :return: a 2-value tuple (None or an InputError instance,
+        :return: a 2-value tuple (None or an Error instance in case any parsing / check failed,
                                   dict(minDist=, maxDist=, fitDistCuts=, discrDistCuts=) or None)
         """
         
@@ -674,8 +635,11 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                                                              self.defOutliersMethod),
                                               errIfNotA=[self.Auto, self.OutliersMethod])
 
+        logger.debug('OptimedParams specs:' + str(dict(minDist=minDistSpec, maxDist=maxDistSpec,
+                                                 fitDistCuts=fitDistCutsSpec, discrDistCuts=discrDistCutsSpec)))
+
         # Stop here if any parsing error.
-        finalErr = self.InputError()
+        finalErr = Error()
         for err in [errMinDist, errMaxDist, errFitDistCuts, errDiscrDistCuts, errOutliersMethod]:
             if err:
                 finalErr.append(err)
@@ -752,12 +716,12 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         if fitDistCutsSpec is None:
             fitDistCuts = None
         elif isinstance(fitDistCutsSpec, self.AbsInterval):
-            fitDistCuts = Interval(min=fitDistCutsSpec.min, max=fitDistCutsSpec.max)
+            fitDistCuts = Interval(min=max(2, fitDistCutsSpec.min), max=fitDistCutsSpec.max)
         elif isinstance(fitDistCutsSpec, self.Auto):
-            fitDistCuts = Interval(min=round(self.defFitDistCutsFctr.min*sqrNSights),
+            fitDistCuts = Interval(min=max(2, round(self.defFitDistCutsFctr.min*sqrNSights)),
                                    max=round(self.defFitDistCutsFctr.max*sqrNSights))
         elif isinstance(fitDistCutsSpec, self.MultInterval):
-            fitDistCuts = Interval(min=round(fitDistCutsSpec.kmin*sqrNSights),
+            fitDistCuts = Interval(min=max(2, round(fitDistCutsSpec.kmin*sqrNSights)),
                                    max=round(fitDistCutsSpec.kmax*sqrNSights))
         else:
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
@@ -767,20 +731,45 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         if discrDistCutsSpec is None:
             discrDistCuts = None
         elif isinstance(discrDistCutsSpec, self.AbsInterval):
-            discrDistCuts = Interval(min=discrDistCutsSpec.min, max=discrDistCutsSpec.max)
+            discrDistCuts = Interval(min=max(2, discrDistCutsSpec.min), max=discrDistCutsSpec.max)
         elif isinstance(discrDistCutsSpec, self.Auto):
-            discrDistCuts = Interval(min=round(self.defDiscrDistCutsFctr.min*sqrNSights),
+            discrDistCuts = Interval(min=max(2, round(self.defDiscrDistCutsFctr.min*sqrNSights)),
                                      max=round(self.defDiscrDistCutsFctr.max*sqrNSights))
         elif isinstance(discrDistCutsSpec, self.MultInterval):
-            discrDistCuts = Interval(min=round(discrDistCutsSpec.kmin*sqrNSights),
+            discrDistCuts = Interval(min=max(2, round(discrDistCutsSpec.kmin*sqrNSights)),
                                      max=round(discrDistCutsSpec.kmax*sqrNSights))
         else:
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
                             'Should not fall there (discrDistCuts specs)')
             
-                                                 
-        return None, dict(minDist=minDist, maxDist=maxDist,
-                          fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
+        # Final checks
+        finalErr = Error()
+        if minDist is not None:
+            msg = minDist.check(order=True, minRange=(0, None), maxRange=(None, sDist.max()))
+            if msg:
+                finalErr.append(head='minDist', error=msg)
+
+        if maxDist is not None:
+            minMax = None if minDist is None else minDist.max
+            msg = maxDist.check(order=True, minRange=(minMax, None), maxRange=(None, sDist.max()))
+            if msg:
+                finalErr.append(head='maxDist', error=msg)
+
+        if fitDistCuts is not None:
+            msg = fitDistCuts.check(order=True, minRange=(2, None))
+            if msg:
+                finalErr.append(head='fitDistCuts', error=msg)
+
+        if discrDistCuts is not None:
+            msg = discrDistCuts.check(order=True, minRange=(2, None))
+            if msg:
+                finalErr.append(head='discrDistCuts', error=msg)
+
+        logger.debug('OptimedParams:' + str(dict(minDist=minDist, maxDist=maxDist,
+                                                 fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)))
+
+        return finalErr or None, dict(minDist=minDist, maxDist=maxDist,
+                                      fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
 
     # Supported optimisation classes (=> engines = cores) (see submodule optimisation)
     OptimisationClasses = [MCDSZerothOrderTruncationOptimisation] #, MCDSGridBruteTruncationOptimisation]
@@ -794,7 +783,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
                            syntax: sequence of <key>=<value> separated by ','
                            
-        :return: None or an InputError instance, dict(core=..., **{key:value}) or None
+        :return: None or an Error instance, dict(core=..., **{key:value}) or None
         """
         
         # Parse optimisation core params in sAnIntSpec if present.
@@ -825,15 +814,14 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
         :param sSampleDists: sample sightings recorded distances
        
-        :return: a 2-value tuple (None or an InputError instance,
+        :return: a 2-value tuple (None or an Error instance,
                           dict(minDist=, maxDist=, fitDistCuts=, discrDistCuts=) or None)
 
         """
-    
-        dFinalParms = dict()
-        finalError = self.InputError()
-    
+        
         # Get params from each of these sets.
+        dFinalParms = dict()
+        finalError = Error()
         for err, dParms in [self.getAnalysisFixedParams(sAnIntSpec),
                             self.getAnalysisOptimExprParams(sAnIntSpec),
                             self.getAnalysisOptimedParams(sAnIntSpec, sSampleDists),
@@ -845,9 +833,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
         # Any error => empty output params
         if finalError:
-            logger.warning('Error(s) parsing setup params specs: {}'.format(finalError))
-            dFinalParms = {}
-        
+            logger.warning('Error(s) while parsing and computing setup params specs: {}'.format(finalError))
+         
         return finalError, dFinalParms
         
     def setupOptimisation(self, sampleDataSet, name=None, customData=None, error=None,
@@ -860,14 +847,15 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         """Factory method for MCDSXXXTruncationOptimisation classes"""
 
         # Search for optimisation class from core name dCoreParams['core']
+        # (default to 'zoopt' in case of any error parsing optim core params)
         try:
             OptimionClass = next(iter(cls for cls in self.OptimisationClasses
-                                          if cls.CoreName == dCoreParams['core']))
+                                          if cls.CoreName == dCoreParams.get('core', 'zoopt')))
         except StopIteration:
             raise NotImplementedError('No such optimisation core "{}" in house'.format(optimCore))
         
         # Check core params.
-        invalidParams = [k for k in dCoreParams if k != 'core' and k not in OptimionClass.CoreParamNames ]
+        invalidParams = [k for k in dCoreParams if k != 'core' and k not in OptimionClass.CoreParamNames]
         assert not invalidParams, \
                'No such parameter(s) {} for {} ctor'.format(','.join(invalidParams), OptimionClass.__name__)
 
@@ -875,15 +863,17 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         dOtherOptimParms = { k: v for k, v in dCoreParams.items() if k in OptimionClass.CoreParamNames }
         
         # Instanciate optimisation.
-        return OptimionClass(self._engine, sampleDataSet, name=name,
-                             customData=customData, error=error,
-                             executor=self._executor, logData=self.logData,
-                             estimKeyFn=estimKeyFn, estimAdjustFn=estimAdjustFn,
-                             estimCriterion=estimCriterion, cvInterval=cvInterval,
-                             minDist=minDist, maxDist=maxDist,
-                             fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts,
-                             expr2Optimise=expr2Optimise, minimiseExpr=minimiseExpr,
-                             **dOtherOptimParms)
+        optimion = OptimionClass(self._engine, sampleDataSet, name=name,
+                                 customData=customData, error=error,
+                                 executor=self._executor, logData=self.logData,
+                                 estimKeyFn=estimKeyFn, estimAdjustFn=estimAdjustFn,
+                                 estimCriterion=estimCriterion, cvInterval=cvInterval,
+                                 minDist=minDist, maxDist=maxDist,
+                                 fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts,
+                                 expr2Optimise=expr2Optimise, minimiseExpr=minimiseExpr,
+                                 **dOtherOptimParms)
+                                 
+        return optimion
                           
     def setupResults(self):
     
@@ -1005,7 +995,10 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             
             # Next analysis (loop).
 
-        logger.info('All optimisations started ; now waiting for their end, and results ...')
+        if self._executor.isParallel():
+            logger.info('All optimisations started; now waiting for their end, and results ...')
+        else:
+            logger.info('All optimisations done; now collecting their results ...')
 
         # Wait for and gather results of all analyses.
         results = self._getResults(dOptims)
@@ -1046,7 +1039,7 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                        defFitDistCutsFctr=Interval(min=2/3, max=3/2),
                        defDiscrDistCutsFctr=Interval(min=1/3, max=1),
                        defSubmitRepeats=1, defSubmitOnlyBest=None,
-                       defCoreAlgorithm='racos', defCoreMaxRetries=4, defCoreMaxIters=100, defCoreTermValue=None):
+                       defCoreAlgorithm='racos', defCoreMaxRetries=0, defCoreMaxIters=100, defCoreTermValue=None):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
