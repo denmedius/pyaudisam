@@ -25,7 +25,7 @@ import pandas as pd
 
 import autods.log as log
 
-logger = log.logger('autods')
+logger = log.logger('ads.eng', level=log.INFO, handlers=[sys.stdout]) # Initial config (can be changed later)
 
 from autods.executor import Executor
 
@@ -64,7 +64,7 @@ class DSEngine(object):
             for path in DSEngine.DistancePossInstPaths:
                 exeFN = path / 'Distance {}'.format(ver) / exeFileName
                 if not exeFN.exists():
-                    logger.debug('  Checking {} : No,'.format(exeFN))
+                    logger.debug1('  Checking {} : No,'.format(exeFN))
                 else:
                     logger.info('Found {} here: {}.'.format(exeFileName, exeFN))
                     exeFilePathName = exeFN
@@ -134,12 +134,12 @@ class DSEngine(object):
         matFields = list()
         matDecFields = list()
         for tgtField in tgtAliasREs:
-            logger.debug(' * ' + tgtField + ':')
+            logger.debug1(' * ' + tgtField + ':')
             foundTgtField = False
             for srcField in srcFields:
                 for pat in tgtAliasREs[tgtField]:
                     if re.search(pat, srcField, flags=re.IGNORECASE):
-                        logger.debug('  . ' + srcField)
+                        logger.debug2('  . ' + srcField)
                         matFields.append(srcField)
                         if tgtField in cls.DecimalFields:
                             matDecFields.append(srcField)
@@ -240,7 +240,7 @@ class MCDSEngine(DSEngine):
         
         # Output stats row specifications
         fileName = KInstDirPath / 'mcds/stat-row-specs.txt'
-        logger.debug('* {}'.format(fileName))
+        logger.debug1('* {}'.format(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatRowSpecs:
             statRowSpecLines = [line.rstrip('\n') for line in fStatRowSpecs.readlines() if not line.startswith('#')]
             statRowSpecs =  [(statRowSpecLines[i].strip(), statRowSpecLines[i+1].strip()) \
@@ -251,7 +251,7 @@ class MCDSEngine(DSEngine):
         
         # Module and stats number to description table
         fileName = KInstDirPath / 'mcds/stat-mod-specs.txt'
-        logger.debug('* {}'.format(fileName))
+        logger.debug1('* {}'.format(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatModSpecs:
             statModSpecLines = [line.rstrip('\n') for line in fStatModSpecs.readlines() if not line.startswith('#')]
             reModSpecNumName = re.compile('(.+) – (.+)')
@@ -302,7 +302,7 @@ class MCDSEngine(DSEngine):
     
         # Notes about stats.
         fileName = KInstDirPath / 'mcds/stat-mod-notes.txt'
-        logger.debug('* {}'.format(fileName))
+        logger.debug1('* {}'.format(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatModNotes:
             statModNoteLines = [line.rstrip('\n') for line in fStatModNotes.readlines() if not line.startswith('#')]
             statModNotes =  [(int(line[:2]), line[2:].strip()) for line in statModNoteLines if line]
@@ -311,7 +311,7 @@ class MCDSEngine(DSEngine):
             
         # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
         fileName = KInstDirPath / 'mcds/stat-mod-trans.txt'
-        logger.debug('* {}'.format(fileName))
+        logger.debug1('* {}'.format(fileName))
         cls.DfStatModColsTrans = pd.read_csv(fileName, sep='\t')
         cls.DfStatModColsTrans.set_index(['Module', 'Statistic', 'Figure'], inplace=True)
         
@@ -532,14 +532,14 @@ class MCDSEngine(DSEngine):
         else:
             extraFields.clear()
         
-        logger.debug('Final data columns export order: ' + str(exportFields))
+        logger.debug2('Final data columns export order: ' + str(exportFields))
         
         # Put columns in the right order (first data fields ... first, in the same order)
         dfExport = sampleDataSet.dfData[exportFields].copy()
 
         # Prepare safe export of decimal data with may be some NaNs
         allDecFields = set(matchDecFields + sampleDataSet.decimalFields).intersection(exportFields)
-        logger.debug('Decimal columns: ' + str(allDecFields))
+        logger.debug2('Decimal columns: ' + str(allDecFields))
         for field in allDecFields:
             dfExport[field] = dfExport[field].apply(self.safeFloat2Str, decPt=decPoint)
                 
@@ -602,14 +602,14 @@ class MCDSEngine(DSEngine):
         # Call executable (no " around cmdFile, don't forget the space after ',', ...)
         cmd = '"{}" 0, {}'.format(self.ExeFilePathName, cmdFileName)
         if realRun:
-            logger.info('Running MCDS: ' + cmd)
+            logger.info1('Running MCDS: ' + cmd)
             runTime = pd.Timestamp.now()
             runStatus = os.system(cmd)
-            logger.info('Run MCDS : status = ' + str(runStatus))
+            logger.info2('Run MCDS : status = ' + str(runStatus))
             
         # ... unless specified not to (input files generated, but no execution).
         else:
-            logger.info('Not running MCDS : ' + cmd)
+            logger.info1('Not running MCDS : ' + cmd)
             runTime = pd.NaT
             runStatus = self.RCNotRun
             

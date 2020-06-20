@@ -29,7 +29,7 @@ import matplotlib.ticker as pltt
 
 import autods.log as log
 
-logger = log.logger('autods')
+logger = log.logger('ads.rep')
 
 # Actual package install dir.
 KInstDirPath = pl.Path(__file__).parent.resolve()

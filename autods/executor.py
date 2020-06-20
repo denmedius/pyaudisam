@@ -12,7 +12,7 @@ import concurrent.futures as cofu
 
 import autods.log as log
 
-logger = log.logger('autods')
+logger = log.logger('ads.exr')
 
 
 class ImmediateFuture(object):
@@ -91,7 +91,11 @@ class Executor(object):
             if self.TheSeqExor is None:
                 self.TheSeqExor = SequentialExecutor()
             self.realExor = self.TheSeqExor
-            
+    
+    def isParallel(self):
+    
+        return self.realExor is not self.TheSeqExor
+    
     def submit(self, func, *args, **kwargs):
     
         assert self.realExor is not None, 'Can\'t submit after shutdown'

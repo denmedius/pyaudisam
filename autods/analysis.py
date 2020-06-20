@@ -21,7 +21,7 @@ import pandas as pd
 
 import autods.log as log
 
-logger = log.logger('autods')
+logger = log.logger('ads.ans')
 
 #import engine as adse # Bad: double import of 'engine' averall.
 from autods.engine import DSEngine, MCDSEngine # Good

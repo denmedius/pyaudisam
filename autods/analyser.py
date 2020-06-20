@@ -27,7 +27,7 @@ import pandas as pd
 
 import autods.log as log
 
-logger = log.logger('autods')
+logger = log.logger('ads.anr')
 
 from autods.data import MonoCategoryDataSet, ResultsSet
 from autods.executor import Executor

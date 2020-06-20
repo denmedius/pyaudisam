@@ -7,7 +7,7 @@
 
 import sys
 import logging
-from logging import DEBUG, INFO
+from logging import NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 
 # Define new logging levels.
@@ -72,8 +72,8 @@ class Logger(logging.Logger):
 
 logging.setLoggerClass(Logger)
 
-def logger(name, level=logging.ERROR, handlers=[sys.stdout], fileMode='w',
-           format='%(asctime)s %(name)s %(levelname)s\t%(message)s', verbose=False):
+def logger(name, level=NOTSET, handlers=None, fileMode='w', verbose=False,
+           format='%(asctime)s %(name)s %(levelname)s\t%(message)s'):
 
     """ Create and setup the logger with given name.
     
@@ -83,6 +83,7 @@ def logger(name, level=logging.ERROR, handlers=[sys.stdout], fileMode='w',
     :param handlers: a list of "handler specs" ; according to type,
         * str: logging.FileHandler for given file path-name
         * otherwise: StreamHandler (for sys.stdout and so on)
+        * None or empty list => inherited from parent logger
     :param fileMode: see logging.FileHandler ctor
     :param format: see logging.Handler.setFormatter
     :param verbose: if True, write a first INFO msg to the handlers' targets
@@ -90,35 +91,35 @@ def logger(name, level=logging.ERROR, handlers=[sys.stdout], fileMode='w',
     
     # Create / get logger.
     logr = logging.getLogger(name)
-#    if not isinstance(logger, Logger):
-#        for i in range(5):
-#            logr.setattr('debug'+str(i), logr.debug)
-#            logr.setattr('info'+str(i), logr.info)
     
     # Cleanup any default handler if any
     # (ex: jupyter does some logging initialisation itself ...)
     while logr.handlers:
         logr.removeHandler(logr.handlers[-1])
 
-    # Set new handlers
-    formatter = logging.Formatter(format)
-    
     # Setup new handlers
-    for hdlr in handlers:
-        if isinstance(hdlr, str):
-            handler = logging.FileHandler(hdlr, mode=fileMode)
-        else:
-            handler = logging.StreamHandler(stream=hdlr)
-        handler.setFormatter(formatter)
-        logr.addHandler(handler)
+    if handlers:
+    
+        formatter = logging.Formatter(format)
+        for hdlr in handlers:
+            if isinstance(hdlr, str):
+                handler = logging.FileHandler(hdlr, mode=fileMode)
+            else:
+                handler = logging.StreamHandler(stream=hdlr)
+            handler.setFormatter(formatter)
+            logr.addHandler(handler)
     
     # Verbose mode trace message
     if verbose:
         logr.setLevel(INFO)
-        def handlerId(hdlr):
-            return 'File({})'.format(hdlr) if isinstance(hdlr, str) \
-                   else 'Stream({})'.format(hdlr.name)
-        logr.info('Logging to {}.'.format(', '.join(handlerId(hdlr) for hdlr in handlers)))
+        if handlers:
+            def handlerId(hdlr):
+                return 'File({})'.format(hdlr) if isinstance(hdlr, str) \
+                    else 'Stream({})'.format(hdlr.name)
+            tgtHdlrs = ', '.join(handlerId(hdlr) for hdlr in handlers)
+        else:
+            tgtHdlrs = 'parent handlers'
+        logr.info('Logging to {}.'.format(tgtHdlrs))
 
     # Set level
     logr.setLevel(level)
