@@ -188,6 +188,9 @@ class DSOptimisation(object):
     def _run(self, repeats=1, onlyBest=None, *args, **kwargs):
         
         """Really do the optimisation work : run the optimiser for this
+        (this method is called by the executor thread/process that takes it from the submit queue)
+
+        Parameters:
         :param repeats: Number of times to repeat the optimisation
         :param onlyBest: When repeating, number of best optimisations to retain (default = repeats)
         :param *args, **kwargs: other _run params
@@ -619,7 +622,8 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         logger.info('ZOOptimisation({})'.format(self.parameters))
         
         # Columns names for each optimisation result row (see _run).
-        self.resultsCols = ['SetupStatus', 'SubmitStatus', self.expr2Optimise] + list(self.parameters.keys())
+        self.resultsCols = \
+            ['SetupStatus', 'SubmitStatus', 'NFunEvals'] + list(self.parameters.keys()) + [self.expr2Optimise]
         
         # zoopt optimiser initialisation.
         self.zooptDims = \
@@ -648,15 +652,20 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         # Run analysis and get value.
         anlysValue = self._runOneAnalysis(valueExpr=self.expr2Optimise, **params)
         
+        # One more function evaluated.
+        self.nFunEvals += 1
+
         # Compute function value from analysis value.
         return self.functionValue(anlysValue)
     
     def _optimize(self):
 
+        # Run the optimiser (for as many retries as requested in case of it fails)
         nTriesLeft = maxTries = self.maxRetries + 1
         while True:
             try:
                 return zoopt.Opt.min(self.zooptObjtv, self.zooptParams)
+                # Done !
             except Exception as exc:
                 nTriesLeft -= 1
                 if nTriesLeft > 0:
@@ -675,10 +684,13 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                  preceded by { expr2Optimise: analysis value }
         """
         
+        # Number of evaluations of function to optimise.
+        self.nFunEvals = 0
+      
         # When self.setupError or (submit) error, simply return a well-formed but empty results.
         if self.setupError or error:
             return [dict(zip(self.resultsCols, 
-                             [self.setupError, error] + [None]*(len(self.resultsCols))))]
+                             [self.setupError, error, self.nFunEvals] + [None]*(len(self.resultsCols) - 3)))]
             
         # Run the requested optimisations and get the solutions (ignore None).
         solutions = [self._optimize() for _ in range(repeats)]
@@ -689,9 +701,10 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
             solutions = sorted(solutions, key=lambda sol: sol.get_value(), reverse=self.minimiseExpr)[:onlyBest]
         
         # Extract target results.
+        nMeanFunEvals = round(self.nFunEvals / len(solutions))
         return [dict(zip(self.resultsCols,
-                         [None, None, self.analysisValue(sol.get_value())] \
-                         + sol.get_x())) for sol in solutions]
+                         [None, None, nMeanFunEvals] + sol.get_x() + [self.analysisValue(sol.get_value())]))
+                for sol in solutions]
 
 
 if __name__ == '__main__':

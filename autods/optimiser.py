@@ -877,7 +877,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                           
     def setupResults(self):
     
-        """Build an empty results objects (candidate for specialisation if needed).
+        """Build an empty results objects (candidate for specialisation if needed, or from disk loading).
         """
     
         customCols = self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] \
