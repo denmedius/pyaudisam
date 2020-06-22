@@ -8,12 +8,12 @@
 
 # Warning: Only MCDS engine, and Point Transect analyses supported for the moment
 
-# Require:
-#  python 3.7
-#  pandas 0.25
+# Requirements:
+#  python 3.8+
+#  pandas 0.25+
 #  matplotlib 3.1
 #  jinja2
-#  zoopt
+#  zoopt 4.0+
 #  ... to be completed.
 
 # Module version

@@ -253,7 +253,7 @@ class FieldDataSet(DataSet):
         
 
 # A tabular data set for producing on-demand sample data sets from "mono-category sightings data"
-# * Input support provided for pandas.DataFrame (from FirldDataSet.indivulaise/monoCategorise),
+# * Input support provided for pandas.DataFrame (from FieldDataSet.indivulaise/monoCategorise),
 #   Excel .xlsx file, tab-separated .csv/.txt files, and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
 class MonoCategoryDataSet(DataSet):
 
@@ -713,13 +713,15 @@ class ResultsSet(object):
         dfOutData.to_excel(fileName, sheet_name=sheetName or 'AllResults', engine=engine)
 
     # Save data to an Open Document worksheet (ODS format).
-    # Warning: Not yet implements as of pandas 0.25.3
+    # Warning: Not yet implements as of pandas 0.25.3 ; 
+    # News: well advanced, expected for Pandas 1.1, https://github.com/pandas-dev/pandas/issues/27222
     def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None):
         
-        return self.toExcel(fileName, sheetName, lang, subset, engine='odf')
+        raise NotImplementedError('toOpenDoc: expected for pandas 1.1 as of June, 2020')
+        #return self.toExcel(fileName, sheetName, lang, subset, engine='odf')
 
     # Load (overwrite) data from an Excel worksheet (XLSX format),
-    # assuming ctor params match with ODF sheet column names and list,
+    # assuming ctor params match with Excel sheet column names and list,
     # which can well be ensured by using the same ctor params as used for saving !
     def fromExcel(self, fileName, sheetName=None):
         
