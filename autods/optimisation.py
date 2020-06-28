@@ -185,14 +185,14 @@ class DSOptimisation(object):
         self.minimiseExpr = minimiseExpr
         self.optimCoreOptions = optimCoreOptions
         
-    def _run(self, repeats=1, onlyBest=None, *args, **kwargs):
+    def _run(self, repeats=0, onlyBest=None, *args, **kwargs):
         
         """Really do the optimisation work : run the optimiser for this
         (this method is called by the executor thread/process that takes it from the submit queue)
 
         Parameters:
-        :param repeats: Number of times to repeat the optimisation
-        :param onlyBest: When repeating, number of best optimisations to retain (default = repeats)
+        :param repeats: Number of times to repeat the optimisation (default = 0 = only 1 run)
+        :param onlyBest: When repeating, number of best optimisations to retain (default = all runs)
         :param *args, **kwargs: other _run params
         :return: List of "solutions", each as a dict with target analysis params in the ctor order
                  and then { expr2Optimise: analysis value }
@@ -200,12 +200,12 @@ class DSOptimisation(object):
 
         raise NotImplementedError('DSOptimisation is an abstract class : implement _run in a derived class')
     
-    def submit(self, repeats=1, onlyBest=None, error=None, *args, **kwargs):
+    def submit(self, repeats=0, onlyBest=None, error=None, *args, **kwargs):
     
         """Submit the optimisation, to run it possibly in parallel with others (through self.executor)
         
-        :param repeats: Number of auto-repetitions of each optimisation (default 1 = no repetition)
-        :param onlyBest: Number of best repetition results to keep (default None = all repetitions)
+        :param repeats: Number of auto-repetitions of each optimisation (default 0 = no repetition = only 1 run)
+        :param onlyBest: Number of best run results to keep (default None = all runs)
         :param error: if an error occurred somewhere before since construction, a string explaining it
                       in order to prevent real submission, but still for keeping trace
                       of unrun optimisations in optimiser results table :
@@ -226,8 +226,12 @@ class DSOptimisation(object):
         
         Inverse of functionValue (functionValue(analysisValue(x)) = x).
         """
-    
-        return anlysValue if self.minimiseExpr else -anlysValue 
+        if pd.isnull(anlysValue):
+            funcValue = None
+        else:
+            funcValue = anlysValue if self.minimiseExpr else -anlysValue
+            
+        return funcValue
     
     def analysisValue(self, fnValue):
     
@@ -267,7 +271,6 @@ class MCDSTruncationOptimisation(DSOptimisation):
         
         Parameters (see base class, specific ones only here):
         :param distanceField: Name of distance data column in sampleDataSet table
-        :param autoClean: if True, cleanup MCDS produced files after collecting each analysis results
         :param error: a string for explaining any pre-init error that'll prevent the optimisation from running,
                       but will keep producing results (null of course) ;
                       this is done for keeping trace of unrun optimisations in results table (1 empty/null row).
@@ -337,9 +340,9 @@ class MCDSTruncationOptimisation(DSOptimisation):
             moreError.append('Max left truncation distance {} must be lower than min right one {}'
                              .format(minDist.max, maxDist.min))
         
-        if not (fitDistCutsFctr is None or 2 <= fitDistCutsFctr.min < fitDistCutsFctr.max):
+        if not (fitDistCutsFctr is None or 0 <= fitDistCutsFctr.min < fitDistCutsFctr.max):
             moreError.append('Invalid mult. factor for number of fitting distance cuts {}'.format(fitDistCutsFctr))
-        if not (discrDistCutsFctr is None or 2 <= discrDistCutsFctr.min < discrDistCutsFctr.max):
+        if not (discrDistCutsFctr is None or 0 <= discrDistCutsFctr.min < discrDistCutsFctr.max):
             moreError.append('Invalid mult. factor number for distance discretisation cuts {}'.format(discrDistCutsFctr))
         
         if not (fitDistCutsFctr is None or fitDistCuts is None):
@@ -364,7 +367,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
 
         # Show and merge errors if any.
         if moreError:
-            logger.warning('Error while checking optimisation params: ' + str(moreError))
+            logger.error('Check failed for optimisation params: ' + str(moreError))
             if error:
                 error.append(moreError)
             else:
@@ -390,16 +393,16 @@ class MCDSTruncationOptimisation(DSOptimisation):
         if fitDistCutsFctr is not None or discrDistCutsFctr is not None:
             sqrtNbSights = np.sqrt(len(sampleDataSet.dfData[distanceField].dropna()))
         if fitDistCutsFctr is not None:
-            self.fitDistCuts = Interval(min=round(fitDistCutsFctr.min*sqrtNbSights),
-                                        max=round(fitDistCutsFctr.max*sqrtNbSights))
+            self.fitDistCuts = Interval(min=int(round(fitDistCutsFctr.min*sqrtNbSights)),
+                                        max=int(round(fitDistCutsFctr.max*sqrtNbSights)))
         else:
             self.fitDistCuts = fitDistCuts
         if discrDistCutsFctr is not None:
-            self.discrDistCuts = Interval(min=round(discrDistCutsFctr.min*sqrtNbSights),
-                                          max=round(discrDistCutsFctr.max*sqrtNbSights))
+            self.discrDistCuts = Interval(min=int(round(discrDistCutsFctr.min*sqrtNbSights)),
+                                          max=int(round(discrDistCutsFctr.max*sqrtNbSights)))
         else:
             self.discrDistCuts = discrDistCuts
-
+            
         # Other optimisation stuff.
         fltSup = float('inf') # sys.float_info.max
         self.invalidFuncValue = fltSup if minimiseExpr else -fltSup
@@ -533,40 +536,40 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
     EngineClass = MCDSEngine
         
     @staticmethod
-    def zoopt(a='racos', mxr=0, mxi=100, tv=None):
+    def zoopt(mxi=100, tv=None, a='racos', mxr=0):
     
         """Function for parsing optimisation specs:
         * see optimiser.DSOptimiser._parseOptimCoreUserSpecs)
         * see zoopt module for details
         
         Parameters:
+        :param mxi: max nb of iterations; default 100; 0 => no limit => use terminal value
+        :param tv: terminal value; default None = no terminal value check
         :param a: algorithm to use: 'racos' (RACOS (AAAI'16) and Sequential RACOS (AAAI'17))
                                     or 'poss' (Pareto Optimisation Subset Selection (NIPS'15))
         :param mxr: max nb of retries on zoopt.Opt.min (exception); <= 0 => no retry
-        :param mxi: max nb of iterations; default 100; 0 => no limit => use terminal value
-        :param tv: terminal value
         """
     
         dParms = dict(core='zoopt')
         
-        if a != 'racos': # Default zoopt value
-            dParms.update(algorithm=a)
-            
         mxi = max(0, mxi)
         if mxi != 0: # Default zoopt value
             dParms.update(maxIters=mxi)
 
+        if tv is not None: # Default zoopt value
+            dParms.update(termExprValue=tv)
+            
+        if a != 'racos': # Default zoopt value
+            dParms.update(algorithm=a)
+            
         mxr = max(0, mxr)
         if mxr != 0: # Default value
             dParms.update(maxRetries=mxr)
             
-        if tv is not None: # Default zoopt value
-            dParms.update(termValue=tv)
-            
         return dParms
 
     CoreName = 'zoopt'
-    CoreParamNames = ['algorithm', 'maxRetries', 'maxIters', 'termValue']
+    CoreParamNames = ['maxIters', 'termExprValue', 'algorithm', 'maxRetries']
     CoreUserSpecParser = zoopt
     
     Parameter = ntuple('Parameter', ['name', 'interval', 'continuous', 'ordered'],
@@ -580,16 +583,18 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                  minDist=None, maxDist=None, fitDistCutsFctr=None, discrDistCutsFctr=None,
                  fitDistCuts=None, discrDistCuts=None,
                  expr2Optimise='chi2', minimiseExpr=False, 
-                 algorithm='racos', maxRetries=0, maxIters=100, termValue=None): # CoreParamNames !
+                 maxIters=100, termExprValue=None, algorithm='racos', maxRetries=0): # CoreParamNames !
 
         """Ctor
         Other parameters: See base class
         
         ZOOpt specific parameters:
-        :param algorithm: Zeroth Order optimisation algorithm to use (among ['racos', 'poss'])
+        :param algorithm: Zeroth Order optimisation algorithm to use (only 'racos' is suitable here, 'poss' is not, don't use))
         :param maxRetries: Max number of retries on optim. core failure ; default: 0 => 0 retries = 1 try
         :param maxIters: Number of iterations that stop optimisation algorithm when reached ; default: 0 => no limit
-        :param termValue: Value that stops optimisation algorithm when reached ; default: None => no such termination
+        :param termExprValue: Value that stops optimisation algorithm when exceeded ; default: None => no such check done
+                          Note: when minimising, "exceeded" means that the function value becomes <= that termExprValue,
+                                and the other way round when maximising.
         """
         
         # Initialise base.
@@ -602,7 +607,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                          fitDistCutsFctr=fitDistCutsFctr, discrDistCutsFctr=discrDistCutsFctr,
                          fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts,
                          expr2Optimise=expr2Optimise, minimiseExpr=minimiseExpr,
-                         algorithm=algorithm, maxRetries=maxRetries, maxIters=maxIters, termValue=termValue)
+                         maxIters=maxIters, termExprValue=termExprValue, algorithm=algorithm, maxRetries=maxRetries)
 
         # Prepare optimisation parameters.
         self.parameters = dict()
@@ -634,7 +639,8 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
 
         self.zooptObjtv = zoopt.Objective(func=self._function, dim=self.zooptDims)
 
-        self.zooptParams = zoopt.Parameter(algorithm=algorithm, budget=maxIters, terminal_value=termValue)
+        self.zooptParams = zoopt.Parameter(budget=maxIters, algorithm=algorithm,
+                                           terminal_value=self.functionValue(termExprValue))
 
         # Retry-on-failure stuff
         self.maxRetries = max(maxRetries, 0)
@@ -676,7 +682,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                     logger.warning('zoopt.Opt.min failed after #{} tries on {}'.format(maxTries, exc))
                     return None #raise
 
-    def _run(self, repeats=1, onlyBest=None, error=None, *args, **kwargs):
+    def _run(self, repeats=0, onlyBest=None, error=None, *args, **kwargs):
         
         """Really do the optimisation work (use the optimisation core for this).
         (this method is called by the executor thread/process that takes it from the submit queue)
@@ -693,15 +699,18 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                              [self.setupError, error, self.nFunEvals] + [None]*(len(self.resultsCols) - 3)))]
             
         # Run the requested optimisations and get the solutions (ignore None).
-        solutions = [self._optimize() for _ in range(repeats)]
+        solutions = [self._optimize() for _ in range(repeats+1)]
         solutions = [sol for sol in solutions if sol is not None]
         
         # Keep only best solutions if requested.
         if onlyBest is not None and len(solutions) >= onlyBest:
             solutions = sorted(solutions, key=lambda sol: sol.get_value(), reverse=self.minimiseExpr)[:onlyBest]
         
-        # Extract target results.
-        nMeanFunEvals = round(self.nFunEvals / len(solutions))
+        # Extract target results if any.
+        if not solutions:
+            return []
+        
+        nMeanFunEvals = int(round(self.nFunEvals / len(solutions)))
         return [dict(zip(self.resultsCols,
                          [None, None, nMeanFunEvals] + sol.get_x() + [self.analysisValue(sol.get_value())]))
                 for sol in solutions]

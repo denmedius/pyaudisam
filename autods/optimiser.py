@@ -107,7 +107,7 @@ class DSParamsOptimiser(object):
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        abbrevCol='AnlysAbbrev', workDir='.',
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
-                       defSubmitRepeats=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
+                       defSubmitRepeats=0, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
                        dDefOptimCoreParams=dict()):
                        
         """Ctor (don't use directly, abstract class)
@@ -140,7 +140,7 @@ class DSParamsOptimiser(object):
 
         Parameters for optimisation submissions
             (when not fully specified in each optimisation parameters):
-        :param defSubmitRepeats: Number of auto-repetitions of each optimisation (default 1 = no repetition)
+        :param defSubmitRepeats: Number of auto-repetitions of each optimisation (default 0 = no repetition = 1 run)
         :param defSubmitOnlyBest: Number of best repetition results to keep (default None = all repetitions)
         :param dDefSubmitOtherParams: Other submission parameters
 
@@ -380,7 +380,7 @@ class DSParamsOptimiser(object):
 
         """Retrieve optimisation core parameters, from user specs and default values.
         
-        Ex: zoopt(a=racos, mxr=2, mxi=0, tv=1)
+        Ex: zoopt(mxi=50, tv=1, a=racos, mxr=2)
 
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
                            syntax: IntSpecExpr2Optimise => <opt. core name>(**{k:v})
@@ -416,6 +416,8 @@ class DSParamsOptimiser(object):
                 
             # Parse
             def repeat(n, b=None):
+                assert n >= 0, 'Repeat times must be >= 0'
+                assert b is None or b > 0, 'Number of best kept values must be > 0'
                 return _buildParsedValue(n, b)
 
             parseError, parsedValue = \
@@ -480,14 +482,14 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       abbrevCol='AnlysAbbrev', workDir='.', logData=False,
+                       abbrevCol='AnlysAbbrev', workDir='.', logData=False, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
                        defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
                        defFitDistCutsFctr=dict(min=2/3, max=3/2),
                        defDiscrDistCutsFctr=dict(min=1/3, max=1),
-                       defSubmitRepeats=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
+                       defSubmitRepeats=0, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
                        dDefOptimCoreParams=dict()):
 
         """Ctor (don't use directly, abstract class)
@@ -526,6 +528,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         self.clustering = clustering
         
         self.logData = logData
+        self.autoClean = autoClean
         
         self.defEstimKeyFn = defEstimKeyFn
         self.defEstimAdjustFn = defEstimAdjustFn
@@ -718,11 +721,11 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         elif isinstance(fitDistCutsSpec, self.AbsInterval):
             fitDistCuts = Interval(min=max(2, fitDistCutsSpec.min), max=fitDistCutsSpec.max)
         elif isinstance(fitDistCutsSpec, self.Auto):
-            fitDistCuts = Interval(min=max(2, round(self.defFitDistCutsFctr.min*sqrNSights)),
-                                   max=round(self.defFitDistCutsFctr.max*sqrNSights))
+            fitDistCuts = Interval(min=max(2, int(round(self.defFitDistCutsFctr.min*sqrNSights))),
+                                   max=int(round(self.defFitDistCutsFctr.max*sqrNSights)))
         elif isinstance(fitDistCutsSpec, self.MultInterval):
-            fitDistCuts = Interval(min=max(2, round(fitDistCutsSpec.kmin*sqrNSights)),
-                                   max=round(fitDistCutsSpec.kmax*sqrNSights))
+            fitDistCuts = Interval(min=max(2, int(round(fitDistCutsSpec.kmin*sqrNSights))),
+                                   max=int(round(fitDistCutsSpec.kmax*sqrNSights)))
         else:
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
                             'Should not fall there (fitDistCuts specs)')
@@ -733,11 +736,11 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         elif isinstance(discrDistCutsSpec, self.AbsInterval):
             discrDistCuts = Interval(min=max(2, discrDistCutsSpec.min), max=discrDistCutsSpec.max)
         elif isinstance(discrDistCutsSpec, self.Auto):
-            discrDistCuts = Interval(min=max(2, round(self.defDiscrDistCutsFctr.min*sqrNSights)),
-                                     max=round(self.defDiscrDistCutsFctr.max*sqrNSights))
+            discrDistCuts = Interval(min=max(2, int(round(self.defDiscrDistCutsFctr.min*sqrNSights))),
+                                     max=int(round(self.defDiscrDistCutsFctr.max*sqrNSights)))
         elif isinstance(discrDistCutsSpec, self.MultInterval):
-            discrDistCuts = Interval(min=max(2, round(discrDistCutsSpec.kmin*sqrNSights)),
-                                     max=round(discrDistCutsSpec.kmax*sqrNSights))
+            discrDistCuts = Interval(min=max(2, int(round(discrDistCutsSpec.kmin*sqrNSights))),
+                                     max=int(round(discrDistCutsSpec.kmax*sqrNSights)))
         else:
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
                             'Should not fall there (discrDistCuts specs)')
@@ -765,8 +768,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             if msg:
                 finalErr.append(head='discrDistCuts', error=msg)
 
-        logger.debug('OptimedParams:' + str(dict(minDist=minDist, maxDist=maxDist,
-                                                 fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)))
+        logger.debug(f'OptimedParams: {minDist=}, {maxDist=}, {fitDistCuts=}, {discrDistCuts=}')
 
         return finalErr or None, dict(minDist=minDist, maxDist=maxDist,
                                       fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
@@ -778,7 +780,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
         """Retrieve optimisation core parameters, from user specs and default values.
         
-        Ex: zoopt(algorithm=racos, maxIters=0, termValue=1)
+        Ex: zoopt(mxi=0, tv=1, a=racos, mrx=3)
 
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
                            syntax: sequence of <key>=<value> separated by ','
@@ -865,7 +867,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # Instanciate optimisation.
         optimion = OptimionClass(self._engine, sampleDataSet, name=name,
                                  customData=customData, error=error,
-                                 executor=self._executor, logData=self.logData,
+                                 executor=self._executor, logData=self.logData, autoClean=self.autoClean,
                                  estimKeyFn=estimKeyFn, estimAdjustFn=estimAdjustFn,
                                  estimCriterion=estimCriterion, cvInterval=cvInterval,
                                  minDist=minDist, maxDist=maxDist,
@@ -1031,15 +1033,15 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       abbrevCol='AnlysAbbrev', workDir='.', logData=False,
+                       abbrevCol='AnlysAbbrev', workDir='.', logData=False, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
                        defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
                        defFitDistCutsFctr=Interval(min=2/3, max=3/2),
                        defDiscrDistCutsFctr=Interval(min=1/3, max=1),
-                       defSubmitRepeats=1, defSubmitOnlyBest=None,
-                       defCoreAlgorithm='racos', defCoreMaxRetries=0, defCoreMaxIters=100, defCoreTermValue=None):
+                       defSubmitRepeats=0, defSubmitOnlyBest=None,
+                       defCoreMaxIters=100, defCoretermExprValue=None, defCoreAlgorithm='racos', defCoreMaxRetries=0):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
@@ -1048,15 +1050,16 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol,
-                         workDir=workDir, logData=logData,
+                         workDir=workDir, logData=logData, autoClean=autoClean,
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
                          defOutliersMethod=defOutliersMethod, defOutliersQuantCutPct=defOutliersQuantCutPct,
                          defFitDistCutsFctr=defFitDistCutsFctr, defDiscrDistCutsFctr=defDiscrDistCutsFctr,
                          defSubmitRepeats=defSubmitRepeats, defSubmitOnlyBest=defSubmitOnlyBest,
-                         dDefOptimCoreParams=dict(core='zoopt', algorithm=defCoreAlgorithm,
-                                                  maxRetries=defCoreMaxRetries, maxIters=defCoreMaxIters,
-                                                  termValue=defCoreTermValue))
+                         dDefOptimCoreParams=dict(core='zoopt', maxIters=defCoreMaxIters, termExprValue=defCoretermExprValue,
+                                                  algorithm=defCoreAlgorithm, maxRetries=defCoreMaxRetries))
                          
 if __name__ == '__main__':
 
+    print('Nothing done here.')
+    
     sys.exit(0)
