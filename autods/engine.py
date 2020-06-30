@@ -636,12 +636,12 @@ class MCDSEngine(DSEngine):
     
     # Decode output stats file to a value series
     # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
-    # * runDir : pl.Path where to find stats file.
+    # * runDir : string or pl.Path where to find stats file.
     # Warning: No support for more than 1 stratum, 1 sample, 1 estimator.
     @classmethod
     def decodeStats(cls, runDir):
 
-        statsFileName = runDir / cls.StatsFileName
+        statsFileName = pl.Path(runDir) / cls.StatsFileName
         logger.debug('Decoding stats from {} ...'.format(statsFileName))
         
         # 1. Load table (text format, with space separated and fixed width columns,
@@ -694,19 +694,19 @@ class MCDSEngine(DSEngine):
 
     # Decode output log file to a string
     # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
-    # * runDir : string folder path-name where the analysis was run.
+    # * runDir : string or pl.Path folder path-name where the analysis was run.
     @classmethod
     def decodeLog(cls, runDir):
         
-        return dict(text=open(runDir / cls.LogFileName).read().strip())
+        return dict(text=open(pl.Path(runDir) / cls.LogFileName).read().strip())
     
     # Decode output ... output file to a dict of chapters
     # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
-    # * runDir : string folder path-name where the analysis was run.
+    # * runDir : string or pl.Path folder path-name where the analysis was run.
     @classmethod
     def decodeOutput(cls, runDir):
         
-        outLst = open(runDir / cls.OutputFileName).read().strip().split('\t')
+        outLst = open(pl.Path(runDir) / cls.OutputFileName).read().strip().split('\t')
         
         return [dict(id=title.translate(str.maketrans({c:'' for c in ' ,.-:()/'})), 
                      title=title.strip(), text=text.strip('\n')) \
@@ -714,12 +714,12 @@ class MCDSEngine(DSEngine):
             
     # Decode output plots file as a dict of plot dicts (key = output chapter title)
     # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
-    # * runDir : string folder path-name where the analysis was run.
+    # * runDir : string or pl.Path folder path-name where the analysis was run.
     @classmethod
     def decodePlots(cls, runDir):
         
         dPlots = dict()
-        lines = (line.strip() for line in open(runDir / cls.PlotsFileName, 'r').readlines())
+        lines = (line.strip() for line in open(pl.Path(runDir) / cls.PlotsFileName, 'r').readlines())
         for title in lines:
             
             title = title.strip()

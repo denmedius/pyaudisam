@@ -49,7 +49,7 @@ class ResultsReport(object):
         
         self.resultsSet = resultsSet
         
-        self.trRunFolderCol = resultsSet.dfAnalysisColTrans.loc[resultsSet.analysisClass.RunFolderColumn, lang]
+        self.trRunFolderCol = resultsSet.dfColTrans.loc[resultsSet.analysisClass.RunFolderColumn, lang]
         self.dfEnColTrans = None # EN to other languages column name translation
 
         self.lang = lang
@@ -362,7 +362,7 @@ class ResultsFullReport(ResultsReport):
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
         dfDetRes = self.resultsSet.dfTransData(self.lang)
 
-        logger.info('Analyses pages ({}) ...'.format(len(dfSynthRes)))
+        logger.info(f'Analyses pages ({len(dfSynthRes)}) ...')
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons)
         #    with the sorted order if any
@@ -381,7 +381,7 @@ class ResultsFullReport(ResultsReport):
         for lblAnlys in dfSynthRes.index:
             
             sAnlysCustCols = dfDetRes.loc[lblAnlys, trCustCols]
-            logger.info('  #{} '.format(lblAnlys) + ' '.join(['{}={}'.format(k, v) for k, v in sAnlysCustCols.iteritems()]))
+            logger.info1(f'  #{lblAnlys} ' + ' '.join(f'{k}={v}' for k, v in sAnlysCustCols.iteritems()))
         
             anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
 
@@ -737,7 +737,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
             return '{:g}'.format(v)
         return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, float_format=float2str))
     
-        #return ''.join('<p>{}: {}</p>'.format(k, v) for k, v in dictOrSeries.items())
+        #return ''.join(f'<p>{k}: {v}</p>' for k, v in dictOrSeries.items())
         
     def plotImageHtmlElement(self, runFolder, plotImgPrfx):
         
