@@ -185,14 +185,14 @@ class DSOptimisation(object):
         self.minimiseExpr = minimiseExpr
         self.optimCoreOptions = optimCoreOptions
         
-    def _run(self, repeats=0, onlyBest=None, *args, **kwargs):
+    def _run(self, times=1, onlyBest=None, *args, **kwargs):
         
         """Really do the optimisation work : run the optimiser for this
         (this method is called by the executor thread/process that takes it from the submit queue)
 
         Parameters:
-        :param repeats: Number of times to repeat the optimisation (default = 0 = only 1 run)
-        :param onlyBest: When repeating, number of best optimisations to retain (default = all runs)
+        :param times: Number of times to auto-run the optimisation (> 0 ; default = 1)
+        :param onlyBest: When multiple runs, number of best optimisations to retain (> 0 ; default = all runs)
         :param *args, **kwargs: other _run params
         :return: List of "solutions", each as a dict with target analysis params in the ctor order
                  and then { expr2Optimise: analysis value }
@@ -200,12 +200,12 @@ class DSOptimisation(object):
 
         raise NotImplementedError('DSOptimisation is an abstract class : implement _run in a derived class')
     
-    def submit(self, repeats=0, onlyBest=None, error=None, *args, **kwargs):
+    def submit(self, times=1, onlyBest=None, error=None, *args, **kwargs):
     
         """Submit the optimisation, to run it possibly in parallel with others (through self.executor)
         
-        :param repeats: Number of auto-repetitions of each optimisation (default 0 = no repetition = only 1 run)
-        :param onlyBest: Number of best run results to keep (default None = all runs)
+        :param times: Number of times to auto-run the optimisation (> 0 ; default = 1)
+        :param onlyBest: Number of best run results to keep (> 0 ; default None = all runs)
         :param error: if an error occurred somewhere before since construction, a string explaining it
                       in order to prevent real submission, but still for keeping trace
                       of unrun optimisations in optimiser results table :
@@ -216,7 +216,7 @@ class DSOptimisation(object):
         # Submit optimisation work and return a Future object to ask from and wait for its results.
         self.future = \
             self.executor.submit(self._run, *args, 
-                                 **{ 'repeats': repeats, 'onlyBest': onlyBest, 'error': error, **kwargs })
+                                 **{ 'times': times, 'onlyBest': onlyBest, 'error': error, **kwargs })
         
         return self.future
 
@@ -682,7 +682,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                     logger.warning('zoopt.Opt.min failed after #{} tries on {}'.format(maxTries, exc))
                     return None #raise
 
-    def _run(self, repeats=0, onlyBest=None, error=None, *args, **kwargs):
+    def _run(self, times=1, onlyBest=None, error=None, *args, **kwargs):
         
         """Really do the optimisation work (use the optimisation core for this).
         (this method is called by the executor thread/process that takes it from the submit queue)
@@ -699,7 +699,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                              [self.setupError, error, self.nFunEvals] + [None]*(len(self.resultsCols) - 3)))]
             
         # Run the requested optimisations and get the solutions (ignore None).
-        solutions = [self._optimize() for _ in range(repeats+1)]
+        solutions = [self._optimize() for _ in range(times)]
         solutions = [sol for sol in solutions if sol is not None]
         
         # Keep only best solutions if requested.

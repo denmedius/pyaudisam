@@ -107,7 +107,7 @@ class DSParamsOptimiser(object):
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        abbrevCol='AnlysAbbrev', workDir='.',
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
-                       defSubmitRepeats=0, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
+                       defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
                        dDefOptimCoreParams=dict()):
                        
         """Ctor (don't use directly, abstract class)
@@ -140,8 +140,9 @@ class DSParamsOptimiser(object):
 
         Parameters for optimisation submissions
             (when not fully specified in each optimisation parameters):
-        :param defSubmitRepeats: Number of auto-repetitions of each optimisation (default 0 = no repetition = 1 run)
-        :param defSubmitOnlyBest: Number of best repetition results to keep (default None = all repetitions)
+        :param defSubmitTimes: Number of times to auto-run each optimisation (> 0 ; default 1)
+        :param defSubmitOnlyBest: Number of best repetition results to keep
+                                  (> 0 ; default None = all repetitions)
         :param dDefSubmitOtherParams: Other submission parameters
 
         Other parameters:
@@ -171,7 +172,7 @@ class DSParamsOptimiser(object):
         self.dDefOptimCoreParams = dDefOptimCoreParams
 
         # c. Optimisations submission (=run) parameters
-        self.defSubmitRepeats = defSubmitRepeats
+        self.defSubmitTimes = defSubmitTimes
         self.defSubmitOnlyBest = defSubmitOnlyBest
         self.dDefSubmitOtherParams = dDefSubmitOtherParams
 
@@ -391,7 +392,7 @@ class DSParamsOptimiser(object):
         raise NotImplementedError('Abstract class: implement in a derived class')
     
     # Optimisation object ctor parameter names (MUST match exactly: check in optimisation submodule !).
-    ParmSubmRepeats = 'repeats'
+    ParmSubmTimes = 'times'
     ParmSubmOnlyBest = 'onlyBest'
 
     def getOptimisationSubmitParams(self, sAnIntSpec):
@@ -399,14 +400,14 @@ class DSParamsOptimiser(object):
         """Retrieve optimisation submission parameters from user specs and default values.
         
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
-                           syntax: IntSpecSubmitParams => <rep|repeat>(n=<num>[, kb=<num>])
+                           syntax: IntSpecSubmitParams => <times>([n=]<num>[, [b=]<num>])
                            
         :return: None or an Error instance, dict(=..., **{k:v}) or None
         
-        Ex: dict(repeats=, onlyBest=, ...)"""
+        Ex: dict(times=, onlyBest=, ...)"""
 
-        def _buildParsedValue(repeats, onlyBest):
-            return { self.ParmSubmRepeats: repeats, self.ParmSubmOnlyBest: onlyBest }
+        def _buildParsedValue(times, onlyBest):
+            return { self.ParmSubmTimes: times, self.ParmSubmOnlyBest: onlyBest }
 
         # Parse expression to optimise in sAnIntSpec if present.
         if self.IntSpecSubmitParams in sAnIntSpec:
@@ -415,21 +416,21 @@ class DSParamsOptimiser(object):
             userOptExpr = sAnIntSpec[self.IntSpecSubmitParams]
                 
             # Parse
-            def repeat(n, b=None):
-                assert n >= 0, 'Repeat times must be >= 0'
+            def times(n=1, b=None):
+                assert n > 0, 'Run times must be > 0'
                 assert b is None or b > 0, 'Number of best kept values must be > 0'
                 return _buildParsedValue(n, b)
 
             parseError, parsedValue = \
-                 self._parseUserSpec(userOptExpr, globals=None, locals=dict(repeat=repeat, rep=repeat),
-                                     nullOrEmpty=_buildParsedValue(self.defSubmitRepeats, self.defSubmitOnlyBest),
+                 self._parseUserSpec(userOptExpr, globals=None, locals=dict(times=times),
+                                     nullOrEmpty=_buildParsedValue(self.defSubmitTimes, self.defSubmitOnlyBest),
                                      errIfNotA=[dict])
 
         # No way: fall back to default values.
         else:
             
             parseError, parsedValue = \
-                None, _buildParsedValue(self.defSubmitRepeats, self.defSubmitOnlyBest)
+                None, _buildParsedValue(self.defSubmitTimes, self.defSubmitOnlyBest)
                  
         # Done.
         return parseError, parsedValue
@@ -489,7 +490,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                        defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
                        defFitDistCutsFctr=dict(min=2/3, max=3/2),
                        defDiscrDistCutsFctr=dict(min=1/3, max=1),
-                       defSubmitRepeats=0, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
+                       defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
                        dDefOptimCoreParams=dict()):
 
         """Ctor (don't use directly, abstract class)
@@ -520,7 +521,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                          distanceUnit=distanceUnit, areaUnit=areaUnit, 
                          resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol, workDir=workDir,
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
-                         defSubmitRepeats=defSubmitRepeats, defSubmitOnlyBest=defSubmitOnlyBest,
+                         defSubmitTimes=defSubmitTimes, defSubmitOnlyBest=defSubmitOnlyBest,
                          dDefSubmitOtherParams=dDefSubmitOtherParams, dDefOptimCoreParams=dDefOptimCoreParams)
 
         self.surveyType = surveyType
@@ -1040,7 +1041,7 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                        defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
                        defFitDistCutsFctr=Interval(min=2/3, max=3/2),
                        defDiscrDistCutsFctr=Interval(min=1/3, max=1),
-                       defSubmitRepeats=0, defSubmitOnlyBest=None,
+                       defSubmitTimes=1, defSubmitOnlyBest=None,
                        defCoreMaxIters=100, defCoretermExprValue=None, defCoreAlgorithm='racos', defCoreMaxRetries=0):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
@@ -1054,7 +1055,7 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
                          defOutliersMethod=defOutliersMethod, defOutliersQuantCutPct=defOutliersQuantCutPct,
                          defFitDistCutsFctr=defFitDistCutsFctr, defDiscrDistCutsFctr=defDiscrDistCutsFctr,
-                         defSubmitRepeats=defSubmitRepeats, defSubmitOnlyBest=defSubmitOnlyBest,
+                         defSubmitTimes=defSubmitTimes, defSubmitOnlyBest=defSubmitOnlyBest,
                          dDefOptimCoreParams=dict(core='zoopt', maxIters=defCoreMaxIters, termExprValue=defCoretermExprValue,
                                                   algorithm=defCoreAlgorithm, maxRetries=defCoreMaxRetries))
                          

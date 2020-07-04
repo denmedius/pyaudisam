@@ -13,6 +13,7 @@
 *.png
 *.jpg
 *.svg
+*.wepb
 *.pid
 *.pyc
 *.mp3
