@@ -442,7 +442,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         
         dLocals = { alias: sResults.get(name, worst) for alias, (name, worst) in self.AnlysResultIndex.items() }
                                           
-        logger.debug2('_getAnalysisResultValue: locals={}'.format(dLocals))
+        logger.debug3('_getAnalysisResultValue: locals={}'.format(dLocals))
         
         try:
             value = eval(resultExpr, None, dLocals)
@@ -468,7 +468,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         dNameFlds = dict(l=minDist, r=maxDist, f=fitDistCuts, d=discrDistCuts)
         nameSufx = ''.join(c+str(int(v)) for c, v in dNameFlds.items() if v is not None)
 
-        logger.debug1(f'Running analysis (minDist={minDist}, maxDist={maxDist},' \
+        logger.debug2(f'Running analysis (minDist={minDist}, maxDist={maxDist},' \
                        'fitDistCuts={fitDistCuts}, discrDistCuts={discrDistCuts}) ...')
                       
         anlys = MCDSAnalysis(engine=self.engine, sampleDataSet=self.sampleDataSet,
@@ -493,7 +493,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
 
             value = self.invalidFuncValue
 
-        logger.debug('Analysis result value : {} = {}'.format(valueExpr, value))
+        logger.debug1('Analysis result value : {} = {}'.format(valueExpr, value))
 
         return value
     
