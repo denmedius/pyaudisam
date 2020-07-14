@@ -20,7 +20,7 @@ from packaging import version
 
 import copy
 
-from collections import OrderedDict as odict, namedtuple as ntuple
+from collections import namedtuple as ntuple
 
 import numpy as np
 import pandas as pd
@@ -90,6 +90,28 @@ class OptimisationResultsSet(ResultsSet):
 
         return clone
 
+    def fromExcel(self, fileName, sheetName=None):
+
+        """Load (overwrite) data from an Excel worksheet (XLSX format),
+        assuming ctor params match with Excel sheet column names and list,
+        which can well be ensured by using the same ctor params as used for saving !
+        """
+        
+        super().fromExcel(filename, sheetName=sheetName, header=0, skiprows=None)
+
+    def fromOpenDoc(self, fileName, sheetName=None):
+
+        """Load (overwrite) data from an Open Document worksheet (ODS format),
+        assuming ctor params match with ODF sheet column names and list,
+        which can well be ensured by using the same ctor params as used for saving !
+        Notes: Needs odfpy module and pandas.version >= 0.25.1
+        """
+        
+        super().fromOpenDoc(filename, sheetName=sheetName, header=0, skiprows=None)
+
+    def getOptimTargetColumns(self):
+    
+        return [col for col in self.optimisationClass.SolutionDimensionNames if col in self._dfData.columns]
 
 class DSParamsOptimiser(object):
 
@@ -197,16 +219,21 @@ class DSParamsOptimiser(object):
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
     #  and case is ignored during searching).
     Int2UserSpecREs = \
-        odict([(IntSpecExpr2Optimise,    ['opt[a-z]*[\.\-_ ]*exp', 'exp[a-z2]*[\.\-_ ]*opt',
-                                          'opt[a-z]*[\.\-_ ]*cri', 'cri[a-z]*[\.\-_ ]*opt']),
-               (IntSpecOptimisationCore, ['opt[a-z]*[\.\-_ ]*core', 'mot[a-z]*[\.\-_ ]*opt',
-                                          'noy[a-z]*[\.\-_ ]*opt']),
-               (IntSpecSubmitParams,     ['sub[a-z]*[\.\-_ ]*par', 'par[a-z]*[\.\-_ ]*sou',
-                                          'run[a-z]*[\.\-_ ]*par', 'par[a-z]*[\.\-_ ]*ex'])])
+        {IntSpecExpr2Optimise:    ['opt[a-z]*[\.\-_ ]*exp', 'exp[a-z2]*[\.\-_ ]*opt',
+                                   'opt[a-z]*[\.\-_ ]*cri', 'cri[a-z]*[\.\-_ ]*opt'],
+         IntSpecOptimisationCore: ['opt[a-z]*[\.\-_ ]*core', 'mot[a-z]*[\.\-_ ]*opt',
+                                   'noy[a-z]*[\.\-_ ]*opt'],
+         IntSpecSubmitParams:     ['sub[a-z]*[\.\-_ ]*par', 'par[a-z]*[\.\-_ ]*sou',
+                                   'run[a-z]*[\.\-_ ]*par', 'par[a-z]*[\.\-_ ]*ex',
+                                   'mul[a-z]*[\.\-_ ]*opt', 'opt[a-z]*[\.\-_ ]*mul']}
 
     # Types for user specs parsing (see usage below)
-    Auto = ntuple('Auto', ['none'], defaults=[None])
-
+    class Auto(object):
+        def __repr__(self):
+            return 'Auto()'
+        def __eq__(self, other):
+            return isinstance(other, self.__class__)
+    
     @classmethod
     def _parseUserSpec(cls, spec, globals=dict(), locals=dict(),
                        oneStrArg=False, nullOrEmpty=Error, errIfNotA=[]):
@@ -238,6 +265,7 @@ class DSParamsOptimiser(object):
             return parseError, parsedValue
 
         # Other cases.
+        spec = str(spec)  # int and float cases
         if oneStrArg:
             if "('" not in spec:
                 spec = spec.replace('(', "('")
@@ -259,17 +287,17 @@ class DSParamsOptimiser(object):
         return parseError, parsedValue
     
     # Types for parsing user spec
-    DistInterval = ntuple('DistInterval', ['dmin', 'dmax'], defaults=[0, -1])
-    AbsInterval = ntuple('AbsInterval', ['min', 'max'], defaults=[0, -1])
-    MultInterval = ntuple('MultInterval', ['kmin', 'kmax']) # Interval for multipliers
-    OutliersMethod = ntuple('OutliersMethod', ['method', 'percent']) # Interval for actual values
+    DistInterval = ntuple('DistInterval', ['dmin', 'dmax'], defaults=[0, -1])  # Distance interval
+    AbsInterval = ntuple('AbsInterval', ['min', 'max'], defaults=[0, -1])  # Interval for actual values
+    MultInterval = ntuple('MultInterval', ['kmin', 'kmax'])  # Interval for multipliers
+    OutliersMethod = ntuple('OutliersMethod', ['method', 'percent'])
 
     @classmethod
     def _parseDistTruncationUserSpec(cls, spec, errIfNotA=[]):
     
         """Parse user spec for one analysis optimised parameter
         
-        Praameters:
+        Parameters:
         :param spec: None or np.nan or string spec to parse
         :param errIfNotA: list of autorised output types ; empty => any type
         
@@ -453,23 +481,38 @@ class DSParamsOptimiser(object):
 
     def checkUserSpecs(self, dfOptimExplSpecs, optimParamSpecCols):
     
-        """Check user specified analyses params for usability.
+        """Check user specified analyses and optimisation params for usability.
         
         Use it before calling optimiser.run(dfOptimExplSpecs, optimParamSpecCols, ...)
         
         Parameters:
-           :param pd.DataFrame dfOptimExplSpecs: optimisation params specs table
-           :param list optimParamSpecCols: columns of dfOptimExplSpecs for optimisation specs
-        
-        :raise: KeyError if any column could not be matched with some of the expected parameter names.
-        
-        :return: False if any column from optimParamSpecCols could not be found in dfOptimExplSpecs columns.
+           :param pd.DataFrame dfOptimExplSpecs: analysis and optimisation params table
+           :param list optimParamSpecCols: columns of dfOptimExplSpecs for analysis specs
+              
+        :return: True if everything seems OK, False otherwise:
+        * some columns from optimParamSpecCols could not be found in dfOptimExplSpecs columns,
+        * some columns could not be matched with some of the expected parameter names,
+        * some rows are not suitable for DS analysis and/or optimisation
+          (empty sample identification columns, ...).
         """
     
-         # Try and convert explicit. analysis spec. columns to the internal parameter names.
-        _ = DSAnalyser.userSpec2ParamNames(optimParamSpecCols, self.Int2UserSpecREs)
+        # TODO: Buid and return user-friendly error diagnosis
+    
+        # Check presence of all the specified columns.
+        if not all(col in dfOptimExplSpecs.columns for col in optimParamSpecCols):
+            return False
+            
+        # Try and convert explicit. analysis spec. columns to the internal parameter names.
+        intParNames = DSAnalyser.userSpec2ParamNames(optimParamSpecCols, self.Int2UserSpecREs, strict=False)
+        if intParNames.count(None):
+            return False
+
+        # Check that all rows are not suitable for DS analysis (non empty sample identification columns, ...).
+        if dfOptimExplSpecs[self.resultsHeadCols['sample']].isnull().all(axis='columns').any():
+            return False
         
-        return all(col in dfOptimExplSpecs.columns for col in optimParamSpecCols) 
+        # Success.
+        return True
 
 
 class MCDSTruncationOptimiser(DSParamsOptimiser):
@@ -559,9 +602,17 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
     #  and case is ignored during searching).
     Int2UserSpecREs = \
-      odict(list(DSParamsOptimiser.Int2UserSpecREs.items()) \
-            + list(MCDSAnalyser.Int2UserSpecREs.items()) \
-            + [(IntSpecOutliersMethod, ['outl[a-z]*[\.\-_ ]*', 'me[a-z]*[\.\-_ ]*outl']), ])
+      dict(list(DSParamsOptimiser.Int2UserSpecREs.items()) \
+           + list(MCDSAnalyser.Int2UserSpecREs.items()) \
+           + [(IntSpecOutliersMethod, ['outl[a-z]*[\.\-_ ]*', 'me[a-z]*[\.\-_ ]*outl'])])
+
+    # Names of internal parameters which can be used as settings for optimising truncations
+    # and not only as fixed analysis parameters.
+    IntOptimParamSpecNames = \
+        [DSParamsOptimiser.IntSpecExpr2Optimise, DSParamsOptimiser.IntSpecOptimisationCore,
+         DSParamsOptimiser.IntSpecSubmitParams,
+         IntSpecMinDist, IntSpecMaxDist, IntSpecFitDistCuts, IntSpecDiscrDistCuts,
+         IntSpecOutliersMethod]
 
     # Optimisation object ctor parameter names (MUST match exactly: check in optimisation submodule !).
     ParmEstimKeyFn = 'estimKeyFn'
@@ -600,11 +651,12 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         return None, { self.ParmEstimKeyFn: estimKeyFn, self.ParmEstimAdjustFn: estimAdjFn,
                        self.ParmEstimCriterion: estimCrit, self.ParmCVInterval: cvInterv }
 
-    # Optimisation object ctor parameter names (MUST match exactly: check in optimisation submodule !).
-    ParmMinDist = 'minDist'
-    ParmMaxDist = 'maxDist'
-    ParmFitDistCuts = 'fitDistCuts'
-    ParmDiscrDistCuts = 'discrDistCuts'
+    # From / to: Optimisation object ctor parameter names = Solution dimension names
+    # To / From: Optimiser internal param. spec names.
+    SolDim2IntSpecOptimTargetParamNames = \
+        dict(zip(MCDSTruncationOptimisation.SolutionDimensionNames,
+                 [IntSpecMinDist, IntSpecMaxDist, IntSpecFitDistCuts, IntSpecDiscrDistCuts]))
+    IntSpec2SolDimOptimTargetParamNames = {v:k for k,v in SolDim2IntSpecOptimTargetParamNames.items()}
 
     def getAnalysisOptimedParams(self, sAnIntSpec, sSampleDists):
     
@@ -624,19 +676,22 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # Parse found specs from strings (or so) to real objects
         errMinDist, minDistSpec = \
             self._parseDistTruncationUserSpec(sAnIntSpec.get(self.IntSpecMinDist, None),
-                                              errIfNotA=[self.Auto, self.DistInterval, self.OutliersMethod])
+                                              errIfNotA=[int, float, self.Auto,
+                                                         self.DistInterval, self.OutliersMethod])
         errMaxDist, maxDistSpec =  \
             self._parseDistTruncationUserSpec(sAnIntSpec.get(self.IntSpecMaxDist, None),
-                                              errIfNotA=[self.Auto, self.DistInterval, self.OutliersMethod])
+                                              errIfNotA=[int, float, self.Auto,
+                                                         self.DistInterval, self.OutliersMethod])
         errFitDistCuts, fitDistCutsSpec = \
             self._parseDistTruncationUserSpec(sAnIntSpec.get(self.IntSpecFitDistCuts, None),
-                                              errIfNotA=[self.Auto, self.MultInterval, self.AbsInterval])
+                                              errIfNotA=[int, float, self.Auto, 
+                                                         self.MultInterval, self.AbsInterval])
         errDiscrDistCuts, discrDistCutsSpec = \
             self._parseDistTruncationUserSpec(sAnIntSpec.get(self.IntSpecDiscrDistCuts, None),
-                                              errIfNotA=[self.Auto, self.MultInterval, self.AbsInterval])
+                                              errIfNotA=[int, float, self.Auto,
+                                                         self.MultInterval, self.AbsInterval])
         errOutliersMethod, outliersMethodSpec = \
-            self._parseDistTruncationUserSpec(sAnIntSpec.get(self.IntSpecOutliersMethod,
-                                                             self.defOutliersMethod),
+            self._parseDistTruncationUserSpec(sAnIntSpec.get(self.IntSpecOutliersMethod, None),
                                               errIfNotA=[self.Auto, self.OutliersMethod])
 
         logger.debug('OptimedParams specs:' + str(dict(minDist=minDistSpec, maxDist=maxDistSpec,
@@ -676,7 +731,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         sqrNSights = np.sqrt(len(sDist))
 
         # minDist specs
-        if minDistSpec is None:
+        if minDistSpec is None or isinstance(minDistSpec, (int, float)):
             minDist = minDistSpec
         elif isinstance(minDistSpec, self.DistInterval):
             minDist = Interval(min=minDistSpec.dmin, max=minDistSpec.dmax)
@@ -689,9 +744,12 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         else:
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
                             'Should not fall there (minDist specs)')
+        
+        if isinstance(minDist, Interval) and minDist.min == minDist.max:
+            minDist = minDist.min
 
         # maxDist specs
-        if maxDistSpec is None:
+        if maxDistSpec is None or isinstance(maxDistSpec, (int, float)):
             maxDist = maxDistSpec
         elif isinstance(maxDistSpec, self.DistInterval):
             maxDist = Interval(min=maxDistSpec.dmin, max=maxDistSpec.dmax)
@@ -709,16 +767,19 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
                             'Should not fall there (maxDist specs)')
 
+        if isinstance(maxDist, Interval) and maxDist.min == maxDist.max:
+            minDist = maxDist.min
+
         # C. fitDistCuts, discrDistCuts :
         # - None,
-        # - auto : mode full auto via colonnes outliersMethod et outliersQuantCutPct, 
+        # - auto : mode full auto via colonne outliersMethod, 
         #                             ou alors defOutliersMethod et defOutliersQuantCutPct,
         # - mult(1/3, 3/2) : mode fixé, facteurs mult. min et max de sqrt(nb données) fournies en dur
         # - abs(5, 10) : mode fixé, facteurs mult. min et max de sqrt(nb données) fournies en dur
 
         # 1. fitDistCuts specs
-        if fitDistCutsSpec is None:
-            fitDistCuts = None
+        if fitDistCutsSpec is None or isinstance(fitDistCutsSpec, (int, float)):
+            fitDistCuts = fitDistCutsSpec
         elif isinstance(fitDistCutsSpec, self.AbsInterval):
             fitDistCuts = Interval(min=max(2, fitDistCutsSpec.min), max=fitDistCutsSpec.max)
         elif isinstance(fitDistCutsSpec, self.Auto):
@@ -731,9 +792,12 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
                             'Should not fall there (fitDistCuts specs)')
             
+        if isinstance(fitDistCuts, Interval) and fitDistCuts.min == fitDistCuts.max:
+            fitDistCuts = fitDistCuts.min
+
         # 2. discrDistCuts specs
-        if discrDistCutsSpec is None:
-            discrDistCuts = None
+        if discrDistCutsSpec is None or isinstance(discrDistCutsSpec, (int, float)):
+            discrDistCuts = discrDistCutsSpec
         elif isinstance(discrDistCutsSpec, self.AbsInterval):
             discrDistCuts = Interval(min=max(2, discrDistCutsSpec.min), max=discrDistCutsSpec.max)
         elif isinstance(discrDistCutsSpec, self.Auto):
@@ -746,35 +810,48 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
                             'Should not fall there (discrDistCuts specs)')
             
+        if isinstance(discrDistCuts, Interval) and discrDistCuts.min == discrDistCuts.max:
+            discrDistCuts = discrDistCuts.min
+
         # Final checks
         finalErr = Error()
         if minDist is not None:
-            msg = minDist.check(order=True, minRange=(0, None), maxRange=(None, sDist.max()))
+            minDistChk = minDist if isinstance(minDist, Interval) else Interval(minDist, minDist)
+            msg = minDistChk.check(order=True, minRange=(0, None), maxRange=(None, sDist.max()))
             if msg:
                 finalErr.append(head='minDist', error=msg)
 
         if maxDist is not None:
-            minMax = None if minDist is None else minDist.max
-            msg = maxDist.check(order=True, minRange=(minMax, None), maxRange=(None, sDist.max()))
+            maxDistChk = maxDist if isinstance(maxDist, Interval) else Interval(maxDist, maxDist)
+            minMax = None if minDist is None else (minDist.max if isinstance(minDist, Interval) else minDist)
+            msg = maxDistChk.check(order=True, minRange=(minMax, None), maxRange=(None, sDist.max()))
             if msg:
                 finalErr.append(head='maxDist', error=msg)
 
         if fitDistCuts is not None:
-            msg = fitDistCuts.check(order=True, minRange=(2, None))
+            fitDistCutsChk = \
+                fitDistCuts if isinstance(fitDistCuts, Interval) else Interval(fitDistCuts, fitDistCuts)
+            msg = fitDistCutsChk.check(order=True, minRange=(2, None))
             if msg:
                 finalErr.append(head='fitDistCuts', error=msg)
 
         if discrDistCuts is not None:
-            msg = discrDistCuts.check(order=True, minRange=(2, None))
+            discrDistCutsChk = \
+                discrDistCuts if isinstance(discrDistCuts, Interval) else Interval(discrDistCuts, discrDistCuts)
+            msg = discrDistCutsChk.check(order=True, minRange=(2, None))
             if msg:
                 finalErr.append(head='discrDistCuts', error=msg)
 
         logger.debug(f'OptimedParams: {minDist=}, {maxDist=}, {fitDistCuts=}, {discrDistCuts=}')
 
-        return finalErr or None, dict(minDist=minDist, maxDist=maxDist,
-                                      fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
-
-    # Supported optimisation classes (=> engines = cores) (see submodule optimisation)
+        return finalErr or None, \
+               {self.IntSpec2SolDimOptimTargetParamNames[self.IntSpecMinDist]: minDist,
+                self.IntSpec2SolDimOptimTargetParamNames[self.IntSpecMaxDist]: maxDist,
+                self.IntSpec2SolDimOptimTargetParamNames[self.IntSpecFitDistCuts]: fitDistCuts,
+                self.IntSpec2SolDimOptimTargetParamNames[self.IntSpecDiscrDistCuts]: discrDistCuts}
+                                      
+    # Supported truncation optimisation classes (=> engines = cores) (see submodule optimisation),
+    # all must be subclasses of MCDSTruncationOptimisation.
     OptimisationClasses = [MCDSZerothOrderTruncationOptimisation] #, MCDSGridBruteTruncationOptimisation]
             
     def getOptimisationCoreParams(self, sAnIntSpec):
@@ -906,10 +983,10 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # For each optimisation as it gets completed (first completed => first yielded)
         for optimFut in self._executor.asCompleted(dOptims):
             
-            # Retrieve analysis object from its associated future object
+            # Retrieve optimisation object from its associated future object
             optim = dOptims[optimFut]
             
-            # Get analysis results
+            # Get analysis results and optimisation target column names in results
             dfResults = optim.getResults()
 
             # Get custom header values, and set target index (= columns) for results
@@ -968,7 +1045,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             
             logger.info('#{}/{}: {}'.format(optimInd+1, len(dfOptimExplSpecs), sOptimSpec[self.abbrevCol]))
 
-            # Select data sample to process
+            # Select data sample to process (and skip if empty)
             sds = self._mcDataSet.sampleDataSet(sOptimSpec[self.resultsHeadCols['sample']])
             if not sds:
                 continue
@@ -1007,7 +1084,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         results = self._getResults(dOptims)
         
         # Done.
-        logger.info('Optimisations completed.')
+        logger.info('Optimisations completed ({} analyses => {} results).'
+                    .format(int(results.dfData.NFunEvals.sum()), len(results)))
 
         return results
 
@@ -1032,7 +1110,7 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                        sampleDecCols=['Effort', 'Distance'], sampleDistanceCol='Distance',
                        distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False,
-                       resultsHeadCols=dict(before=['AnlysNum', 'SampNum'], after=['AnlysAbbrev'], 
+                       resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        abbrevCol='AnlysAbbrev', workDir='.', logData=False, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,

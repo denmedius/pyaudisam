@@ -258,6 +258,9 @@ class MCDSTruncationOptimisation(DSOptimisation):
     
     EngineClass = MCDSEngine
         
+    # Names of possible solution dimensions (the truncation parameter values we are searching for).
+    SolutionDimensionNames = ['minDist', 'maxDist', 'fitDistCuts', 'discrDistCuts']
+    
     def __init__(self, engine, sampleDataSet, name=None, executor=None, 
                  distanceField='Distance', customData=None, 
                  logData=False, autoClean=True, error=None,
@@ -282,26 +285,28 @@ class MCDSTruncationOptimisation(DSOptimisation):
         :param cvInterval:  
 
         Optimisation target parameters (at least one MUST be not None):
-        :param minDist: Distance Interval() for left truncation distance ; default: None => not optimised
-        :param maxDist: Distance Interval() for right truncation distance ; default: None => not optimised
-        :param fitDistCutsFctr: Interval() for the mult. factor to apply to sqrt(nb of sightings)
-            to get the number of distance cut intervals (for _model_fitting_) ;
-            default: None => not optimised if not fitDistCuts
-        :param discrDistCutsFctr: Interval() for the mult. factor to apply to sqrt(nb of sightings)
-            for the number of distance cut intervals (for _distance_values_discretisation_) ;
-            default: None => not optimised if not discrDistCuts
-        :param fitDistCuts: Interval() for the absolute number of distance cut intervals
-            (for _model_fitting_) if fitDistCutsFctr is None ;
-            default: None => fitDistCuts not optimised if not fitDistCutsFctr
-        :param discrDistCuts: Interval() for the number of distance cut intervals
-            (for _distance_values_discretisation_) if discrDistCutsFctr is None ;
-            default: None => not optimised if not discrDistCutsFctr
+        :param minDist: Min, max Interval() or 2-item list or tuple, or int / float constant for left truncation distance ;
+                        default: None => not optimised
+        :param maxDist: Idem, for right truncation distance ;
+                        default: None => not optimised
+        :param fitDistCutsFctr: Idem, for the mult. factor to apply to sqrt(nb of sightings)
+                        to get the number of distance cut intervals (for _model_fitting_) ;
+                        default: None => not optimised if not fitDistCuts
+        :param discrDistCutsFctr: Idem for the mult. factor to apply to sqrt(nb of sightings)
+                        for the number of distance cut intervals (for _distance_values_discretisation_) ;
+                        default: None => not optimised if not discrDistCuts
+        :param fitDistCuts: Idem for the absolute number of distance cut intervals
+                        (for _model_fitting_) if fitDistCutsFctr is None ;
+                        default: None => fitDistCuts not optimised if not fitDistCutsFctr
+        :param discrDistCuts: Idem for the number of distance cut intervals
+                        (for _distance_values_discretisation_) if discrDistCutsFctr is None ;
+                        default: None => not optimised if not discrDistCutsFctr
         """
 
         # Check engine
         assert isinstance(engine, MCDSEngine), 'Engine must be an MCDSEngine'
         
-        # Check analysis params
+        # Check and prepare analysis and optimisation params
         moreError = Error()
         if not (len(estimKeyFn) >= 2 and estimKeyFn in [kf[:len(estimKeyFn)] for kf in engine.EstKeyFns]):
             moreError.append('Invalid estimate key function {}: should be in {} or at least 2-char abreviations'
@@ -318,25 +323,40 @@ class MCDSTruncationOptimisation(DSOptimisation):
                
         if not any(optPar is not None for optPar in [minDist, maxDist, fitDistCuts, discrDistCuts]):
             moreError.append('At least 1 analysis parameter has to be optimised')
-               
-        if minDist is not None:
+            
+        self.dConstParams = dict()  # Params that won't be otimised : constants.
+        if minDist is not None and not isinstance(minDist, (int, float)):
             minDist = Interval(minDist)
-        if maxDist is not None:
+        elif minDist is not None:
+            self.dConstParams['minDist'] = minDist
+            
+        if maxDist is not None and not isinstance(maxDist, (int, float)):
             maxDist = Interval(maxDist)
+        elif maxDist is not None:
+            self.dConstParams['maxDist'] = maxDist
+            
         if fitDistCutsFctr is not None:
             fitDistCutsFctr = Interval(fitDistCutsFctr)
-        if fitDistCuts is not None:
+        if fitDistCuts is not None and not isinstance(fitDistCuts, (int, float)):
             fitDistCuts = Interval(fitDistCuts)
+        elif fitDistCuts is not None and fitDistCutsFctr is None:
+            self.dConstParams['fitDistCuts'] = fitDistCuts
+            
         if discrDistCutsFctr is not None:
             discrDistCutsFctr = Interval(discrDistCutsFctr)
-        if discrDistCuts is not None:
+        if discrDistCuts is not None and not isinstance(discrDistCuts, (int, float)):
             discrDistCuts = Interval(discrDistCuts)
+        elif discrDistCuts is not None and discrDistCutsFctr is None:
+            self.dConstParams['discrDistCuts'] = discrDistCuts
 
-        if not (minDist is None or 0 <= minDist.min < minDist.max):
+        logger.info(f'TrOptimisation({self.dConstParams})')
+        
+        if not (minDist is None or isinstance(minDist, (int, float)) or 0 <= minDist.min < minDist.max):
             moreError.append('Invalid left truncation distance {}'.format(minDist))
-        if not (maxDist is None or maxDist == 'auto' or 0 <= maxDist.min < maxDist.max):
+        if not (maxDist is None or isinstance(maxDist, (int, float)) or 0 <= maxDist.min < maxDist.max):
             moreError.append('Invalid right truncation distance {}'.format(maxDist))
-        if not (minDist is None or maxDist is None or minDist.max < maxDist.min):
+        if not (minDist is None or isinstance(minDist, (int, float))
+                or maxDist is None or isinstance(maxDist, (int, float)) or minDist.max < maxDist.min):
             moreError.append('Max left truncation distance {} must be lower than min right one {}'
                              .format(minDist.max, maxDist.min))
         
@@ -348,12 +368,14 @@ class MCDSTruncationOptimisation(DSOptimisation):
         if not (fitDistCutsFctr is None or fitDistCuts is None):
             moreError.append('Can\'t specify both absolute value and mult. factor'
                              ' for number of discretisation distance cuts')
-        if not (fitDistCuts is None or 2 <= fitDistCuts.min < fitDistCuts.max):
+        if not (fitDistCuts is None or isinstance(fitDistCuts, (int, float))
+                or 2 <= fitDistCuts.min < fitDistCuts.max):
             moreError.append('Invalid number of fitting distance cuts {}'.format(fitDistCuts))
         if not (discrDistCutsFctr is None or discrDistCuts is None):
             moreError.append('Can\'t specify both absolute value and mult. factor'
                              ' for number of discretisation distance cuts')
-        if not (discrDistCuts is None or 2 <= discrDistCuts.min < discrDistCuts.max):
+        if not (discrDistCuts is None or isinstance(discrDistCuts, (int, float))
+                or 2 <= discrDistCuts.min < discrDistCuts.max):
             moreError.append('Invalid number of distance discretisation cuts {}'.format(discrDistCuts))
         
         # Build name from main params if not specified
@@ -387,7 +409,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         self.estimCriterion = estimCriterion
         self.cvInterval = cvInterval
 
-        # b. Optimisation
+        # b. Analysis or optimisation (whether const or variant params)
         self.minDist = minDist
         self.maxDist = maxDist
         if fitDistCutsFctr is not None or discrDistCutsFctr is not None:
@@ -428,19 +450,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
              cvmuw=(('detection probability', 'Cramér-von Mises (uniform weighting) test probability', 'Value'), 0),
              cvmcw=(('detection probability', 'Cramér-von Mises (cosine weighting) test probability', 'Value'), 0))
 
-#    @classmethod
-#    def _getAnalysisResultIndex(cls, resultName):
-#        
-#        if resultName in cls.AnlysResultIndex:
-#            resInd = cls.AnlysResultIndex[resultName]
-#        else:
-#            raise NotImplementedError(f'Don\'t know where to find {resultName}')
-#        
-#        return resInd
-
     def _getAnalysisResultValue(self, resultExpr, sResults):
         
-        dLocals = { alias: sResults.get(name, worst) for alias, (name, worst) in self.AnlysResultIndex.items() }
+        dLocals = { alias: sResults.get(name, worst) 
+                    for alias, (name, worst) in self.AnlysResultIndex.items() }
                                           
         logger.debug3('_getAnalysisResultValue: locals={}'.format(dLocals))
         
@@ -513,7 +526,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
     def getResults(self):
         
         # Wait for availability (async) and get optimised results = target analysis parameters.
-        lodOptimResults = self.future.result()
+        ldOptimResults = self.future.result()
         
         # Build header columns for all the optimisation results (same for all):
         # actual (not default) analysis and optimisation params.
@@ -525,7 +538,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
                           index=self.RunColumns)
         
         # Build final table of optimisation results : header then results, for each optimisation.
-        return pd.DataFrame(data=[sHead.append(pd.Series(optRes)) for optRes in lodOptimResults])
+        dfOptimResults = pd.DataFrame(data=[sHead.append(pd.Series(optRes)) for optRes in ldOptimResults])
+        
+        # Done
+        return dfOptimResults
 
 
 class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
@@ -586,6 +602,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                  maxIters=100, termExprValue=None, algorithm='racos', maxRetries=0): # CoreParamNames !
 
         """Ctor
+        
         Other parameters: See base class
         
         ZOOpt specific parameters:
@@ -610,32 +627,34 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                          maxIters=maxIters, termExprValue=termExprValue, algorithm=algorithm, maxRetries=maxRetries)
 
         # Prepare optimisation parameters.
-        self.parameters = dict()
-        if self.minDist is not None:
-            self.parameters.update(minDist=self.Parameter(name='MinDist', interval=self.minDist,
-                                                          continuous=True, ordered=True))
-        if self.maxDist is not None:
-            self.parameters.update(maxDist=self.Parameter(name='MaxDist', interval=self.maxDist,
-                                                          continuous=True, ordered=True))
-        if self.fitDistCuts is not None:
-            self.parameters.update(fitDistCuts=self.Parameter(name='FitDistCuts', interval=self.fitDistCuts,
-                                                              continuous=False, ordered=True))
-        if self.discrDistCuts is not None:
-            self.parameters.update(discrDistCuts=self.Parameter(name='DiscrDistCuts', interval=self.discrDistCuts,
-                                                                continuous=False, ordered=True))
+        self.dVariantParams = dict()  # Keys must be from SolutionDimensionNames
+        if isinstance(self.minDist, Interval):
+            self.dVariantParams.update(minDist=self.Parameter(name='MinDist', interval=self.minDist,
+                                                              continuous=True, ordered=True))
+        if isinstance(self.maxDist, Interval):
+            self.dVariantParams.update(maxDist=self.Parameter(name='MaxDist', interval=self.maxDist,
+                                                              continuous=True, ordered=True))
+        if isinstance(self.fitDistCuts, Interval):
+            self.dVariantParams.update(fitDistCuts=self.Parameter(name='FitDistCuts', interval=self.fitDistCuts,
+                                                                  continuous=False, ordered=True))
+        if isinstance(self.discrDistCuts, Interval):
+            self.dVariantParams.update(discrDistCuts=self.Parameter(name='DiscrDistCuts', interval=self.discrDistCuts,
+                                                                    continuous=False, ordered=True))
         
-        logger.info('ZOOptimisation({})'.format(self.parameters))
+        assert all(name in self.SolutionDimensionNames for name in self.dVariantParams)
+        
+        logger.info(f'ZOTrOptimisation({self.dVariantParams})')
         
         # Columns names for each optimisation result row (see _run).
         self.resultsCols = \
-            ['SetupStatus', 'SubmitStatus', 'NFunEvals'] + list(self.parameters.keys()) + [self.expr2Optimise]
+            ['SetupStatus', 'SubmitStatus', 'NFunEvals'] + list(self.dVariantParams.keys()) + [self.expr2Optimise]
         
         # zoopt optimiser initialisation.
         self.zooptDims = \
-            zoopt.Dimension(size=len(self.parameters),
-                            regs=[[param.interval.min, param.interval.max] for param in self.parameters.values()],
-                            tys=[param.continuous for param in self.parameters.values()],
-                            order=[param.ordered for param in self.parameters.values()])
+            zoopt.Dimension(size=len(self.dVariantParams),
+                            regs=[[param.interval.min, param.interval.max] for param in self.dVariantParams.values()],
+                            tys=[param.continuous for param in self.dVariantParams.values()],
+                            order=[param.ordered for param in self.dVariantParams.values()])
 
         self.zooptObjtv = zoopt.Objective(func=self._function, dim=self.zooptDims)
 
@@ -653,10 +672,11 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         """
 
         # Retrieve input parameters (to optimise)
-        params = dict(zip(self.parameters.keys(), solution.get_x()))
+        dParams = dict(zip(self.dVariantParams.keys(), solution.get_x()))
+        dParams.update(self.dConstParams)
         
         # Run analysis and get value.
-        anlysValue = self._runOneAnalysis(valueExpr=self.expr2Optimise, **params)
+        anlysValue = self._runOneAnalysis(valueExpr=self.expr2Optimise, **dParams)
         
         # One more function evaluated.
         self.nFunEvals += 1
@@ -698,7 +718,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
             return [dict(zip(self.resultsCols, 
                              [self.setupError, error, self.nFunEvals] + [None]*(len(self.resultsCols) - 3)))]
             
-        # Run the requested optimisations and get the solutions (ignore None).
+        # Run the requested optimisations and get the solutions (ignore None ones).
         solutions = [self._optimize() for _ in range(times)]
         solutions = [sol for sol in solutions if sol is not None]
         
