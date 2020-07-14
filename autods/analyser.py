@@ -19,7 +19,6 @@ from packaging import version
 
 import copy
 
-from collections import OrderedDict as odict
 from collections import namedtuple as ntuple
 
 import numpy as np
@@ -94,9 +93,10 @@ class AnalysisResultsSet(ResultsSet):
 class DSAnalyser(object):
 
     """Run a bunch of DS analyses on samples extracted from an individualised sightings data set,
-       according to a user-friendly set of analysis specs,
-       + Tools for building analysis variants specifications and explicitating them.
-       Abstract class.
+    according to a user-friendly set of analysis specs,
+    + Tools for building analysis variants specifications and explicitating them.
+    
+    Abstract class.
     """
 
     # Generation of a table of implicit "partial variant" specification,
@@ -114,16 +114,31 @@ class DSAnalyser(object):
         return pd.DataFrame({ colName : fixedLengthList(variants, nRows) for colName, variants in dVariants.items() })
 
     @staticmethod
+    def _dropCommentColumns(dfSpecs):
+    
+        """Drop (in-place) comment columns from a spec dataframe (implicit or explicit)
+        """
+        
+        cols2drop = [col for col in dfSpecs.columns
+                     if not col.strip() or col.startswith('Unnamed:')
+                        or any(col.strip().lower().startswith(start)
+                               for start in ['comm', 'rem', '#'])]
+
+        dfSpecs.drop(columns=cols2drop, inplace=True)        
+
+    @staticmethod
     def explicitPartialVariantSpecs(implSpecs, convertCols=dict()):
 
         """Generation of a table of explicit "partial variant" specifications, from an implicit one
-           (= generate all combinations of variants)
-           :param:implSpecs: implicit partial specs object, as a DataFrame, taken as is,
-              or a dict, preprocessed through implicitPartialVariantSpecs
-           :param:convertCols Name and conversion method for explicit columns to convert 
-             (each column is converted through :
-              dfExplSpecs[colName] = dfExplSpecs[colName].apply(convertCol)
-              for colName, convertCol in convertCols.items()) 
+        (= generate all combinations of variants)
+        
+        Parameters:
+        :param:implSpecs: implicit partial specs object, as a DataFrame, taken as is,
+           or a dict, preprocessed through implicitPartialVariantSpecs
+        :param:convertCols Name and conversion method for explicit columns to convert 
+          (each column is converted through :
+           dfExplSpecs[colName] = dfExplSpecs[colName].apply(convertCol)
+           for colName, convertCol in convertCols.items()) 
         """
         
         # Convert spec from dict to DataFrame if needed.
@@ -131,16 +146,23 @@ class DSAnalyser(object):
             dfImplSpecs = DSAnalyser.implicitPartialVariantSpecs(implSpecs)
         else:
             assert isinstance(implSpecs, pd.DataFrame)
-            dfImplSpecs = implSpecs
+            dfImplSpecs = implSpecs.copy()
         
-        # First columns kept as is.
-        dfExplSpecs = dfImplSpecs[dfImplSpecs.columns[:1]].dropna()
+        # Drop any comment / no header ... = useless column
+        DSAnalyser._dropCommentColumns(dfImplSpecs)
         
+        # First columns kept (nearly) as is (actually an explicit one !) :
+        # keep 1 heading NaN if any, drop trailing ones, and drop duplicates if any.
+        def cleanup(s):
+            return s if s.empty else s.iloc[0:1].append(s.iloc[1:].dropna()).drop_duplicates()
+        dfExplSpecs = cleanup(dfImplSpecs[dfImplSpecs.columns[0]]).to_frame()
+
         # For each implicit specs column (but the first)
         for col in dfImplSpecs.columns[1:]:
-            
-            # Get variants
-            sVariants = dfImplSpecs[col].dropna()
+
+            # Get variants :
+            # keep 1 heading NaN if any, drop trailing ones, and drop duplicates if any.
+            sVariants = cleanup(dfImplSpecs[col])
             
             # Duplicate current explicit table as much as variants are many
             dfExplSpecs = dfExplSpecs.loc[np.repeat(dfExplSpecs.index.to_numpy(), len(sVariants))]
@@ -161,7 +183,8 @@ class DSAnalyser(object):
         # Done.
         return dfExplSpecs
 
-    SupportedFileExts = ['.xlsx'] + (['.ods'] if version.parse(pd.__version__).release >= (0, 25) else [])
+    SupportedFileExts = \
+        ['.xlsx'] + (['.ods'] if version.parse(pd.__version__).release >= (0, 25) else [])
     
     @classmethod
     def _loadPartSpecsFromFile(cls, sourceFpn):
@@ -183,27 +206,33 @@ class DSAnalyser(object):
         return dfData
     
     @classmethod
-    def explicitVariantSpecs(cls, partSpecs, varIndCol=None, convertCols=dict(), computedCols=dict()):
+    def explicitVariantSpecs(cls, partSpecs, keep=None, ignore=None,
+                             varIndCol=None, convertCols=dict(), computedCols=dict()):
         
         """Generation of a table of explicit variant specifications,
-           from a set of implicit and explicit partial variant specs objects 
-           :param:odPartSpecs The ordered dict of name => partial specs objects,
-              each as a DataFrame, taken as is, or a dict, preprocessed through implicitPartialVariantSpecs.
-              Or: pathname of an Excel (.xlsx) or Open Doc. (.ods) worksheet file (1 sheet per specs table)
-              Warning: implicit tables are only found by their name containing "_impl"
-           :param:varIndCol Name of the autogenerated variant index column (defaut: None = no such column added)
-           :param:convertCols Name and conversion method for explicit columns to convert 
-             (each column is converted through :
-              dfExplSpecs[colName] = dfExplSpecs[colName].apply(convertCol)
-              for colName, convertCol in convertCols.items()) 
-           :param:computedCols Name and computing method for explicit columns to add (after appending :param:varIndCol)
-             (each column to add is computed through :
-              dfExplSpecs[colName] = dfExplSpecs.apply(computeCol, axis='columns')
-              for colName, computeCol in computedCols.items()) 
+        from a set of implicit and explicit partial variant specs objects
+           
+        Parameters
+        :param partSpecs: The (ordered) dict of name => partial specs objects,
+           each as a DataFrame, taken as is, or a dict, preprocessed through implicitPartialVariantSpecs.
+           Or: pathname of an Excel (.xlsx) or Open Doc. (.ods) worksheet file (1 sheet per specs table)
+           Warning: implicit tables are only found by their name containing "_impl"
+        :param keep: List of names of specs to consider from partSpecs (default None => consider all)
+        :param ignore: List of names of specs to ignore from partSpecs (default None => ignore none) ;
+                       Warning: names in keep and ignore are ... ignored.
+        :param varIndCol: Name of the autogenerated variant index column (defaut: None = no such column added)
+        :param convertCols: Name and conversion method for explicit columns to convert 
+          (each column is converted through :
+           dfExplSpecs[colName] = dfExplSpecs[colName].apply(convertCol)
+           for colName, convertCol in convertCols.items()) 
+        :param:computedCols: Name and computing method for explicit columns to add (after appending :param varIndCol)
+          (each column to add is computed through :
+           dfExplSpecs[colName] = dfExplSpecs.apply(computeCol, axis='columns')
+           for colName, computeCol in computedCols.items()) 
 
         TODO: Translate to english
         
-        odPartSpecs est donc un dictionnaire ordonné de tables de specs partielles.
+        partSpecs est donc un dictionnaire ordonné de tables de specs partielles.
         * chaque table donne un sous-ensemble (ou la totalité) des colonnes de variantes d'analyses,
         * chaque table peut être implicite ou explicite :
             * explicite : toutes les combinaisons désirées sont données pour les colonnes de la table,
@@ -232,44 +261,51 @@ class DSAnalyser(object):
         """
         
         # Load partial variant specs from source (trivial if given as a dict).
-        odPartSpecs = partSpecs if isinstance(partSpecs, dict) else cls._loadPartSpecsFromFile(partSpecs)
-        assert len(odPartSpecs) > 0, "Error: Can't explicit variants with no partial variant"
+        dPartSpecs = partSpecs if isinstance(partSpecs, dict) else cls._loadPartSpecsFromFile(partSpecs)
+        assert len(dPartSpecs) > 0, "Error: Can't explicit variants with no partial variant"
         
-        # Convert any implicit partial variant spec from dict to DataFrame if needed.
-        oddfPartSpecs = odict()
+        # Setup filters
+        keep = keep or list(dPartSpecs.keys())
+        ignore = ignore or []
         
-        for psName, psValues in odPartSpecs.items():
-            if isinstance(psValues, dict):
-                oddfPartSpecs[psName] = DSAnalyser.implicitPartialVariantSpecs(psValues)
-            else:
-                assert isinstance(psValues, pd.DataFrame)
-                oddfPartSpecs[psName] = psValues
-        
+        # Filter specs as requested and convert any implicit partial variant spec
+        # from dict to DataFrame if needed.
+        ddfPartSpecs = dict()
+        for psName, psValues in dPartSpecs.items():
+            if psName in keep and psName not in ignore:
+                if isinstance(psValues, dict):
+                    ddfPartSpecs[psName] = cls.implicitPartialVariantSpecs(psValues)
+                else:
+                    assert isinstance(psValues, pd.DataFrame)
+                    ddfPartSpecs[psName] = psValues.copy()
+                    # Drop any comment / no header ... = useless column
+                    cls._dropCommentColumns(ddfPartSpecs[psName])
+                
         # Group partial specs tables with same column sets (according to column names)
-        odSameColsPsNames = odict() # { sorted(cols): [table names] }
+        dSameColsPsNames = dict() # { cols: [table names] }
         
-        for psName, dfPsValues in oddfPartSpecs.items():
+        for psName, dfPsValues in ddfPartSpecs.items():
             
             colSetId = ':'.join(sorted(dfPsValues.columns))
-            if colSetId not in odSameColsPsNames:
-                odSameColsPsNames[colSetId] = list()
+            if colSetId not in dSameColsPsNames:
+                dSameColsPsNames[colSetId] = list()
                 
-            odSameColsPsNames[colSetId].append(psName)
+            dSameColsPsNames[colSetId].append(psName)
 
         # For each group, concat. tables into one, after expliciting if needed
         ldfExplPartSpecs = list()
 
-        for lPsNames in odSameColsPsNames.values():
+        for lPsNames in dSameColsPsNames.values():
 
             ldfSameColsPartSpecs= list()
             for psName in lPsNames:
 
-                dfPartSpecs = oddfPartSpecs[psName]
+                dfPartSpecs = ddfPartSpecs[psName]
 
                 # Implicit specs case:
                 if '_impl' in psName:
 
-                    dfPartSpecs = DSAnalyser.explicitPartialVariantSpecs(dfPartSpecs)
+                    dfPartSpecs = cls.explicitPartialVariantSpecs(dfPartSpecs)
 
                 # Now, specs are explicit.
                 ldfSameColsPartSpecs.append(dfPartSpecs)
@@ -322,22 +358,23 @@ class DSAnalyser(object):
 
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       resultsHeadCols=dict(before=['AnlysNum', 'Sample'], after=['AnlysAbbrev'], 
-                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       abbrevCol='AnlysAbbrev',
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleDecCols=['Effort', 'Distance'],
                        distanceUnit='Meter', areaUnit='Hectare',
-                       workDir='.', **options):
+                       resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
+                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
+                       abbrevCol='AnlysAbbrev', workDir='.', **options):
                        
         """Ctor
-            :param pd.DataFrame dfMonoCatObs: mono-category data from FieldDataSet.monoCategorise() or individualise()
-            :param pd.DataFrame dfTransects: Transects infos with columns : transectPlaceCols (n), passIdCol (1),
-                effortCol (1) ; if None, auto generated from input sightings
-            :param effortConstVal: if dfTransects is None and effortCol not in source table, use this constant value
-            :param resultsHeadCols: dict of list of column names (from dfMonoCatObs) to use in order
-                to build results (right) header columns ; 'sample' columns are sample selection columns.
-            :param options: See DSEngine
+        
+        Parameters:
+        :param pd.DataFrame dfMonoCatObs: mono-category data from FieldDataSet.monoCategorise() or individualise()
+        :param pd.DataFrame dfTransects: Transects infos with columns : transectPlaceCols (n), passIdCol (1),
+            effortCol (1) ; if None, auto generated from input sightings
+        :param effortConstVal: if dfTransects is None and effortCol not in source table, use this constant value
+        :param resultsHeadCols: dict of list of column names (from dfMonoCatObs) to use in order
+            to build results (right) header columns ; 'sample' columns are sample selection columns.
+        :param options: See DSEngine
         """
 
         self.dfMonoCatObs = dfMonoCatObs
@@ -367,11 +404,23 @@ class DSAnalyser(object):
     # from explicit _user_ spec columns
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
     #  and case is ignored during searching).
-    Int2UserSpecREs = odict([])
+    Int2UserSpecREs = dict()
 
     @staticmethod
-    def userSpec2ParamNames(userSpecCols, int2UserSpecREs):
+    def userSpec2ParamNames(userSpecCols, int2UserSpecREs, strict=True):
 
+        """
+        Retrieve the internal param. names matching with the "user specified" ones
+        according to the given regexp dictionary.
+        
+        Parameters:
+        :param userSpecCols: list of user spec. columns
+        :param int2UserSpecREs: Possible regexps for internal param. names
+        :param strict: if True, raise KeyError if any name in userSpecCols cannot be matched ;
+                       if False, will return None for each unmatched internal param. name
+
+        Return: List of internal param. names (None if not strict and not found)
+        """
         logger.debug('Matching user spec. columns:')
 
         parNames = list()
@@ -380,16 +429,20 @@ class DSAnalyser(object):
                 parName = next(iter(parName for parName in int2UserSpecREs \
                                     if any(re.search(pat, specName, flags=re.IGNORECASE) \
                                            for pat in int2UserSpecREs[parName])))
-                logger.debug(' * "{}" => {}'.format(specName, parName))
+                logger.debug(f' * "{specName}" => {parName}')
                 parNames.append(parName)
             except StopIteration:
-                raise KeyError('Could not match user spec. column "{}" in sample data set columns [{}]' \
-                                .format(specName, ', '.join(int2UserSpecREs.keys())))
+                if strict:
+                    raise KeyError('Could not match user spec. column "{}" in sample data set columns [{}]'
+                                   .format(specName, ', '.join(int2UserSpecREs.keys())))
+                else:
+                    logger.debug(f' * "{specName}" => Not found')
+                    parNames.append(None)
 
-        logger.debug('... success.')
+        logger.debug('... success{}.'.format('' if strict else ' but {} mismatches.'.format(parNames.count(None))))
 
         return parNames
-    
+
     def checkUserSpecs(self, dfAnlysExplSpecs, anlysParamSpecCols):
     
         """Check user specified analyses params for usability.
@@ -400,15 +453,29 @@ class DSAnalyser(object):
            :param pd.DataFrame dfAnlysExplSpecs: analysis params table
            :param list anlysParamSpecCols: columns of dfAnlysExplSpecs for analysis specs
               
-        :raise: KeyError if any column could not be matched with some of the expected parameter names.
-
-        :return: False if any column from anlysParamSpecCols could not be found in dfAnlysExplSpecs columns.
+        :return: True if everything seems OK, False otherwise:
+        * some columns from anlysParamSpecCols could not be found in dfAnlysExplSpecs columns,
+        * some columns could not be matched with some of the expected parameter names,
+        * some rows are not suitable for DS analysis (empty sample identification columns, ...).
         """
     
-         # Try and convert explicit. analysis spec. columns to the internal parameter names.
-        _ = self.userSpec2ParamNames(anlysParamSpecCols, self.Int2UserSpecREs)
+        # TODO: Buid and return user-friendly error diagnosis
+    
+        # Check presence of all the specified columns.
+        if not all(col in dfAnlysExplSpecs.columns for col in anlysParamSpecCols):
+            return False
+            
+        # Try and convert explicit. analysis spec. columns to the internal parameter names.
+        intParNames = self.userSpec2ParamNames(anlysParamSpecCols, self.Int2UserSpecREs, strict=False)
+        if intParNames.count(None):
+            return False
+
+        # Check that all rows are not suitable for DS analysis (non empty sample identification columns, ...).
+        if dfAnlysExplSpecs[self.resultsHeadCols['sample']].isnull().all(axis='columns').any():
+            return False
         
-        return all(col in dfAnlysExplSpecs.columns for col in anlysParamSpecCols) 
+        # Success.
+        return True
 
 
 class MCDSAnalysisResultsSet(AnalysisResultsSet):
@@ -424,8 +491,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                        sortCols=[], sortAscend=[]):
         
         # Setup computed columns specs.
-        dCompCols = odict([(self.DeltaAicColInd, 22), # Right before AIC
-                           (self.Chi2ColInd, 24)]) # Right before all Chi2 tests 
+        dCompCols = {self.DeltaAicColInd: 22, # Right before AIC
+                     self.Chi2ColInd:     24} # Right before all Chi2 tests 
         dfCompColTrans = \
             pd.DataFrame(index=dCompCols.keys(),
                          data=dict(en=['Delta AIC', 'Chi2 P'], fr=['Delta AIC', 'Chi2 P']))
@@ -503,25 +570,25 @@ class MCDSAnalyser(DSAnalyser):
     """Run a bunch of MCDS analyses"""
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
-                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       abbrevCol='AnlysAbbrev',
-                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleDecCols=['Effort', 'Distance'],
-                       distanceUnit='Meter', areaUnit='Hectare',
-                       surveyType='Point', distanceType='Radial', clustering=False,
-                       workDir='.', logData=False,
-                       defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
-                       defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef, defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
-                       defFitDistCuts=MCDSEngine.DistFitCutsDef, defDiscrDistCuts=MCDSEngine.DistDiscrCutsDef):
+                 transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                 sampleDecCols=['Effort', 'Distance'],
+                 distanceUnit='Meter', areaUnit='Hectare',
+                 surveyType='Point', distanceType='Radial', clustering=False,
+                 resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
+                                      sample=['Species', 'Pass', 'Adult', 'Duration']),
+                 abbrevCol='AnlysAbbrev', workDir='.', logData=False,
+                 defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
+                 defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
+                 defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
+                 defFitDistCuts=MCDSEngine.DistFitCutsDef, defDiscrDistCuts=MCDSEngine.DistDiscrCutsDef):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
-                         resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol,
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
                          sampleDecCols=sampleDecCols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
+                         resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol,
                          workDir=workDir)
                          
         self.logData = logData
@@ -550,17 +617,17 @@ class MCDSAnalyser(DSAnalyser):
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
     #  and case is ignored during searching).
     Int2UserSpecREs = \
-      odict([(IntSpecEstimKeyFn,     ['ke[a-z]*[\.\-_ ]*f', 'f[o]?n[a-z]*[\.\-_ ]*cl']),
-             (IntSpecEstimAdjustFn,  ['ad[a-z]*[\.\-_ ]*s', 's[éa-z]*[\.\-_ ]*aj']),
-             (IntSpecEstimCriterion, ['crit[èa-z]*[\.\-_ ]*']),
-             (IntSpecCVInterval,     ['conf[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*int',
-                                      'int[a-z]*[\.\-_ ]*conf']),
-             (IntSpecMinDist,        ['min[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*min',
-                                      'tr[a-z]*[\.\-_ ]*g[ca]', 'le[a-z]*[\.\-_ ]*tr']),
-             (IntSpecMaxDist,        ['max[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*max',
-                                      'tr[a-z]*[\.\-_ ]*d[rt]', 'le[a-z]*[\.\-_ ]*tr']),
-             (IntSpecFitDistCuts,    ['fit[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*mod']),
-             (IntSpecDiscrDistCuts,  ['disc[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*disc'])])
+      {IntSpecEstimKeyFn:     ['ke[a-z]*[\.\-_ ]*f', 'f[o]?n[a-z]*[\.\-_ ]*cl'],
+       IntSpecEstimAdjustFn:  ['ad[a-z]*[\.\-_ ]*s', 's[éa-z]*[\.\-_ ]*aj'],
+       IntSpecEstimCriterion: ['crit[èa-z]*[\.\-_ ]*'],
+       IntSpecCVInterval:     ['conf[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*int',
+                               'int[a-z]*[\.\-_ ]*conf'],
+       IntSpecMinDist:        ['min[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*min',
+                               'tr[a-z]*[\.\-_ ]*g[ca]', 'le[a-z]*[\.\-_ ]*tr'],
+       IntSpecMaxDist:        ['max[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*max',
+                               'tr[a-z]*[\.\-_ ]*d[rt]', 'le[a-z]*[\.\-_ ]*tr'],
+       IntSpecFitDistCuts:    ['fit[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*mod'],
+       IntSpecDiscrDistCuts:  ['disc[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*disc']}
 
     # Analysis object ctor parameter names (MUST match exactly: check in analysis submodule !).
     ParmEstimKeyFn = 'estimKeyFn'
@@ -721,7 +788,7 @@ class MCDSAnalyser(DSAnalyser):
         results = self._getResults(dAnlyses)
         
         # Done.
-        logger.info('Analyses completed.')
+        logger.info(f'Analyses completed ({len(results)} results).')
 
         return results
 
