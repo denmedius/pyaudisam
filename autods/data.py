@@ -15,8 +15,6 @@ import sys
 import pathlib as pl
 from packaging import version
 
-from collections import OrderedDict as odict
-
 import numpy as np
 import pandas as pd
 
@@ -134,7 +132,7 @@ class FieldDataSet(DataSet):
         self.dfIndivSights = None # Not yet computed.
         self.dfMonoCatSights = None # Idem.
         
-        logger.info('Field data : {} sightings'.format(len(self)))
+        logger.info(f'Field data : {len(self)} sightings')
 
     @property
     def dfData(self):
@@ -285,7 +283,7 @@ class MonoCategoryDataSet(DataSet):
         self._sdsSampleDataSetCache = None
         self._sSampleSpecsCache = None
         
-        logger.info('Individuals data : {} sightings, {} transects'.format(len(self), len(self.dfTransects)))
+        logger.info(f'Individuals data : {len(self)} sightings, {len(self.dfTransects)} transects')
 
     @property
     def dfData(self):
@@ -420,7 +418,7 @@ class MonoCategoryDataSet(DataSet):
         
         # Don't go on if no selected data.
         if dfSampIndivObs.empty:
-            logger.warning('No data selected for this specs: {}'.format(sSampleSpecs.to_dict()))
+            logger.warning(f'No data selected for this specs: {sSampleSpecs.to_dict()}')
             return None
 
         # Add absence sightings
@@ -464,7 +462,7 @@ class SampleDataSet(DataSet):
         if sortFields:
             self._dfData.sort_values(by=sortFields, inplace=True)
 
-        logger.info('Sample data : {} sightings'.format(len(self)))
+        logger.info(f'Sample data : {len(self)} sightings')
 
 
 class ResultsSet(object):
@@ -712,30 +710,42 @@ class ResultsSet(object):
         
         dfOutData.to_excel(fileName, sheet_name=sheetName or 'AllResults', engine=engine)
 
+        logger.info(f'Results saved to {fileName} ({len(self)} rows)')
+
     # Save data to an Open Document worksheet (ODS format).
     # Warning: Not yet implements as of pandas 0.25.3 ; 
     # News: well advanced, expected for Pandas 1.1, https://github.com/pandas-dev/pandas/issues/27222
     def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None):
         
         raise NotImplementedError('toOpenDoc: expected for pandas 1.1 as of June, 2020')
-        #return self.toExcel(fileName, sheetName, lang, subset, engine='odf')
+        #self.toExcel(fileName, sheetName, lang, subset, engine='odf')
 
-    # Load (overwrite) data from an Excel worksheet (XLSX format),
-    # assuming ctor params match with Excel sheet column names and list,
-    # which can well be ensured by using the same ctor params as used for saving !
-    def fromExcel(self, fileName, sheetName=None):
-        
-        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
-                                    header=[0, 1, 2], skiprows=[3], index_col=0)
+        #logger.info(f'Results saved to {fileName} ({len(self)} rows)')
 
-    # Load (overwrite) data from an Open Document worksheet (ODS format),
-    # assuming ctor params match with ODF sheet column names and list,
-    # which can well be ensured by using the same ctor params as used for saving !
-    # Notes: Needs odfpy module and pandas.version >= 0.25.1
-    def fromOpenDoc(self, fileName, sheetName=None):
+    def fromExcel(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3]):
         
+        """Load (overwrite) data from an Excel worksheet (XLSX format),
+        assuming ctor params match with Excel sheet column names and list,
+        which can well be ensured by using the same ctor params as used for saving !
+        """
+
         self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
-                                    header=[0, 1, 2], skiprows=[3], index_col=0, engine='odf')
+                                    header=header, skiprows=skiprows, index_col=0)
+
+        logger.info(f'Loaded results from {fileName} ({len(self)} rows)')
+
+    def fromOpenDoc(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3]):
+        
+        """Load (overwrite) data from an Open Document worksheet (ODS format),
+        assuming ctor params match with ODF sheet column names and list,
+        which can well be ensured by using the same ctor params as used for saving !
+        Notes: Needs odfpy module and pandas.version >= 0.25.1
+        """
+
+        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
+                                    header=header, skiprows=skiprows, index_col=0, engine='odf')
+
+        logger.info(f'Loaded results from {fileName} ({len(self)} rows)')
 
     @staticmethod
     def _closeness(sLeftRight):
@@ -852,7 +862,7 @@ class ResultsSet(object):
             try:
                 dfRelDiff[leftCol] = dfRelDiff[[leftCol, KRightCol]].apply(self._closeness, axis='columns')
             except TypeError as exc:
-                logger.error('Column {} : {}'.format(leftCol, exc))
+                logger.error(f'Column {leftCol} : {exc}')
                 exception = True
             dfRelDiff.drop(columns=[KRightCol], inplace=True)
             

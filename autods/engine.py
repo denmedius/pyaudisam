@@ -18,7 +18,7 @@ import pathlib as pl
 import copy
 import tempfile
 
-from collections import OrderedDict as odict, namedtuple as ntuple
+from collections import namedtuple as ntuple
 
 import numpy as np
 import pandas as pd
@@ -46,7 +46,7 @@ class DSEngine(object):
     
     # Forbidden chars in workDir path name (Distance DS engines are real red necks)
     # TODO: stronger protection (more special chars ? more generic method, through re ?)
-    ForbidPathChars = [' ', '(', ')', ',', ':', ]
+    ForbidPathChars = [' ', '(', ')', ',']
     
     # Distance software detection params.
     DistanceSuppVers = [7, 6] # Lastest first.
@@ -112,13 +112,13 @@ class DSEngine(object):
     # Possible regexps for auto-detection of columns to import (into Distance / MCDS) from data sets / exports
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK).
     ImportFieldAliasREs = \
-        odict([('STR_LABEL', ['region', 'zone', 'secteur', 'strate', 'stratum']),
-               ('STR_AREA', ['surface', 'area', 'ha', 'km2']),
-               ('SMP_LABEL', ['point', 'lieu', 'location', 'transect']),
-               ('SMP_EFFORT', ['effort', 'passes', 'surveys', 'samplings', 'longueur', 'length']),
-               ('DISTANCE', ['dist']),
-               ('ANGLE', ['angl', 'azim', 'direct']),
-               ('SIZE', ['nombre', 'nb', 'indiv', 'obj', 'tail', 'num', 'siz'])]) # Cluster size
+        {'STR_LABEL':  ['region', 'zone', 'secteur', 'strate', 'stratum'],
+         'STR_AREA':   ['surface', 'area', 'ha', 'km2'],
+         'SMP_LABEL':  ['point', 'lieu', 'location', 'transect'],
+         'SMP_EFFORT': ['effort', 'passes', 'surveys', 'samplings', 'longueur', 'length'],
+         'DISTANCE':   ['dist'],
+         'ANGLE':      ['angl', 'azim', 'direct'],
+         'SIZE':       ['nombre', 'nb', 'indiv', 'obj', 'tail', 'num', 'siz']}  # Cluster size
     
     # Data fields of decimal type.
     # TODO: Complete for non 'Point transect' modes
@@ -126,7 +126,7 @@ class DSEngine(object):
     
     # Match srcFields with tgtAliasREs ones ; keep remaining ones ; sort decimal fields.
     @classmethod
-    def matchDataFields(cls, srcFields, tgtAliasREs=odict()):
+    def matchDataFields(cls, srcFields, tgtAliasREs={}):
         
         logger.debug('Matching required data columns:')
         
