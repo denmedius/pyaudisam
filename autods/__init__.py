@@ -28,7 +28,7 @@ from .executor import Executor
 
 from .analysis import DSAnalysis, MCDSAnalysis, MCDSPreAnalysis
 
-from .analyser import DSAnalyser, MCDSAnalyser, MCDSAnalysisResultsSet, MCDSPreAnalyser
+from .analyser import Analyser, DSAnalyser, MCDSAnalyser, MCDSAnalysisResultsSet, MCDSPreAnalyser
 
 from .optimisation import Interval, DSOptimisation, MCDSTruncationOptimisation, \
                           MCDSZerothOrderTruncationOptimisation
