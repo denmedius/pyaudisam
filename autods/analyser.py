@@ -247,7 +247,7 @@ class Analyser(object):
             * avant de les combiner avec les autres tables, on les concatène verticalement en 1 seule
               après explicitation individuelle,
         * les tables qui n'ont aucune colonne en commun avec les autres produiront
-          la combinatoire complète des combinaisons obtenues par explicitation des colonnes la précédant,
+          l'ensemble des combinaisons possibles avec celles obtenues par explicitation des colonnes la précédant,
         * celles qui ont certaines (mais pas toutes) colonnes en communs avec celles qui la précèdent
           permettent de produire des variantes spécifiques pour ces colonnes : elles feront l'objet
           d'une jointure à gauche avec ces tables précédentes,
@@ -259,6 +259,7 @@ class Analyser(object):
         """
         
         # Load partial variant specs from source (trivial if given as a dict).
+        assert isinstance(partSpecs, (dict, str, pl.Path)), 'Error: Can explicit only worksheet files or alike dicts'
         dPartSpecs = partSpecs if isinstance(partSpecs, dict) else cls._loadPartSpecsFromFile(partSpecs)
         assert len(dPartSpecs) > 0, "Error: Can't explicit variants with no partial variant"
         
@@ -470,39 +471,120 @@ class DSAnalyser(Analyser):
 
         return parNames
 
-    def checkUserSpecs(self, dfAnlysExplSpecs, paramSpecCols):
+    @staticmethod
+    def _explicitParamSpecs(implParamSpecs=None, dfExplParamSpecs=None, int2UserSpecREs=dict(),
+                            sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'],
+                            abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum',
+                            sampleIndCol='SampleNum'):
+                           
+        """Explicitate analysis param. specs if not already done, and complete columns if needed ;
+        and automatically extract (regexps) columns which are really analysis parameters,
+        with their analyser-internal name, and also their "user" name.
+        
+        Parameters:
+        :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
+           through explicitVariantSpecs
+        :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
+           (generated through explicitVariantSpecs, as an example)
+        :param int2UserSpecREs: Possible regexps for internal param. names
+        :param sampleSelCols: sample identification = selection columns
+        :param abbrevCol: Name of column to generate for abbreviating analyses params, not sure really useful ...
+        :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
+        :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
+        :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
+           
+        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified : a new one is returned),
+                 list of analysis param. columns internal names,
+                 list of analysis param. columns user names.
+        """
+    
+        # Explicitate analysis specs if needed (and add computed columns if not already there).
+        assert dfExplParamSpecs is None or implParamSpecs is None, \
+               'Only one of dfExplParamSpecs and paramSpecCols can be specified'
+        
+        dCompdCols = {abbrevCol: abbrevBuilder} if abbrevCol and abbrevBuilder else {}
+        if implParamSpecs is not None:
+            dfExplParamSpecs = \
+                Analyser.explicitVariantSpecs(implParamSpecs, varIndCol=anlysIndCol,
+                                              computedCols=dCompdCols)
+        else:
+            dfExplParamSpecs = dfExplParamSpecs.copy()
+            for colName, computeCol in dCompdCols.items():
+                if colName not in dfExplParamSpecs.columns:
+                    dfExplParamSpecs[colName] = dfExplParamSpecs.apply(computeCol, axis='columns')
+            if anlysIndCol and anlysIndCol not in dfExplParamSpecs.columns:
+                dfExplParamSpecs[anlysIndCol] = np.arange(len(dfExplParamSpecs))
+
+        # Add sample index column if not already there
+        if sampleIndCol not in dfExplParamSpecs.columns:
+            dfExplParamSpecs[sampleIndCol] = \
+                dfExplParamSpecs.groupby(sampleSelCols, sort=False).ngroup()
+
+        # Convert explicit. analysis spec. columns to the internal parameter names,
+        # and extract the real analysis parameters.
+        intParamSpecCols = \
+            DSAnalyser.userSpec2ParamNames(dfExplParamSpecs.columns, int2UserSpecREs, strict=False)
+
+        # Get back to matching column user names
+        userParamSpecCols = [v for k,v in zip(intParamSpecCols, dfExplParamSpecs.columns) if k]
+        
+        # Cleanup implicit name list from Nones (strict=False)
+        intParamSpecCols = [n for n in intParamSpecCols if n]
+
+        # Done.
+        return dfExplParamSpecs, userParamSpecCols, intParamSpecCols
+
+    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
+    
+        """Explicitate analysis param. specs if not already done, and complete columns if needed ;
+        and automatically extract (regexps) columns which are really analysis parameters,
+        with their analyser-internal name, and also their "user" name.
+        
+        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned),
+                 list of analysis param. columns internal names,
+                 list of analysis param. columns user names.
+        """
+        
+        return self._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
+                                        sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
+                                        abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
+                                        sampleIndCol=self.sampleIndCol)
+
+    def checkUserSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
     
         """Check user specified analyses params for usability.
         
-        Use it before calling analyser.run(dfAnlysExplSpecs, paramSpecCols, ...)
+        Use it before calling analyser.run(implParamSpecs=..., dfExplParamSpecs=..., ...)
         
-        Parameters:
-           :param pd.DataFrame dfAnlysExplSpecs: analysis params table
-           :param list paramSpecCols: columns of dfAnlysExplSpecs for analysis specs
+        See _explicitParamSpecs, the class-independant version.
               
-        :return: True if everything seems OK, False otherwise:
-        * some columns from paramSpecCols could not be found in dfAnlysExplSpecs columns,
-        * some columns could not be matched with some of the expected parameter names,
-        * some rows are not suitable for DS analysis (empty sample identification columns, ...).
+        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified : a new one is returned),
+                 list of analysis param. columns internal names,
+                 list of analysis param. columns user names,
+                 True if everything went well, False otherwise,
+                   * some columns from paramSpecCols could not be found in dfAnlysExplSpecs columns,
+                   * some user columns could not be matched with some of the expected internal parameter names,
+                   * some rows are not suitable for DS analysis (empty sample identification columns, ...).
+                 list of strings explaining things that went bad.
         """
-    
-        # TODO: Buid and return user-friendly error diagnosis
-    
-        # Check presence of all the specified columns.
-        if not all(col in dfAnlysExplSpecs.columns for col in paramSpecCols):
-            return False
-            
-        # Try and convert explicit. analysis spec. columns to the internal parameter names.
-        intParNames = self.userSpec2ParamNames(paramSpecCols, self.Int2UserSpecREs, strict=False)
-        if intParNames.count(None):
-            return False
+ 
+        verdict = True
+        reasons = []
+ 
+        # Explicitate analysis specs with added computed columns if needed.
+        dfExplParamSpecs, userParamSpecCols, intParamSpecCols = \
+            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs)
+        if len(userParamSpecCols) != len(intParamSpecCols):
+            verdict = False
+            reasons.append('Failed to match some user spec. names with internal ones')
 
-        # Check that all rows are not suitable for DS analysis (non empty sample identification columns, ...).
-        if dfAnlysExplSpecs[self.resultsHeadCols['sample']].isnull().all(axis='columns').any():
-            return False
+        # Check that all rows are suitable for DS analysis (non empty sample identification columns, ...).
+        if dfExplParamSpecs[self.sampleSelCols].isnull().all(axis='columns').any():
+            verdict = False
+            reasons.append('Some rows have some null sample selection columns')
         
         # Success.
-        return True
+        return dfExplParamSpecs, userParamSpecCols, intParamSpecCols, verdict, reasons
 
 
 class MCDSAnalysisResultsSet(AnalysisResultsSet):
@@ -746,76 +828,7 @@ class MCDSAnalyser(DSAnalyser):
 
         return results
 
-    @staticmethod
-    def _explicitParamSpecs(implParamSpecs=None, dfExplParamSpecs=None, int2UserSpecREs=dict(),
-                            sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'],
-                            abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum',
-                            sampleIndCol='SampleNum'):
-                           
-        """Explicitate analysis param. specs if not already done, and complete columns if needed ;
-        and automatically extract (regexps) columns which are really analysis parameters,
-        with their analyser-internal name, and also their "user" name.
-        
-        Parameters:
-        :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
-           through explicitVariantSpecs
-        :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
-           (generated through explicitVariantSpecs, as an example)
-        :param int2UserSpecREs: Possible regexps for internal param. names
-        :param sampleSelCols: sample identification = selection columns
-        :param abbrevCol: Name of column to generate for abbreviating analyses params, not sure really useful ...
-        :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
-        :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
-        :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
-           
-        :return: Explicit specs as a DataFrame, list of analysis param. columns internal names,
-                 list of analysis param. columns user names.
-        """
-    
-        # Explicitate analysis specs if needed.
-        assert dfExplParamSpecs is None or implParamSpecs is None, \
-               'Only one of dfExplParamSpecs and paramSpecCols can be specified'
-        
-        if implParamSpecs is not None:
-            dCompdCols = {abbrevCol: abbrevBuilder} if abbrevCol and abbrevBuilder else {}
-            dfExplParamSpecs = \
-                Analyser.explicitVariantSpecs(implParamSpecs, varIndCol=anlysIndCol,
-                                              computedCols=dCompdCols)
-
-        # Add sample index column if not already there
-        if sampleIndCol not in dfExplParamSpecs.columns:
-            dfExplParamSpecs[sampleIndCol] = \
-                dfExplParamSpecs.groupby(sampleSelCols, sort=False).ngroup()
-
-        # Convert explicit. analysis spec. columns to the internal parameter names,
-        # and extract the real analysis parameters.
-        intParamSpecCols = \
-            DSAnalyser.userSpec2ParamNames(dfExplParamSpecs.columns, int2UserSpecREs, strict=False)
-
-        # Get back to matching column user names
-        userParamSpecCols = [v for k,v in zip(intParamSpecCols, dfExplParamSpecs.columns) if k]
-        
-        # Cleanup implicit name list from Nones (strict=False)
-        intParamSpecCols = [n for n in intParamSpecCols if n]
-
-        # Done.
-        return dfExplParamSpecs, userParamSpecCols, intParamSpecCols
-
-    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
-    
-        """Explicitate analysis param. specs if not already done, and complete columns if needed ;
-        and automatically extract (regexps) columns which are really analysis parameters,
-        with their analyser-internal name, and also their "user" name.
-        
-        See _explicitParamSpecs, the class-independant version.
-        """
-        
-        return self._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
-                                        sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
-                                        abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
-                                        sampleIndCol=self.sampleIndCol)
-
-    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=1, processes=0):
+    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=1):
     
         """Run specified analyses
         
@@ -830,7 +843,7 @@ class MCDSAnalyser(DSAnalyser):
         """
     
         # Executor (parallel or séquential).
-        self._executor = Executor(parallel=threads > 1 or processes > 1, threads=threads, processes=processes)
+        self._executor = Executor(parallel=threads > 1 or processes > 1, threads=threads)
 
         # MCDS analysis engine
         self._engine = MCDSEngine(workDir=self.workDir, executor=self._executor, 
@@ -847,9 +860,7 @@ class MCDSAnalyser(DSAnalyser):
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs)
         
         # For each analysis to run :
-        runHow = 'in sequence' if threads <= 1 and processes <= 1 \
-                 else '{} parallel {}'.format(threads if threads > 1 \
-                                              else processes, 'threads' if threads > 1 else 'processes')
+        runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
         logger.info('Running {} MCDS analyses ({}) ...'.format(len(dfExplParamSpecs), runHow))
         dAnlyses = dict()
         for anInd, sAnSpec in dfExplParamSpecs.iterrows():
@@ -910,31 +921,45 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
-                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleDecCols=['Effort', 'Distance'],
-                       distanceUnit='Meter', areaUnit='Hectare',
-                       surveyType='Point', distanceType='Radial', clustering=False,
-                       abbrevCol='SampAbbrev', workDir='.'):
+                 transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                 sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], sampleDecCols=['Effort', 'Distance'],
+                 abbrevCol='SampAbbrev', abbrevBuilder=None, sampleIndCol='SampleNum',
+                 distanceUnit='Meter', areaUnit='Hectare',
+                 surveyType='Point', distanceType='Radial', clustering=False,
+                 resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
+                                      sample=['Species', 'Pass', 'Adult', 'Duration']),
+                 workDir='.'):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
-                         resultsHeadCols=resultsHeadCols,
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
-                         sampleDecCols=sampleDecCols,
+                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
+                         abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder, sampleIndCol=sampleIndCol,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
-                         abbrevCol=abbrevCol, workDir=workDir)
+                         resultsHeadCols=resultsHeadCols,
+                         anlysIndCol=None, workDir=workDir)
 
-    def run(self, dfSamplesExplSpecs, dModelStrategy=ModelStrategyDef, threads=1, processes=0):
+    def explicitSampleSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
+    
+        """Explicitate sample. specs if not already done, and complete columns if needed.
+        
+        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned)
+        """
+        
+        return self._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
+                                        sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
+                                        abbrevBuilder=self.abbrevBuilder, anlysIndCol=None,
+                                        sampleIndCol=self.sampleIndCol)[0]
+
+    def run(self, dfExplSampleSpecs=None, implSampleSpecs=None, dModelStrategy=ModelStrategyDef, threads=1):
     
         """Run specified analyses
-           :param threads:, :param processes: Number of parallel threads / processes to use (default: no parallelism)
+           :param threads: Number of parallel threads to use (default: 1 thread = no parallelism)
         """
     
         # Executor (parallel or séquential).
-        self._executor = Executor(parallel=threads > 1 or processes > 1, threads=threads, processes=processes)
+        self._executor = Executor(parallel=threads > 1, threads=threads)
 
         # MCDS analysis engine (a sequential one: 'cause MCDSPreAnalysis does the parallel stuff itself).
         self._engine = MCDSEngine(workDir=self.workDir,
@@ -946,19 +971,20 @@ class MCDSPreAnalyser(MCDSAnalyser):
         customCols = \
             self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
         
+        # Explicitate sample specs and add computed columns if needed.
+        dfExplSampleSpecs = self.explicitSampleSpecs(implSampleSpecs, dfExplSampleSpecs)
+        
         # For each sample to analyse :
-        runHow = 'in sequence' if threads <= 1 and processes <= 1 \
-                 else '{} parallel {}'.format(threads if threads > 1 \
-                                              else processes, 'threads' if threads > 1 else 'processes')
-        logger.info('Running {} MCDS pre-analyses ({}) ...'.format(len(dfSamplesExplSpecs), runHow))
+        runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
+        logger.info('Running {} MCDS pre-analyses ({}) ...'.format(len(dfExplSampleSpecs), runHow))
         
         dAnlyses = dict()
-        for anInd, sAnSpec in dfSamplesExplSpecs.iterrows():
+        for anInd, sAnSpec in dfExplSampleSpecs.iterrows():
             
-            logger.info('#{}/{} : {}'.format(anInd+1, len(dfSamplesExplSpecs), sAnSpec[self.abbrevCol]))
+            logger.info('#{}/{} : {}'.format(anInd+1, len(dfExplSampleSpecs), sAnSpec[self.abbrevCol]))
 
             # Select data sample to process
-            sds = self._mcDataSet.sampleDataSet(sAnSpec[self.resultsHeadCols['sample']])
+            sds = self._mcDataSet.sampleDataSet(sAnSpec[self.sampleSelCols])
             if not sds:
                 continue # No data => no analysis.
 
