@@ -478,13 +478,13 @@ class DSAnalyser(Analyser):
                             sampleIndCol='SampleNum'):
                            
         """Explicitate analysis param. specs if not already done, and complete columns if needed ;
-        and automatically extract (regexps) columns which are really analysis parameters,
+        also automatically extract (regexps) columns which are really analysis parameters,
         with their analyser-internal name, and also their "user" name.
         
         Parameters:
-        :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
-           through explicitVariantSpecs
-        :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
+        :param implParamSpecs: Implicit analysis param specs, suitable for explicitation
+           through explicitVariantSpecs()
+        :param dfExplParamSpecs: Explicit analysis param specs, as a DataFrame
            (generated through explicitVariantSpecs, as an example)
         :param int2UserSpecREs: Possible regexps for internal param. names
         :param sampleSelCols: sample identification = selection columns
@@ -498,7 +498,7 @@ class DSAnalyser(Analyser):
                  list of analysis param. columns user names.
         """
     
-        # Explicitate analysis specs if needed (and add computed columns if not already there).
+        # Explicitate analysis specs if needed (and add computed columns if any and not already there).
         assert dfExplParamSpecs is None or implParamSpecs is None, \
                'Only one of dfExplParamSpecs and paramSpecCols can be specified'
         
@@ -515,8 +515,8 @@ class DSAnalyser(Analyser):
             if anlysIndCol and anlysIndCol not in dfExplParamSpecs.columns:
                 dfExplParamSpecs[anlysIndCol] = np.arange(len(dfExplParamSpecs))
 
-        # Add sample index column if not already there
-        if sampleIndCol not in dfExplParamSpecs.columns:
+        # Add sample index column if requested and not already there
+        if sampleIndCol and sampleIndCol not in dfExplParamSpecs.columns:
             dfExplParamSpecs[sampleIndCol] = \
                 dfExplParamSpecs.groupby(sampleSelCols, sort=False).ngroup()
 
@@ -534,57 +534,79 @@ class DSAnalyser(Analyser):
         # Done.
         return dfExplParamSpecs, userParamSpecCols, intParamSpecCols
 
-    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
+    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None, check=False):
     
         """Explicitate analysis param. specs if not already done, and complete columns if needed ;
-        and automatically extract (regexps) columns which are really analysis parameters,
+        also automatically extract (regexps) columns which are really analysis parameters,
         with their analyser-internal name, and also their "user" name.
         
-        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned),
-                 list of analysis param. columns internal names,
-                 list of analysis param. columns user names.
+        Can moreover check params specs for usability, if check is True :
+        * use it before calling analyser.run(implParamSpecs=..., dfExplParamSpecs=..., ...)
+          to check that everythings OK,
+        * or be sure that run() will fail at startup (because it itself will do it).
+        
+        Parameters:
+        :param implParamSpecs: Implicit analysis param specs, suitable for explicitation
+           through explicitVariantSpecs()
+        :param dfExplParamSpecs: Explicit analysis param specs, as a DataFrame
+           (generated through explicitVariantSpecs, as an example)
+        :param check: if True, checks params for usability by run(),
+           and return a bool verdict and a list of strings explaining the negative (False) verdict
+
+        :return: a 3 or 5-item tuple :
+           * explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned),
+           * list of analysis param. columns internal names,
+           * list of analysis param. columns user names,
+           if ckeck, 2 more items in the return tuple :
+           * check verdict : True if everything went well, False otherwise,
+             * some columns from paramSpecCols could not be found in dfExplParamSpecs columns,
+             * some user columns could not be matched with some of the expected internal parameter names,
+             * some rows are not suitable for DS analysis (empty sample identification columns, ...).
+           * check failure reasons : list of strings explaining things that went bad.
         """
         
-        return self._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
-                                        sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
-                                        abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
-                                        sampleIndCol=self.sampleIndCol)
+        # Explicitate and complete
+        tplRslt = self._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
+                                           sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
+                                           abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
+                                           sampleIndCol=self.sampleIndCol)
+        
+        # Check if requested
+        if check:
+        
+            verdict = True
+            reasons = []
+     
+            dfExplParamSpecs, userParamSpecCols, intParamSpecCols = tplRslt
+            
+            # Check that an internal column name was found for every user spec column.
+            if len(userParamSpecCols) != len(intParamSpecCols):
+                verdict = False
+                reasons.append('Failed to match some user spec. names with internal ones')
 
-    def checkUserSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
+            # Check that all rows are suitable for DS analysis (non empty sample identification columns, ...).
+            if dfExplParamSpecs[self.sampleSelCols].isnull().all(axis='columns').any():
+                verdict = False
+                reasons.append('Some rows have some null sample selection columns')
+
+            # Check done.
+            tplRslt += verdict, reasons
+
+        return tplRslt
+
+    def shutdown(self):
     
-        """Check user specified analyses params for usability.
+        # Final clean-up in case not already done (some exception in run ?)
+        if self._engine:
+            self._engine.shutdown()
+            self._engine = None
+        if self._executor:
+            self._executor.shutdown()
+            self._executor = None
         
-        Use it before calling analyser.run(implParamSpecs=..., dfExplParamSpecs=..., ...)
-        
-        See _explicitParamSpecs, the class-independant version.
-              
-        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified : a new one is returned),
-                 list of analysis param. columns internal names,
-                 list of analysis param. columns user names,
-                 True if everything went well, False otherwise,
-                   * some columns from paramSpecCols could not be found in dfAnlysExplSpecs columns,
-                   * some user columns could not be matched with some of the expected internal parameter names,
-                   * some rows are not suitable for DS analysis (empty sample identification columns, ...).
-                 list of strings explaining things that went bad.
-        """
- 
-        verdict = True
-        reasons = []
- 
-        # Explicitate analysis specs with added computed columns if needed.
-        dfExplParamSpecs, userParamSpecCols, intParamSpecCols = \
-            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs)
-        if len(userParamSpecCols) != len(intParamSpecCols):
-            verdict = False
-            reasons.append('Failed to match some user spec. names with internal ones')
-
-        # Check that all rows are suitable for DS analysis (non empty sample identification columns, ...).
-        if dfExplParamSpecs[self.sampleSelCols].isnull().all(axis='columns').any():
-            verdict = False
-            reasons.append('Some rows have some null sample selection columns')
-        
-        # Success.
-        return dfExplParamSpecs, userParamSpecCols, intParamSpecCols, verdict, reasons
+#    def __del__(self):
+#    
+#        self.shutdown()
 
 
 class MCDSAnalysisResultsSet(AnalysisResultsSet):
@@ -855,9 +877,11 @@ class MCDSAnalyser(DSAnalyser):
         customCols = \
             self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
         
-        # Explicitate analysis specs and add computed columns if needed.
-        dfExplParamSpecs, userParamSpecCols, intParamSpecCols = \
-            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs)
+        # Explicitate and complete analysis specs, and check for usability
+        # (should be also done before calling run, to avoid failure).
+        dfExplParamSpecs, userParamSpecCols, intParamSpecCols, checkVerdict, checkErrors = \
+            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
+        assert checkVerdict, 'Error: Analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
@@ -900,16 +924,6 @@ class MCDSAnalyser(DSAnalyser):
 
         return results
 
-    def shutdown(self):
-    
-        # Final clean-up in case not already done (some exception in run ?)
-        self._engine.shutdown()
-        self._executor.shutdown()
-        
-    def __del__(self):
-    
-        self.shutdown()
-
 # Default strategy for model choice sequence (if one fails, take next in order, and so on)
 ModelEstimCritDef = 'AIC'
 ModelCVIntervalDef = 95
@@ -940,18 +954,6 @@ class MCDSPreAnalyser(MCDSAnalyser):
                          resultsHeadCols=resultsHeadCols,
                          anlysIndCol=None, workDir=workDir)
 
-    def explicitSampleSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
-    
-        """Explicitate sample. specs if not already done, and complete columns if needed.
-        
-        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned)
-        """
-        
-        return self._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
-                                        sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
-                                        abbrevBuilder=self.abbrevBuilder, anlysIndCol=None,
-                                        sampleIndCol=self.sampleIndCol)[0]
-
     def run(self, dfExplSampleSpecs=None, implSampleSpecs=None, dModelStrategy=ModelStrategyDef, threads=1):
     
         """Run specified analyses
@@ -971,8 +973,11 @@ class MCDSPreAnalyser(MCDSAnalyser):
         customCols = \
             self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
         
-        # Explicitate sample specs and add computed columns if needed.
-        dfExplSampleSpecs = self.explicitSampleSpecs(implSampleSpecs, dfExplSampleSpecs)
+        # Explicitate and complete analysis specs, and check for usability
+        # (should be also done before calling run, to avoid failure).
+        dfExplSampleSpecs, _, _, checkVerdict, checkErrors = \
+            self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
+        assert checkVerdict, 'Error: Pre-analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each sample to analyse :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'

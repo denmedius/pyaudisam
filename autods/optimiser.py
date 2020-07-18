@@ -122,17 +122,17 @@ class DSParamsOptimiser(object):
     """
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                       sampleDecCols=['Effort', 'Distance'], sampleDistanceCol='Distance',
-                       distanceUnit='Meter', areaUnit='Hectare', 
-                       resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
-                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum',
-                       sampleIndCol='SampleNum', workDir='.',
-                       defExpr2Optimise='chi2', defMinimiseExpr=False,
-                       defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
-                       dDefOptimCoreParams=dict()):
+                 transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                 sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
+                 sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance',
+                 abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum', 
+                 distanceUnit='Meter', areaUnit='Hectare', 
+                 resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
+                                      sample=['Species', 'Pass', 'Adult', 'Duration']),
+                 workDir='.',
+                 defExpr2Optimise='chi2', defMinimiseExpr=False,
+                 defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
+                 dDefOptimCoreParams=dict()):
                        
         """Ctor (don't use directly, abstract class)
         
@@ -146,7 +146,11 @@ class DSParamsOptimiser(object):
         :param effortCol: See above dfTransects description
         :param sampleSelCols: sample identification = selection columns
         :param sampleDecCols: Decimal columns among sighting columns
-        :param sampleDistanceCol: name of distance data column in run specs table
+        :param sampleDistCol: name of distance data column in run specs table
+        :param abbrevCol: Name of column to generate for abbreviating optimisation params, not sure really useful ...
+        :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
+        :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
+        :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
         
         Parameters for DS engine:
         :param distanceUnit: See DSEngine
@@ -155,10 +159,6 @@ class DSParamsOptimiser(object):
         Parameters for optimisation output data:
         :param resultsHeadCols: dict of list of column names (from dfMonoCatObs) to use in order
             to build results header columns (left to results cols) ; 'sample' columns are sample selection columns.
-        :param abbrevCol: Name of column to generate for abbreviating optimisation params, not sure really useful ...
-        :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
-        :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
-        :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
         
         Parameters for evaluating analysis value to optimise
             (when not fully specified in each optimisation parameters):
@@ -181,7 +181,7 @@ class DSParamsOptimiser(object):
 
         # Save data.
         self.dfMonoCatObs = dfMonoCatObs
-        self.sampleDistanceCol = sampleDistanceCol
+        self.sampleDistCol = sampleDistCol
 
         self.resultsHeadCols = resultsHeadCols
         self.abbrevCol = abbrevCol
@@ -489,56 +489,78 @@ class DSParamsOptimiser(object):
 
         raise NotImplementedError('DSParamsOptimiser: Abstract class, implement setupOptimisation in derived one')
 
-    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
+    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None, check=False):
     
         """Explicitate analysis and optimisation param. specs if not already done, and complete columns if needed ;
-        also automatically extract (regexps) columns which are really analysis or optimisation parameters,
-        with their optimiser-internal name, and also their "user" name.
+        also automatically extract (regexps) columns which are really analysis parameters,
+        with their analyser-internal name, and also their "user" name.
         
-        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned),
-                 list of analysis param. columns internal names,
-                 list of analysis param. columns user names.
+        Can moreover check params specs for usability, if check is True :
+        * use it before calling analyser.run(implParamSpecs=..., dfExplParamSpecs=..., ...)
+          to check that everythings OK,
+        * or be sure that run() will fail at startup (because it itself will do it).
+        
+        Parameters:
+        :param implParamSpecs: Implicit analysis param specs, suitable for explicitation
+           through explicitVariantSpecs()
+        :param dfExplParamSpecs: Explicit analysis param specs, as a DataFrame
+           (generated through explicitVariantSpecs, as an example)
+        :param check: if True, checks params for usability by run(),
+           and return a bool verdict and a list of strings explaining the negative (False) verdict
+
+        :return: a 3 or 5-item tuple :
+           * explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned),
+           * list of analysis and optimisationparam. columns internal names,
+           * list of analysis and optimisationparam. columns user names,
+           if ckeck, 2 more items in the return tuple :
+           * check verdict : True if everything went well, False otherwise,
+             * some columns from paramSpecCols could not be found in dfExplParamSpecs columns,
+             * some user columns could not be matched with some of the expected internal parameter names,
+             * some rows are not suitable for DS analysis (empty sample identification columns, ...).
+           * check failure reasons : list of strings explaining things that went bad.
         """
         
-        return DSAnalyser._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
-                                              sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
-                                              abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
-                                              sampleIndCol=self.sampleIndCol)
+        # Explicitate and complete
+        tplRslt = DSAnalyser._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
+                                                 sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
+                                                 abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
+                                                 sampleIndCol=self.sampleIndCol)
+        
+        # Check if requested
+        if check:
+        
+            verdict = True
+            reasons = []
+     
+            dfExplParamSpecs, userParamSpecCols, intParamSpecCols = tplRslt
+            
+            # Check that an internal column name was found for every user spec column.
+            if len(userParamSpecCols) != len(intParamSpecCols):
+                verdict = False
+                reasons.append('Failed to match some user spec. names with internal ones')
 
-    def checkUserSpecs(self, implParamSpecs=None, dfExplParamSpecs=None):
+            # Check that all rows are suitable for DS analysis (non empty sample identification columns, ...).
+            if dfExplParamSpecs[self.sampleSelCols].isnull().all(axis='columns').any():
+                verdict = False
+                reasons.append('Some rows have some null sample selection columns')
+
+            # Check done.
+            tplRslt += verdict, reasons
+
+        return tplRslt
+
+    def shutdown(self):
     
-        """Check user specified analysis and optimisation params for usability.
+        # Final clean-up in case not already done (some exception in run ?)
+        if self._engine:
+            self._engine.shutdown()
+        if self._executor:
+            self._executor.shutdown()
         
-        Use it before calling optimiser.run(implParamSpecs=..., dfExplParamSpecs=..., ...)
+#    def __del__(self):
+#    
+#        self.shutdown()
         
-        :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified : a new one is returned),
-                 list of analysis param. columns internal names,
-                 list of analysis param. columns user names,
-                 True if everything went well, False otherwise,
-                   * some columns from paramSpecCols could not be found in dfAnlysExplSpecs columns,
-                   * some user columns could not be matched with some of the expected internal parameter names,
-                   * some rows are not suitable for DS analysis (empty sample identification columns, ...).
-                 list of strings explaining things that went bad.
-        """
- 
-        verdict = True
-        reasons = []
- 
-        # Explicitate analysis specs with added computed columns if needed.
-        dfExplParamSpecs, userParamSpecCols, intParamSpecCols = \
-            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs)
-        if len(userParamSpecCols) != len(intParamSpecCols):
-            verdict = False
-            reasons.append('Failed to match some user spec. names with internal ones')
-
-        # Check that all rows are suitable for DS analysis (non empty sample identification columns, ...).
-        if dfExplParamSpecs[self.sampleSelCols].isnull().all(axis='columns').any():
-            verdict = False
-            reasons.append('Some rows have some null sample selection columns')
-        
-        # Success.
-        return dfExplParamSpecs, userParamSpecCols, intParamSpecCols, verdict, reasons
-
  
 class MCDSTruncationOptimiser(DSParamsOptimiser):
 
@@ -547,12 +569,12 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                       sampleDecCols=['Effort', 'Distance'], sampleDistanceCol='Distance',
+                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance',
+                       abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
                        distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
                        workDir='.', logData=False, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
@@ -587,11 +609,11 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         super().__init__(dfMonoCatObs, dfTransects=dfTransects,
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
-                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistanceCol=sampleDistanceCol,
-                         distanceUnit=distanceUnit, areaUnit=areaUnit,
-                         resultsHeadCols=resultsHeadCols,
+                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistCol=sampleDistCol,
                          abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
-                         anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol, workDir=workDir,
+                         anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol,
+                         distanceUnit=distanceUnit, areaUnit=areaUnit,
+                         resultsHeadCols=resultsHeadCols, workDir=workDir,
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
                          defSubmitTimes=defSubmitTimes, defSubmitOnlyBest=defSubmitOnlyBest,
                          dDefSubmitOtherParams=dDefSubmitOtherParams, dDefOptimCoreParams=dDefOptimCoreParams)
@@ -1059,9 +1081,11 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         customCols = \
             self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
         
-        # Explicitate analysis and optimisation specs and add computed columns if needed.
-        dfExplParamSpecs, userParamSpecCols, intParamSpecCols = \
-            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs)
+        # Explicitate and complete analysis and optimisation specs, and check for usability.
+        # (should be also done before calling run, to avoid failure).
+        dfExplParamSpecs, userParamSpecCols, intParamSpecCols, checkVerdict, checkErrors = \
+            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
+        assert checkVerdict, 'Error: Analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
@@ -1082,7 +1106,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             
             # Compute optimisation setup parameters from user specs and default values.
             setupError, dSetupParams = \
-                self.getOptimisationSetupParams(sOptimIntSpec, sds.dfData[self.sampleDistanceCol])
+                self.getOptimisationSetupParams(sOptimIntSpec, sds.dfData[self.sampleDistCol])
             
             # Create optimisation object
             logger.debug('Optim. params: {}'.format(', '.join(f'{k}:{v}' for k,v in dSetupParams.items())))
@@ -1116,18 +1140,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
         return results
 
-    def shutdown(self):
-    
-        # Final clean-up in case not already done (some exception in run ?)
-        if self._engine:
-            self._engine.shutdown()
-        if self._executor:
-            self._executor.shutdown()
-        
-#    def __del__(self):
-#    
-#        self.shutdown()
-        
+
 class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
 
     """Run a bunch of Zeroth Order MCDS truncation optimisations"""
@@ -1135,12 +1148,12 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                       sampleDecCols=['Effort', 'Distance'], sampleDistanceCol='Distance',
+                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance',
+                       abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
                        distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
                        workDir='.', logData=False, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
@@ -1154,12 +1167,12 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
-                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistanceCol=sampleDistanceCol,
+                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistCol=sampleDistCol,
+                         abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
+                         anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols,
-                         abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
-                         anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol,
                          workDir=workDir, logData=logData, autoClean=autoClean,
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
                          defOutliersMethod=defOutliersMethod, defOutliersQuantCutPct=defOutliersQuantCutPct,
