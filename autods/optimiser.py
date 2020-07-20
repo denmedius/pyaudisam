@@ -11,14 +11,10 @@
 # Warning: Only MCDS engine, and Point Transect analyses supported for the moment
 
 
-import sys
-
 import re
 
 import pathlib as pl
 from packaging import version
-
-import copy
 
 from collections import namedtuple as ntuple
 
@@ -109,9 +105,12 @@ class OptimisationResultsSet(ResultsSet):
         
         super().fromOpenDoc(filename, sheetName=sheetName, header=0, skiprows=None)
 
-    def getOptimTargetColumns(self):
+    def optimisationTargetColumns(self):
     
-        return [col for col in self.optimisationClass.SolutionDimensionNames if col in self._dfData.columns]
+        """The names of the columns holding the real optimisation results
+        """
+    
+        return [col for col in self.optimisationClass.SolutionDimensionNames if col in self.columns]
 
 class DSParamsOptimiser(object):
 
@@ -217,6 +216,9 @@ class DSParamsOptimiser(object):
         # Analysis engine and executor.
         self._executor = None
         self._engine = None
+
+        # Results.
+        self.results = None
 
     # Optimiser internal parameter spec names, for which a match should be found (when one is needed)
     # with user explicit optimisation specs used in run() calls.
@@ -551,12 +553,17 @@ class DSParamsOptimiser(object):
 
     def shutdown(self):
     
-        # Final clean-up in case not already done (some exception in run ?)
+        """Shutdown engine and executor (only usefull if run() raises an exception and so fails to do it),
+        but keep the remainder of the object state as is.
+        """
+    
         if self._engine:
             self._engine.shutdown()
+            self._engine = None
         if self._executor:
             self._executor.shutdown()
-        
+            self._executor = None
+            
 #    def __del__(self):
 #    
 #        self.shutdown()
@@ -580,8 +587,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
                        defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
-                       defFitDistCutsFctr=dict(min=2/3, max=3/2),
-                       defDiscrDistCutsFctr=dict(min=1/3, max=1),
+                       defFitDistCutsFctr=dict(min=2/3, max=3/2), defDiscrDistCutsFctr=dict(min=1/3, max=1),
                        defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
                        dDefOptimCoreParams=dict()):
 
@@ -658,12 +664,28 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
            + [(IntSpecOutliersMethod, ['outl[a-z]*[\.\-_ ]*', 'me[a-z]*[\.\-_ ]*outl'])])
 
     # Names of internal parameters which can be used as settings for optimising truncations
-    # and not only as fixed analysis parameters.
+    # and not only as const=fixed=pre-determined analysis parameters.
     IntOptimParamSpecNames = \
         [DSParamsOptimiser.IntSpecExpr2Optimise, DSParamsOptimiser.IntSpecOptimisationCore,
          DSParamsOptimiser.IntSpecSubmitParams,
          IntSpecMinDist, IntSpecMaxDist, IntSpecFitDistCuts, IntSpecDiscrDistCuts,
          IntSpecOutliersMethod]
+         
+    @classmethod
+    def optimisationParamSpecUserNames(cls, userParamSpecCols, intParamSpecCols):
+    
+        """Extract user names of params spec. columns that may contain truncation optimisation parameters
+
+        Parameters:
+        :param userParamSpecCols: all user params spec column names to explore,
+        :param intParamSpecCols: the matching (1 by 1, same order) internal user params spec column names.
+        """
+    
+        # Internal column names to consider.
+        optimIntCols = [intCol for intCol in cls.IntOptimParamSpecNames if intCol in intParamSpecCols]
+        
+        # And the corresponding user names.
+        return [userCol for intCol, userCol in zip(intParamSpecCols, userParamSpecCols) if intCol in optimIntCols]
 
     # Optimisation object ctor parameter names (MUST match exactly: check in optimisation submodule !).
     ParmEstimKeyFn = 'estimKeyFn'
@@ -1008,7 +1030,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                           
     def setupResults(self):
     
-        """Build an empty results objects (candidate for specialisation if needed, or from disk loading).
+        """Build an empty results objects (suitable for from-disk loading).
         """
     
         customCols = self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] \
@@ -1021,6 +1043,18 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         return OptimisationResultsSet(optimisationClass=MCDSTruncationOptimisation,
                                       miCustomCols=customCols, dfCustomColTrans=dfCustColTrans)
    
+    def optimisationTargetColumnUserNames(self):
+    
+        """Determine the user names of the results optimisation target columns
+        """
+   
+        # Should not be called before run !
+        assert self.results is not None
+   
+        # From results column names to internal spec name to user spec name.
+        return [self.dInt2UserParamSpecNames[self.SolDim2IntSpecOptimTargetParamNames[solDimName]]
+                for solDimName in self.results.optimisationTargetColumns()]
+
     def _getResults(self, dOptims):
     
         """Wait for and gather dOptims (MCDSOptimisation futures) results into a ResultsSet
@@ -1087,6 +1121,9 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
         assert checkVerdict, 'Error: Analysis params check failed: {}'.format('; '.join(checkErrors))
         
+        # Build internal name to user name to converter for spec. columns
+        self.dInt2UserParamSpecNames = dict(zip(intParamSpecCols, userParamSpecCols))
+        
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
         logger.info('Running MCDS truncation optimisations for {} analyses specs ({}) ...' \
@@ -1132,13 +1169,13 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             logger.info('All optimisations done; now collecting their results ...')
 
         # Wait for and gather results of all analyses.
-        results = self._getResults(dOptims)
+        self.results = self._getResults(dOptims)
         
         # Done.
         logger.info('Optimisations completed ({} analyses => {} results).'
-                    .format(int(results.dfData.NFunEvals.sum()), len(results)))
+                    .format(int(self.results.dfData.NFunEvals.sum()), len(self.results)))
 
-        return results
+        return self.results
 
 
 class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
@@ -1162,7 +1199,7 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                        defFitDistCutsFctr=Interval(min=2/3, max=3/2),
                        defDiscrDistCutsFctr=Interval(min=1/3, max=1),
                        defSubmitTimes=1, defSubmitOnlyBest=None,
-                       defCoreMaxIters=100, defCoretermExprValue=None, defCoreAlgorithm='racos', defCoreMaxRetries=0):
+                       defCoreMaxIters=100, defCoreTermExprValue=None, defCoreAlgorithm='racos', defCoreMaxRetries=0):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
@@ -1178,10 +1215,12 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                          defOutliersMethod=defOutliersMethod, defOutliersQuantCutPct=defOutliersQuantCutPct,
                          defFitDistCutsFctr=defFitDistCutsFctr, defDiscrDistCutsFctr=defDiscrDistCutsFctr,
                          defSubmitTimes=defSubmitTimes, defSubmitOnlyBest=defSubmitOnlyBest,
-                         dDefOptimCoreParams=dict(core='zoopt', maxIters=defCoreMaxIters, termExprValue=defCoretermExprValue,
+                         dDefOptimCoreParams=dict(core='zoopt', maxIters=defCoreMaxIters, termExprValue=defCoreTermExprValue,
                                                   algorithm=defCoreAlgorithm, maxRetries=defCoreMaxRetries))
                          
 if __name__ == '__main__':
+
+    import sys
 
     print('Nothing done here.')
     

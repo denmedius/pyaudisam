@@ -11,15 +11,9 @@
 # Warning: Only MCDS engine, and Point Transect analyses supported for the moment
 
 
-import sys
-
 import re
 import pathlib as pl
 from packaging import version
-
-import copy
-
-from collections import namedtuple as ntuple
 
 import numpy as np
 import pandas as pd
@@ -374,7 +368,7 @@ class DSAnalyser(Analyser):
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        abbrevCol='AnlysAbbrev', abbrevBuilder=None,
                        anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
-                       workDir='.', **options):
+                       workDir='.'):
                        
         """Ctor
         
@@ -398,7 +392,6 @@ class DSAnalyser(Analyser):
         :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
         :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
         :param workDir: Folder where to generate analysis and results files
-        :param options: See DSEngine        
         """
 
         self.dfMonoCatObs = dfMonoCatObs
@@ -412,11 +405,8 @@ class DSAnalyser(Analyser):
             
         self.workDir = workDir
 
-        # Save specific options (as a named tuple for easier use through dot operator).
-        options = copy.deepcopy(options)
-        options.update(distanceUnit=distanceUnit, areaUnit=areaUnit)
-        self.OptionsClass = ntuple('Options', options.keys())
-        self.options = self.OptionsClass(**options) 
+        self.distanceUnit = distanceUnit
+        self.areaUnit = areaUnit
         
         # Individualised data (all samples)
         self._mcDataSet = \
@@ -427,6 +417,9 @@ class DSAnalyser(Analyser):
         # Analysis engine and executor.
         self._executor = None
         self._engine = None
+        
+        # Results.
+        self.results = None
 
     # Possible regexps (values) for auto-detection of analyser _internal_ parameter spec names (keys)
     # from explicit _user_ spec columns
@@ -596,7 +589,10 @@ class DSAnalyser(Analyser):
 
     def shutdown(self):
     
-        # Final clean-up in case not already done (some exception in run ?)
+        """Shutdown engine and executor (only usefull if run() raises an exception and so fails to do it),
+        but keep the remainder of the object state as is.
+        """
+
         if self._engine:
             self._engine.shutdown()
             self._engine = None
@@ -719,10 +715,13 @@ class MCDSAnalyser(DSAnalyser):
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
                          sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
-                         surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
                          anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol, workDir=workDir)
                          
+        self.surveyType = surveyType
+        self.distanceType = distanceType
+        self.clustering = clustering
+        
         self.logData = logData
         self.defEstimKeyFn = defEstimKeyFn
         self.defEstimAdjustFn = defEstimAdjustFn
@@ -854,14 +853,14 @@ class MCDSAnalyser(DSAnalyser):
     
         """Run specified analyses
         
-        Call checkUserSpecs(...) before this to make sure user specs are OK
+        Call explicitParamSpecs(..., check=True) before this to make sure user specs are OK
         
         Parameters:
-           :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
-             (generated through explicitVariantSpecs, as an example),
-           :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
-             through explicitVariantSpecs
-           :param threads:, :param processes: Number of parallel threads / processes to use (default: no parallelism)
+        :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
+          (generated through explicitVariantSpecs, as an example),
+        :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
+          through explicitVariantSpecs
+        :param threads:, :param processes: Number of parallel threads / processes to use (default: no parallelism)
         """
     
         # Executor (parallel or séquential).
@@ -869,9 +868,9 @@ class MCDSAnalyser(DSAnalyser):
 
         # MCDS analysis engine
         self._engine = MCDSEngine(workDir=self.workDir, executor=self._executor, 
-                                  distanceUnit=self.options.distanceUnit, areaUnit=self.options.areaUnit,
-                                  surveyType=self.options.surveyType, distanceType=self.options.distanceType,
-                                  clustering=self.options.clustering)
+                                  distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                  surveyType=self.surveyType, distanceType=self.distanceType,
+                                  clustering=self.clustering)
 
         # Custom columns for results.
         customCols = \
@@ -917,12 +916,12 @@ class MCDSAnalyser(DSAnalyser):
         logger.info('All analyses started ; now waiting for their end, and results ...')
 
         # Wait for and gather results of all analyses.
-        results = self._getResults(dAnlyses)
+        self.results = self._getResults(dAnlyses)
         
         # Done.
-        logger.info(f'Analyses completed ({len(results)} results).')
+        logger.info(f'Analyses completed ({len(self.results)} results).')
 
-        return results
+        return self.results
 
 # Default strategy for model choice sequence (if one fails, take next in order, and so on)
 ModelEstimCritDef = 'AIC'
@@ -957,7 +956,12 @@ class MCDSPreAnalyser(MCDSAnalyser):
     def run(self, dfExplSampleSpecs=None, implSampleSpecs=None, dModelStrategy=ModelStrategyDef, threads=1):
     
         """Run specified analyses
-           :param threads: Number of parallel threads to use (default: 1 thread = no parallelism)
+        
+        Call explicitParamSpecs(..., check=True) before this to make sure user specs are OK
+
+        Parameters:
+        :param dModelStrategy: Sequence of fallback models to use when analyses fails.
+        :param <others>: See base class.
         """
     
         # Executor (parallel or séquential).
@@ -965,9 +969,9 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         # MCDS analysis engine (a sequential one: 'cause MCDSPreAnalysis does the parallel stuff itself).
         self._engine = MCDSEngine(workDir=self.workDir,
-                                  distanceUnit=self.options.distanceUnit, areaUnit=self.options.areaUnit,
-                                  surveyType=self.options.surveyType, distanceType=self.options.distanceType,
-                                  clustering=self.options.clustering)
+                                  distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                  surveyType=self.surveyType, distanceType=self.distanceType,
+                                  clustering=self.clustering)
 
         # Custom columns for results.
         customCols = \
@@ -1016,8 +1020,10 @@ class MCDSPreAnalyser(MCDSAnalyser):
         logger.info('Analyses completed.')
 
         return results
-        
-        
+
+
 if __name__ == '__main__':
+
+    import sys
 
     sys.exit(0)
