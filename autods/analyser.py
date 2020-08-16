@@ -253,9 +253,9 @@ class Analyser(object):
         """
         
         # Load partial variant specs from source (trivial if given as a dict).
-        assert isinstance(partSpecs, (dict, str, pl.Path)), 'Error: Can explicit only worksheet files or alike dicts'
+        assert isinstance(partSpecs, (dict, str, pl.Path)), 'Can explicit only worksheet files or alike dicts'
         dPartSpecs = partSpecs if isinstance(partSpecs, dict) else cls._loadPartSpecsFromFile(partSpecs)
-        assert len(dPartSpecs) > 0, "Error: Can't explicit variants with no partial variant"
+        assert len(dPartSpecs) > 0, "Can't explicit variants with no partial variant"
         
         # Setup filters
         keep = keep or list(dPartSpecs.keys())
@@ -860,7 +860,7 @@ class MCDSAnalyser(DSAnalyser):
           (generated through explicitVariantSpecs, as an example),
         :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
           through explicitVariantSpecs
-        :param threads:, :param processes: Number of parallel threads / processes to use (default: no parallelism)
+        :param threads: Number of parallel threads to use (default=1: no parallelism)
         """
     
         # Executor (parallel or séquential).
@@ -880,7 +880,7 @@ class MCDSAnalyser(DSAnalyser):
         # (should be also done before calling run, to avoid failure).
         dfExplParamSpecs, userParamSpecCols, intParamSpecCols, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
-        assert checkVerdict, 'Error: Analysis params check failed: {}'.format('; '.join(checkErrors))
+        assert checkVerdict, 'Analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
@@ -923,6 +923,7 @@ class MCDSAnalyser(DSAnalyser):
 
         return self.results
 
+
 # Default strategy for model choice sequence (if one fails, take next in order, and so on)
 ModelEstimCritDef = 'AIC'
 ModelCVIntervalDef = 95
@@ -960,8 +961,12 @@ class MCDSPreAnalyser(MCDSAnalyser):
         Call explicitParamSpecs(..., check=True) before this to make sure user specs are OK
 
         Parameters:
+        :param dfExplParamSpecs: Explicit sample specs, as a DataFrame
+          (generated through explicitVariantSpecs, as an example),
+        :param implParamSpecs: Implicit sample specs, suitable for explicitation
+          through explicitVariantSpecs
         :param dModelStrategy: Sequence of fallback models to use when analyses fails.
-        :param <others>: See base class.
+        :param threads: Number of parallel threads to use (default=1: no parallelism)
         """
     
         # Executor (parallel or séquential).
@@ -981,26 +986,26 @@ class MCDSPreAnalyser(MCDSAnalyser):
         # (should be also done before calling run, to avoid failure).
         dfExplSampleSpecs, _, _, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
-        assert checkVerdict, 'Error: Pre-analysis params check failed: {}'.format('; '.join(checkErrors))
+        assert checkVerdict, 'Pre-analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each sample to analyse :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
         logger.info('Running {} MCDS pre-analyses ({}) ...'.format(len(dfExplSampleSpecs), runHow))
         
         dAnlyses = dict()
-        for anInd, sAnSpec in dfExplSampleSpecs.iterrows():
+        for sampInd, sSampSpec in dfExplSampleSpecs.iterrows():
             
-            logger.info('#{}/{} : {}'.format(anInd+1, len(dfExplSampleSpecs), sAnSpec[self.abbrevCol]))
+            logger.info('#{}/{} : {}'.format(sampInd+1, len(dfExplSampleSpecs), sSampSpec[self.abbrevCol]))
 
             # Select data sample to process
-            sds = self._mcDataSet.sampleDataSet(sAnSpec[self.sampleSelCols])
+            sds = self._mcDataSet.sampleDataSet(sSampSpec[self.sampleSelCols])
             if not sds:
                 continue # No data => no analysis.
 
             # Pre-analysis object
             anlys = MCDSPreAnalysis(engine=self._engine, executor=self._executor,
-                                    sampleDataSet=sds, name=sAnSpec[self.abbrevCol],
-                                    customData=sAnSpec[customCols].copy(),
+                                    sampleDataSet=sds, name=sSampSpec[self.abbrevCol],
+                                    customData=sSampSpec[customCols].copy(),
                                     logData=False, modelStrategy=dModelStrategy)
 
             # Start running pre-analysis in parallel, but don't wait for it's finished, go on
@@ -1021,6 +1026,53 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         return results
 
+    def exportDSInputData(self, dfExplSampleSpecs=None, implSampleSpecs=None, format='Distance'):
+    
+        """Export specified data samples to the specified DS input format, for "manual" DS analyses
+        
+        Parameters:
+        :param dfExplParamSpecs: Explicit sample specs, as a DataFrame
+          (generated through explicitVariantSpecs, as an example),
+        :param implParamSpecs: Implicit sample specs, suitable for explicitation
+          through explicitVariantSpecs
+        :param format: output files format, only 'Distance' supported for the moment.
+        """
+    
+        assert format == 'Distance', 'Only Distance format supported for the moment'
+    
+        # MCDS analysis engine
+        self._engine = MCDSEngine(workDir=self.workDir, 
+                                  distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                  surveyType=self.surveyType, distanceType=self.distanceType,
+                                  clustering=self.clustering)
+
+        # Explicitate and complete analysis specs, and check for usability
+        # (should be also done before calling run, to avoid failure).
+        dfExplSampleSpecs, _, _, checkVerdict, checkErrors = \
+            self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
+        assert checkVerdict, 'Sample specs check failed: {}'.format('; '.join(checkErrors))
+        
+        # For each sample to export:
+        logger.info('Exporting {} samples to {} format ...'.format(len(dfExplSampleSpecs), format))
+        logger.debug(dfExplSampleSpecs)
+
+        for sampInd, sSampSpec in dfExplSampleSpecs.iterrows():
+            
+            # Selection des données
+            sds = self._mcDataSet.sampleDataSet(sSampSpec[self.sampleSelCols])
+            if not sds:
+                logger.warning('#{}/{} => No data in {} sample, no file exported'
+                               .format(sampInd+1, len(dfExplSampleSpecs), sSampSpec[self.abbrevCol]))
+                continue
+
+            # Export to Distance
+            fpn = pl.Path(self.workDir) / '{}-dist.txt'.format(sSampSpec[self.abbrevCol])
+            fpn = self._engine.buildDistanceDataFile(sds, tgtFilePathName=fpn)
+
+            logger.info('#{}/{} => {}'.format(sampInd+1, len(dfExplSampleSpecs), fpn.name))
+
+        # Done.
+        logger.info(f'Done exporting.')
 
 if __name__ == '__main__':
 
