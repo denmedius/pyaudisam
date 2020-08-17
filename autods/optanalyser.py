@@ -4,7 +4,7 @@
 #  http://distancesampling.org/
 #
 # Optanalyser: Run a bunch of DS analyses according to a user-friendly set of analysis specs
-#              with possibly some undermined analysis parameters in specs :
+#              with possibly some undetermined analysis parameters in specs :
 #              for these analyses, an auto-computation of these parameters will then be run first
 #              through some optimisation engine specified in specs : zoopt only for now,
 #              and for some kind of parameters : only distance truncations supported for now)
@@ -225,7 +225,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         :return: 
         """
         
-        # 1. Run optimisations if neeeded and replace computed truncation params in analysis specs
+        # 1. Run optimisations if needed and replace computed truncation params in analysis specs
         #    (warning: as some optimisation specs may specify to keep more than 1 "best" result,
         #              dfExplParamSpecs may grow accordingly, as well as the final number of result rows)
         dfExplParamSpecs = \
