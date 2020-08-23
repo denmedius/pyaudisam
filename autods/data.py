@@ -526,6 +526,15 @@ class ResultsSet(object):
     
         return self.dfData.columns
         
+    def dropRows(self, sbSelRows):
+    
+        """Drop specific rows in-place, selected through boolean indexing on self.dfData
+        
+        Parameters:
+        :param sbSelRows: boolean series with same index as self.dfData"""
+    
+        self._dfData.drop(self._dfData[sbSelRows].index, inplace=True)
+        
     def copy(self, withData=True):
     
         """Clone function (shallow), with optional (deep) data copy"""
@@ -649,6 +658,14 @@ class ResultsSet(object):
         # Post-computation not yet done.
         self.postComputed = False
     
+    # Sort rows in place and overwrite initial sortCols / sortAscend values.
+    def sortRows(self, by, ascending=True):
+    
+        self._dfData.sort_values(by=by, ascending=ascending, inplace=True)
+        
+        self.sortCols = by
+        self.sortAscend = ascending
+    
     # Get translate names of custom columns
     def transCustomColumns(self, lang):
         
@@ -755,7 +772,7 @@ class ResultsSet(object):
         = Compute the order of magnitude that separate the difference to the absolute max. of the two values.
         
         The greater it is, the lower the relative difference
-           Ex: 3 = 10**3 ratio between difference absolue max. of the two,
+           Ex: 3 = 10**3 ratio between max absolute difference of the two,
                +inf = NO difference at all,
                0 = bad, one of the two is 0, and the other not.
                
@@ -803,12 +820,15 @@ class ResultsSet(object):
         
         return hValue
     
-    def compare(self, rsOther, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
+    @classmethod
+    def compareDataFrames(cls, dfLeft, dfRight, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
     
         """
-        Compare 2 results sets.
+        Compare 2 DataFrames.
         
         Parameters:
+        :param dfLeft: Left DataFrame
+        :param dfRight: Right DataFrame
         :param list subsetCols: on a subset of columns,
         :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
         :param float dropCloser: with only rows with all cell closeness > dropCloser
@@ -818,9 +838,9 @@ class ResultsSet(object):
                   for each cell (see _closeness method) ; rows with closeness > dropCloser are yet dropped.
         """
         
-        # Retrieve data to compare.
-        dfLeft = self.dfData
-        dfRight = rsOther.dfData
+        # Make copies : we need to change the frames.
+        dfLeft = dfLeft.copy()
+        dfRight = dfRight.copy()
         
         # Check input columns
         dColsSets = { 'Subset column': subsetCols, 'Index column': indexCols }
@@ -832,11 +852,11 @@ class ResultsSet(object):
                     raise KeyError('{} {} not in right result set'.format(colsSetName, col))
         
         # Set specified cols as the index (after making them hashable) and sort it.
-        dfLeft[indexCols] = dfLeft[indexCols].applymap(self._toHashable)
+        dfLeft[indexCols] = dfLeft[indexCols].applymap(cls._toHashable)
         dfLeft.set_index(indexCols, inplace=True)
         dfLeft = dfLeft.sort_index() # Not inplace: don't modify a copy/slice
 
-        dfRight[indexCols] = dfRight[indexCols].applymap(self._toHashable)
+        dfRight[indexCols] = dfRight[indexCols].applymap(cls._toHashable)
         dfRight.set_index(indexCols, inplace=True)
         dfRight = dfRight.sort_index() # Idem
 
@@ -860,7 +880,7 @@ class ResultsSet(object):
         for leftCol in dfLeft.columns:
             dfRelDiff[KRightCol] = dfRight[leftCol]
             try:
-                dfRelDiff[leftCol] = dfRelDiff[[leftCol, KRightCol]].apply(self._closeness, axis='columns')
+                dfRelDiff[leftCol] = dfRelDiff[[leftCol, KRightCol]].apply(cls._closeness, axis='columns')
             except TypeError as exc:
                 logger.error(f'Column {leftCol} : {exc}')
                 exception = True
@@ -880,6 +900,26 @@ class ResultsSet(object):
         
         return dfRelDiff
 
+    def compare(self, rsOther, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
+    
+        """
+        Compare 2 results sets.
+        
+        Parameters:
+        :param rsOther: Right results object to comare
+        :param list subsetCols: on a subset of columns,
+        :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
+        :param float dropCloser: with only rows with all cell closeness > dropCloser
+                                 (default: np.inf => all cols and rows kept).
+        :param bool dropNans: with only rows with all cell closeness > dropCloser or of NaN value ('cause NaN != Nan :-(.
+        :returns: a diagnostic DataFrame with same columns and merged index, with a "closeness" value
+                  for each cell (see _closeness method) ; rows with closeness > dropCloser are yet dropped.
+        """
+        
+        return self.compareDataFrames(dfLeft=self.dfData, dfRight=rsOther.dfData,
+                                      subsetCols=subsetCols, indexCols=indexCols,
+                                      dropCloser=dropCloser, dropNans=dropNans)
+        
 
 if __name__ == '__main__':
 
