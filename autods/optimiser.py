@@ -93,7 +93,7 @@ class OptimisationResultsSet(ResultsSet):
         which can well be ensured by using the same ctor params as used for saving !
         """
         
-        super().fromExcel(filename, sheetName=sheetName, header=0, skiprows=None)
+        super().fromExcel(fileName, sheetName=sheetName, header=0, skiprows=None)
 
     def fromOpenDoc(self, fileName, sheetName=None):
 
@@ -103,7 +103,7 @@ class OptimisationResultsSet(ResultsSet):
         Notes: Needs odfpy module and pandas.version >= 0.25.1
         """
         
-        super().fromOpenDoc(filename, sheetName=sheetName, header=0, skiprows=None)
+        super().fromOpenDoc(fileName, sheetName=sheetName, header=0, skiprows=None)
 
     def optimisationTargetColumns(self):
     
