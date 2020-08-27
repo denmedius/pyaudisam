@@ -391,7 +391,7 @@ _KHtmlQuizz = """
                 <div class="chapter" style="margin-left: 10px"> <!-- contenu exercice -->
   
                   <p>{{exr.lieu}}{{ ' (altitude %d m)' % exr.altitude if exr.altitude is not none }},
-                     {{exr.date}} ({{exr.duree}}).</p>
+                     {{exr.date}}, {{exr.heure}} ({{exr.duree}}).</p>
   
                   {% if exr.milieux %}
                     <div markdown-text>
