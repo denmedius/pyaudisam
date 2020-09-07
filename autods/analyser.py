@@ -386,7 +386,9 @@ class DSAnalyser(Analyser):
         :param distanceUnit: see MCDSEngine
         :param areaUnit: see MCDSEngine
         :param resultsHeadCols: dict of list of column names (from dfMonoCatObs) to use in order
-            to build results (right) header columns ; 'sample' columns are sample selection columns.
+            to build results (right) header columns ; 'sample' columns are sample selection columns ;
+            sampleIndCol is added to resultsHeadCols['before'] if not None and not elswehere in resultsHeadCols ;
+            same for anlysIndCol, right before sampleIndCol
         :param abbrevCol: Name of column to generate for abbreviating analyses params, not sure really useful ...
         :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
         :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
@@ -394,15 +396,25 @@ class DSAnalyser(Analyser):
         :param workDir: Folder where to generate analysis and results files
         """
 
+        assert all(col in resultsHeadCols for col in ['before', 'sample', 'after'])
+
         self.dfMonoCatObs = dfMonoCatObs
 
-        self.resultsHeadCols = resultsHeadCols
+        self.resultsHeadCols = resultsHeadCols.copy()
         self.abbrevCol = abbrevCol
         self.abbrevBuilder = abbrevBuilder
         self.anlysIndCol = anlysIndCol
         self.sampleSelCols = sampleSelCols
         self.sampleIndCol = sampleIndCol
-            
+        
+        # sampleIndCol is added to resultsHeadCols['before'] if not None and not elswehere in resultsHeadCols
+        if sampleIndCol and not any(sampleIndCol in cols for cols in resultsHeadCols.values()):
+            resultsHeadCols['before'] = [sampleIndCol] + resultsHeadCols['before']
+
+        # same for anlysIndCol, right before sampleIndCol
+        if anlysIndCol and not any(anlysIndCol in cols for cols in resultsHeadCols.values()):
+            resultsHeadCols['before'] = [anlysIndCol] + resultsHeadCols['before']
+        
         self.workDir = workDir
 
         self.distanceUnit = distanceUnit
@@ -813,9 +825,15 @@ class MCDSAnalyser(DSAnalyser):
         # c. Translation for it (well, only one language forced for all ...)
         dfCustColTrans = pd.DataFrame(index=miCustCols, data={ lang: customCols for lang in ['fr', 'en'] })
 
-        # d. And finally, the result object
+        # d. And finally, the result object (sorted at the end by the analysis or else sample index column)
+        if self.anlysIndCol or self.sampleIndCol:
+            sortCols = [next(mCol for mCol in custMCols if mCol[1] == self.anlysIndCol or self.sampleIndCol)]
+        else:
+            sortCols = []
+        
         return MCDSAnalysisResultsSet(miCustomCols=miCustCols, 
-                                      dfCustomColTrans=dfCustColTrans, miSampleCols=miSampCols)
+                                      dfCustomColTrans=dfCustColTrans, miSampleCols=miSampCols,
+                                      sortCols=sortCols, sortAscend=[True for col in sortCols])
     
     def _getResults(self, dAnlyses):
     
