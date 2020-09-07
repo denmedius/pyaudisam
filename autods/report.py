@@ -170,8 +170,14 @@ class ResultsFullReport(ResultsReport):
                        'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' })
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                       synthCols=None, dCustomTrans=dict(), lang='en',
+                       synthCols=None, dCustomTrans=dict(), lang='en', plotImgFormat='png',
                        tgtFolder='.', tgtPrefix='results'):
+                       
+        """Ctor
+        
+        Parameters:
+        :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
+        """
     
         assert synthCols is None or isinstance(synthCols, list) or isinstance(synthCols, pd.MultiIndex), \
                'synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
@@ -181,6 +187,8 @@ class ResultsFullReport(ResultsReport):
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.synthCols = synthCols
+        
+        self.plotImgFormat = plotImgFormat
 
         self.anlysSubTitle = anlysSubTitle
         
@@ -309,6 +317,7 @@ class ResultsFullReport(ResultsReport):
         dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         
         # b. Links to each analysis detailled report.
+        dfSyn.reset_index(drop=True, inplace=True)
         dfSyn.index = \
             dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
                                    .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
@@ -327,6 +336,7 @@ class ResultsFullReport(ResultsReport):
         dfDet = dfDet.reindex(columns=detTrCols)
        
         # b. Links to each analysis detailed report.
+        dfDet.reset_index(drop=True, inplace=True)
         dfDet.index = \
             dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
                                    .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
@@ -353,12 +363,14 @@ class ResultsFullReport(ResultsReport):
         return htmlPathName
     
     # Analyses pages.
-    PlotImgFormat = 'png'
     def toHtmlEachAnalysis(self):
         
         # Generate translated synthesis and detailed tables.
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
+        dfSynthRes.reset_index(drop=True, inplace=True)
+
         dfDetRes = self.resultsSet.dfTransData(self.lang)
+        dfDetRes.reset_index(drop=True, inplace=True)
 
         logger.info(f'Analyses pages ({len(dfSynthRes)}) ...')
 
@@ -374,7 +386,7 @@ class ResultsFullReport(ResultsReport):
         topHtmlPathName = self.targetFilePathName(suffix='.html')
         tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
         engineClass = self.resultsSet.engineClass
-        trCustCols = self.resultsSet.transCustomColumns(self.lang)
+        trCustCols = [col for col in self.resultsSet.transCustomColumns(self.lang) if col in dfDetRes.columns]
         
         for lblAnlys in dfSynthRes.index:
             
@@ -402,7 +414,7 @@ class ResultsFullReport(ResultsReport):
                                log=engineClass.decodeLog(anlysFolder),
                                output=engineClass.decodeOutput(anlysFolder),
                                plots=self.generatePlots(engineClass.decodePlots(anlysFolder),
-                                                        anlysFolder, imgFormat=self.PlotImgFormat),
+                                                        anlysFolder, imgFormat=self.plotImgFormat),
                                title=self.title, subtitle=subTitle, keywords=self.keywords,
                                navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
                                             nextAnlys='../'+sAnlysUrls.next,
@@ -440,6 +452,8 @@ class ResultsFullReport(ResultsReport):
             
             # Synthesis
             dfSyn = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
+            dfSyn.index = range(1, len(dfSyn) + 1)
+
             dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             
             # ... Convert run folder columns to hyperlink if present
@@ -454,8 +468,9 @@ class ResultsFullReport(ResultsReport):
             
             # Details
             dfDet = self.resultsSet.dfTransData(self.lang)
+            dfDet.index = range(1, len(dfDet) + 1)
             
-            dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
+            dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
             
             dfsDet = self.finalFormatAllAnalysesData(dfDet, convert=False, round=False)
@@ -482,11 +497,12 @@ class MCDSResultsFullReport(ResultsFullReport):
                       " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                       synthCols=None, dCustomTrans=None, lang='en', tgtFolder='.', tgtPrefix='results'):
+                       synthCols=None, dCustomTrans=None, lang='en', plotImgFormat='png',
+                       tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols, self.DCustTrans if dCustomTrans is None else dCustomTrans,
-                         lang, tgtFolder, tgtPrefix)
+                         lang, plotImgFormat, tgtFolder, tgtPrefix)
         
     # Styling colors
     cChrGray = '#869074'
@@ -540,7 +556,7 @@ class MCDSResultsFullReport(ResultsFullReport):
         df = dfTrData
         if sort:
             # Temporarily add a sample Id column for sorting by (assuming analysis have been run as grouped by sample)
-            sampleIdCols = self.resultsSet.transSampleColumns(self.lang)
+            sampleIdCols = [col for col in self.resultsSet.transSampleColumns(self.lang) if col in df.columns]
             df.insert(0, column='#Sample#', value=df.groupby(sampleIdCols, sort=False).ngroup())
             
             # Sort
@@ -674,11 +690,12 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                        sampleCols, paramCols, resultCols, anlysSynthCols=None, 
-                       plotsHeight=256, lang='en', tgtFolder='.', tgtPrefix='results'):
+                       plotsHeight=256, lang='en', plotImgFormat='png',
+                       tgtFolder='.', tgtPrefix='results'):
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols=anlysSynthCols, dCustomTrans=self.DCustTrans, lang=lang,
-                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+                         plotImgFormat=plotImgFormat, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.sampleCols = sampleCols
         self.paramCols = paramCols
@@ -740,7 +757,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     def plotImageHtmlElement(self, runFolder, plotImgPrfx):
         
         for plotInd in range(3, 0, -1):
-            plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.PlotImgFormat)
+            plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
             if os.path.isfile(os.path.join(runFolder, plotFileName)):
                 return '<img src="./{}/{}" style="height: {}px" />' \
                        .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.plotsHeight)
@@ -756,6 +773,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # (index + 5 columns : sample, params, results, ProbDens plot, DetProb plot)
         # 1. Get translated and post-formated detailed results
         dfDet = self.resultsSet.dfTransData(self.lang)
+        dfDet.reset_index(drop=True, inplace=True)
         dfsDet = self.finalFormatAllAnalysesData(dfDet)
         dfDet = dfsDet.data
 
