@@ -42,7 +42,7 @@ class ResultsReport(object):
     DTrans = dict(en={ }, fr={ })
 
     def __init__(self, resultsSet, title, subTitle, description, keywords, dCustomTrans=dict(),
-                       lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+                       lang='en', tgtFolder='.', tgtPrefix='results'):
     
         assert len(resultsSet) > 0, 'Can\'t build reports with nothing inside'
         assert os.path.isdir(tgtFolder), 'Target folder {} doesn\'t seem to exist ...'.format(tgtFolder)
@@ -63,8 +63,6 @@ class ResultsReport(object):
             if lang not in self.dTrans:
                 self.dTrans[lang] = dict()
             self.dTrans[lang].update(self.DTrans[lang])
-        
-        self.attachedDir = attachedDir
         
         self.tgtPrefix = tgtPrefix
         self.tgtFolder = tgtFolder
@@ -173,14 +171,14 @@ class ResultsFullReport(ResultsReport):
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                        synthCols=None, dCustomTrans=dict(), lang='en',
-                       attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+                       tgtFolder='.', tgtPrefix='results'):
     
         assert synthCols is None or isinstance(synthCols, list) or isinstance(synthCols, pd.MultiIndex), \
                'synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
         
         super().__init__(resultsSet, title, subTitle, description, keywords,
                          dCustomTrans=dCustomTrans, lang=lang,
-                         attachedDir=attachedDir, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.synthCols = synthCols
 
@@ -484,11 +482,11 @@ class MCDSResultsFullReport(ResultsFullReport):
                       " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                       synthCols=None, dCustomTrans=None, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+                       synthCols=None, dCustomTrans=None, lang='en', tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols, self.DCustTrans if dCustomTrans is None else dCustomTrans,
-                         lang, attachedDir, tgtFolder, tgtPrefix)
+                         lang, tgtFolder, tgtPrefix)
         
     # Styling colors
     cChrGray = '#869074'
@@ -676,11 +674,11 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                        sampleCols, paramCols, resultCols, anlysSynthCols=None, 
-                       plotsHeight=256, lang='en', attachedDir='.', tgtFolder='.', tgtPrefix='results'):
+                       plotsHeight=256, lang='en', tgtFolder='.', tgtPrefix='results'):
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols=anlysSynthCols, dCustomTrans=self.DCustTrans, lang=lang,
-                         attachedDir=attachedDir, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.sampleCols = sampleCols
         self.paramCols = paramCols
