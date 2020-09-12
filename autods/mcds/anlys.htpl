@@ -186,12 +186,15 @@
     
     <h6 style="margin-bottom: 10px">
       {{tr['Page generated with']}} <a href="https://www.python.org/" target="_blank">Python 3</a>,
+      <a href="http://jpmeuret.free.fr/informatique.html#AutoDS" target="_blank">AutoDS</a>,
       <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>,
-      {{tr['and']}} <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
+      <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
+      {{tr['and']}} {{tr['other modules']}},
       {{tr['with icons from']}} <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>
-      {{tr['in']}} <a href="http://jupyter.org/" target="_blank">Jupyter Notebook</a>
-      ({{tr['sources']}} : <a href="./autods.py" target="_blank">autods.py</a>
-      {{tr['and']}} <a href="./AutoDS-tests.ipynb" target="_blank">AutoDS-tests.ipynb</a>),
+      ({{tr['sources']}} :
+      {% for pySrc in pySources %}
+        <a href="./{{pySrc}}" target="_blank">{{pySrc}}</a>,
+      {% endfor %})
       {{tr['on']}} {{genDateTime}}.
     </h6>
 

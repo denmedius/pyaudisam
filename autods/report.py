@@ -41,8 +41,8 @@ class ResultsReport(object):
     # Translation table for output documents.
     DTrans = dict(en={ }, fr={ })
 
-    def __init__(self, resultsSet, title, subTitle, description, keywords, dCustomTrans=dict(),
-                       lang='en', tgtFolder='.', tgtPrefix='results'):
+    def __init__(self, resultsSet, title, subTitle, description, keywords, pySources=[],
+                 dCustomTrans=dict(), lang='en', tgtFolder='.', tgtPrefix='results'):
     
         assert len(resultsSet) > 0, 'Can\'t build reports with nothing inside'
         assert os.path.isdir(tgtFolder), 'Target folder {} doesn\'t seem to exist ...'.format(tgtFolder)
@@ -57,6 +57,7 @@ class ResultsReport(object):
         self.subTitle = subTitle
         self.description = description
         self.keywords = keywords
+        self.pySources = pySources
         
         self.dTrans = copy.deepcopy(dCustomTrans)
         for lang in self.DTrans.keys():
@@ -108,8 +109,13 @@ class ResultsReport(object):
     # Install needed attached files for HTML report.
     def installAttFiles(self, attFiles):
         
+        # Given attached files.
         for fn in attFiles:
-            shutil.copy(KInstDirPath / 'report' / fn, self.tgtFolder)        
+            shutil.copy(KInstDirPath / 'report' / fn, self.tgtFolder)
+            
+        # Python source files.
+        for fpn in self.pySources:
+            shutil.copy(fpn, self.tgtFolder)
     
     # Get Jinja2 template environment for HTML reports.
     def getTemplateEnv(self):
@@ -156,8 +162,9 @@ class ResultsFullReport(ResultsReport):
                        'Detailed computation log': 'Detailed computation log',
                        'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
                        'Back to top': 'Back to global report',
-                       'Page generated with': 'Page générée via', 'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' },
+                       'Page generated with': 'Page generated with', 'other modules': 'other modules',
+                       'with icons from': 'with icons from',
+                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' },
                   fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
                        'Synthesis table': 'Tableau de synthèse',
                        'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
@@ -166,10 +173,11 @@ class ResultsFullReport(ResultsReport):
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
                        'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
                        'Back to top': 'Retour au rapport global',
-                       'Page generated with': 'Page generated with', 'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' })
+                       'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
+                       'with icons from': 'avec les pictogrammes de',
+                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
 
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
                        synthCols=None, dCustomTrans=dict(), lang='en', plotImgFormat='png',
                        tgtFolder='.', tgtPrefix='results'):
                        
@@ -183,7 +191,7 @@ class ResultsFullReport(ResultsReport):
                'synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
         
         super().__init__(resultsSet, title, subTitle, description, keywords,
-                         dCustomTrans=dCustomTrans, lang=lang,
+                         pySources=pySources, dCustomTrans=dCustomTrans, lang=lang,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.synthCols = synthCols
@@ -192,7 +200,7 @@ class ResultsFullReport(ResultsReport):
 
         self.anlysSubTitle = anlysSubTitle
         
-    # Attached files for HTML report.
+    # Static attached files for HTML report.
     AttachedFiles = ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg', 'fa-file-excel.svg', 'fa-file-excel-hover.svg',
                      'fa-arrow-left-hover.svg', 'fa-arrow-left.svg', 'fa-arrow-right-hover.svg', 'fa-arrow-right.svg',
                      'fa-arrow-up-hover.svg', 'fa-arrow-up.svg']
@@ -352,7 +360,9 @@ class ResultsFullReport(ResultsReport):
                            details=dfsDet.render(), #escape=False, index=False),
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
-                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang], genDateTime=genDateTime)
+                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang], 
+                           pySources=[pl.Path(fpn).name for fpn in self.pySources],
+                           genDateTime=genDateTime)
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
 
         # Write top HTML to file.
@@ -419,7 +429,8 @@ class ResultsFullReport(ResultsReport):
                                navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
                                             nextAnlys='../'+sAnlysUrls.next,
                                             back2Top='../'+os.path.basename(topHtmlPathName)),
-                               tr=self.dTrans[self.lang], genDateTime=genDateTime)
+                               tr=self.dTrans[self.lang], pySources=[pl.Path(fpn).name for fpn in self.pySources],
+                               genDateTime=genDateTime)
             html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
 
             # Write analysis HTML to file.
@@ -496,13 +507,14 @@ class MCDSResultsFullReport(ResultsFullReport):
                       "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
                       " elles sont toutes telles que produites par MCDS" })
     
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
                        synthCols=None, dCustomTrans=None, lang='en', plotImgFormat='png',
                        tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         synthCols, self.DCustTrans if dCustomTrans is None else dCustomTrans,
-                         lang, plotImgFormat, tgtFolder, tgtPrefix)
+                         pySources=pySources, synthCols=synthCols,
+                         dCustomTrans=self.DCustTrans if dCustomTrans is None else dCustomTrans,
+                         lang=lang, plotImgFormat=plotImgFormat, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
     # Styling colors
     cChrGray = '#869074'
@@ -649,6 +661,31 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
                        'Synthesis table': 'Synthesis table',
                        'Click on analysis # for details': 'Click on analysis number to get to detailed report',
+                       'Detailed results': 'Detailed results',
+                       'Download Excel': 'Download as Excel(TM) file',
+                       'Summary computation log': 'Summary computation log',
+                       'Detailed computation log': 'Detailed computation log',
+                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
+                       'Back to top': 'Back to global report',
+                       'Page generated with': 'Page generated with', 'other modules': 'other modules',
+                       'with icons from': 'with icons from',
+                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' },
+                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
+                       'Synthesis table': 'Tableau de synthèse',
+                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
+                       'Detailed results': 'Résultats en détails',
+                       'Download Excel': 'Télécharger le classeur Excel (TM)',
+                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
+                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
+                       'Back to top': 'Retour au rapport global',
+                       'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
+                       'with icons from': 'avec les pictogrammes de',
+                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
+
+    # Translation table.
+    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
+                       'Synthesis table': 'Synthesis table',
+                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
                        'Sample': 'Sample', 'Parameters': 'Parameters', 'Results': 'Results',
                        'ProbDens': 'Detection probability density (PDF)',
                        'DetProb': 'Detection probability',
@@ -658,8 +695,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Detailed computation log': 'Detailed computation log',
                        'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
                        'Back to top': 'Back to global report',
-                       'Page generated with': 'Page générée via', 'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' },
+                       'Page generated with': 'Page generated with', 'other modules': 'other modules',
+                       'with icons from': 'with icons from',
+                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' },
                   fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
                        'Synthesis table': 'Tableau de synthèse',
                        'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
@@ -671,8 +709,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
                        'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
                        'Back to top': 'Retour au rapport global',
-                       'Page generated with': 'Page generated with', 'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' })
+                       'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
+                       'with icons from': 'avec les pictogrammes de',
+                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
 
     DCustTrans = \
         dict(en={ 'Note: Some figures rounded or converted': 
@@ -689,12 +728,13 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                       " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                       sampleCols, paramCols, resultCols, anlysSynthCols=None, 
-                       plotsHeight=256, lang='en', plotImgFormat='png',
-                       tgtFolder='.', tgtPrefix='results'):
+                 sampleCols, paramCols, resultCols, anlysSynthCols=None, 
+                 pySources=[], plotsHeight=256, lang='en', plotImgFormat='png',
+                 tgtFolder='.', tgtPrefix='results'):
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         synthCols=anlysSynthCols, dCustomTrans=self.DCustTrans, lang=lang,
+                         pySources=pySources, synthCols=anlysSynthCols,
+                         dCustomTrans=self.DCustTrans, lang=lang,
                          plotImgFormat=plotImgFormat, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.sampleCols = sampleCols
@@ -809,7 +849,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         html = tmpl.render(synthesis=dfSyn.to_html(escape=False),
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
-                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang], genDateTime=genDateTime)
+                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
+                           pySources=[pl.Path(fpn).name for fpn in self.pySources],
+                           genDateTime=genDateTime)
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
 
         # Write top HTML to file.
