@@ -162,6 +162,8 @@ class ResultsFullReport(ResultsReport):
                        'Detailed computation log': 'Detailed computation log',
                        'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
                        'Back to top': 'Back to global report',
+                       'If the fit was perfect ...': 'If the fit was perfect ...',
+                       'Real observations': 'Real observations',
                        'Page generated with': 'Page generated with', 'other modules': 'other modules',
                        'with icons from': 'with icons from',
                        'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' },
@@ -173,18 +175,23 @@ class ResultsFullReport(ResultsReport):
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
                        'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
                        'Back to top': 'Retour au rapport global',
+                       'If the fit was perfect ...': 'Si la correspondance était parfaite ...',
+                       'Real observations': 'Observations réelles',
                        'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
                        'with icons from': 'avec les pictogrammes de',
                        'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
-                       synthCols=None, dCustomTrans=dict(), lang='en', plotImgFormat='png',
+                       synthCols=None, dCustomTrans=dict(), lang='en',
+                       plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=90,
                        tgtFolder='.', tgtPrefix='results'):
                        
         """Ctor
         
         Parameters:
         :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
+        :param plotImgSize: size of the image generated for each plot = (width, height) in pixels
+        :param plotImgQuality: JPEG format quality (%) ; ignored if plotImgFormat not in ('jpg', 'jpeg')
         """
     
         assert synthCols is None or isinstance(synthCols, list) or isinstance(synthCols, pd.MultiIndex), \
@@ -197,6 +204,8 @@ class ResultsFullReport(ResultsReport):
         self.synthCols = synthCols
         
         self.plotImgFormat = plotImgFormat
+        self.plotImgSize = plotImgSize
+        self.plotImgQuality = plotImgQuality
 
         self.anlysSubTitle = anlysSubTitle
         
@@ -211,7 +220,7 @@ class ResultsFullReport(ResultsReport):
     PlotImgPrfxProbDens = 'probdens'
     
     @classmethod
-    def generatePlots(cls, plotsData, tgtFolder, imgFormat='png', figSize=(14, 7),
+    def generatePlots(cls, plotsData, tgtFolder, lang='en', imgFormat='png', imgSize=(800, 400), imgQuality=90,
                       grid=True, bgColor='#f9fbf3', transparent=False, trColors=['blue', 'red']):
         
         imgFormat = imgFormat.lower()
@@ -226,7 +235,7 @@ class ResultsFullReport(ResultsReport):
         for title, pld in plotsData.items():
             
             # Create the target figure and one-only subplot.
-            fig = plt.figure(figsize=figSize)
+            fig = plt.figure(figsize=(imgSize[0] / plt.rcParams['figure.dpi'], imgSize[1] / plt.rcParams['figure.dpi']))
             axes = fig.subplots()
             
             # Plot a figure from the plot data (3 possible types, from title).
@@ -236,7 +245,8 @@ class ResultsFullReport(ResultsReport):
                 
                 n = len(pld['dataRows'])
                 df2Plot = pd.DataFrame(data=pld['dataRows'],
-                                       columns=['If the fit was perfect ...', 'Real observations'],
+                                       columns=[cls.DTrans[lang][s] 
+                                                for s in ['If the fit was perfect ...', 'Real observations']],
                                        index=np.linspace(0.5/n, 1.0-0.5/n, n))
                 
                 df2Plot.plot(ax=axes, color=trColors, grid=grid,
@@ -294,8 +304,8 @@ class ResultsFullReport(ResultsReport):
             # Generate an image file for the plot figure (forcing the specified patch background color).
             tgtFileName = tgtFileName + '.' + imgFormat
             fig.savefig(os.path.join(tgtFolder, tgtFileName),
-                                box_inches='tight', transparent=transparent,
-                                facecolor=axes.figure.get_facecolor(), edgecolor='none')
+                       box_inches='tight', quality=imgQuality, transparent=transparent,
+                       facecolor=axes.figure.get_facecolor(), edgecolor='none')
 
             # Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
             axes.clear()
@@ -423,8 +433,9 @@ class ResultsFullReport(ResultsReport):
                                details=dfsDet.render(),
                                log=engineClass.decodeLog(anlysFolder),
                                output=engineClass.decodeOutput(anlysFolder),
-                               plots=self.generatePlots(engineClass.decodePlots(anlysFolder),
-                                                        anlysFolder, imgFormat=self.plotImgFormat),
+                               plots=self.generatePlots(engineClass.decodePlots(anlysFolder), anlysFolder,
+                                                        imgFormat=self.plotImgFormat, imgSize=self.plotImgSize,
+                                                        imgQuality=self.plotImgQuality, lang='en'), # No translation !
                                title=self.title, subtitle=subTitle, keywords=self.keywords,
                                navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
                                             nextAnlys='../'+sAnlysUrls.next,
@@ -444,14 +455,14 @@ class ResultsFullReport(ResultsReport):
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
             
-        # Generate full report page for each analysis
+        # Generate synthesis report page (all analyses in one page).
         topHtmlPathName = self.toHtmlAllAnalyses()
 
-        # Generate report page for each analysis
+        # Generate detailed report pages (one page for each analysis)
         self.toHtmlEachAnalysis()
 
         logger.info('... done.')
-                
+        
         return topHtmlPathName
 
     # Génération du rapport Excel.
@@ -508,13 +519,15 @@ class MCDSResultsFullReport(ResultsFullReport):
                       " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
-                       synthCols=None, dCustomTrans=None, lang='en', plotImgFormat='png',
+                       synthCols=None, dCustomTrans=None, lang='en',
+                       plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=90,
                        tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          pySources=pySources, synthCols=synthCols,
-                         dCustomTrans=self.DCustTrans if dCustomTrans is None else dCustomTrans,
-                         lang=lang, plotImgFormat=plotImgFormat, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+                         dCustomTrans=self.DCustTrans if dCustomTrans is None else dCustomTrans, lang=lang,
+                         plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
+                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
     # Styling colors
     cChrGray = '#869074'
@@ -661,31 +674,6 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
                        'Synthesis table': 'Synthesis table',
                        'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'Detailed results': 'Detailed results',
-                       'Download Excel': 'Download as Excel(TM) file',
-                       'Summary computation log': 'Summary computation log',
-                       'Detailed computation log': 'Detailed computation log',
-                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
-                       'Back to top': 'Back to global report',
-                       'Page generated with': 'Page generated with', 'other modules': 'other modules',
-                       'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' },
-                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
-                       'Synthesis table': 'Tableau de synthèse',
-                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'Detailed results': 'Résultats en détails',
-                       'Download Excel': 'Télécharger le classeur Excel (TM)',
-                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
-                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
-                       'Back to top': 'Retour au rapport global',
-                       'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
-                       'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
-
-    # Translation table.
-    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
-                       'Synthesis table': 'Synthesis table',
-                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
                        'Sample': 'Sample', 'Parameters': 'Parameters', 'Results': 'Results',
                        'ProbDens': 'Detection probability density (PDF)',
                        'DetProb': 'Detection probability',
@@ -695,6 +683,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Detailed computation log': 'Detailed computation log',
                        'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
                        'Back to top': 'Back to global report',
+                       'If the fit was perfect ...': 'If the fit was perfect ...',
+                       'Real observations': 'Real observations',
                        'Page generated with': 'Page generated with', 'other modules': 'other modules',
                        'with icons from': 'with icons from',
                        'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' },
@@ -709,6 +699,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
                        'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
                        'Back to top': 'Retour au rapport global',
+                       'If the fit was perfect ...': 'Si la correspondance était parfaite ...',
+                       'Real observations': 'Observations réelles',
                        'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
                        'with icons from': 'avec les pictogrammes de',
                        'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
@@ -728,19 +720,27 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                       " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                 sampleCols, paramCols, resultCols, anlysSynthCols=None, 
-                 pySources=[], plotsHeight=256, lang='en', plotImgFormat='png',
+                 sampleCols, paramCols, resultCols, anlysSynthCols=None,
+                 pySources=[], lang='en', synthPlotsHeight=256,
+                 plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=95,
                  tgtFolder='.', tgtPrefix='results'):
+
+        """Ctor
+        
+        Parameters:
+        :param synthPlotsHeight: Display height (in pixels) of the synthesis page plots
+        """
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          pySources=pySources, synthCols=anlysSynthCols,
                          dCustomTrans=self.DCustTrans, lang=lang,
-                         plotImgFormat=plotImgFormat, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+                         plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
+                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.sampleCols = sampleCols
         self.paramCols = paramCols
         self.resultCols = resultCols
-        self.plotsHeight = plotsHeight
+        self.synthPlotsHeight = synthPlotsHeight
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
     # in the "one analysis at a time" case.
@@ -800,7 +800,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
             plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
             if os.path.isfile(os.path.join(runFolder, plotFileName)):
                 return '<img src="./{}/{}" style="height: {}px" />' \
-                       .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.plotsHeight)
+                       .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.synthPlotsHeight)
         
         return '{} plot image file not found'.format(plotImgPrfx)
         
@@ -867,11 +867,11 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
             
-        # Generate full report page for each analysis
-        # (done first to have plot image files generated for top report page generation just below).
+        # Generate full report detailed pages (one for each analysis)
+        # (done first to have plot image files generated for top report page generation right below).
         self.toHtmlEachAnalysis()
         
-        # Generate top report page.
+        # Generate top = synthesis report page (one for all analyses).
         topHtmlPathName = self.toHtmlAllAnalyses()
 
         logger.info('... done.')
