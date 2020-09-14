@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
 
 import autods.log as log
+import autods.executor as exor
 
 logger = log.logger('ads.rep')
 
@@ -223,13 +224,6 @@ class ResultsFullReport(ResultsReport):
     def generatePlots(cls, plotsData, tgtFolder, lang='en', imgFormat='png', imgSize=(800, 400), imgQuality=90,
                       grid=True, bgColor='#f9fbf3', transparent=False, trColors=['blue', 'red']):
         
-        imgFormat = imgFormat.lower()
-        
-        # Stops heavy Matplotlib memory leak in XXXReport.generatePlots below (WTF !?)
-        wasInter = plt.isinteractive()
-        if wasInter:
-            plt.ioff()
-
         # For each plot, 
         dPlots = dict()
         for title, pld in plotsData.items():
@@ -290,19 +284,20 @@ class ResultsFullReport(ResultsReport):
                 axes.grid(True, which='minor')
                 
             # Finish plotting.
-            axes.legend(df2Plot.columns, fontsize=14)
+            axes.legend(df2Plot.columns, fontsize=10)
             axes.set_title(label=pld['title'] + ' : ' + pld['subTitle'],
-                           fontdict=dict(fontsize=18), pad=20)
-            axes.set_xlabel(pld['xLabel'], fontsize=14)
-            axes.set_ylabel(pld['yLabel'], fontsize=14)
-            axes.tick_params(axis = 'both', labelsize=12)
+                           fontdict=dict(fontsize=14), pad=10)
+            axes.set_xlabel(pld['xLabel'], fontsize=10)
+            axes.set_ylabel(pld['yLabel'], fontsize=10)
+            axes.tick_params(axis = 'both', labelsize=9)
             axes.grid(True, which='major')
             if not transparent:
                 axes.set_facecolor(bgColor)
                 axes.figure.patch.set_facecolor(bgColor)
                 
             # Generate an image file for the plot figure (forcing the specified patch background color).
-            tgtFileName = tgtFileName + '.' + imgFormat
+            tgtFileName = tgtFileName + '.' + imgFormat.lower()
+            fig.tight_layout()
             fig.savefig(os.path.join(tgtFolder, tgtFileName),
                        box_inches='tight', quality=imgQuality, transparent=transparent,
                        facecolor=axes.figure.get_facecolor(), edgecolor='none')
@@ -315,10 +310,6 @@ class ResultsFullReport(ResultsReport):
             # Save image URL.
             dPlots[title] = tgtFileName
                 
-        # Restore pyplot interactive mode as it was before entering this function.
-        if wasInter:
-            plt.ion()
-
         return dPlots
     
     # Top page
@@ -383,7 +374,7 @@ class ResultsFullReport(ResultsReport):
         return htmlPathName
     
     # Analyses pages.
-    def toHtmlEachAnalysis(self):
+    def toHtmlEachAnalysis(self, generators=1):
         
         # Generate translated synthesis and detailed tables.
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
@@ -392,7 +383,7 @@ class ResultsFullReport(ResultsReport):
         dfDetRes = self.resultsSet.dfTransData(self.lang)
         dfDetRes.reset_index(drop=True, inplace=True)
 
-        logger.info(f'Analyses pages ({len(dfSynthRes)}) ...')
+        logger.info(f'Analyses pages ({len(dfSynthRes)}), through {generators} parallel generators ...')
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons)
         #    with the sorted order if any
@@ -403,54 +394,84 @@ class ResultsFullReport(ResultsReport):
         dfAnlysUrls = pd.DataFrame(dict(current=sCurrUrl, previous=np.roll(sCurrUrl, 1), next=np.roll(sCurrUrl, -1)))
 
         # 2. 2nd pass : Generate
+        # a. Stops heavy Matplotlib.pyplot memory leak in generatePlots (WTF !?)
+        wasInter = plt.isinteractive()
+        if wasInter:
+            plt.ioff()
+
+        # b. Generate analysis detailed HTML page, for each analysis, parallely.
         topHtmlPathName = self.targetFilePathName(suffix='.html')
-        tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
-        engineClass = self.resultsSet.engineClass
         trCustCols = [col for col in self.resultsSet.transCustomColumns(self.lang) if col in dfDetRes.columns]
         
+        # i. Start generation of all pages in parallel (unless specified not)
+        executor = exor.Executor(processes=generators)
+        pages = dict()
         for lblAnlys in dfSynthRes.index:
             
-            sAnlysCustCols = dfDetRes.loc[lblAnlys, trCustCols]
-            logger.info1(f'  #{lblAnlys} ' + ' '.join(f'{k}={v}' for k, v in sAnlysCustCols.iteritems()))
-        
-            anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
+            logger.info1(f'  #{lblAnlys}: ' \
+                         + ' '.join(f'{k}={v}' for k, v in dfDetRes.loc[lblAnlys, trCustCols].iteritems()))
 
-            # Postprocess synthesis table :
-            dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
-            dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n+1))
-            dfsSyn = self.finalformatEachAnalysisData(dfSyn)
-            
-            # Postprocess detailed table :
-            dfDet = dfDetRes.loc[lblAnlys].to_frame().T
-            dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n+1))
-            dfsDet = self.finalformatEachAnalysisData(dfDet, convert=False, round=False)
-            
-            # Generate analysis report page.
-            genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-            subTitle = 'Analyse {:03d} : {}'.format(lblAnlys+1, self.anlysSubTitle)
-            sAnlysUrls = dfAnlysUrls.loc[lblAnlys]
-            html = tmpl.render(synthesis=dfsSyn.render(),
-                               details=dfsDet.render(),
-                               log=engineClass.decodeLog(anlysFolder),
-                               output=engineClass.decodeOutput(anlysFolder),
-                               plots=self.generatePlots(engineClass.decodePlots(anlysFolder), anlysFolder,
-                                                        imgFormat=self.plotImgFormat, imgSize=self.plotImgSize,
-                                                        imgQuality=self.plotImgQuality, lang='en'), # No translation !
-                               title=self.title, subtitle=subTitle, keywords=self.keywords,
-                               navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
-                                            nextAnlys='../'+sAnlysUrls.next,
-                                            back2Top='../'+os.path.basename(topHtmlPathName)),
-                               tr=self.dTrans[self.lang], pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                               genDateTime=genDateTime)
-            html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
-
-            # Write analysis HTML to file.
-            htmlPathName = self.targetFilePathName(tgtFolder=anlysFolder, prefix='index', suffix='.html')
-            with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
-                tgtFile.write(html)
+            pgFut = executor.submit(self._toHtmlAnalysis, 
+                                    lblAnlys, dfSynthRes, dfDetRes, dfAnlysUrls, topHtmlPathName, trCustCols)
+                                    
+            pages[pgFut] = lblAnlys
         
+        logger.info1(f'Waiting for generators results ...')
+        
+        # ii. Wait for end of generation of each page, as it comes first.
+        for pgFut in executor.asCompleted(pages):
+
+            # If there, it's because it's done !
+            logger.info1(f'  #{pages[pgFut]}: Done.')
+
+        # iii. Terminate parallel executor.
+        executor.shutdown()
+
+        # c. Restore Matplotlib.pyplot interactive mode as it was before.
+        if wasInter:
+            plt.ion()
+
+    def _toHtmlAnalysis(self, lblAnlys, dfSynthRes, dfDetRes, dfAnlysUrls, topHtmlPathName, trCustCols):
+
+        # Postprocess synthesis table :
+        dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
+        dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n+1))
+        dfsSyn = self.finalformatEachAnalysisData(dfSyn)
+        
+        # Postprocess detailed table :
+        dfDet = dfDetRes.loc[lblAnlys].to_frame().T
+        dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n+1))
+        dfsDet = self.finalformatEachAnalysisData(dfDet, convert=False, round=False)
+        
+        # Generate analysis report page.
+        genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        subTitle = 'Analyse {:03d} : {}'.format(lblAnlys+1, self.anlysSubTitle)
+        sAnlysUrls = dfAnlysUrls.loc[lblAnlys]
+        engineClass = self.resultsSet.engineClass
+        anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
+        tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
+        html = tmpl.render(synthesis=dfsSyn.render(),
+                           details=dfsDet.render(),
+                           log=engineClass.decodeLog(anlysFolder),
+                           output=engineClass.decodeOutput(anlysFolder),
+                           plots=self.generatePlots(engineClass.decodePlots(anlysFolder), anlysFolder,
+                                                    imgFormat=self.plotImgFormat, imgSize=self.plotImgSize,
+                                                    imgQuality=self.plotImgQuality, lang='en'), # No translation !
+                           title=self.title, subtitle=subTitle, keywords=self.keywords,
+                           navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
+                                        nextAnlys='../'+sAnlysUrls.next,
+                                        back2Top='../'+os.path.basename(topHtmlPathName)),
+                           tr=self.dTrans[self.lang], pySources=[pl.Path(fpn).name for fpn in self.pySources],
+                           genDateTime=genDateTime)
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
+
+        # Write analysis HTML to file.
+        htmlPathName = self.targetFilePathName(tgtFolder=anlysFolder, prefix='index', suffix='.html')
+        with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
+            tgtFile.write(html)
+
     # HTML report generation (based on results.dfTransData).
-    def toHtml(self):
+    def toHtml(self, generators=1):
         
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
@@ -459,7 +480,7 @@ class ResultsFullReport(ResultsReport):
         topHtmlPathName = self.toHtmlAllAnalyses()
 
         # Generate detailed report pages (one page for each analysis)
-        self.toHtmlEachAnalysis()
+        self.toHtmlEachAnalysis(generators=generators)
 
         logger.info('... done.')
         
@@ -862,14 +883,14 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         return htmlPathName
     
     # HTML report generation (based on results.dfTransData).
-    def toHtml(self):
+    def toHtml(self, generators=1):
         
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
             
         # Generate full report detailed pages (one for each analysis)
         # (done first to have plot image files generated for top report page generation right below).
-        self.toHtmlEachAnalysis()
+        self.toHtmlEachAnalysis(generators=generators)
         
         # Generate top = synthesis report page (one for all analyses).
         topHtmlPathName = self.toHtmlAllAnalyses()
