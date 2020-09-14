@@ -284,7 +284,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
                          minDist=minDist, maxDist=maxDist, fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
 
         self.modelStrategy = modelStrategy
-        self.executor = executor if executor is not None else Executor(parallel=False)
+        self.executor = executor if executor is not None else Executor()
     
     def _run(self):
 

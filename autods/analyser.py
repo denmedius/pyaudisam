@@ -881,8 +881,8 @@ class MCDSAnalyser(DSAnalyser):
         :param threads: Number of parallel threads to use (default=1: no parallelism)
         """
     
-        # Executor (parallel or séquential).
-        self._executor = Executor(parallel=threads > 1 or processes > 1, threads=threads)
+        # Executor (parallel or sequential).
+        self._executor = Executor(threads=threads)
 
         # MCDS analysis engine
         self._engine = MCDSEngine(workDir=self.workDir, executor=self._executor, 
@@ -987,8 +987,8 @@ class MCDSPreAnalyser(MCDSAnalyser):
         :param threads: Number of parallel threads to use (default=1: no parallelism)
         """
     
-        # Executor (parallel or séquential).
-        self._executor = Executor(parallel=threads > 1, threads=threads)
+        # Executor (parallel or sequential).
+        self._executor = Executor(threads=threads)
 
         # MCDS analysis engine (a sequential one: 'cause MCDSPreAnalysis does the parallel stuff itself).
         self._engine = MCDSEngine(workDir=self.workDir,

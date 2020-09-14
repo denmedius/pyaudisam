@@ -99,7 +99,7 @@ class DSEngine(object):
         self.options = self.OptionsClass(**options) 
         
         # Set executor for runAnalysis().
-        self.executor = executor if executor is not None else Executor(parallel=False)
+        self.executor = executor if executor is not None else Executor()
         
         # Check and prepare workdir if needed, and save.
         assert all(c not in str(workDir) for c in self.ForbidPathChars), \

@@ -162,7 +162,7 @@ class DSOptimisation(object):
         :param name: used for prefixing run folders (sure to be automatically unique anyway),
             analysis names, and so on, only for user-friendliness and deasier debugging ;
             default: None => auto-generated from optimisation parameters
-        :param executor: Executor object to use for parallel execution of multiple optimisations instances
+        :param executor: Executor object to use for parallel execution of multiple optimisation instances
              Note: Up to the caller to shut it down when no more needed (not owned).
         :param customData: custom data for the run analyses to ship through
         :param error: if an error occurred somewhere before, a string explaining it
@@ -176,7 +176,7 @@ class DSOptimisation(object):
         """
         
         self.engine = engine
-        self.executor = executor if executor is not None else Executor(parallel=False)
+        self.executor = executor if executor is not None else Executor()
         self.sampleDataSet = sampleDataSet
         self.name = name
         self.customData = customData

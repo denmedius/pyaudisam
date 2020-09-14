@@ -1102,8 +1102,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
            :param threads: Number of parallel threads to use (default: no parallelism)
         """
     
-        # Executor (parallel or séquential).
-        self._executor = Executor(parallel=threads > 1, threads=threads)
+        # Executor (parallel or sequential).
+        self._executor = Executor(threads=threads)
 
         # MCDS analysis engine (a sequential one: 'cause MCDSOptimisation does the parallel stuff itself).
         self._engine = MCDSEngine(workDir=self.workDir,

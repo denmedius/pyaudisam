@@ -61,33 +61,43 @@ class Executor(object):
     # The only SequentialExecutor (only one needed)
     TheSeqExor = None
 
-    # * threads (None): 0 for auto-number (5 x nb of actual CPUs), 1 <=> parallel = False
-    # * process (None): 0 for auto-number (nb of actual CPUs, 1 <=> parallel = False 
-    # * name_prefix: only for multi-threading
-    # * mp_context: only for multi-processing
-    # Precondition: threads is None or processes is None
-    def __init__(self, parallel=False, threads=None, processes=None,
-                       name_prefix='', mp_context=None, initializer=None, initargs=()):
+    def __init__(self, threads=None, processes=None,
+                 name_prefix='', mp_context=None, initializer=None, initargs=()):
+
+        """Ctor
         
+        Parameters:
+        :param threads: Must be None or >= 0 ; 0 for auto-number (5 x nb of actual CPUs), 1 <=> no actual parallelism,
+                        must be None = unspecified if processes is not None
+        :param processes: Must be None or >= 0 ; 0 for auto-number (nb of actual CPUs, 1 <=> no actual parallelism,
+                          must be None = unspecified if threads is not None
+        :param name_prefix: See concurrent module (only for multi-threading)
+        :param mp_context: See concurrent module (only for multi-processing)
+        :param initializer: See concurrent module
+        :param initargs: See concurrent module
+        """
+        
+        assert (threads is None and (processes is None or processes >= 0)) \
+               or (processes is None and (threads is None or threads >= 0)), \
+               'An Executor can\'t implement multi-threading _and_ multi-processing at the same time'
+               
         self.realExor = None
-        if parallel:
-            if threads is not None:
-                if threads > 1:
-                    self.realExor = \
-                        cofu.ThreadPoolExecutor(max_workers=threads or None,
-                                                thread_name_prefix=name_prefix,
-                                                initializer=None, initargs=initargs)
-                    logger.debug('Started a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
-            elif processes is not None:
-                raise NotImplementedError('Not yet available for multi-process scheme')
-                if processes > 1:
-                    self.realExor = \
-                        cofu.ProcessPoolExecutor(max_workers=processes or None,
-                                                 mp_context=mp_context,
-                                                 initializer=initializer, initargs=initargs)
-                    logger.debug('Started a ProcessPoolExecutor(max_workers={})'.format(processes or 'None'))
+
+        if threads is not None:
+            self.realExor = \
+                cofu.ThreadPoolExecutor(max_workers=threads or None,
+                                        thread_name_prefix=name_prefix,
+                                        initializer=None, initargs=initargs)
+            logger.debug('Started a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
+        
+        elif processes is not None:
+            self.realExor = \
+                cofu.ProcessPoolExecutor(max_workers=processes or None,
+                                         mp_context=mp_context,
+                                         initializer=initializer, initargs=initargs)
+            logger.debug('Started a ProcessPoolExecutor(max_workers={})'.format(processes or 'None'))
                     
-        if self.realExor is None:
+        else:
             if self.TheSeqExor is None:
                 self.TheSeqExor = SequentialExecutor()
             self.realExor = self.TheSeqExor
