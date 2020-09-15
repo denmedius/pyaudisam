@@ -306,7 +306,7 @@ class Analyser(object):
             # Concat groups of same columns set explicit specs
             ldfExplPartSpecs.append(pd.concat(ldfSameColsPartSpecs, ignore_index=True))
         
-        # Combinaison des specs explicites (dans l'ordre)
+        # Combine explicit specs (following in order)
         dfExplSpecs = ldfExplPartSpecs[0]
 
         for dfExplPartSpecs in ldfExplPartSpecs[1:]:
@@ -522,8 +522,10 @@ class DSAnalyser(Analyser):
 
         # Add sample index column if requested and not already there
         if sampleIndCol and sampleIndCol not in dfExplParamSpecs.columns:
+            # Drop all-NaN sample selection columns (sometimes, it happens) for a working groupby()
+            dfSampInd = dfExplParamSpecs[sampleSelCols].dropna(axis='columns', how='all')
             dfExplParamSpecs[sampleIndCol] = \
-                dfExplParamSpecs.groupby(sampleSelCols, sort=False).ngroup()
+                dfSampInd.groupby(list(dfSampInd.columns), sort=False).ngroup()
 
         # Convert explicit. analysis spec. columns to the internal parameter names,
         # and extract the real analysis parameters.
@@ -844,6 +846,7 @@ class MCDSAnalyser(DSAnalyser):
         results = self.setupResults()
 
         # For each analysis as it gets completed (first completed => first yielded)
+        nAnlysDone = 0
         for anlysFut in self._executor.asCompleted(dAnlyses):
             
             # Retrieve analysis object from its associated future object
@@ -858,6 +861,14 @@ class MCDSAnalyser(DSAnalyser):
 
             # Save results
             results.append(sResult, sCustomHead=sCustomHead)
+
+            # Report elapsed time and number of analyses completed until now (once per 50 analyses though).
+            nAnlysDone += 1
+            if nAnlysDone % 50 == 0 or nAnlysDone == len(dAnlyses):
+                elapsedTilNow = pd.Timestamp.now() - self._anlysStart
+                logger.info1('{}/{} analyses completed in {} : mean = {} per unit'
+                             .format(nAnlysDone, len(dAnlyses), str(elapsedTilNow).replace('0 days ', ''),
+                                     str(elapsedTilNow / nAnlysDone).replace('0 days ', '')))
 
         # Terminate analysis executor
         self._executor.shutdown()
@@ -900,13 +911,16 @@ class MCDSAnalyser(DSAnalyser):
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
         assert checkVerdict, 'Analysis params check failed: {}'.format('; '.join(checkErrors))
         
+        # Start of elapsed time measurement.
+        self._anlysStart = pd.Timestamp.now()
+        
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
         logger.info('Running {} MCDS analyses ({}) ...'.format(len(dfExplParamSpecs), runHow))
         dAnlyses = dict()
         for anInd, sAnSpec in dfExplParamSpecs.iterrows():
             
-            logger.info('#{}/{} : {}'.format(anInd+1, len(dfExplParamSpecs), sAnSpec[self.abbrevCol]))
+            logger.info(f'#{anInd+1}/{len(dfExplParamSpecs)} : {sAnSpec[self.abbrevCol]}')
 
             # Select data sample to process
             sds = self._mcDataSet.sampleDataSet(sAnSpec[self.sampleSelCols])
@@ -1006,6 +1020,9 @@ class MCDSPreAnalyser(MCDSAnalyser):
             self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
         assert checkVerdict, 'Pre-analysis params check failed: {}'.format('; '.join(checkErrors))
         
+        # Start of elapsed time measurement.
+        self._anlysStart = pd.Timestamp.now()
+        
         # For each sample to analyse :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
         logger.info('Running {} MCDS pre-analyses ({}) ...'.format(len(dfExplSampleSpecs), runHow))
@@ -1013,7 +1030,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         dAnlyses = dict()
         for sampInd, sSampSpec in dfExplSampleSpecs.iterrows():
             
-            logger.info('#{}/{} : {}'.format(sampInd+1, len(dfExplSampleSpecs), sSampSpec[self.abbrevCol]))
+            logger.info(f'#{sampInd+1}/{len(dfExplSampleSpecs)} : {sSampSpec[self.abbrevCol]}')
 
             # Select data sample to process
             sds = self._mcDataSet.sampleDataSet(sSampSpec[self.sampleSelCols])

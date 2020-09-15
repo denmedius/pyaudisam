@@ -1066,6 +1066,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         results = self.setupResults()
 
         # For each optimisation as it gets completed (first completed => first yielded)
+        nOptimsDone = 0
         for optimFut in self._executor.asCompleted(dOptims):
             
             # Retrieve optimisation object from its associated future object
@@ -1080,6 +1081,13 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
             # Save results
             results.append(dfResults, sCustomHead=sCustomHead)
+            
+            # Report elapsed time and number of optimisations completed until now.
+            nOptimsDone += 1
+            elapsedTilNow = pd.Timestamp.now() - self._optimStart
+            logger.info1('{}/{} optimisations completed in {} : mean = {} per unit'
+                         .format(nOptimsDone, len(dOptims), str(elapsedTilNow).replace('0 days ', ''),
+                                 str(elapsedTilNow / nOptimsDone).replace('0 days ', '')))
 
         # Terminate analysis executor
         self._executor.shutdown()
@@ -1121,17 +1129,20 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
         assert checkVerdict, 'Error: Analysis params check failed: {}'.format('; '.join(checkErrors))
         
-        # Build internal name to user name to converter for spec. columns
+        # Build internal name => user name converter for spec. columns
         self.dInt2UserParamSpecNames = dict(zip(intParamSpecCols, userParamSpecCols))
+        
+        # Start of elapsed time measurement.
+        self._optimStart = pd.Timestamp.now()
         
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
         logger.info('Running MCDS truncation optimisations for {} analyses specs ({}) ...' \
                     .format(len(dfExplParamSpecs), runHow))
         dOptims = dict()
-        for optimInd, sOptimSpec in dfExplParamSpecs.iterrows():
+        for optimInd, (optimLbl, sOptimSpec) in enumerate(dfExplParamSpecs.iterrows()):
             
-            logger.info('#{}/{}: {}'.format(optimInd+1, len(dfExplParamSpecs), sOptimSpec[self.abbrevCol]))
+            logger.info(f'#{optimInd+1}/{len(dfExplParamSpecs)} ({optimLbl}): {sOptimSpec[self.abbrevCol]}')
 
             # Select data sample to process (and skip if empty)
             sds = self._mcDataSet.sampleDataSet(sOptimSpec[self.sampleSelCols])
