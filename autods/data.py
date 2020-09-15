@@ -334,7 +334,7 @@ class MonoCategoryDataSet(DataSet):
         # Select sightings
         dfSampSights = dfAllSights
         for key, values in dSample.items():
-            values = str(values) # For ints as strings that get forced to int in io sometimes (ex. from_excel)
+            values = str(values).strip() # For ints as strings that get forced to int in io sometimes (ex. from_excel)
             if values and values not in ['nan', 'None']: # Empty value means "no selection criteria for this columns"
                 values = values.split('+') if '+' in values else [values]
                 dfSampSights = dfSampSights[dfSampSights[key].astype(str).isin(values)]
@@ -402,7 +402,7 @@ class MonoCategoryDataSet(DataSet):
         return dfInSights
     
     # Sample individuals data for given sampling criteria, as a SampleDataSet.
-    # * sSample : { key, value } selection criteria (with '+' support for 'or' operator in value),
+    # * sSample : { key, value } selection criteria (with '+' support for 'or' operator in value, no separating space),
     #             keys being columns of dfAllSights (dict protocol : dict, pd.Series, ...)
     def sampleDataSet(self, sSampleSpecs):
         
@@ -418,7 +418,7 @@ class MonoCategoryDataSet(DataSet):
         
         # Don't go on if no selected data.
         if dfSampIndivObs.empty:
-            logger.warning(f'No data selected for this specs: {sSampleSpecs.to_dict()}')
+            logger.warning(f'Not even a single individual sighting selected for these specs: {sSampleSpecs.to_dict()}')
             return None
 
         # Add absence sightings
@@ -462,7 +462,10 @@ class SampleDataSet(DataSet):
         if sortFields:
             self._dfData.sort_values(by=sortFields, inplace=True)
 
-        logger.info(f'Sample data : {len(self)} sightings')
+        # Report some basic stats.
+        nAbscRows = self._dfData.isna().any(axis='columns').sum()
+        logger.info('Sample data : {} sightings = {} individuals + {} absence rows'
+                    .format(len(self), len(self) - nAbscRows, nAbscRows))
 
 
 class ResultsSet(object):
