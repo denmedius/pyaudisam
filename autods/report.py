@@ -642,6 +642,10 @@ class MCDSResultsFullReport(ResultsFullReport):
                                               if col in df.columns })
         
         # Styling
+        return self.styleAllAnalysesData(df, convert=convert, style=style)
+
+    def styleAllAnalysesData(self, df, convert=True, style=True):
+    
         dfs = df.style
         if style:
             
@@ -656,6 +660,7 @@ class MCDSResultsFullReport(ResultsFullReport):
             
             col = self.trEnColNames('CoefVar Density')
             if col in df.columns:
+                kVarDens = 100.0 if convert else 1.0
                 dfs.apply(self.scaledColorS, subset=[col], axis='columns',
                           thresholds=[v * kVarDens for v in [0.3, 0.2]], colors=self.scaledColorsRvd)
             
@@ -799,12 +804,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
             df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() if col in df.columns })
         
         # Styling
-        dfs = df.style
-        if style:
-            
-            pass # No styling to be done here.
-        
-        return dfs
+        return self.styleAllAnalysesData(df, convert=convert, style=style)
 
     @staticmethod
     def series2VertTable(ser):
@@ -835,7 +835,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # 1. Get translated and post-formated detailed results
         dfDet = self.resultsSet.dfTransData(self.lang)
         dfDet.reset_index(drop=True, inplace=True)
-        dfsDet = self.finalFormatAllAnalysesData(dfDet)
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, style=False)  # Styling not used later, so don't do it.
         dfDet = dfsDet.data
 
         # 2. Translate sample, parameter and result columns
@@ -861,8 +861,6 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # 4. Translate table columns.
         dfSyn.columns = [self.tr(col) for col in dfSyn.columns]
 
-        self.dfSyn = dfSyn
-        
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         tmpl = self.getTemplateEnv().get_template('mcds/pretop.htpl')
