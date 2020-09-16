@@ -408,7 +408,7 @@ class ResultsFullReport(ResultsReport):
         pages = dict()
         for lblAnlys in dfSynthRes.index:
             
-            logger.info1(f'  #{lblAnlys}: ' \
+            logger.info1(f'#{lblAnlys}: ' \
                          + ' '.join(f'{k}={v}' for k, v in dfDetRes.loc[lblAnlys, trCustCols].iteritems()))
 
             pgFut = executor.submit(self._toHtmlAnalysis, 
@@ -421,8 +421,12 @@ class ResultsFullReport(ResultsReport):
         # ii. Wait for end of generation of each page, as it comes first.
         for pgFut in executor.asCompleted(pages):
 
-            # If there, it's because it's done !
-            logger.info1(f'  #{pages[pgFut]}: Done.')
+            # If there, it's because it's done (or crashed) !
+            exc = pgFut.exception()
+            if exc:
+                logger.error(f'#{pages[pgFut]}: Exception: {exc}')
+            else:
+                logger.info1(f'#{pages[pgFut]}: Done.')
 
         # iii. Terminate parallel executor.
         executor.shutdown()
@@ -471,7 +475,9 @@ class ResultsFullReport(ResultsReport):
             tgtFile.write(html)
 
     # HTML report generation (based on results.dfTransData).
-    def toHtml(self, generators=1):
+    def toHtml(self): #, generators=1):
+    
+        # For some obscure reason, parallelism does not work here (while it does for MCDSResultsPreReport !).
         
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
@@ -480,7 +486,8 @@ class ResultsFullReport(ResultsReport):
         topHtmlPathName = self.toHtmlAllAnalyses()
 
         # Generate detailed report pages (one page for each analysis)
-        self.toHtmlEachAnalysis(generators=generators)
+        # Note: For some obscure reason, parallelism does not work here (while it does for MCDSResultsPreReport !).
+        self.toHtmlEachAnalysis(generators=1)
 
         logger.info('... done.')
         
@@ -688,7 +695,9 @@ class MCDSResultsFullReport(ResultsFullReport):
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    finalformatEachAnalysisData = finalFormatAllAnalysesData
+    def finalformatEachAnalysisData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    
+        return self.finalFormatAllAnalysesData(dfTrData, sort=sort, convert=convert, round=round, style=style)
 
 
 # A specialized pre-report for MCDS analyses, with actual output formating
