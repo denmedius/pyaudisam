@@ -67,10 +67,12 @@ class Executor(object):
         """Ctor
         
         Parameters:
-        :param threads: Must be None or >= 0 ; 0 for auto-number (5 x nb of actual CPUs), 1 <=> no actual parallelism,
-                        must be None = unspecified if processes is not None
-        :param processes: Must be None or >= 0 ; 0 for auto-number (nb of actual CPUs, 1 <=> no actual parallelism,
-                          must be None = unspecified if threads is not None
+        :param threads: Must be None or >= 0 ; 0 for auto-number (5 x nb of actual CPUs) ;
+                        None or 1 for no actual parallelism = sequential execution,
+                        if processes is not None, must be None (= unspecified)
+        :param processes: Must be None or >= 0 ; 0 for auto-number (nb of actual CPUs), ;
+                          None or 1 for no actual parallelism = sequential execution,
+                          if threads is not None, must be None (= unspecified)
         :param name_prefix: See concurrent module (only for multi-threading)
         :param mp_context: See concurrent module (only for multi-processing)
         :param initializer: See concurrent module
@@ -83,14 +85,14 @@ class Executor(object):
                
         self.realExor = None
 
-        if threads is not None:
+        if not(threads is None or threads == 1):
             self.realExor = \
                 cofu.ThreadPoolExecutor(max_workers=threads or None,
                                         thread_name_prefix=name_prefix,
                                         initializer=None, initargs=initargs)
             logger.debug('Started a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
         
-        elif processes is not None:
+        elif not(processes is None or processes == 1):
             self.realExor = \
                 cofu.ProcessPoolExecutor(max_workers=processes or None,
                                          mp_context=mp_context,
