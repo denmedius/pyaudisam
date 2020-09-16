@@ -865,10 +865,14 @@ class MCDSAnalyser(DSAnalyser):
             # Report elapsed time and number of analyses completed until now (once per 50 analyses though).
             nAnlysDone += 1
             if nAnlysDone % 50 == 0 or nAnlysDone == len(dAnlyses):
-                elapsedTilNow = pd.Timestamp.now() - self._anlysStart
-                logger.info1('{}/{} analyses completed in {} : mean = {} per unit'
-                             .format(nAnlysDone, len(dAnlyses), str(elapsedTilNow).replace('0 days ', ''),
-                                     str(elapsedTilNow / nAnlysDone).replace('0 days ', '')))
+                now = pd.Timestamp.now()
+                elapsedTilNow = now - self._anlysStart
+                expectedEnd = \
+                    self._anlysStart + pd.Timedelta(elapsedTilNow.value * (len(dAnlyses) - nAnlysDone) / nAnlysDone)
+                logger.info1('{}/{} analyses in {} (mean {:.1f}s): should end around {}'
+                             .format(nAnlysDone, len(dAnlyses), str(elapsedTilNow.round('S')).replace('0 days ', ''),
+                                     elapsedTilNow.total_seconds() / nAnlysDone,
+                                     expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')))
 
         # Terminate analysis executor
         self._executor.shutdown()
