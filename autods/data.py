@@ -13,7 +13,7 @@
 
 import sys
 import pathlib as pl
-from packaging import version
+from packaging import version as pkgver
 
 import numpy as np
 import pandas as pd
@@ -64,7 +64,7 @@ class DataSet(object):
         return df
     
     SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
-                        + (['.ods'] if version.parse(pd.__version__).release >= (0, 25) else [])
+                        + (['.ods'] if pkgver.parse(pd.__version__).release >= (0, 25) else [])
     
     @classmethod
     def _fromDataFile(cls, sourceFpn, decimalFields, separator='\t', sheet=None):
@@ -620,7 +620,7 @@ class ResultsSet(object):
             
             # Post-compute as specified (or not).
             self.postComputeColumns()
-            self.postComputed = True # No need to do it again !
+            self.postComputed = True # No need to do it again from now on !
             
             # Sort as/if specified.
             if self.sortCols:
@@ -639,8 +639,13 @@ class ResultsSet(object):
         if self.isMultiIndexedCols and not self._dfData.empty:
             assert isinstance(self._dfData.columns, pd.MultiIndex)
         
-        # Don't return columns with no relevant data.
-        self._dfData.dropna(how='all', axis='columns', inplace=True)
+        # Don't return columns with no relevant results data (unless among custom cols).
+        if not self._dfData.empty:
+            miCols2Cleanup = self._dfData.columns
+            if self.miCustomCols is not None:
+                miCols2Cleanup = miCols2Cleanup.drop(self.miCustomCols.to_list())
+            cols2Drop = [col for col in miCols2Cleanup if self._dfData[col].isna().all()]
+            self._dfData.drop(columns=cols2Drop, inplace=True)
 
         # Done.
         return self._dfData.copy()
@@ -655,8 +660,9 @@ class ResultsSet(object):
         # Let's assume that columns order is dirty.
         self.rightColOrder = False
         
-        # Remove any computed column (will be recomputed later on).
-        self._dfData.drop(columns=self.computedCols, inplace=True)
+        # Remove any computed column: will be recomputed later on
+        # (but ignore those which are not there : backward compat. / tolerance)
+        self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
         
         # Post-computation not yet done.
         self.postComputed = False
@@ -733,14 +739,12 @@ class ResultsSet(object):
         logger.info(f'Results saved to {fileName} ({len(self)} rows)')
 
     # Save data to an Open Document worksheet (ODS format).
-    # Warning: Not yet implements as of pandas 0.25.3 ; 
-    # News: well advanced, expected for Pandas 1.1, https://github.com/pandas-dev/pandas/issues/27222
     def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None):
         
-        raise NotImplementedError('toOpenDoc: expected for pandas 1.1 as of June, 2020')
-        #self.toExcel(fileName, sheetName, lang, subset, engine='odf')
-
-        #logger.info(f'Results saved to {fileName} ({len(self)} rows)')
+        assert pkgver.parse(pd.__version__).release >= (1, 1), \
+               'Don\'t know how to write to OpenDoc format before Pandas 1.1'
+        
+        self.toExcel(fileName, sheetName, lang, subset, engine='odf')
 
     def fromExcel(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3]):
         
@@ -759,9 +763,11 @@ class ResultsSet(object):
         """Load (overwrite) data from an Open Document worksheet (ODS format),
         assuming ctor params match with ODF sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
-        Notes: Needs odfpy module and pandas.version >= 0.25.1
         """
 
+        assert pkgver.parse(pd.__version__).release >= (0, 25, 1), \
+               'Don\'t know how to read from OpenDoc format before Pandas 0.25.1 (using odfpy module)'
+        
         self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
                                     header=header, skiprows=skiprows, index_col=0, engine='odf')
 
