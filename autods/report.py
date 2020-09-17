@@ -15,6 +15,7 @@ import sys
 import os, shutil
 import re
 import pathlib as pl
+from packaging import version as pkgver
 import copy
 
 import datetime as dt
@@ -494,11 +495,11 @@ class ResultsFullReport(ResultsReport):
         return topHtmlPathName
 
     # Génération du rapport Excel.
-    def toExcel(self):
+    def toExcel(self, fileName=None, engine='openpyxl'):
         
-        xlsxPathName = os.path.join(self.tgtFolder, self.tgtPrefix + '.xlsx')
+        fileName = fileName or os.path.join(self.tgtFolder, self.tgtPrefix + '.xlsx')
         
-        with pd.ExcelWriter(xlsxPathName) as xlsxWriter:
+        with pd.ExcelWriter(fileName) as xlsxWriter:
             
             # Synthesis
             dfSyn = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
@@ -527,8 +528,18 @@ class ResultsFullReport(ResultsReport):
             
             dfsDet.to_excel(xlsxWriter, sheet_name=self.tr('Details'), index=True)
 
-        return xlsxPathName
+        return fileName
 
+    # Génération du rapport OpenDoc.
+    def toOpenDoc(self, fileName=None):
+    
+        fileName = fileName or os.path.join(self.tgtFolder, self.tgtPrefix + '.ods')
+
+        assert pkgver.parse(pd.__version__).release >= (1, 1), \
+               'Don\'t know how to write to OpenDoc format before Pandas 1.1'
+        
+        return self.toExcel(fileName, engine='odf')
+        
 # A specialized full report for MCDS analyses, with actual output formating
 class MCDSResultsFullReport(ResultsFullReport):
 
