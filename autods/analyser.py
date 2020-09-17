@@ -681,12 +681,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     # Post-computations.
     def postComputeColumns(self):
         
-        #logger.debug('postComputeColumns: ...')
+        logger.debug('Post-computing Delta AIC')
         
         # Compute Delta AIC (AIC - min(group)) per { species, periods, precision, duration } group.
         # a. Minimum AIC per group
+        #    (drop all-NaN sample selection columns (sometimes, it happens) for a working groupby())
         aicColInd = ('detection probability', 'AIC value', 'Value')
-        aicGroupColInds = self.miSampleCols.to_list()
+        aicGroupColInds = [col for col in self.miSampleCols if not self._dfData[col].isna().all()]
         df2Join = self._dfData.groupby(aicGroupColInds)[[aicColInd]].min()
         
         # b. Rename computed columns to target
