@@ -136,7 +136,7 @@ class ResultsReport(object):
     # To be specialized in derived classes (here, we do nothing) !
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatEachAnalysisData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatEachAnalysisData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
         
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
@@ -146,7 +146,7 @@ class ResultsReport(object):
     # To be specialized in derived classes (here, we do nothing) !
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
         
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
@@ -352,7 +352,7 @@ class ResultsFullReport(ResultsReport):
                                    .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
         
         # c. Post-format as specified in actual class.
-        dfsDet = self.finalFormatAllAnalysesData(dfDet, convert=False, round=False)
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, convert=False, round_=False, style=True)
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -386,9 +386,8 @@ class ResultsFullReport(ResultsReport):
 
         logger.info(f'Analyses pages ({len(dfSynthRes)}), through {generators} parallel generators ...')
 
-        # 1. 1st pass : Generate previous / next list (for navigation buttons)
-        #    with the sorted order if any
-        dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, convert=False, round=False, style=False).data
+        # 1. 1st pass : Generate previous / next list (for navigation buttons) with the sorted order if any
+        dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, sort=True, convert=False, round_=False, style=False).data
         sCurrUrl = dfSynthRes[self.trRunFolderCol]
         sCurrUrl = sCurrUrl.apply(lambda path: self.targetFilePathName(tgtFolder=path, prefix='index', suffix='.html'))
         sCurrUrl = sCurrUrl.apply(lambda path: os.path.relpath(path, self.tgtFolder).replace(os.sep, '/'))
@@ -441,12 +440,12 @@ class ResultsFullReport(ResultsReport):
         # Postprocess synthesis table :
         dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
         dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n+1))
-        dfsSyn = self.finalformatEachAnalysisData(dfSyn)
+        dfsSyn = self.finalformatEachAnalysisData(dfSyn, sort=True, convert=True, round_=True, style=True)
         
         # Postprocess detailed table :
         dfDet = dfDetRes.loc[lblAnlys].to_frame().T
         dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n+1))
-        dfsDet = self.finalformatEachAnalysisData(dfDet, convert=False, round=False)
+        dfsDet = self.finalformatEachAnalysisData(dfDet, sort=True, convert=False, round_=False, style=True)
         
         # Generate analysis report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -524,7 +523,7 @@ class ResultsFullReport(ResultsReport):
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
             
-            dfsDet = self.finalFormatAllAnalysesData(dfDet, convert=False, round=False)
+            dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, convert=False, round_=False, style=True)
             
             dfsDet.to_excel(xlsxWriter, sheet_name=self.tr('Details'), index=True)
 
@@ -614,7 +613,7 @@ class MCDSResultsFullReport(ResultsFullReport):
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
         
         # Sorting
         df = dfTrData
@@ -648,25 +647,42 @@ class MCDSResultsFullReport(ResultsFullReport):
                     df[col] = df[col].apply(self.shortenDistCuts)
             
         # Reducing float precision
-        if round:
+        if round_:
             
-            KDColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
-                              **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
-                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                                     'Density', 'Min Density',
-                                                     'Max Density', 'CoefVar Density',
-                                                     'Left Trunc Dist', 'Right Trunc Dist'] } }
-            df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(KDColDecimals).items() \
-                                              if col in df.columns })
-        
+            dColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
+                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
+                             **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
+                                                    'Density', 'Min Density',
+                                                    'Max Density', 'CoefVar Density',
+                                                    'Left Trunc Dist', 'Right Trunc Dist'] } }
+                                                     
+            # Use built-in round for more accurate rounding than np.round
+            for col, dec in self.trEnColNames(dColDecimals).items():
+                if col in df.columns:
+                    df[col] = df[col].apply(round, ndigits=dec)
+            
+            # Don't use df.round ... because it does not work, at least with pandas 1.0.x up to 1.1.2 !?!?!?
+            #df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() \
+            #                                  if col in df.columns })
+            
         # Styling
-        return self.styleAllAnalysesData(df, convert=convert, style=style)
+        return self.styleAllAnalysesData(df, convert=convert, round_=round_, style=style)
 
-    def styleAllAnalysesData(self, df, convert=True, style=True):
+    def styleAllAnalysesData(self, df, convert=True, round_=True, style=True):
     
         dfs = df.style
+        
+        if round_:
+        
+            roundableFloatCols = ['PDetec', 'Min PDetec', 'Max PDetec',
+                                  'Delta AIC', 'Chi2 P', 'KS P',
+                                  'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
+                                  'Density', 'Min Density', 'Max Density', 'CoefVar Density',
+                                  'Left Trunc Dist', 'Right Trunc Dist']
+            dfs.format({ col: '{:g}' for col in self.trEnColNames(roundableFloatCols) if col in df.columns})
+
         if style:
-            
+        
             col = self.trEnColNames('Delta AIC')
             if col in df.columns and df[col].max() > 0: # if all delta AIC == 0, no need to stress it.
                 dfs.set_properties(subset=pd.IndexSlice[df[df[col] == 0].index, :],
@@ -706,9 +722,9 @@ class MCDSResultsFullReport(ResultsFullReport):
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalformatEachAnalysisData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalformatEachAnalysisData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
     
-        return self.finalFormatAllAnalysesData(dfTrData, sort=sort, convert=convert, round=round, style=style)
+        return self.finalFormatAllAnalysesData(dfTrData, sort=sort, convert=convert, round_=round_, style=style)
 
 
 # A specialized pre-report for MCDS analyses, with actual output formating
@@ -793,7 +809,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
         
         # Sorting
         df = dfTrData
@@ -815,16 +831,23 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                 df[col] *= kVarDens # [0, 1] => %
             
         # Reducing float precision
-        if round:
+        if round_:
             
             dColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
                              **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                                     'Density', 'Min Density', 'Max Density', 'CoefVar Density'] } }
-            df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() if col in df.columns })
-        
+            
+            # Use built-in round for more accurate rounding than np.round
+            for col, dec in self.trEnColNames(dColDecimals).items():
+                if col in df.columns:
+                    df[col] = df[col].apply(round, ndigits=dec)
+            
+            # Don't use df.round ... because it does nothing, at least with pandas to 1.1.2 !?!?!?
+            #df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() if col in df.columns })
+
         # Styling
-        return self.styleAllAnalysesData(df, convert=convert, style=style)
+        return self.styleAllAnalysesData(df, convert=convert, round_=round_, style=style)
 
     @staticmethod
     def series2VertTable(ser):
@@ -855,7 +878,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # 1. Get translated and post-formated detailed results
         dfDet = self.resultsSet.dfTransData(self.lang)
         dfDet.reset_index(drop=True, inplace=True)
-        dfsDet = self.finalFormatAllAnalysesData(dfDet, style=False)  # Styling not used later, so don't do it.
+        # Styling not used later, so don't do it.
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, convert=True, round_=True, style=False)
         dfDet = dfsDet.data
 
         # 2. Translate sample, parameter and result columns
