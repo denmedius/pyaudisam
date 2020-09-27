@@ -624,6 +624,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
     
     DeltaAicColInd = ('detection probability', 'Delta AIC', 'Value')
+    DeltaDCvColInd = ('density/abundance', 'density of animals', 'Delta Cv')
     Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
 
     # * miSampleCols : only for delta AIC computation ; defaults to miCustomCols if None
@@ -633,10 +634,12 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         
         # Setup computed columns specs.
         dCompCols = {self.DeltaAicColInd: 22, # Right before AIC
-                     self.Chi2ColInd:     24} # Right before all Chi2 tests 
+                     self.Chi2ColInd:     24, # Right before all Chi2 tests 
+                     self.DeltaDCvColInd: 70} # Right before Density of animals / CV 
         dfCompColTrans = \
             pd.DataFrame(index=dCompCols.keys(),
-                         data=dict(en=['Delta AIC', 'Chi2 P'], fr=['Delta AIC', 'Chi2 P']))
+                         data=dict(en=['Delta AIC', 'Chi2 P', 'Delta CoefVar Density'],
+                                   fr=['Delta AIC', 'Chi2 P', 'Delta CoefVar Densité']))
 
         # Initialise base.
         super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
@@ -678,34 +681,39 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                 return chi2
         return np.nan
 
+    AicColInd = ('detection probability', 'AIC value', 'Value')
+    DCvColInd = ('density/abundance', 'density of animals', 'Cv')
+    TruncDistColInds = [('encounter rate', 'left truncation distance', 'Value'),
+                        ('encounter rate', 'right truncation distance (w)', 'Value')]
+
     # Post-computations.
     def postComputeColumns(self):
         
         logger.debug('Post-computing Delta AIC')
         
-        # Compute Delta AIC (AIC - min(group)) per { species, periods, precision, duration } group.
-        # a. Minimum AIC per group
-        #    (drop all-NaN sample selection columns (sometimes, it happens) for a working groupby())
-        aicColInd = ('detection probability', 'AIC value', 'Value')
-        aicGroupColInds = [col for col in self.miSampleCols if not self._dfData[col].isna().all()]
-        df2Join = self._dfData.groupby(aicGroupColInds)[[aicColInd]].min()
-        
-        # b. Rename computed columns to target
-        df2Join.columns = pd.MultiIndex.from_tuples([self.DeltaAicColInd])
-        
-        # c. Join the column to the target data-frame
-        #logger.debug(str(self._dfData.columns) + ', ' + str(df2Join.columns))
-        self._dfData = self._dfData.join(df2Join, on=aicGroupColInds)
-        
-        # d. Compute delta-AIC in-place
-        self._dfData[self.DeltaAicColInd] = self._dfData[aicColInd] - self._dfData[self.DeltaAicColInd]
-
-        # Compute determined Chi2 test probability (last value of all the tests done).
+        # 1. Compute determined Chi2 test probability (last value of all the tests done).
         chi2AllColInds = [col for col in self.Chi2AllColInds if col in self._dfData.columns]
         if chi2AllColInds:
             self._dfData[self.Chi2ColInd] = \
                 self._dfData[chi2AllColInds].apply(self.determineChi2Value, axis='columns')
 
+        # 2. Compute Delta AIC & DCv per sampleCols + truncation param. cols group => AIC - min(group).
+        # a. Minimum AIC & DCv per group
+        #    (drop all-NaN sample selection columns (sometimes, it happens) for a working groupby())
+        groupColInds = self.miSampleCols.append(pd.MultiIndex.from_tuples(self.TruncDistColInds))
+        groupColInds = [col for col in groupColInds
+                        if col in self._dfData.columns and not self._dfData[col].isna().all()]
+        df2Join = self._dfData.groupby(groupColInds)[[self.AicColInd, self.DCvColInd]].min()
+        
+        # b. Rename computed columns to target 'Delta XXX'
+        df2Join.columns = pd.MultiIndex.from_tuples([self.DeltaAicColInd, self.DeltaDCvColInd])
+
+        # c. Join the column to the target data-frame
+        self._dfData = self._dfData.join(df2Join, on=groupColInds)
+
+        # d. Compute delta-AIC & DCv in-place
+        self._dfData[self.DeltaAicColInd] = self._dfData[self.AicColInd] - self._dfData[self.DeltaAicColInd]
+        self._dfData[self.DeltaDCvColInd] = self._dfData[self.DCvColInd] - self._dfData[self.DeltaDCvColInd]
 
 class MCDSAnalyser(DSAnalyser):
 

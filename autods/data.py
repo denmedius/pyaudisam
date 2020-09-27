@@ -675,11 +675,6 @@ class ResultsSet(object):
         self.sortCols = by
         self.sortAscend = ascending
     
-    # Get translate names of custom columns
-    def transCustomColumns(self, lang):
-        
-        return self.dfCustomColTrans[lang].to_list()
-    
     # Build translation table for lang (from custom and other columns)
     def transTable(self):
         
@@ -689,6 +684,16 @@ class ResultsSet(object):
             
         return dfColTrans
         
+    # Get translated names of some columns (custom or not)
+    def transColumns(self, columns, lang):
+        
+        return [self.transTable()[lang].get(col, str(col)) for col in columns]
+    
+    # Get translated names of custom columns
+    def transCustomColumns(self, lang):
+        
+        return self.dfCustomColTrans[lang].to_list()
+    
     def dfSubData(self, subset=None, copy=False):
     
         """Get a subset of the all-results table columns
@@ -724,7 +729,7 @@ class ResultsSet(object):
         dfTrData = self.dfSubData(subset=subset, copy=True)
         
         # Translate column names.
-        dfTrData.columns = [self.transTable()[lang].get(col, str(col)) for col in dfTrData.columns]
+        dfTrData.columns = self.transColumns(dfTrData.columns, lang)
         
         return dfTrData
 

@@ -184,7 +184,7 @@ class ResultsFullReport(ResultsReport):
                        'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
-                       synthCols=None, dCustomTrans=dict(), lang='en',
+                       synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=dict(), lang='en',
                        plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=90,
                        tgtFolder='.', tgtPrefix='results'):
                        
@@ -204,6 +204,8 @@ class ResultsFullReport(ResultsReport):
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.synthCols = synthCols
+        self.sortCols = sortCols
+        self.sortAscend = sortAscend
         
         self.plotImgFormat = plotImgFormat
         self.plotImgSize = plotImgSize
@@ -333,7 +335,7 @@ class ResultsFullReport(ResultsReport):
                                    .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
        
         # c. Post-format as specified in actual class.
-        dfsSyn = self.finalFormatAllAnalysesData(dfSyn)
+        dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, convert=True, round_=True, style=True)
 
         # Generate post-processed and translated detailed table.
         dfDet = self.resultsSet.dfTransData(self.lang)
@@ -384,7 +386,9 @@ class ResultsFullReport(ResultsReport):
         dfDetRes = self.resultsSet.dfTransData(self.lang)
         dfDetRes.reset_index(drop=True, inplace=True)
 
-        logger.info(f'Analyses pages ({len(dfSynthRes)}), through {generators} parallel generators ...')
+        logger.info(f'Analyses pages ({len(dfSynthRes)}) ...')
+        if generators > 1:
+            logger.info(f'... through {generators} parallel generators ...')
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons) with the sorted order if any
         dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, sort=True, convert=False, round_=False, style=False).data
@@ -406,9 +410,9 @@ class ResultsFullReport(ResultsReport):
         # i. Start generation of all pages in parallel (unless specified not)
         executor = exor.Executor(processes=generators)
         pages = dict()
-        for lblAnlys in dfSynthRes.index:
+        for indAnlys, lblAnlys in enumerate(dfSynthRes.index):
             
-            logger.info1(f'#{lblAnlys}: ' \
+            logger.info1(f'#{indAnlys+1}/{len(dfSynthRes)} ({lblAnlys}): ' \
                          + ' '.join(f'{k}={v}' for k, v in dfDetRes.loc[lblAnlys, trCustCols].iteritems()))
 
             pgFut = executor.submit(self._toHtmlAnalysis, 
@@ -416,7 +420,8 @@ class ResultsFullReport(ResultsReport):
                                     
             pages[pgFut] = lblAnlys
         
-        logger.info1(f'Waiting for generators results ...')
+        if generators > 1:
+            logger.info1(f'Waiting for generators results ...')
         
         # ii. Wait for end of generation of each page, as it comes first.
         for pgFut in executor.asCompleted(pages):
@@ -425,7 +430,7 @@ class ResultsFullReport(ResultsReport):
             exc = pgFut.exception()
             if exc:
                 logger.error(f'#{pages[pgFut]}: Exception: {exc}')
-            else:
+            elif generators > 1:
                 logger.info1(f'#{pages[pgFut]}: Done.')
 
         # iii. Terminate parallel executor.
@@ -512,7 +517,7 @@ class ResultsFullReport(ResultsReport):
             if self.resultsSet.analysisClass.RunFolderColumn in self.synthCols:                
                 dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(toHyperlink)
             
-            dfsSyn = self.finalFormatAllAnalysesData(dfSyn)
+            dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, convert=True, round_=True, style=True)
             
             dfsSyn.to_excel(xlsxWriter, sheet_name=self.tr('Synthesis'), index=True)
             
@@ -557,12 +562,12 @@ class MCDSResultsFullReport(ResultsFullReport):
                       " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
-                       synthCols=None, dCustomTrans=None, lang='en',
+                       synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=None, lang='en',
                        plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=90,
                        tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         pySources=pySources, synthCols=synthCols,
+                         pySources=pySources, synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend,
                          dCustomTrans=self.DCustTrans if dCustomTrans is None else dCustomTrans, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
@@ -618,16 +623,39 @@ class MCDSResultsFullReport(ResultsFullReport):
         # Sorting
         df = dfTrData
         if sort:
-            # Temporarily add a sample Id column for sorting by (assuming analysis have been run as grouped by sample)
-            sampleIdCols = [col for col in self.resultsSet.transSampleColumns(self.lang) if col in df.columns]
-            df.insert(0, column='#Sample#', value=df.groupby(sampleIdCols, sort=False).ngroup())
+        
+            # If no sorting order was specified, generate one simple one,
+            # through a temporarily sample num. column and Delta AIC column (so ... it MUST be there)
+            # (assuming analyses have been run as grouped by sample)
+            if not self.sortCols:
             
+                # Note: Ignoring all-NaN sample id columns, for a working groupby
+                sampleIdCols = [col for col in self.resultsSet.transSampleColumns(self.lang)
+                                if col in df.columns and not df[col].isna().all()]
+                df.insert(0, column='#Sample#', value=df.groupby(sampleIdCols, sort=False).ngroup())
+
+                sortCols = ['#Sample#'] + [col for col in self.trEnColNames(['Delta AIC']) if col in df.columns]
+                sortAscend = True
+                
+                #logger.debug(f'{sampleIdCols=}, {sortCols=}, {sortAscend=}')
+
+            # Otherwise, use the one specified.
+            else:
+            
+                sortCols = [col for col in self.resultsSet.transColumns(self.sortCols, self.lang) if col in df.columns]
+                sortAscend = self.sortAscend
+                assert not isinstance(sortAscend, list) or len(sortCols) == len(sortAscend)
+
+                #logger.debug(f'{sortCols=}, {sortAscend=}')
+
             # Sort
-            sortCols = ['#Sample#'] + [col for col in self.trEnColNames(['Delta AIC']) if col in df.columns]
-            df.sort_values(by=sortCols, ascending=True, inplace=True)
+            df.sort_values(by=sortCols, ascending=sortAscend, inplace=True)
             
-            # Clean-up
-            df.drop(columns=['#Sample#'], inplace=True)
+            #logger.debug(str(df[['#Sample#', 'Espèce', 'Adulte', 'Delta AIC']].head(30)))
+
+            # Remove temporary sample num. column if no sorting order was specified
+            if not self.sortCols:
+                df.drop(columns=['#Sample#'], inplace=True)
         
         # Converting to other units, or so.
         kVarDens = 1.0
@@ -649,7 +677,8 @@ class MCDSResultsFullReport(ResultsFullReport):
         # Reducing float precision
         if round_:
             
-            dColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
+            dColDecimals = { **{ col: 4 for col in ['Delta CoefVar Density'] },
+                             **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
                              **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                                     'Density', 'Min Density',
@@ -659,7 +688,7 @@ class MCDSResultsFullReport(ResultsFullReport):
             # Use built-in round for more accurate rounding than np.round
             for col, dec in self.trEnColNames(dColDecimals).items():
                 if col in df.columns:
-                    df[col] = df[col].apply(round, ndigits=dec)
+                    df[col] = df[col].apply(lambda x: x if pd.isnull(x) else round(x, ndigits=dec))
             
             # Don't use df.round ... because it does not work, at least with pandas 1.0.x up to 1.1.2 !?!?!?
             #df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() \
