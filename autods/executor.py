@@ -17,7 +17,7 @@ logger = log.logger('ads.exr')
 
 class ImmediateFuture(object):
     
-    """Synchronous concurrent.futures.Future minimal implementation,
+    """Synchronous concurrent.futures.Future minimal and trivial implementation,
        for use with SequentialExecutor
     """
 
@@ -28,6 +28,30 @@ class ImmediateFuture(object):
     def result(self, timeout=None):
         
         return self._result
+
+    def exception(self, timeout=None):
+        
+        return None
+
+    def cancel(self):
+        
+        return False
+
+    def cancelled(self):
+        
+        return False
+
+    def running(self):
+        
+        return False
+
+    def done(self):
+        
+        return True
+
+    def exception(self):
+        
+        return None
 
 
 class SequentialExecutor(cofu.Executor):
