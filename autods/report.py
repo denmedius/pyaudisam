@@ -678,7 +678,7 @@ class MCDSResultsFullReport(ResultsFullReport):
         if round_:
             
             dColDecimals = { **{ col: 4 for col in ['Delta CoefVar Density'] },
-                             **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
+                             **{ col: 3 for col in ['Effort', 'PDetec', 'Min PDetec', 'Max PDetec'] },
                              **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                                     'Density', 'Min Density',
@@ -703,10 +703,11 @@ class MCDSResultsFullReport(ResultsFullReport):
         
         if round_:
         
-            roundableFloatCols = ['PDetec', 'Min PDetec', 'Max PDetec',
+            roundableFloatCols = ['NObs', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
                                   'Delta AIC', 'Chi2 P', 'KS P',
                                   'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                  'Density', 'Min Density', 'Max Density', 'CoefVar Density',
+                                  'Density', 'Min Density', 'Max Density',
+                                  'CoefVar Density', 'Delta CoefVar Density',
                                   'Left Trunc Dist', 'Right Trunc Dist']
             dfs.format({ col: '{:g}' for col in self.trEnColNames(roundableFloatCols) if col in df.columns})
 
