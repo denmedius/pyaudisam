@@ -701,48 +701,65 @@ class MCDSResultsFullReport(ResultsFullReport):
     
         dfs = df.style
         
-        if round_:
-        
-            roundableFloatCols = ['NObs', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
-                                  'Delta AIC', 'Chi2 P', 'KS P',
-                                  'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                  'Density', 'Min Density', 'Max Density',
-                                  'CoefVar Density', 'Delta CoefVar Density',
-                                  'Left Trunc Dist', 'Right Trunc Dist']
-            dfs.format({ col: '{:g}' for col in self.trEnColNames(roundableFloatCols) if col in df.columns})
-
         if style:
         
+            # Remove trailing (useless) zeros when rounding requested.
+            if round_:
+            
+                remTrailZeroesCols = ['NObs', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
+                                     'Delta AIC', 'Chi2 P', 'KS P',
+                                     'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
+                                     'Density', 'Min Density', 'Max Density',
+                                     'CoefVar Density', 'Delta CoefVar Density',
+                                     'Left Trunc Dist', 'Right Trunc Dist',
+                                     'DoF EncRate', 'DoF f/h(0)', 'DoF PDetec', 'DoF EDR/ESW',
+                                     'DoF AvgSz Clust', 'DoF EstExp FixedCluSz', 'DoF DensClu', 'DoF Density',
+                                     'DoF Number', 'DoF BootsDens Clu', 'DoF BootsDens', 'DoF BootsNum']
+                dfs.format({ col: '{:g}' for col in self.trEnColNames(remTrailZeroesCols) if col in df.columns})
+
+            # Left align all-text columns
+            cols = [col for col in df.columns
+                    if df[col].dropna().apply(lambda v: isinstance(v, str)).all()]
+            if cols:
+                dfs.set_properties(subset=cols, **{'text-align': 'left'})
+
+            # Green background for the 0-value Delta AIC rows
             col = self.trEnColNames('Delta AIC')
             if col in df.columns and df[col].max() > 0: # if all delta AIC == 0, no need to stress it.
                 dfs.set_properties(subset=pd.IndexSlice[df[df[col] == 0].index, :],
                                    **{'background-color': self.cBckGreen})
                
+            # Red/Orange/Green color code for exec. codes for normal codes
             col = self.trEnColNames('ExCod')
             if col in df.columns:
                 dfs.apply(self.colorExecCodes, subset=[col], axis='columns')
             
+            # Red/Orange/Green color code for DCV based on thresholds
             col = self.trEnColNames('CoefVar Density')
             if col in df.columns:
                 kVarDens = 100.0 if convert else 1.0
                 dfs.apply(self.scaledColorS, subset=[col], axis='columns',
                           thresholds=[v * kVarDens for v in [0.3, 0.2]], colors=self.scaledColorsRvd)
             
+            # Red/Orange/Green color code for DCV based on thresholds
             col = self.trEnColNames('KS P')
             if col in df.columns:
                 dfs.apply(self.scaledColorS, subset=[col], axis='columns',
                           thresholds=[0.7, 0.2], colors=self.scaledColors)
             
+            # Red/Orange/Green color code for DCV based on thresholds
             col = self.trEnColNames('Chi2 P')
             if col in df.columns:
                 dfs.apply(self.scaledColorS, subset=[col], axis='columns',
                           thresholds=[0.7, 0.2], colors=self.scaledColors)
             
+            # Greyed foreground for rows with bad exec codes
             col = self.trEnColNames('ExCod')
             if col in df.columns:
                 dfs.set_properties(subset=pd.IndexSlice[df[~df[col].isin([1, 2])].index, :],
                                    **{'color': self.cChrGray})
             
+            # NaN cells are set to transparent foreground / no shadow (to hide NaNs).
             dfs.where(self.isNull, 'color: transparent').where(self.isNull, 'text-shadow: none')
         
         return dfs
