@@ -706,7 +706,7 @@ class MCDSResultsFullReport(ResultsFullReport):
             # Remove trailing (useless) zeros when rounding requested.
             if round_:
             
-                remTrailZeroesCols = ['NObs', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
+                remTrailZeroesCols = ['ExCod', 'NObs', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
                                       'Delta AIC', 'Chi2 P', 'KS P',
                                       'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                       'Density', 'Min Density', 'Max Density',
