@@ -877,7 +877,7 @@ class MCDSAnalyser(DSAnalyser):
                 now = pd.Timestamp.now()
                 elapsedTilNow = now - self._anlysStart
                 expectedEnd = \
-                    self._anlysStart + pd.Timedelta(elapsedTilNow.value * (len(dAnlyses) - nAnlysDone) / nAnlysDone)
+                    now + pd.Timedelta(elapsedTilNow.value * (len(dAnlyses) - nAnlysDone) / nAnlysDone)
                 logger.info1('{}/{} analyses in {} (mean {:.1f}s): should end around {}'
                              .format(nAnlysDone, len(dAnlyses), str(elapsedTilNow.round('S')).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nAnlysDone,

@@ -643,7 +643,10 @@ class ResultsSet(object):
         if not self._dfData.empty:
             miCols2Cleanup = self._dfData.columns
             if self.miCustomCols is not None:
-                miCols2Cleanup = miCols2Cleanup.drop(self.miCustomCols.to_list())
+                if self.isMultiIndexedCols:
+                    miCols2Cleanup = miCols2Cleanup.drop(self.miCustomCols.to_list())
+                else:
+                    miCols2Cleanup = [col for col in miCols2Cleanup if col not in self.miCustomCols]
             cols2Drop = [col for col in miCols2Cleanup if self._dfData[col].isna().all()]
             self._dfData.drop(columns=cols2Drop, inplace=True)
 
