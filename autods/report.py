@@ -329,13 +329,17 @@ class ResultsFullReport(ResultsReport):
         dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         
         # b. Links to each analysis detailled report.
-        dfSyn.reset_index(drop=True, inplace=True)
-        dfSyn.index = \
-            dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
-                                   .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
+        #dfSyn.reset_index(drop=True, inplace=True)
+        # TODO: Number of index digits from actual number of rows, through log10 !
+        #dfSyn.index = \
+        #    dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
+        #                           .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
+        def numNavLink(sAnlys):
+            return '<a href="./{p}/index.html">{n:04d}</a>'.format(p=sAnlys[self.trRunFolderCol], n=sAnlys.name)
        
         # c. Post-format as specified in actual class.
-        dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, convert=True, round_=True, style=True)
+        dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=numNavLink,
+                                                 convert=True, round_=True, style=True)
 
         # Generate post-processed and translated detailed table.
         dfDet = self.resultsSet.dfTransData(self.lang)
@@ -348,13 +352,15 @@ class ResultsFullReport(ResultsReport):
         dfDet = dfDet.reindex(columns=detTrCols)
        
         # b. Links to each analysis detailed report.
-        dfDet.reset_index(drop=True, inplace=True)
-        dfDet.index = \
-            dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
-                                   .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
+        #dfDet.reset_index(drop=True, inplace=True)
+        # TODO: Number of index digits from actual number of rows, through log10 !
+        #dfDet.index = \
+        #    dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
+        #                           .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
         
         # c. Post-format as specified in actual class.
-        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, convert=False, round_=False, style=True)
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=numNavLink,
+                                                 convert=False, round_=False, style=True)
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -381,21 +387,26 @@ class ResultsFullReport(ResultsReport):
         
         # Generate translated synthesis and detailed tables.
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
-        dfSynthRes.reset_index(drop=True, inplace=True)
+        #dfSynthRes.reset_index(drop=True, inplace=True)
 
         dfDetRes = self.resultsSet.dfTransData(self.lang)
-        dfDetRes.reset_index(drop=True, inplace=True)
+        #dfDetRes.reset_index(drop=True, inplace=True)
 
         logger.info(f'Analyses pages ({len(dfSynthRes)}) ...')
         if generators > 1:
             logger.info(f'... through {generators} parallel generators ...')
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons) with the sorted order if any
-        dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, sort=True, convert=False, round_=False, style=False).data
+        dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, sort=True, indexer=True,
+                                                      convert=False, round_=False, style=False).data
         sCurrUrl = dfSynthRes[self.trRunFolderCol]
         sCurrUrl = sCurrUrl.apply(lambda path: self.targetFilePathName(tgtFolder=path, prefix='index', suffix='.html'))
         sCurrUrl = sCurrUrl.apply(lambda path: os.path.relpath(path, self.tgtFolder).replace(os.sep, '/'))
         dfAnlysUrls = pd.DataFrame(dict(current=sCurrUrl, previous=np.roll(sCurrUrl, 1), next=np.roll(sCurrUrl, -1)))
+
+        # And don't forget to sort & index detailled results the same way as synthesis ones.
+        dfDetRes = self.finalformatEachAnalysisData(dfDetRes, sort=True, indexer=True,
+                                                    convert=False, round_=False, style=False).data
 
         # 2. 2nd pass : Generate
         # a. Stops heavy Matplotlib.pyplot memory leak in generatePlots (WTF !?)
@@ -410,15 +421,16 @@ class ResultsFullReport(ResultsReport):
         # i. Start generation of all pages in parallel (unless specified not)
         executor = exor.Executor(processes=generators)
         pages = dict()
-        for indAnlys, lblAnlys in enumerate(dfSynthRes.index):
+        for lblRes in dfSynthRes.index:
             
-            logger.info1(f'#{indAnlys+1}/{len(dfSynthRes)} ({lblAnlys}): ' \
-                         + ' '.join(f'{k}={v}' for k, v in dfDetRes.loc[lblAnlys, trCustCols].iteritems()))
+            logger.info1(f'#{lblRes}/{len(dfSynthRes)}: ' \
+                         + ' '.join(f'{k}={v}' for k, v in dfDetRes.loc[lblRes, trCustCols].iteritems()))
 
-            pgFut = executor.submit(self._toHtmlAnalysis, 
-                                    lblAnlys, dfSynthRes, dfDetRes, dfAnlysUrls, topHtmlPathName, trCustCols)
+            pgFut = executor.submit(self._toHtmlAnalysis, lblRes, dfSynthRes.loc[lblRes],
+                                    dfDetRes.loc[lblRes], dfAnlysUrls.loc[lblRes],
+                                    topHtmlPathName, trCustCols)
                                     
-            pages[pgFut] = lblAnlys
+            pages[pgFut] = lblRes
         
         if generators > 1:
             logger.info1(f'Waiting for generators results ...')
@@ -440,24 +452,25 @@ class ResultsFullReport(ResultsReport):
         if wasInter:
             plt.ion()
 
-    def _toHtmlAnalysis(self, lblAnlys, dfSynthRes, dfDetRes, dfAnlysUrls, topHtmlPathName, trCustCols):
+    def _toHtmlAnalysis(self, lblRes, sSynthRes, sDetRes, sResNav, topHtmlPathName, trCustCols):
 
         # Postprocess synthesis table :
-        dfSyn = dfSynthRes.loc[lblAnlys].to_frame().T
-        dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n+1))
-        dfsSyn = self.finalformatEachAnalysisData(dfSyn, sort=True, convert=True, round_=True, style=True)
+        dfSyn = sSynthRes.to_frame().T
+        dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n))
+        dfsSyn = self.finalformatEachAnalysisData(dfSyn, sort=False, indexer=None,
+                                                  convert=True, round_=True, style=True)
         
         # Postprocess detailed table :
-        dfDet = dfDetRes.loc[lblAnlys].to_frame().T
-        dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n+1))
-        dfsDet = self.finalformatEachAnalysisData(dfDet, sort=True, convert=False, round_=False, style=True)
+        dfDet = sDetRes.to_frame().T
+        dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n))
+        dfsDet = self.finalformatEachAnalysisData(dfDet, sort=False, indexer=None,
+                                                  convert=False, round_=False, style=True)
         
         # Generate analysis report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-        subTitle = 'Analyse {:03d} : {}'.format(lblAnlys+1, self.anlysSubTitle)
-        sAnlysUrls = dfAnlysUrls.loc[lblAnlys]
+        subTitle = 'Analyse {:03d} : {}'.format(lblRes, self.anlysSubTitle)
         engineClass = self.resultsSet.engineClass
-        anlysFolder = dfDetRes.at[lblAnlys, self.trRunFolderCol]
+        anlysFolder = sDetRes[self.trRunFolderCol]
         tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
         html = tmpl.render(synthesis=dfsSyn.render(),
                            details=dfsDet.render(),
@@ -467,9 +480,9 @@ class ResultsFullReport(ResultsReport):
                                                     imgFormat=self.plotImgFormat, imgSize=self.plotImgSize,
                                                     imgQuality=self.plotImgQuality, lang='en'), # No translation !
                            title=self.title, subtitle=subTitle, keywords=self.keywords,
-                           navUrls=dict(prevAnlys='../'+sAnlysUrls.previous,
-                                        nextAnlys='../'+sAnlysUrls.next,
-                                        back2Top='../'+os.path.basename(topHtmlPathName)),
+                           navUrls=dict(prevAnlys='../' + sResNav.previous,
+                                        nextAnlys='../' + sResNav.next,
+                                        back2Top='../' + os.path.basename(topHtmlPathName)),
                            tr=self.dTrans[self.lang], pySources=[pl.Path(fpn).name for fpn in self.pySources],
                            genDateTime=genDateTime)
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
@@ -507,7 +520,7 @@ class ResultsFullReport(ResultsReport):
             
             # Synthesis
             dfSyn = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
-            dfSyn.index = range(1, len(dfSyn) + 1)
+            #dfSyn.index = range(1, len(dfSyn) + 1)
 
             dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             
@@ -517,18 +530,18 @@ class ResultsFullReport(ResultsReport):
             if self.resultsSet.analysisClass.RunFolderColumn in self.synthCols:                
                 dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(toHyperlink)
             
-            dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, convert=True, round_=True, style=True)
+            dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=True, convert=True, round_=True, style=True)
             
             dfsSyn.to_excel(xlsxWriter, sheet_name=self.tr('Synthesis'), index=True)
             
             # Details
             dfDet = self.resultsSet.dfTransData(self.lang)
-            dfDet.index = range(1, len(dfDet) + 1)
+            #dfDet.index = range(1, len(dfDet) + 1)
             
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
             
-            dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, convert=False, round_=False, style=True)
+            dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True, convert=False, round_=False, style=True)
             
             dfsDet.to_excel(xlsxWriter, sheet_name=self.tr('Details'), index=True)
 
@@ -615,10 +628,10 @@ class MCDSResultsFullReport(ResultsFullReport):
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
     # in the "all analyses at once" case.
-    # (sort, convert units, round values, and style).
+    # (sort, generate index, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, indexer=None, convert=True, round_=True, style=True):
         
         # Sorting
         df = dfTrData
@@ -656,7 +669,13 @@ class MCDSResultsFullReport(ResultsFullReport):
             # Remove temporary sample num. column if no sorting order was specified
             if not self.sortCols:
                 df.drop(columns=['#Sample#'], inplace=True)
-        
+
+        # Standard 1 to N index + optional post-formating (ex. for synthesis <=> details navigation).
+        if indexer:
+            df.index = range(1, len(df) + 1)
+            if callable(indexer):
+                df.index = df.apply(indexer, axis='columns')
+
         # Converting to other units, or so.
         kVarDens = 1.0
         if convert:
@@ -770,9 +789,10 @@ class MCDSResultsFullReport(ResultsFullReport):
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalformatEachAnalysisData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
+    def finalformatEachAnalysisData(self, dfTrData, sort=True, indexer=None, convert=True, round_=True, style=True):
     
-        return self.finalFormatAllAnalysesData(dfTrData, sort=sort, convert=convert, round_=round_, style=style)
+        return self.finalFormatAllAnalysesData(dfTrData, sort=sort, indexer=indexer,
+                                               convert=convert, round_=round_, style=style)
 
 
 # A specialized pre-report for MCDS analyses, with actual output formating
@@ -857,7 +877,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, indexer=None, convert=True, round_=True, style=True):
         
         # Sorting
         df = dfTrData
@@ -865,6 +885,10 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
             
             pass # No sorting to be done here
         
+        # Standard 1 to N index for synthesis <=> details navigation.
+        if indexer:
+            df.index = range(1, len(df) + 1)
+
         # Converting to other units, or so.
         kVarDens = 1.0
         if convert:
@@ -925,9 +949,10 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # (index + 5 columns : sample, params, results, ProbDens plot, DetProb plot)
         # 1. Get translated and post-formated detailed results
         dfDet = self.resultsSet.dfTransData(self.lang)
-        dfDet.reset_index(drop=True, inplace=True)
+        #dfDet.reset_index(drop=True, inplace=True)
+        
         # Styling not used later, so don't do it.
-        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, convert=True, round_=True, style=False)
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True, convert=True, round_=True, style=False)
         dfDet = dfsDet.data
 
         # 2. Translate sample, parameter and result columns
@@ -945,9 +970,10 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                                   DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
                                                                            plotImgPrfx=self.PlotImgPrfxDetProb)))
         
+        # TODO: Number of index digits from actual number of rows, through log10 !
         dfSyn.index = \
             dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
-                                   .format(p=self.relativeRunFolderUrl(an[self.trRunFolderCol]), n=an.name+1),
+                                   .format(p=self.relativeRunFolderUrl(an[self.trRunFolderCol]), n=an.name),
                         axis='columns')
         
         # 4. Translate table columns.
