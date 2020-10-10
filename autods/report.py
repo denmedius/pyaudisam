@@ -444,14 +444,14 @@ class ResultsFullReport(ResultsReport):
     def _toHtmlAnalysis(self, lblRes, sSynthRes, sDetRes, sResNav, topHtmlPathName, trCustCols):
 
         # Postprocess synthesis table :
-        dfSyn = sSynthRes.to_frame().T
+        dfSyn = pd.DataFrame([sSynthRes])
         idxFmt = '{{:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
         dfSyn.index = dfSyn.index.map(lambda n: idxFmt.format(n))
         dfsSyn = self.finalformatEachAnalysisData(dfSyn, sort=False, indexer=None,
                                                   convert=True, round_=True, style=True)
         
         # Postprocess detailed table :
-        dfDet = sDetRes.to_frame().T
+        dfDet = pd.DataFrame([sDetRes])
         dfDet.index = dfDet.index.map(lambda n: idxFmt.format(n))
         dfsDet = self.finalformatEachAnalysisData(dfDet, sort=False, indexer=None,
                                                   convert=False, round_=False, style=True)
@@ -707,6 +707,8 @@ class MCDSResultsFullReport(ResultsFullReport):
         if style:
         
             # Remove trailing (useless) zeros when rounding requested.
+            # Note: Probably useless for the naturally integer columns in the list below,
+            #       since ResultsSet.append was changed in order to preserve the type of these columns.
             if round_:
             
                 remTrailZeroesCols = ['ExCod', 'NObs', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
