@@ -486,6 +486,7 @@ class ResultsFullReport(ResultsReport):
     def toHtml(self): #, generators=1):
     
         # For some obscure reason, parallelism does not work here (while it does for MCDSResultsPreReport !).
+        generators = 1
         
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
@@ -495,7 +496,7 @@ class ResultsFullReport(ResultsReport):
 
         # Generate detailed report pages (one page for each analysis)
         # Note: For some obscure reason, parallelism does not work here (while it does for MCDSResultsPreReport !).
-        self.toHtmlEachAnalysis(generators=1)
+        self.toHtmlEachAnalysis(generators=generators)
 
         logger.info('... done.')
         
