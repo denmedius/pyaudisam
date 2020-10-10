@@ -597,7 +597,16 @@ class ResultsSet(object):
                 dfCustomHead = pd.DataFrame([sCustomHead]*len(sdfResult)).reset_index(drop=True)
                 sdfResult = pd.concat([dfCustomHead, sdfResult], axis='columns')
         
-        self._dfData = self._dfData.append(sdfResult, ignore_index=True)
+        if self._dfData.columns.empty:
+            # In order to preserve types, we can't use self._dfData.append(sdfResult),
+            # because it doesn't preserve original types (int => float)
+            if isinstance(sdfResult, pd.Series):
+                #self._dfData = sdfResult.to_frame().T  # This doesn't preserve types (=> all object)
+                self._dfData = pd.DataFrame([sdfResult])
+            else: # DataFrame
+                self._dfData = sdfResult
+        else:
+            self._dfData = self._dfData.append(sdfResult, ignore_index=True)
         
         # Appending (or concat'ing) often changes columns order
         self.rightColOrder = False
