@@ -717,11 +717,11 @@ class MCDSResultsFullReport(ResultsFullReport):
                                       'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                       'Density', 'Min Density', 'Max Density',
                                       'CoefVar Density', 'Delta CoefVar Density',
-                                      'Left Trunc Dist', 'Right Trunc Dist',
+                                      'Left Trunc Dist', 'Right Trunc Dist', 'Fit Dist Cuts', 'Discr Dist Cuts',
                                       'DoF EncRate', 'DoF f/h(0)', 'DoF PDetec', 'DoF EDR/ESW',
                                       'DoF AvgSz Clust', 'DoF EstExp FixedCluSz', 'DoF DensClu', 'DoF Density',
                                       'DoF Number', 'DoF BootsDens Clu', 'DoF BootsDens', 'DoF BootsNum']
-                dfs.format(lambda v: '' if pd.isnull(v) else format(v, 'g'),
+                dfs.format(lambda v: '' if pd.isnull(v) else format(v, 'g') if pd.api.types.is_numeric_dtype(v) else v,
                            subset=[col for col in self.trEnColNames(remTrailZeroesCols) if col in df.columns])
 
             # Left align all-text columns
