@@ -21,6 +21,7 @@ import copy
 import datetime as dt
 import codecs
 
+import math
 import numpy as np
 import pandas as pd
 
@@ -329,13 +330,10 @@ class ResultsFullReport(ResultsReport):
         dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         
         # b. Links to each analysis detailled report.
-        #dfSyn.reset_index(drop=True, inplace=True)
-        # TODO: Number of index digits from actual number of rows, through log10 !
-        #dfSyn.index = \
-        #    dfSyn.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
-        #                           .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
+        idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
+        numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
         def numNavLink(sAnlys):
-            return '<a href="./{p}/index.html">{n:04d}</a>'.format(p=sAnlys[self.trRunFolderCol], n=sAnlys.name)
+            return numNavLinkFmt.format(p=sAnlys[self.trRunFolderCol], n=sAnlys.name)
        
         # c. Post-format as specified in actual class.
         dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=numNavLink,
@@ -352,13 +350,6 @@ class ResultsFullReport(ResultsReport):
         dfDet = dfDet.reindex(columns=detTrCols)
        
         # b. Links to each analysis detailed report.
-        #dfDet.reset_index(drop=True, inplace=True)
-        # TODO: Number of index digits from actual number of rows, through log10 !
-        #dfDet.index = \
-        #    dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
-        #                           .format(p=an[self.trRunFolderCol], n=an.name+1), axis='columns')
-        
-        # c. Post-format as specified in actual class.
         dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=numNavLink,
                                                  convert=False, round_=False, style=True)
 
@@ -387,10 +378,8 @@ class ResultsFullReport(ResultsReport):
         
         # Generate translated synthesis and detailed tables.
         dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
-        #dfSynthRes.reset_index(drop=True, inplace=True)
 
         dfDetRes = self.resultsSet.dfTransData(self.lang)
-        #dfDetRes.reset_index(drop=True, inplace=True)
 
         logger.info(f'Analyses pages ({len(dfSynthRes)}) ...')
         if generators > 1:
@@ -456,19 +445,20 @@ class ResultsFullReport(ResultsReport):
 
         # Postprocess synthesis table :
         dfSyn = sSynthRes.to_frame().T
-        dfSyn.index = dfSyn.index.map(lambda n: '{:03d}'.format(n))
+        idxFmt = '{{:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
+        dfSyn.index = dfSyn.index.map(lambda n: idxFmt.format(n))
         dfsSyn = self.finalformatEachAnalysisData(dfSyn, sort=False, indexer=None,
                                                   convert=True, round_=True, style=True)
         
         # Postprocess detailed table :
         dfDet = sDetRes.to_frame().T
-        dfDet.index = dfDet.index.map(lambda n: '{:03d}'.format(n))
+        dfDet.index = dfDet.index.map(lambda n: idxFmt.format(n))
         dfsDet = self.finalformatEachAnalysisData(dfDet, sort=False, indexer=None,
                                                   convert=False, round_=False, style=True)
         
         # Generate analysis report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-        subTitle = 'Analyse {:03d} : {}'.format(lblRes, self.anlysSubTitle)
+        subTitle = 'Analyse {} : {{}}'.format(idxFmt).format(lblRes, self.anlysSubTitle)
         engineClass = self.resultsSet.engineClass
         anlysFolder = sDetRes[self.trRunFolderCol]
         tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
@@ -650,8 +640,6 @@ class MCDSResultsFullReport(ResultsFullReport):
                 sortCols = ['#Sample#'] + [col for col in self.trEnColNames(['Delta AIC']) if col in df.columns]
                 sortAscend = True
                 
-                #logger.debug(f'{sampleIdCols=}, {sortCols=}, {sortAscend=}')
-
             # Otherwise, use the one specified.
             else:
             
@@ -659,13 +647,9 @@ class MCDSResultsFullReport(ResultsFullReport):
                 sortAscend = self.sortAscend
                 assert not isinstance(sortAscend, list) or len(sortCols) == len(sortAscend)
 
-                #logger.debug(f'{sortCols=}, {sortAscend=}')
-
             # Sort
             df.sort_values(by=sortCols, ascending=sortAscend, inplace=True)
             
-            #logger.debug(str(df[['#Sample#', 'Espèce', 'Adulte', 'Delta AIC']].head(30)))
-
             # Remove temporary sample num. column if no sorting order was specified
             if not self.sortCols:
                 df.drop(columns=['#Sample#'], inplace=True)
@@ -925,11 +909,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     def series2VertTable(ser):
         
         def float2str(v): # Workaround to_html non transparent default float format (!?)
-            return '{:g}'.format(v)
+            return format(v, 'g')
         return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, float_format=float2str))
     
-        #return ''.join(f'<p>{k}: {v}</p>' for k, v in dictOrSeries.items())
-        
     def plotImageHtmlElement(self, runFolder, plotImgPrfx):
         
         for plotInd in range(3, 0, -1):
@@ -949,7 +931,6 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # (index + 5 columns : sample, params, results, ProbDens plot, DetProb plot)
         # 1. Get translated and post-formated detailed results
         dfDet = self.resultsSet.dfTransData(self.lang)
-        #dfDet.reset_index(drop=True, inplace=True)
         
         # Styling not used later, so don't do it.
         dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True, convert=True, round_=True, style=False)
@@ -970,11 +951,12 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                                   DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
                                                                            plotImgPrfx=self.PlotImgPrfxDetProb)))
         
-        # TODO: Number of index digits from actual number of rows, through log10 !
-        dfSyn.index = \
-            dfDet.apply(lambda an: '<a href="./{p}/index.html">{n:04d}</a>' \
-                                   .format(p=self.relativeRunFolderUrl(an[self.trRunFolderCol]), n=an.name),
-                        axis='columns')
+        idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
+        numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+        def numNavLink(sAnlys):
+            return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]),
+                                        n=sAnlys.name)
+        dfSyn.index = dfDet.apply(numNavLink, axis='columns')
         
         # 4. Translate table columns.
         dfSyn.columns = [self.tr(col) for col in dfSyn.columns]
