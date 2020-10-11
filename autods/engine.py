@@ -467,25 +467,25 @@ class MCDSEngine(DSEngine):
             
             if isinstance(discrDistCuts, list):
                 assert not (minDist is None or maxDist is None)
-                distDiscrSpecs += ' /Int=' + ','.join(str(d) for d in [minDist] + discrDistCuts + [maxDist])
-            elif isinstance(discrDistCuts, int):
-                distDiscrSpecs += ' /NClass=' + str(discrDistCuts)
-            # Other cases not supported, dans should be asserted by the caller.
+                distDiscrSpecs += ' /Int=' + ','.join(format(d, 'g') for d in [minDist] + discrDistCuts + [maxDist])
+            elif isinstance(discrDistCuts, (int, float)):
+                distDiscrSpecs += ' /NClass=' + format(discrDistCuts, 'g')
+            # Other cases not supported, should be asserted by the caller.
         
         elif fitDistCuts is not None: # Can't fit model on other distance intervals than used for discretisation.
             
             if isinstance(fitDistCuts, list):
                 assert not (minDist is None or maxDist is None)
-                gOFitSpecs += ' /Int=' + ','.join(str(d) for d in [minDist] + fitDistCuts + [maxDist])
-            elif isinstance(fitDistCuts, int):
-                gOFitSpecs += ' /NClass=' + str(fitDistCuts)
-            # Other cases not supported, dans should be asserted by the caller.
+                gOFitSpecs += ' /Int=' + ','.join(format(d, 'g') for d in [minDist] + fitDistCuts + [maxDist])
+            elif isinstance(fitDistCuts, (int, float)):
+                gOFitSpecs += ' /NClass=' + format(fitDistCuts, 'g')
+            # Other cases not supported, should be asserted by the caller.
                 
         if minDist is not None:
-            distDiscrSpecs += ' /Left=' + str(minDist)
+            distDiscrSpecs += ' /Left=' + format(minDist, 'g')
 
         if maxDist is not None:
-            distDiscrSpecs += ' /Width=' + str(maxDist)
+            distDiscrSpecs += ' /Width=' + format(maxDist, 'g')
             
         # b. Format contents string
         cmdTxt = self.CmdTxt.format(output=runDir/self.OutputFileName, log=runDir/self.LogFileName,
@@ -596,6 +596,7 @@ class MCDSEngine(DSEngine):
         logger.debug('Will run in {}'.format(runDir))
         
         # Generate data and command files into this folder
+        logger.info2('MCDS analysis params: ' + str(analysisParms))
         self.buildDataFile(runDir, sampleDataSet)
         cmdFileName = self.buildCmdFile(runDir, **analysisParms)
         

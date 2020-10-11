@@ -119,7 +119,7 @@ def logger(name, level=NOTSET, handlers=None, fileMode='w', verbose=False,
             tgtHdlrs = ', '.join(handlerId(hdlr) for hdlr in handlers)
         else:
             tgtHdlrs = 'parent handlers'
-        logr.info('Logging to {}.'.format(tgtHdlrs))
+        logr.info('Logging with level {} to {}.'.format(level, tgtHdlrs))
 
     # Set level
     logr.setLevel(level)
