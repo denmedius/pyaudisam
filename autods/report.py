@@ -184,6 +184,28 @@ class ResultsFullReport(ResultsReport):
                        'with icons from': 'avec les pictogrammes de',
                        'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
 
+    @staticmethod
+    def noDupColumns(cols, log=True, head='Results cols'):
+
+        """Drop duplicates from a column list, and possibly warn about which"""
+
+        dups = None
+        if isinstance(cols, list):
+            dups = [col for ind, col in enumerate(cols) if col in cols[:ind]]
+            if len(dups) > 0:
+                cols = [col for ind, col in enumerate(cols) if col not in cols[:ind]]
+
+        elif isinstance(cols, pd.MultiIndex):
+            dups = cols[cols.duplicated()]
+            if len(dups) > 0:
+                cols = cols.drop_duplicates()
+
+        if log and dups is not None and len(dups) > 0:
+            logger.warning(head + ': Dropped {} duplicate(s) {}'
+                                  .format(len(dups), ', '.join(str(dup) for dup in dups)))
+
+        return cols
+
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
                        synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=dict(), lang='en',
                        plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=90,
@@ -198,15 +220,19 @@ class ResultsFullReport(ResultsReport):
         """
     
         assert synthCols is None or isinstance(synthCols, list) or isinstance(synthCols, pd.MultiIndex), \
-               'synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
+               'Synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
         
         super().__init__(resultsSet, title, subTitle, description, keywords,
                          pySources=pySources, dCustomTrans=dCustomTrans, lang=lang,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
-        self.synthCols = synthCols
-        self.sortCols = sortCols
+        self.synthCols = self.noDupColumns(synthCols, head='Synthesis columns')
+        self.sortCols = self.noDupColumns(sortCols, head='Sorting columns')
         self.sortAscend = sortAscend
+
+        assert sortAscend is None or isinstance(sortAscend, bool) or len(sortAscend) == len(self.sortCols), \
+               'Some duplicated sort columns were removed, such that sortAscend is no more compatible' \
+               ' => please fix sort column list'
         
         self.plotImgFormat = plotImgFormat
         self.plotImgSize = plotImgSize
@@ -511,7 +537,6 @@ class ResultsFullReport(ResultsReport):
             
             # Synthesis
             dfSyn = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
-            #dfSyn.index = range(1, len(dfSyn) + 1)
 
             dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             
@@ -527,7 +552,6 @@ class ResultsFullReport(ResultsReport):
             
             # Details
             dfDet = self.resultsSet.dfTransData(self.lang)
-            #dfDet.index = range(1, len(dfDet) + 1)
             
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
@@ -854,9 +878,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
-        self.sampleCols = sampleCols
-        self.paramCols = paramCols
-        self.resultCols = resultCols
+        self.sampleCols = self.noDupColumns(sampleCols, head='Sample columns')
+        self.paramCols = self.noDupColumns(paramCols, head='Parameter columns')
+        self.resultCols = self.noDupColumns(resultCols, head='Result columns')
         self.synthPlotsHeight = synthPlotsHeight
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
