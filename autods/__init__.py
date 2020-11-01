@@ -21,7 +21,8 @@ __version__ = 0.9
 
 # Sub-module exports
 from .log import logger, DEBUG, DEBUG0, DEBUG1, DEBUG2, DEBUG3, DEBUG4, \
-                         INFO,  INFO0,  INFO1,  INFO2,  INFO3,  INFO4
+                         INFO,  INFO0,  INFO1,  INFO2,  INFO3,  INFO4, \
+                         WARNING, ERROR, CRITICAL
 
 from .data import DataSet, FieldDataSet, MonoCategoryDataSet, SampleDataSet, ResultsSet
 
