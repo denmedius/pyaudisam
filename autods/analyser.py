@@ -527,6 +527,11 @@ class DSAnalyser(Analyser):
             dfExplParamSpecs[sampleIndCol] = \
                 dfSampInd.groupby(list(dfSampInd.columns), sort=False).ngroup()
 
+        # Check for columns duplicates : a killer (to avoid weird error later).
+        iCols = dfExplParamSpecs.columns
+        assert not iCols.duplicated().any(), \
+               'Some duplicate column(s) in parameter specs: ' + ' ,'.join(iCols[iCols.duplicated()])
+
         # Convert explicit. analysis spec. columns to the internal parameter names,
         # and extract the real analysis parameters.
         intParamSpecCols = \
