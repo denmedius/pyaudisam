@@ -1086,12 +1086,14 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             nOptimsDone += 1
             now = pd.Timestamp.now()
             elapsedTilNow = now - self._optimStart
-            expectedEnd = \
-                now + pd.Timedelta(elapsedTilNow.value * (len(dOptims) - nOptimsDone) / nOptimsDone)
-            logger.info1('{}/{} optimisations in {} (mean {:.1f}s): should end around {}'
+            if nOptimsDone < len(dOptims):
+                expectedEnd = \
+                    now + pd.Timedelta(elapsedTilNow.value * (len(dOptims) - nOptimsDone) / nOptimsDone)
+                expectedEnd = expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')
+            logger.info1('{}/{} optimisations in {} (mean {:.1f}s){}'
                          .format(nOptimsDone, len(dOptims), str(elapsedTilNow.round('S')).replace('0 days ', ''),
                                  elapsedTilNow.total_seconds() / nOptimsDone,
-                                 expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')))
+                                 ': done.' if nOptimsDone == len(dOptims) else ': should end around ' + expectedEnd))
 
         # Terminate analysis executor
         self._executor.shutdown()

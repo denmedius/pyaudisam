@@ -732,7 +732,7 @@ class MCDSAnalyser(DSAnalyser):
                  resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                       sample=['Species', 'Pass', 'Adult', 'Duration']),
                  abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
-                 workDir='.', logData=False,
+                 workDir='.', logData=False, logProgressEvery=50,
                  defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                  defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                  defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
@@ -746,11 +746,14 @@ class MCDSAnalyser(DSAnalyser):
                          resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
                          anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol, workDir=workDir)
                          
+        assert logProgressEvery > 0, 'logProgressEvery must be positive'
+
         self.surveyType = surveyType
         self.distanceType = distanceType
         self.clustering = clustering
         
         self.logData = logData
+        self.logProgressEvery = logProgressEvery
         self.defEstimKeyFn = defEstimKeyFn
         self.defEstimAdjustFn = defEstimAdjustFn
         self.defEstimCriterion = defEstimCriterion
@@ -876,17 +879,19 @@ class MCDSAnalyser(DSAnalyser):
             # Save results
             results.append(sResult, sCustomHead=sCustomHead)
 
-            # Report elapsed time and number of analyses completed until now (once per 50 analyses though).
+            # Report elapsed time and number of analyses completed until now (once per self.logProgressEvery analyses though).
             nAnlysDone += 1
-            if nAnlysDone % 50 == 0 or nAnlysDone == len(dAnlyses):
+            if nAnlysDone % self.logProgressEvery == 0 or nAnlysDone == len(dAnlyses):
                 now = pd.Timestamp.now()
                 elapsedTilNow = now - self._anlysStart
-                expectedEnd = \
-                    now + pd.Timedelta(elapsedTilNow.value * (len(dAnlyses) - nAnlysDone) / nAnlysDone)
-                logger.info1('{}/{} analyses in {} (mean {:.1f}s): should end around {}'
+                if nAnlysDone < len(dAnlyses):
+                    expectedEnd = \
+                        now + pd.Timedelta(elapsedTilNow.value * (len(dAnlyses) - nAnlysDone) / nAnlysDone)
+                    expectedEnd = expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')
+                logger.info1('{}/{} analyses in {} (mean {:.1f}s){}'
                              .format(nAnlysDone, len(dAnlyses), str(elapsedTilNow.round('S')).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nAnlysDone,
-                                     expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')))
+                                     ': done.' if nAnlysDone == len(dAnlyses) else ': should end around ' + expectedEnd))
 
         # Terminate analysis executor
         self._executor.shutdown()
@@ -992,7 +997,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                  surveyType='Point', distanceType='Radial', clustering=False,
                  resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
                                       sample=['Species', 'Pass', 'Adult', 'Duration']),
-                 workDir='.'):
+                 workDir='.', logProgressEvery=5):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
@@ -1002,7 +1007,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols,
-                         anlysIndCol=None, workDir=workDir)
+                         anlysIndCol=None, workDir=workDir, logProgressEvery=logProgressEvery)
 
     def run(self, dfExplSampleSpecs=None, implSampleSpecs=None, dModelStrategy=ModelStrategyDef, threads=1):
     
