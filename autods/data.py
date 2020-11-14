@@ -223,7 +223,7 @@ class FieldDataSet(DataSet):
         return dfOutSights
         
     # Access to the resulting mono-category data set
-    def monoCategorise(self):
+    def monoCategorise(self, copy=True):
     
         # Compute only if not already done.
         if self.dfMonoCatSights is None:
@@ -235,19 +235,20 @@ class FieldDataSet(DataSet):
             for colName, computeCol in self.dCompdMonoCatColSpecs.items():
                 self.dfMonoCatSights[colName] = self.dfMonoCatSights[self.countCols].apply(computeCol, axis='columns')
         
-        return self.dfMonoCatSights
+        return self.dfMonoCatSights if copy else self.dfMonoCatSights
     
     # Access to the resulting individuals data set 
     # = a mono-category data set with individualised data : 1 individuals per row
-    def individualise(self):
+    def individualise(self, copy=True):
     
         # Compute only if not already done.
         if self.dfIndivSights is None:
         
             # Individualise mono-category counts
-            self.dfIndivSights = self._individualiseMonoCategoryCounts(self.monoCategorise(), self.countCols)
+            self.dfIndivSights = \
+                self._individualiseMonoCategoryCounts(self.monoCategorise(copy=False), self.countCols)
 
-        return self.dfIndivSights
+        return self.dfIndivSights.copy() if copy else self.dfIndivSights
         
 
 # A tabular data set for producing on-demand sample data sets from "mono-category sightings data"
