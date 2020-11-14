@@ -231,8 +231,8 @@ class ResultsFullReport(ResultsReport):
         self.sortAscend = sortAscend
 
         assert sortAscend is None or isinstance(sortAscend, bool) or len(sortAscend) == len(self.sortCols), \
-               'Some duplicated sort columns were removed, such that sortAscend is no more compatible' \
-               ' => please fix sort column list'
+               'Some duplicated sort columns were removed, or sortAscend is too long or short, ' \
+               'such that sortAscend and sortCols are not compatible => please fix these params'
         
         self.plotImgFormat = plotImgFormat
         self.plotImgSize = plotImgSize
@@ -668,8 +668,14 @@ class MCDSResultsFullReport(ResultsFullReport):
             # Otherwise, use the one specified.
             else:
             
-                sortCols = [col for col in self.resultsSet.transColumns(self.sortCols, self.lang) if col in df.columns]
-                sortAscend = self.sortAscend
+                # ... after some cleaning up in case some sort columns are not present.
+                sortCols = list()
+                sortAscend = list() if isinstance(self.sortAscend, list) else self.sortAscend
+                for ind, col in enumerate(self.resultsSet.transColumns(self.sortCols, self.lang)):
+                    if col in df.columns:
+                        sortCols.append(col)
+                        if isinstance(self.sortAscend, list):
+                            sortAscend.append(self.sortAscend[ind])
                 assert not isinstance(sortAscend, list) or len(sortCols) == len(sortAscend)
 
             # Sort
@@ -710,8 +716,9 @@ class MCDSResultsFullReport(ResultsFullReport):
                              **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                                     'Density', 'Min Density',
-                                                    'Max Density', 'CoefVar Density',
-                                                    'Left Trunc Dist', 'Right Trunc Dist'] } }
+                                                    'Max Density', 'CoefVar Density'] },
+                             **{ col: 0 for col in ['Left Trunc Dist', 'Right Trunc Dist',
+                                                    'Left Trunc', 'Right Trunc'] } }
                                                      
             # Use built-in round for more accurate rounding than np.round
             for col, dec in self.trEnColNames(dColDecimals).items():
@@ -919,7 +926,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
             dColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
                              **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                                    'Density', 'Min Density', 'Max Density', 'CoefVar Density'] } }
+                                                    'Density', 'Min Density', 'Max Density', 'CoefVar Density'] },
+                             **{ col: 0 for col in ['Right Trunc'] } }
             
             # Use built-in round for more accurate rounding than np.round
             for col, dec in self.trEnColNames(dColDecimals).items():
