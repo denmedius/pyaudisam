@@ -713,7 +713,7 @@ class MCDSResultsFullReport(ResultsFullReport):
             
             dColDecimals = { **{ col: 4 for col in ['Delta CoefVar Density'] },
                              **{ col: 3 for col in ['Effort', 'PDetec', 'Min PDetec', 'Max PDetec'] },
-                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
+                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                                     'Density', 'Min Density',
                                                     'Max Density', 'CoefVar Density'] },
@@ -743,8 +743,9 @@ class MCDSResultsFullReport(ResultsFullReport):
             #       since ResultsSet.append was changed in order to preserve the type of these columns.
             if round_:
             
-                remTrailZeroesCols = ['ExCod', 'NObs', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
-                                      'Delta AIC', 'Chi2 P', 'KS P',
+                remTrailZeroesCols = ['ExCod', 'NObs', 'Left Trunc', 'Right Trunc', 
+                                      'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
+                                      'Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
                                       'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                       'Density', 'Min Density', 'Max Density',
                                       'CoefVar Density', 'Delta CoefVar Density',
