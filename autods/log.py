@@ -39,6 +39,8 @@ class Logger(logging.Logger):
     """A Logger class with methods associated to the new levels
     """
 
+    Configured = False
+
     def __init__(self, name):
         super().__init__(name)
 
@@ -70,36 +72,33 @@ class Logger(logging.Logger):
     def debug4(self, msg, *args, **kwargs):
         self.log(DEBUG4, msg, *args, **kwargs)
 
-logging.setLoggerClass(Logger)
+    @staticmethod
+    def configure(level=NOTSET, handlers=[sys.stdout], fileMode='w', verbose=False,
+                  format='%(asctime)s %(name)s %(levelname)s\t%(message)s', reset=False):
+        
+        """Configure logging system, mainly the root logger (levels, handlers, formatter, ...)
 
-def logger(name, level=NOTSET, handlers=None, fileMode='w', verbose=False,
-           format='%(asctime)s %(name)s %(levelname)s\t%(message)s'):
+        Parameters:
+        :param level: see logging.Logger.setLevel
+        :param handlers: a list of "handler specs" ; according to type,
+            * str: logging.FileHandler for given file path-name
+            * otherwise: StreamHandler (for sys.stdout and so on)
+            * None or empty list => use currently configured ones for root logger
+        :param fileMode: see logging.FileHandler ctor
+        :param format: see logging.Handler.setFormatter
+        :param verbose: if True, write a first INFO msg to the handlers' targets
+        """
 
-    """ Create and setup the logger with given name.
-    
-    Parameters:
-    :param name: see logging.getLogger
-    :param level: see logging.Logger.setLevel
-    :param handlers: a list of "handler specs" ; according to type,
-        * str: logging.FileHandler for given file path-name
-        * otherwise: StreamHandler (for sys.stdout and so on)
-        * None or empty list => inherited from parent logger
-    :param fileMode: see logging.FileHandler ctor
-    :param format: see logging.Handler.setFormatter
-    :param verbose: if True, write a first INFO msg to the handlers' targets
-    """
-    
-    # Create / get logger.
-    logr = logging.getLogger(name)
-    
-    # Cleanup any default handler if any
-    # (ex: jupyter does some logging initialisation itself ...)
-    while logr.handlers:
-        logr.removeHandler(logr.handlers[-1])
+        # Configure root logger (assuming children have propagate=on).
+        # Note: Setting handlers for multiple children rather than once and for all for root ...
+        #        gives bad things on FileHandlers, with many missing / intermixed / unsorted lines ...
+        #        => unusable. Whereas it semms to work well with StreamHandlers
+        root = logging.getLogger()
 
-    # Setup new handlers
-    if handlers:
-    
+        if reset:
+            while root.handlers:
+                root.handlers.pop()
+     
         formatter = logging.Formatter(format)
         for hdlr in handlers:
             if isinstance(hdlr, str):
@@ -107,21 +106,50 @@ def logger(name, level=NOTSET, handlers=None, fileMode='w', verbose=False,
             else:
                 handler = logging.StreamHandler(stream=hdlr)
             handler.setFormatter(formatter)
-            logr.addHandler(handler)
-    
-    # Verbose mode trace message
-    if verbose:
-        logr.setLevel(INFO)
-        if handlers:
+            root.addHandler(handler)
+        
+        if verbose:
+            root.setLevel(INFO)
             def handlerId(hdlr):
-                return 'File({})'.format(hdlr) if isinstance(hdlr, str) \
-                    else 'Stream({})'.format(hdlr.name)
-            tgtHdlrs = ', '.join(handlerId(hdlr) for hdlr in handlers)
-        else:
-            tgtHdlrs = 'parent handlers'
-        logr.info('Logging with level {} to {}.'.format(level, tgtHdlrs))
+                return 'File({})'.format(hdlr) if isinstance(hdlr, str) else 'Stream({})'.format(hdlr.name)
+            root.info('Will log to {}'.format(', '.join(handlerId(hdlr) for hdlr in handlers)))
 
-    # Set level
-    logr.setLevel(level)
-    
-    return logr
+        if not verbose or level != INFO:
+            root.setLevel(level)
+
+        Logger.Configured = True
+
+    @staticmethod
+    def logger(name, level=NOTSET, reset=False):
+
+        """ Create and setup the logger with given name.
+        
+        Parameters:
+        :param name: see logging.getLogger
+        :param level: see logging.Logger.setLevel
+        :param verbose: if True, write a first INFO msg to the handlers' targets
+        :param reset: if True, hard cleanup logger config. (useful in jupyter notebooks)
+        """
+        
+        if not Logger.Configured:
+            Logger.configure(level=INFO, reset=reset)
+
+        # Create / get logger.
+        logr = logging.getLogger(name)
+        
+        # Cleanup any default handler if any (ex: jupyter does some logging initialisation itself ...)
+        if reset:
+            while logr.handlers:
+                logr.handlers.pop()
+        
+        # Set level
+        logr.setLevel(level)
+        
+        return logr
+
+
+logging.setLoggerClass(Logger)
+
+configure = Logger.configure
+
+logger = Logger.logger

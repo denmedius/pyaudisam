@@ -25,7 +25,7 @@ import pandas as pd
 
 import autods.log as log
 
-logger = log.logger('ads.eng', level=log.INFO, handlers=[sys.stdout]) # Initial config (can be changed later)
+logger = log.logger('ads.eng', level=log.INFO) # Initial config (can be changed later)
 
 from autods.executor import Executor
 

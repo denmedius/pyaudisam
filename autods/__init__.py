@@ -11,7 +11,7 @@
 # Requirements:
 #  python 3.8+
 #  pandas 0.25+
-#  matplotlib 3.1
+#  matplotlib 3.1+
 #  jinja2
 #  zoopt 4.0+
 #  ... to be completed.
@@ -19,7 +19,9 @@
 # Module version
 __version__ = 0.9
 
+
 # Sub-module exports
+from . import log
 from .log import logger, DEBUG, DEBUG0, DEBUG1, DEBUG2, DEBUG3, DEBUG4, \
                          INFO,  INFO0,  INFO1,  INFO2,  INFO3,  INFO4, \
                          WARNING, ERROR, CRITICAL
