@@ -75,7 +75,9 @@
     </h2>
     <div class="chapter" style="margin-left: 10px">
 
-      <p>{{tr['Note: Some figures rounded or converted']}}</p>
+      <p>{{tr['Study type:']}} {{surveyType}}, {{distanceType}}, {{clustering}}.</p>
+      <p>{{tr['Units used:']}} {{distanceUnit}} {{tr['for distances']}}, {{areaUnit}} {{tr['for areas']}}.</p>
+      <p>{{tr['Note: Some figures rounded, but not converted']}}</p>
 	  {{synthesis}}
 
     </div>
@@ -106,6 +108,8 @@
     </h2>
     <div class="chapter" style="margin-left: 10px">
 
+      <p>{{tr['Study type:']}} {{surveyType}}, {{distanceType}}, {{clustering}}.</p>
+      <p>{{tr['Units used:']}} {{distanceUnit}} {{tr['for distances']}}, {{areaUnit}} {{tr['for areas']}}.</p>
       <p>{{tr['Note: All figures untouched, as output by MCDS']}}</p>
 	  {{details}}
 

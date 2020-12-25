@@ -169,7 +169,17 @@ class ResultsFullReport(ResultsReport):
                        'Real observations': 'Real observations',
                        'Page generated with': 'Page generated with', 'other modules': 'other modules',
                        'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' },
+                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
+                       'Point': 'Point transect', 'Line': 'Line transect',
+                       'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
+                       'Radial & Angle': 'Radial distance & Angle',
+                       'Clustering': 'With clustering', 'No clustering': 'No clustering',
+                       'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
+                       'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
+                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
+                       'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
+                       'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
+                       'Sq. Nautical mile': 'Sq. Nautical mile' },
                   fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
                        'Synthesis table': 'Tableau de synthèse',
                        'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
@@ -182,7 +192,17 @@ class ResultsFullReport(ResultsReport):
                        'Real observations': 'Observations réelles',
                        'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
                        'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
+                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
+                       'Point': 'Point fixe', 'Line': 'Transect',
+                       'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
+                       'Radial & Angle': 'Distance radiale & Angle',
+                       'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
+                       'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
+                       'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
+                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
+                       'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
+                       'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
+                       'Sq. Nautical mile': 'Mille marin carré' })
 
     @staticmethod
     def noDupColumns(cols, log=True, head='Results cols'):
@@ -347,7 +367,7 @@ class ResultsFullReport(ResultsReport):
         
         logger.info('Top page ...')
         
-        # Generate post-processed and translated synthesis table.
+        # 1. Generate post-processed and translated synthesis table.
         # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
         synCols = self.synthCols
         if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
@@ -365,7 +385,7 @@ class ResultsFullReport(ResultsReport):
         dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=numNavLink,
                                                  convert=True, round_=True, style=True)
 
-        # Generate post-processed and translated detailed table.
+        # 2. Generate post-processed and translated detailed table.
         dfDet = self.resultsSet.dfTransData(self.lang)
 
         # a. Add run folder column if not there (will serve to generate the link to the analysis detailed report)
@@ -379,7 +399,10 @@ class ResultsFullReport(ResultsReport):
         dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=numNavLink,
                                                  convert=False, round_=False, style=True)
 
-        # Generate top report page.
+        # 3. Generate techs infos parts.
+        # TODO
+
+        # 4.Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         tmpl = self.getTemplateEnv().get_template('mcds/top.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
@@ -389,7 +412,12 @@ class ResultsFullReport(ResultsReport):
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang], 
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime)
+                           genDateTime=genDateTime, 
+                           distanceUnit=self.tr(self.resultsSet.distanceUnit),
+                           areaUnit=self.tr(self.resultsSet.areaUnit),
+                           surveyType=self.tr(self.resultsSet.surveyType),
+                           distanceType=self.tr(self.resultsSet.distanceType),
+                           clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
 
         # Write top HTML to file.
@@ -500,7 +528,12 @@ class ResultsFullReport(ResultsReport):
                                         nextAnlys='../' + sResNav.next,
                                         back2Top='../' + os.path.basename(topHtmlPathName)),
                            tr=self.dTrans[self.lang], pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime)
+                           genDateTime=genDateTime, 
+                           distanceUnit=self.tr(self.resultsSet.distanceUnit),
+                           areaUnit=self.tr(self.resultsSet.areaUnit),
+                           surveyType=self.tr(self.resultsSet.surveyType),
+                           distanceType=self.tr(self.resultsSet.distanceType),
+                           clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
 
         # Write analysis HTML to file.
@@ -560,6 +593,9 @@ class ResultsFullReport(ResultsReport):
             
             dfsDet.to_excel(xlsxWriter, sheet_name=self.tr('Details'), index=True)
 
+            dfTechs = pd.DataFrame(data=[''], index=['TODO'])
+            dfTechs.to_excel(xlsxWriter, sheet_name=self.tr('Techs'), index=True)
+
         return fileName
 
     # Génération du rapport OpenDoc.
@@ -576,18 +612,26 @@ class ResultsFullReport(ResultsReport):
 class MCDSResultsFullReport(ResultsFullReport):
 
     DCustTrans = \
-        dict(en={ 'Note: Some figures rounded or converted': 
-                     "<strong>Note</strong>: Densities are expressed per square km,"
-                     " and most figures have been rounded for readability",
+        dict(en={ 'Study type:': "<strong>Study type</strong>:",
+                  'Units used:': "<strong>Units used</strong>:",
+                  'for distances': 'for distances',
+                  'for areas': 'for areas',
+                  'Note: Some figures rounded, but not converted':
+                     "<strong>Note</strong>: Most figures have been rounded for readability,"
+                     " but 'CoefVar Density' have been further modified : converted to %",
                   'Note: All figures untouched, as output by MCDS': 
                      "<strong>Note</strong>: All values have been left untouched,"
                      " as outuput by MCDS (no rounding, no conversion)" },
-             fr={ 'Note: Some figures rounded or converted':
-                      "<strong>N.B.</strong> Les densités sont exprimées par km carré, et presque toutes les valeurs"
-                      " ont été arrondies pour la lisibilité",
+             fr={ 'Study type:': "<strong>Type d'étude</strong>:",
+                  'Units used:': "<strong>Unités utilisées</strong>:",
+                  'for distances': 'pour les distances',
+                  'for areas': 'pour les surfaces',
+                  'Note: Some figures rounded, but not converted':
+                     "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
+                     " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
                   'Note: All figures untouched, as output by MCDS':
-                      "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                      " elles sont toutes telles que produites par MCDS" })
+                     "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
+                     " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
                        synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=None, lang='en',
@@ -695,9 +739,9 @@ class MCDSResultsFullReport(ResultsFullReport):
         kVarDens = 1.0
         if convert:
             
-            for col in self.trEnColNames(['Density', 'Min Density', 'Max Density']): # 'CoefVar Density', 
-                if col in df.columns:
-                    df[col] *= 1000000 / 10000 # ha => km2
+            #for col in self.trEnColNames(['Density', 'Min Density', 'Max Density']): # 'CoefVar Density', 
+            #    if col in df.columns:
+            #        df[col] *= 1000000 / 10000 # ha => km2
             
             col = self.trEnColNames('CoefVar Density')
             if col in df.columns:
@@ -836,7 +880,17 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Real observations': 'Real observations',
                        'Page generated with': 'Page generated with', 'other modules': 'other modules',
                        'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on' },
+                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
+                       'Point': 'Point transect', 'Line': 'Line transect',
+                       'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
+                       'Radial & Angle': 'Radial distance & Angle',
+                       'Clustering': 'With clustering', 'No clustering': 'No clustering',
+                       'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
+                       'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
+                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
+                       'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
+                       'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
+                       'Sq. Nautical mile': 'Sq. Nautical mile' },
                   fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
                        'Synthesis table': 'Tableau de synthèse',
                        'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
@@ -852,21 +906,39 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Real observations': 'Observations réelles',
                        'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
                        'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le' })
+                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
+                       'Point': 'Point fixe', 'Line': 'Transect',
+                       'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
+                       'Radial & Angle': 'Distance radiale & Angle',
+                       'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
+                       'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
+                       'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
+                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
+                       'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
+                       'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
+                       'Sq. Nautical mile': 'Mille marin carré' })
 
     DCustTrans = \
-        dict(en={ 'Note: Some figures rounded or converted': 
-                     "<strong>Note</strong>: Densities are expressed per square km,"
-                     " and most figures have been rounded for readability",
+        dict(en={ 'Study type:': "<strong>Study type</strong>:",
+                  'Units used:': "<strong>Units used</strong>:",
+                  'for distances': 'for distances',
+                  'for areas': 'for areas',
+                  'Note: Some figures rounded, but not converted':
+                     "<strong>Note</strong>: Most figures have been rounded for readability,"
+                     " but CoefVar Density have been further modified : converted to %",
                   'Note: All figures untouched, as output by MCDS': 
                      "<strong>Note</strong>: All values have been left untouched,"
                      " as outuput by MCDS (no rounding, no conversion)" },
-             fr={ 'Note: Some figures rounded or converted':
-                      "<strong>N.B.</strong> Les densités sont exprimées par km carré, et presque toutes les valeurs"
-                      " ont été arrondies pour la lisibilité",
+             fr={ 'Study type:': "<strong>Type d'étude</strong>:",
+                  'Units used:': "<strong>Unités utilisées</strong>:",
+                  'for distances': 'pour les distances',
+                  'for areas': 'pour les surfaces',
+                  'Note: Some figures rounded, but not converted':
+                     "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
+                     " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
                   'Note: All figures untouched, as output by MCDS':
-                      "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                      " elles sont toutes telles que produites par MCDS" })
+                     "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
+                     " elles sont toutes telles que produites par MCDS" })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                  sampleCols, paramCols, resultCols, anlysSynthCols=None,
@@ -912,9 +984,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         kVarDens = 1.0
         if convert:
             
-            for col in self.trEnColNames(['Density', 'Min Density', 'Max Density']):
-                if col in df.columns:
-                    df[col] *= 1000000 / 10000 # ha => km2
+            #for col in self.trEnColNames(['Density', 'Min Density', 'Max Density']):
+            #    if col in df.columns:
+            #        df[col] *= 1000000 / 10000 # ha => km2
             
             col = self.trEnColNames('CoefVar Density')
             if col in df.columns:
@@ -997,6 +1069,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # 4. Translate table columns.
         dfSyn.columns = [self.tr(col) for col in dfSyn.columns]
 
+        # 5. Generate techs infos parts.
+        # TODO
+
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         tmpl = self.getTemplateEnv().get_template('mcds/pretop.htpl')
@@ -1006,7 +1081,12 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime)
+                           genDateTime=genDateTime, 
+                           distanceUnit=self.tr(self.resultsSet.distanceUnit),
+                           areaUnit=self.tr(self.resultsSet.areaUnit),
+                           surveyType=self.tr(self.resultsSet.surveyType),
+                           distanceType=self.tr(self.resultsSet.distanceType),
+                           clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
 
         # Write top HTML to file.

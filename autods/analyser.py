@@ -635,7 +635,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     # * miSampleCols : only for delta AIC computation ; defaults to miCustomCols if None
     #                  = the cols to use for grouping by sample
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None,
-                       sortCols=[], sortAscend=[]):
+                       sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
+                       surveyType='Point', distanceType='Radial', clustering=False):
         
         # Setup computed columns specs.
         dCompCols = {self.DeltaAicColInd: 22, # Right before AIC
@@ -651,8 +652,16 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                        dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                        sortCols=sortCols, sortAscend=sortAscend)
         
+        # Sample columns
         self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
     
+        # Descriptive parameters, not used in computations actually.
+        self.distanceUnit = distanceUnit
+        self.areaUnit = areaUnit
+        self.surveyType = surveyType
+        self.distanceType = distanceType
+        self.clustering =clustering
+
     def copy(self, withData=True):
     
         """Clone function, with optional data copy"""
@@ -660,7 +669,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # Create new instance with same ctor params.
         clone = MCDSAnalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
                                        miSampleCols=self.miSampleCols,
-                                       sortCols=self.sortCols, sortAscend=self.sortAscend)
+                                       sortCols=self.sortCols, sortAscend=self.sortAscend,
+                                       distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                       surveyType=self.surveyType, distanceType=self.distanceType,
+                                       clustering=self.clustering)
 
         # Copy data if needed.
         if withData:
@@ -737,6 +749,8 @@ class MCDSAnalyser(DSAnalyser):
                  defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                  defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
                  defFitDistCuts=MCDSEngine.DistFitCutsDef, defDiscrDistCuts=MCDSEngine.DistDiscrCutsDef):
+
+        assert distanceUnit == 'Meter', 'Not implemented: Only "Meter" distance unit supported for the moment'
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
@@ -852,7 +866,10 @@ class MCDSAnalyser(DSAnalyser):
         
         return MCDSAnalysisResultsSet(miCustomCols=miCustCols, 
                                       dfCustomColTrans=dfCustColTrans, miSampleCols=miSampCols,
-                                      sortCols=sortCols, sortAscend=[True for col in sortCols])
+                                      sortCols=sortCols, sortAscend=[True for col in sortCols],
+                                      distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                      surveyType=self.surveyType, distanceType=self.distanceType,
+                                      clustering=self.clustering)
     
     def _getResults(self, dAnlyses):
     

@@ -87,6 +87,7 @@ class Logger(logging.Logger):
         :param fileMode: see logging.FileHandler ctor
         :param format: see logging.Handler.setFormatter
         :param verbose: if True, write a first INFO msg to the handlers' targets
+        :param reset: if True, hard cleanup logger config. (useful in jupyter notebooks)
         """
 
         # Configure root logger (assuming children have propagate=on).
