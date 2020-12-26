@@ -253,8 +253,8 @@ class DSParamsOptimiser(object):
         """Parse parameter(s) user spec with python-like simple expression syntax from given rules 
         
         :param spec: None or np.nan or string spec to parse
-        :param globals: dict of globals for rules (we use eval function for parsing !)
-        :param locals: dict of locals for rules (we use eval function for parsing !)
+        :param globals: dict of globals for case-insensitive rules (we use eval function for parsing !)
+        :param locals: dict of locals for case-insensitive rules (we use eval function for parsing !)
         :param oneStrArg: assume function call syntax with 1 single string argument
                 (ex: input "f(x,y)" is tranformed to "f('x,y')" before calling eval)
         :param nullOrEmpty: return value for null of empty spec ; not checked against errIfNotA
@@ -277,7 +277,7 @@ class DSParamsOptimiser(object):
             return parseError, parsedValue
 
         # Other cases.
-        spec = str(spec)  # int and float cases
+        spec = str(spec).lower()  # int and float cases, + lower case
         if oneStrArg:
             if "('" not in spec:
                 spec = spec.replace('(', "('")
@@ -331,7 +331,7 @@ class DSParamsOptimiser(object):
             return cls.AbsInterval(min, max)
             
         # Parse spec.
-        return cls._parseUserSpec(spec, nullOrEmpty=None, errIfNotA=errIfNotA, 
+        return cls._parseUserSpec(spec, nullOrEmpty=None, errIfNotA=errIfNotA,
                                   globals=dict(Auto=cls.Auto, DistInterval=cls.DistInterval,
                                                AbsInterval=cls.AbsInterval, MultInterval=cls.MultInterval,
                                                OutliersMethod=cls.OutliersMethod),
@@ -534,12 +534,13 @@ class DSParamsOptimiser(object):
             verdict = True
             reasons = []
      
-            dfExplParamSpecs, userParamSpecCols, intParamSpecCols = tplRslt
+            dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols = tplRslt
             
             # Check that an internal column name was found for every user spec column.
-            if len(userParamSpecCols) != len(intParamSpecCols):
+            if len(unmUserParamSpecCols):
                 verdict = False
-                reasons.append('Failed to match some user spec. names with internal ones')
+                reasons.append('Failed to match some user spec. names with internal ones: {}'
+                               .format(', '.join(unmUserParamSpecCols)))
 
             # Check that all rows are suitable for DS analysis (non empty sample identification columns, ...).
             if dfExplParamSpecs[self.sampleSelCols].isnull().all(axis='columns').any():
@@ -1131,9 +1132,9 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         
         # Explicitate and complete analysis and optimisation specs, and check for usability.
         # (should be also done before calling run, to avoid failure).
-        dfExplParamSpecs, userParamSpecCols, intParamSpecCols, checkVerdict, checkErrors = \
+        dfExplParamSpecs, userParamSpecCols, intParamSpecCols, _, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
-        assert checkVerdict, 'Error: Analysis params check failed: {}'.format('; '.join(checkErrors))
+        assert checkVerdict, 'Error: Analysis / Optimisation params check failed: {}'.format('; '.join(checkErrors))
         
         # Build internal name => user name converter for spec. columns
         self.dInt2UserParamSpecNames = dict(zip(intParamSpecCols, userParamSpecCols))

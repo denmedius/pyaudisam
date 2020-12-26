@@ -114,7 +114,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         
         # 1. Explicitate, complete and check analysis specs (for usability).
         # (should be also done before calling run, to avoid failure).
-        dfExplParamSpecs, userParamSpecCols, intParamSpecCols, checkVerdict, checkErrors = \
+        dfExplParamSpecs, userParamSpecCols, intParamSpecCols, _, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
         assert checkVerdict, 'Error: Analysis & optimisation params check failed: {}'.format('; '.join(checkErrors))        
     
@@ -131,7 +131,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                                 .apply(analysisNeedsOptimisationFirst, axis='columns')]
          
         # 3. Run optimisations if needed and replace computed truncation params in analysis specs
-        logger.info('Found {}/{} analysis specs that need prior optimisation'
+        logger.info('Found {}/{} analysis specs implying some prior optimisation'
                     .format(len(dfExplOptimParamSpecs), len(dfExplParamSpecs)))
         if not dfExplOptimParamSpecs.empty:
         

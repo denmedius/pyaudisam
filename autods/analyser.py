@@ -452,7 +452,8 @@ class DSAnalyser(Analyser):
         :param strict: if True, raise KeyError if any name in userSpecCols cannot be matched ;
                        if False, will return None for each unmatched internal param. name
 
-        Return: List of internal param. names (None if not strict and not found)
+        Return: List of internal param. names, same order as userSpecCols,
+                with Nones when not found (if not strict)
         """
         logger.debug('Matching user spec. columns:')
 
@@ -499,8 +500,9 @@ class DSAnalyser(Analyser):
         :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
            
         :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified : a new one is returned),
-                 list of analysis param. columns internal names,
-                 list of analysis param. columns user names.
+                 list of matched analysis param. columns user names,
+                 list of matched analysis param. columns internal names,
+                 list of unmatched analysis param. columns user names.
         """
     
         # Explicitate analysis specs if needed (and add computed columns if any and not already there).
@@ -533,18 +535,30 @@ class DSAnalyser(Analyser):
                'Some duplicate column(s) in parameter specs: ' + ' ,'.join(iCols[iCols.duplicated()])
 
         # Convert explicit. analysis spec. columns to the internal parameter names,
-        # and extract the real analysis parameters.
+        # and extract the real analysis parameters (None entries when not matched).
         intParamSpecCols = \
             DSAnalyser.userSpec2ParamNames(dfExplParamSpecs.columns, int2UserSpecREs, strict=False)
 
-        # Get back to matching column user names
-        userParamSpecCols = [v for k,v in zip(intParamSpecCols, dfExplParamSpecs.columns) if k]
+        # Get back to associated column user names
+        # a. matched with internal param. names
+        userParamSpecCols = [usp for inp, usp in zip(intParamSpecCols, dfExplParamSpecs.columns) if inp]
         
+        # b. unmatched with internal param. names, and assumed to be real user analysis params.
+        ignUserParamSpeCols = sampleSelCols.copy()
+        if abbrevCol:
+            ignUserParamSpeCols += [abbrevCol]
+        if sampleIndCol:
+            ignUserParamSpeCols += [sampleIndCol]
+        if anlysIndCol:
+            ignUserParamSpeCols += [anlysIndCol]
+        unmUserParamSpecCols = [usp for inp, usp in zip(intParamSpecCols, dfExplParamSpecs.columns)
+                                if not inp and usp not in ignUserParamSpeCols]
+
         # Cleanup implicit name list from Nones (strict=False)
-        intParamSpecCols = [n for n in intParamSpecCols if n]
+        intParamSpecCols = [inp for inp in intParamSpecCols if inp]
 
         # Done.
-        return dfExplParamSpecs, userParamSpecCols, intParamSpecCols
+        return dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols
 
     def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None, check=False):
     
@@ -589,12 +603,13 @@ class DSAnalyser(Analyser):
             verdict = True
             reasons = []
      
-            dfExplParamSpecs, userParamSpecCols, intParamSpecCols = tplRslt
+            dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols = tplRslt
             
             # Check that an internal column name was found for every user spec column.
-            if len(userParamSpecCols) != len(intParamSpecCols):
+            if len(unmUserParamSpecCols):
                 verdict = False
-                reasons.append('Failed to match some user spec. names with internal ones')
+                reasons.append('Failed to match some user spec. names with internal ones: {}'
+                               .format(', '.join(unmUserParamSpecCols)))
 
             # Check that all rows are suitable for DS analysis (non empty sample identification columns, ...).
             if dfExplParamSpecs[self.sampleSelCols].isnull().all(axis='columns').any():
@@ -947,7 +962,7 @@ class MCDSAnalyser(DSAnalyser):
         
         # Explicitate and complete analysis specs, and check for usability
         # (should be also done before calling run, to avoid failure).
-        dfExplParamSpecs, userParamSpecCols, intParamSpecCols, checkVerdict, checkErrors = \
+        dfExplParamSpecs, userParamSpecCols, intParamSpecCols, _, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
         assert checkVerdict, 'Analysis params check failed: {}'.format('; '.join(checkErrors))
         
@@ -1056,7 +1071,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         
         # Explicitate and complete analysis specs, and check for usability
         # (should be also done before calling run, to avoid failure).
-        dfExplSampleSpecs, _, _, checkVerdict, checkErrors = \
+        dfExplSampleSpecs, _, _, _, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
         assert checkVerdict, 'Pre-analysis params check failed: {}'.format('; '.join(checkErrors))
         
@@ -1123,7 +1138,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         # Explicitate and complete analysis specs, and check for usability
         # (should be also done before calling run, to avoid failure).
-        dfExplSampleSpecs, _, _, checkVerdict, checkErrors = \
+        dfExplSampleSpecs, _, _, _, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
         assert checkVerdict, 'Sample specs check failed: {}'.format('; '.join(checkErrors))
         
