@@ -229,7 +229,7 @@ class ResultsFullReport(ResultsReport):
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
                        synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=dict(), lang='en',
                        plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=90,
-                       tgtFolder='.', tgtPrefix='results'):
+                       tgtFolder='.', tgtPrefix='results', logProgressEvery=5):
                        
         """Ctor
         
@@ -237,11 +237,15 @@ class ResultsFullReport(ResultsReport):
         :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
         :param plotImgSize: size of the image generated for each plot = (width, height) in pixels
         :param plotImgQuality: JPEG format quality (%) ; ignored if plotImgFormat not in ('jpg', 'jpeg')
+        :param logProgressEvery: every such nb of details pages, log some elapsed time stats
+                                 and end of generation forecast
         """
     
         assert synthCols is None or isinstance(synthCols, list) or isinstance(synthCols, pd.MultiIndex), \
                'Synthesis columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
         
+        assert logProgressEvery > 0, 'logProgressEvery must be positive'
+
         super().__init__(resultsSet, title, subTitle, description, keywords,
                          pySources=pySources, dCustomTrans=dCustomTrans, lang=lang,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
@@ -259,6 +263,8 @@ class ResultsFullReport(ResultsReport):
         self.plotImgQuality = plotImgQuality
 
         self.anlysSubTitle = anlysSubTitle
+
+        self.logProgressEvery = logProgressEvery
         
     # Static attached files for HTML report.
     AttachedFiles = ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg', 'fa-file-excel.svg', 'fa-file-excel-hover.svg',
@@ -462,6 +468,7 @@ class ResultsFullReport(ResultsReport):
         trCustCols = [col for col in self.resultsSet.transCustomColumns(self.lang) if col in dfDetRes.columns]
         
         # i. Start generation of all pages in parallel (unless specified not)
+        genStart = pd.Timestamp.now()  # Start of elapsed time measurement.
         executor = exor.Executor(processes=generators)
         pages = dict()
         for lblRes in dfSynthRes.index:
@@ -479,6 +486,7 @@ class ResultsFullReport(ResultsReport):
             logger.info1(f'Waiting for generators results ...')
         
         # ii. Wait for end of generation of each page, as it comes first.
+        nDone = 0
         for pgFut in executor.asCompleted(pages):
 
             # If there, it's because it's done (or crashed) !
@@ -487,6 +495,20 @@ class ResultsFullReport(ResultsReport):
                 logger.error(f'#{pages[pgFut]}: Exception: {exc}')
             elif generators > 1:
                 logger.info1(f'#{pages[pgFut]}: Done.')
+
+            # Report elapsed time and number of pages completed until now (once per self.logProgressEvery pages).
+            nDone += 1
+            if nDone % self.logProgressEvery == 0 or nDone == len(pages):
+                now = pd.Timestamp.now()
+                elapsedTilNow = now - genStart
+                if nDone < len(pages):
+                    expectedEnd = \
+                        now + pd.Timedelta(elapsedTilNow.value * (len(pages) - nDone) / nDone)
+                    expectedEnd = expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')
+                logger.info1('{}/{} pages in {} (mean {:.1f}s){}'
+                             .format(nDone, len(pages), str(elapsedTilNow.round('S')).replace('0 days ', ''),
+                                     elapsedTilNow.total_seconds() / nDone,
+                                     ': done.' if nDone == len(pages) else ': should end around ' + expectedEnd))
 
         # iii. Terminate parallel executor.
         executor.shutdown()
