@@ -267,6 +267,10 @@ class MCDSAnalysis(DSAnalysis):
 
 
 class MCDSPreAnalysis(MCDSAnalysis):
+
+    """Note: Was implemented this strange way at the beginning, but made simpler later,
+    and thus making it be fruitfully replaceable by a simple MCDSAnalysis through a simple MCDSAnalyser.
+    """
     
     EngineClass = MCDSAnalysis.EngineClass
         
@@ -286,10 +290,26 @@ class MCDSPreAnalysis(MCDSAnalysis):
         self.modelStrategy = modelStrategy
         self.executor = executor if executor is not None else Executor()
     
+    MIAicValue = ('detection probability', 'AIC value', 'Value')
+
+    def isAnalysisBetter(cls, left, right):
+
+        """Return True if left is better than right, otherwise False"""
+
+        if left.success() or left.warnings():
+            if right.success() or right.warnings():
+                answ = left.getResults()[cls.MIAicValue] < right.getResults()[cls.MIAicValue]
+            else:
+                answ = True
+        else:
+            answ = False
+
+        return answ
+
     def _run(self):
 
-        # Run models as planned in modelStrategy if something goes wrong
-        dAnlyses = dict()
+        # Run models as planned in modelStrategy for best results
+        bestAnlys = None
         for model in self.modelStrategy:
 
             modAbbrev = model['keyFn'][:3].lower() + '-' + model['adjSr'][:3].lower()
@@ -301,32 +321,11 @@ class MCDSPreAnalysis(MCDSAnalysis):
                                  estimCriterion=model['estCrit'], cvInterval=model['cvInt'])
             anlys.submit()
 
-            # Stop here if run was OK, and save successful analysis.
-            if anlys.success(): # Note that this call is blocking ... waiting for anlys end.
-                dAnlyses['success'] = anlys
-                logger.info(anlys.name + ' => success.')
-                break
+            # Save analysis if better or first.
+            if bestAnlys is None or self.isAnalysisBetter(anlys, bestAnlys):
+                bestAnlys = anlys
 
-            # Otherwise, save 1st Warning and 1st error or "no" result analysis,
-            # and then go on (may be the next will be an OK or warning one)
-            elif anlys.warnings():
-                if 'warning' not in dAnlyses:
-                    dAnlyses['warning'] = anlys
-            elif 'error' not in dAnlyses:
-                dAnlyses['error'] = anlys
-
-        # Notify the best obtained result and retrieve analysis of.
-        if 'success' not in dAnlyses:
-            if 'warning' in dAnlyses:
-                anlys = dAnlyses['warning']
-                logger.info(anlys.name + ' => warnings.')
-            else:
-                anlys = dAnlyses['error']
-                logger.info(anlys.name + ' => errors.')
-        else:
-            pass # anlys is dAnlyses['success'] already (see break above)..
-            
-        return anlys # Return best analysis.
+        return bestAnlys
     
     def submit(self):
 
