@@ -239,7 +239,7 @@ class MCDSAnalysis(DSAnalysis):
                     logger.debug('Removing run folder "{}"'.format(runDir))
                     shutil.rmtree(self.runDir)
                 else:
-                    logger.warning('Refused to remove suspect analysis run folder "{}"'.format(runDir))
+                    logger.warning('Cowardly refused to remove suspect analysis run folder "{}"'.format(runDir))
         
     def wasRun(self):
     
@@ -321,9 +321,14 @@ class MCDSPreAnalysis(MCDSAnalysis):
                                  estimCriterion=model['estCrit'], cvInterval=model['cvInt'])
             anlys.submit()
 
-            # Save analysis if better or first.
-            if bestAnlys is None or self.isAnalysisBetter(anlys, bestAnlys):
+            # Save analysis if better or first + cleanup no more needed analysis.
+            if bestAnlys is None:
                 bestAnlys = anlys
+            elif self.isAnalysisBetter(anlys, bestAnlys):
+                bestAnlys.cleanup()
+                bestAnlys = anlys
+            else:
+                anlys.cleanup()
 
         return bestAnlys
     
