@@ -362,7 +362,7 @@ class DSAnalyser(Analyser):
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'],
-                       sampleDecCols=['Effort', 'Distance'],
+                       sampleDecCols=['Effort', 'Distance'], anlysSpecCustCols=[],
                        distanceUnit='Meter', areaUnit='Hectare',
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
@@ -383,6 +383,7 @@ class DSAnalyser(Analyser):
         :param effortCol: 
         :param sampleSelCols: sample identification = selection columns
         :param sampleDecCols: Decimal columns among sighting columns
+        :param anlysSpecCustCols: Special columns from analysis specs to simply pass through in results
         :param distanceUnit: see MCDSEngine
         :param areaUnit: see MCDSEngine
         :param resultsHeadCols: dict of list of column names (from dfMonoCatObs) to use in order
@@ -406,6 +407,7 @@ class DSAnalyser(Analyser):
         self.anlysIndCol = anlysIndCol
         self.sampleSelCols = sampleSelCols
         self.sampleIndCol = sampleIndCol
+        self.anlysSpecCustCols = anlysSpecCustCols
         
         # sampleIndCol is added to resultsHeadCols['before'] if not None and not elswehere in resultsHeadCols
         if sampleIndCol and not any(sampleIndCol in cols for cols in resultsHeadCols.values()):
@@ -481,7 +483,7 @@ class DSAnalyser(Analyser):
     def _explicitParamSpecs(implParamSpecs=None, dfExplParamSpecs=None, int2UserSpecREs=dict(),
                             sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'],
                             abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum',
-                            sampleIndCol='SampleNum'):
+                            sampleIndCol='SampleNum', anlysSpecCustCols=[]):
                            
         """Explicitate analysis param. specs if not already done, and complete columns if needed ;
         also automatically extract (regexps) columns which are really analysis parameters,
@@ -498,6 +500,7 @@ class DSAnalyser(Analyser):
         :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
         :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
         :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
+        :param anlysSpecCustCols: special columns from analysis specs to simply pass through and ignore
            
         :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified : a new one is returned),
                  list of matched analysis param. columns user names,
@@ -551,6 +554,8 @@ class DSAnalyser(Analyser):
             ignUserParamSpeCols += [sampleIndCol]
         if anlysIndCol:
             ignUserParamSpeCols += [anlysIndCol]
+        if anlysSpecCustCols:
+            ignUserParamSpeCols += anlysSpecCustCols
         unmUserParamSpecCols = [usp for inp, usp in zip(intParamSpecCols, dfExplParamSpecs.columns)
                                 if not inp and usp not in ignUserParamSpeCols]
 
@@ -595,7 +600,7 @@ class DSAnalyser(Analyser):
         tplRslt = self._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
                                            sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
                                            abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
-                                           sampleIndCol=self.sampleIndCol)
+                                           sampleIndCol=self.sampleIndCol, anlysSpecCustCols=self.anlysSpecCustCols)
         
         # Check if requested
         if check:
@@ -747,13 +752,19 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         self._dfData[self.DeltaAicColInd] = self._dfData[self.AicColInd] - self._dfData[self.DeltaAicColInd]
         self._dfData[self.DeltaDCvColInd] = self._dfData[self.DCvColInd] - self._dfData[self.DeltaDCvColInd]
 
+
 class MCDSAnalyser(DSAnalyser):
 
-    """Run a bunch of MCDS analyses"""
+    """Run a bunch of MCDS analyses
+
+    Parameters:
+    :param anlysSpecCustCols: Special columns from analysis specs to simply pass through in results
+    """
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                  transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                 sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], sampleDecCols=['Effort', 'Distance'],
+                 sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'],
+                 sampleDecCols=['Effort', 'Distance'], anlysSpecCustCols=[],
                  distanceUnit='Meter', areaUnit='Hectare',
                  surveyType='Point', distanceType='Radial', clustering=False,
                  resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
@@ -769,8 +780,9 @@ class MCDSAnalyser(DSAnalyser):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
-                         transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
-                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
+                         transectPlaceCols=transectPlaceCols, passIdCol=passIdCol,
+                         effortCol=effortCol, sampleSelCols=sampleSelCols,
+                         sampleDecCols=sampleDecCols, anlysSpecCustCols=anlysSpecCustCols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          resultsHeadCols=resultsHeadCols, abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
                          anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol, workDir=workDir)
@@ -891,11 +903,15 @@ class MCDSAnalyser(DSAnalyser):
         """Wait for and gather dAnalyses (MCDSAnalysis futures) results into a MCDSAnalysisResultsSet 
         """
     
-        # Results object construction
+        # Start of elapsed time measurement (yes, starting the analyses may take some time, but it is
+        # neglectable when compared to analysis time ; and better here for evaluating mean per analysis).
+        anlysStart = pd.Timestamp.now()
+        
+        # Create results container.
         results = self.setupResults()
 
         # For each analysis as it gets completed (first completed => first yielded)
-        nAnlysDone = 0
+        nDone = 0
         for anlysFut in self._executor.asCompleted(dAnlyses):
             
             # Retrieve analysis object from its associated future object
@@ -912,18 +928,20 @@ class MCDSAnalyser(DSAnalyser):
             results.append(sResult, sCustomHead=sCustomHead)
 
             # Report elapsed time and number of analyses completed until now (once per self.logProgressEvery analyses though).
-            nAnlysDone += 1
-            if nAnlysDone % self.logProgressEvery == 0 or nAnlysDone == len(dAnlyses):
+            nDone += 1
+            if nDone % self.logProgressEvery == 0 or nDone == len(dAnlyses):
                 now = pd.Timestamp.now()
-                elapsedTilNow = now - self._anlysStart
-                if nAnlysDone < len(dAnlyses):
+                elapsedTilNow = now - anlysStart
+                if nDone < len(dAnlyses):
                     expectedEnd = \
-                        now + pd.Timedelta(elapsedTilNow.value * (len(dAnlyses) - nAnlysDone) / nAnlysDone)
+                        now + pd.Timedelta(elapsedTilNow.value * (len(dAnlyses) - nDone) / nDone)
                     expectedEnd = expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')
-                logger.info1('{}/{} analyses in {} (mean {:.1f}s){}'
-                             .format(nAnlysDone, len(dAnlyses), str(elapsedTilNow.round('S')).replace('0 days ', ''),
-                                     elapsedTilNow.total_seconds() / nAnlysDone,
-                                     ': done.' if nAnlysDone == len(dAnlyses) else ': should end around ' + expectedEnd))
+                    endOfMsg = 'should end around ' + expectedEnd
+                else:
+                    endOfMsg = 'done'
+                logger.info1('{}/{} analyses in {} (mean {:.1f}s): {}.'
+                             .format(nDone, len(dAnlyses), str(elapsedTilNow.round('S')).replace('0 days ', ''),
+                                     elapsedTilNow.total_seconds() / nDone, endOfMsg))
 
         # Terminate analysis executor
         self._executor.shutdown()
@@ -966,9 +984,6 @@ class MCDSAnalyser(DSAnalyser):
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
         assert checkVerdict, 'Analysis params check failed: {}'.format('; '.join(checkErrors))
         
-        # Start of elapsed time measurement.
-        self._anlysStart = pd.Timestamp.now()
-        
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
         logger.info('Running {} MCDS analyses ({}) ...'.format(len(dfExplParamSpecs), runHow))
@@ -982,7 +997,7 @@ class MCDSAnalyser(DSAnalyser):
             if not sds:
                 continue
 
-            # Build optimisation params specs series with parameters internal names.
+            # Build analysis params specs series with parameters internal names.
             sAnIntSpec = sAnSpec[userParamSpecCols].set_axis(intParamSpecCols, inplace=False)
             
             # Get analysis parameters from user specs and default values.
@@ -1074,9 +1089,6 @@ class MCDSPreAnalyser(MCDSAnalyser):
         dfExplSampleSpecs, _, _, _, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
         assert checkVerdict, 'Pre-analysis params check failed: {}'.format('; '.join(checkErrors))
-        
-        # Start of elapsed time measurement.
-        self._anlysStart = pd.Timestamp.now()
         
         # For each sample to analyse :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'

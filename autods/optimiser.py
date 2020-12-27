@@ -123,7 +123,7 @@ class DSParamsOptimiser(object):
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                  transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                  sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                 sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance',
+                 sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
                  abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum', 
                  distanceUnit='Meter', areaUnit='Hectare', 
                  resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
@@ -146,6 +146,7 @@ class DSParamsOptimiser(object):
         :param sampleSelCols: sample identification = selection columns
         :param sampleDecCols: Decimal columns among sighting columns
         :param sampleDistCol: name of distance data column in run specs table
+        :param anlysSpecCustCols: Special columns from analysis specs to simply pass through in results
         :param abbrevCol: Name of column to generate for abbreviating optimisation params, not sure really useful ...
         :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
         :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
@@ -188,6 +189,7 @@ class DSParamsOptimiser(object):
         self.anlysIndCol = anlysIndCol
         self.sampleSelCols = sampleSelCols
         self.sampleIndCol = sampleIndCol
+        self.anlysSpecCustCols = anlysSpecCustCols
             
         self.distanceUnit = distanceUnit
         self.areaUnit = areaUnit
@@ -526,7 +528,7 @@ class DSParamsOptimiser(object):
         tplRslt = DSAnalyser._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
                                                  sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
                                                  abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
-                                                 sampleIndCol=self.sampleIndCol)
+                                                 sampleIndCol=self.sampleIndCol, anlysSpecCustCols=self.anlysSpecCustCols)
         
         # Check if requested
         if check:
@@ -577,13 +579,13 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance',
+                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
                        abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
                        distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       workDir='.', logData=False, autoClean=True,
+                       workDir='.', logData=False, logProgressEvery=5, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
@@ -616,7 +618,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         super().__init__(dfMonoCatObs, dfTransects=dfTransects,
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
-                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistCol=sampleDistCol,
+                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
+                         sampleDistCol=sampleDistCol, anlysSpecCustCols=anlysSpecCustCols,
                          abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
                          anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
@@ -630,6 +633,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         self.clustering = clustering
         
         self.logData = logData
+        self.logProgressEvery = logProgressEvery
         self.autoClean = autoClean
         
         self.defEstimKeyFn = defEstimKeyFn
@@ -1063,11 +1067,15 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         There should be no reason to specialise this for specific truncation optimisers, but ...
         """
     
+        # Start of elapsed time measurement (yes, starting the optimisations may take some time, but it is
+        # neglectable when compared to optimisation time ; and better here for evaluating mean per optimisation).
+        optimStart = pd.Timestamp.now()
+        
         # Results object construction
         results = self.setupResults()
 
         # For each optimisation as it gets completed (first completed => first yielded)
-        nOptimsDone = 0
+        nDone = 0
         for optimFut in self._executor.asCompleted(dOptims):
             
             # Retrieve optimisation object from its associated future object
@@ -1084,17 +1092,20 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             results.append(dfResults, sCustomHead=sCustomHead)
             
             # Report elapsed time and number of optimisations completed until now.
-            nOptimsDone += 1
-            now = pd.Timestamp.now()
-            elapsedTilNow = now - self._optimStart
-            if nOptimsDone < len(dOptims):
-                expectedEnd = \
-                    now + pd.Timedelta(elapsedTilNow.value * (len(dOptims) - nOptimsDone) / nOptimsDone)
-                expectedEnd = expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')
-            logger.info1('{}/{} optimisations in {} (mean {:.1f}s){}'
-                         .format(nOptimsDone, len(dOptims), str(elapsedTilNow.round('S')).replace('0 days ', ''),
-                                 elapsedTilNow.total_seconds() / nOptimsDone,
-                                 ': done.' if nOptimsDone == len(dOptims) else ': should end around ' + expectedEnd))
+            nDone += 1
+            if nDone % self.logProgressEvery == 0 or nDone == len(dOptims):
+                now = pd.Timestamp.now()
+                elapsedTilNow = now - optimStart
+                if nDone < len(dOptims):
+                    expectedEnd = \
+                        now + pd.Timedelta(elapsedTilNow.value * (len(dOptims) - nDone) / nDone)
+                    expectedEnd = expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')
+                    endOfMsg = 'should end around ' + expectedEnd
+                else:
+                    endOfMsg = 'done'
+                logger.info1('{}/{} optimisations in {} (mean {:.1f}s): {}.'
+                             .format(nDone, len(dOptims), str(elapsedTilNow.round('S')).replace('0 days ', ''),
+                                     elapsedTilNow.total_seconds() / nDone, endOfMsg))
 
         # Terminate analysis executor
         self._executor.shutdown()
@@ -1138,9 +1149,6 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         
         # Build internal name => user name converter for spec. columns
         self.dInt2UserParamSpecNames = dict(zip(intParamSpecCols, userParamSpecCols))
-        
-        # Start of elapsed time measurement.
-        self._optimStart = pd.Timestamp.now()
         
         # For each analysis to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
@@ -1203,13 +1211,13 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance',
+                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
                        abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
                        distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       workDir='.', logData=False, autoClean=True,
+                       workDir='.', logData=False, logProgressEvery=5, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
@@ -1222,13 +1230,14 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
-                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistCol=sampleDistCol,
+                         sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
+                         sampleDistCol=sampleDistCol, anlysSpecCustCols=anlysSpecCustCols,
                          abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
                          anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols,
-                         workDir=workDir, logData=logData, autoClean=autoClean,
+                         workDir=workDir, logData=logData, logProgressEvery=logProgressEvery, autoClean=autoClean,
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
                          defOutliersMethod=defOutliersMethod, defOutliersQuantCutPct=defOutliersQuantCutPct,
                          defFitDistCutsFctr=defFitDistCutsFctr, defDiscrDistCutsFctr=defDiscrDistCutsFctr,

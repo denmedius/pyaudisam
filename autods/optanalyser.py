@@ -31,6 +31,9 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
 
     """Run a bunch of MCDS analyses, with possibly automatic truncation parameter computation before"""
 
+    # Name of the spec. column to hold the "is truncation stuff optimised" 0/1 flag.
+    OptimTruncFlagCol = 'OptimTrunc'
+
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
@@ -40,7 +43,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       workDir='.', logData=False, autoClean=True,
+                       workDir='.', logData=False, logAnlysProgressEvery=50, logOptimProgressEvery=5, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
@@ -70,8 +73,10 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                          sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
                          abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder,
                          anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol,
+                         anlysSpecCustCols=[MCDSTruncationOptanalyser.OptimTruncFlagCol],
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
-                         resultsHeadCols=resultsHeadCols, workDir=workDir, logData=logData,
+                         resultsHeadCols=resultsHeadCols, workDir=workDir,
+                         logData=logData, logProgressEvery=logAnlysProgressEvery,
                          defEstimKeyFn=defEstimKeyFn, defEstimAdjustFn=defEstimAdjustFn,
                          defEstimCriterion=defEstimCriterion, defCVInterval=defCVInterval,
                          defMinDist=defMinDist, defMaxDist=defMaxDist, 
@@ -80,6 +85,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Save Optimisation-specific args.
         self.sampleDistCol = sampleDistCol
         
+        self.logOptimProgressEvery = logOptimProgressEvery
         self.autoClean = autoClean
         
         # Default values for optimisation parameters.
@@ -97,6 +103,41 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Optimisation results (internal debug use only).
         self.optimResults = None
 
+        # An optimiser instance only there for explicitParamSpecs() delegation.
+        # Note: For the moment, only zoopt engine supported
+        # TODO: Add support for other engines, thanks to the OptimCore columns spec (default = zoopt)
+        #       provided the associated MCDSXXXTruncationOptimiser classes derive from MCDSTruncationOptimiser.
+        self.zoptr4Specs = \
+            MCDSZerothOrderTruncationOptimiser(
+                self.dfMonoCatObs, dfTransects=self._mcDataSet.dfTransects,
+                dSurveyArea=self._mcDataSet.dSurveyArea, transectPlaceCols=self._mcDataSet.transectPlaceCols,
+                passIdCol=self._mcDataSet.passIdCol, effortCol=self._mcDataSet.effortCol,
+                sampleSelCols=self.sampleSelCols, sampleDecCols=self._mcDataSet.sampleDecFields,
+                sampleDistCol=self.sampleDistCol, abbrevCol=self.abbrevCol, abbrevBuilder=self.abbrevBuilder,
+                anlysIndCol=self.anlysIndCol, sampleIndCol=self.sampleIndCol, 
+                anlysSpecCustCols=[self.OptimTruncFlagCol],
+                distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                surveyType=self.surveyType, distanceType=self.distanceType,
+                clustering=self.clustering,
+                resultsHeadCols=dict(),
+                workDir=self.workDir, logData=self.logData,
+                logProgressEvery=self.logOptimProgressEvery, autoClean=self.autoClean,
+                defEstimKeyFn=self.defEstimKeyFn, defEstimAdjustFn=self.defEstimAdjustFn,
+                defEstimCriterion=self.defEstimCriterion, defCVInterval=self.defCVInterval,
+                defExpr2Optimise=self.defExpr2Optimise, defMinimiseExpr=self.defMinimiseExpr,
+                defOutliersMethod=self.defOutliersMethod, defOutliersQuantCutPct=self.defOutliersQuantCutPct,
+                defFitDistCutsFctr=self.defFitDistCutsFctr, defDiscrDistCutsFctr=self.defDiscrDistCutsFctr,
+                defSubmitTimes=self.defSubmitTimes, defSubmitOnlyBest=self.defSubmitOnlyBest,
+                defCoreMaxIters=self.dDefOptimCoreParams['maxIters'],
+                defCoreTermExprValue=self.dDefOptimCoreParams['termExprValue'],
+                defCoreAlgorithm=self.dDefOptimCoreParams['algorithm'],
+                defCoreMaxRetries=self.dDefOptimCoreParams['maxRetries'])
+
+
+    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None, check=False):
+    
+        return self.zoptr4Specs.explicitParamSpecs(implParamSpecs=implParamSpecs,
+                                                   dfExplParamSpecs=dfExplParamSpecs, check=check)
 
     def computeUndeterminedParamSpecs(self, dfExplParamSpecs=None, implParamSpecs=None, threads=1):
     
@@ -121,9 +162,9 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # 2. Extract optimisation specs (params specified as optimisation specs).
         # a. Get spec. columns to examine for deciding if analyses specs imply prior optimisation or not.
         optimUserParamSpecCols = \
-            MCDSTruncationOptimiser.optimisationParamSpecUserNames(userParamSpecCols, intParamSpecCols)
+            self.zoptr4Specs.optimisationParamSpecUserNames(userParamSpecCols, intParamSpecCols)
         
-        # b. Search for (possibly) optimisation. specs with string data (const params are numbers)
+        # b. Search for (possibly) optimisation. specs with string data (const params are numbers or lists)
         def analysisNeedsOptimisationFirst(sAnlysSpec):
             return any(isinstance(v, str) for v in sAnlysSpec.values)
         dfExplOptimParamSpecs = \
@@ -141,22 +182,20 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
             # a. Create optimiser object
             zoptr = MCDSZerothOrderTruncationOptimiser(
                         self.dfMonoCatObs, dfTransects=self._mcDataSet.dfTransects,
-                        dSurveyArea=self._mcDataSet.dSurveyArea, 
-                        transectPlaceCols=self._mcDataSet.transectPlaceCols,
-                        passIdCol=self._mcDataSet.passIdCol,
-                        effortCol=self._mcDataSet.effortCol,
-                        sampleSelCols=self.sampleSelCols,
-                        sampleDecCols=self._mcDataSet.sampleDecFields,
-                        sampleDistCol=self.sampleDistCol,
-                        abbrevCol=self.abbrevCol, abbrevBuilder=self.abbrevBuilder,
-                        anlysIndCol=self.anlysIndCol, sampleIndCol=self.sampleIndCol,
+                        dSurveyArea=self._mcDataSet.dSurveyArea, transectPlaceCols=self._mcDataSet.transectPlaceCols,
+                        passIdCol=self._mcDataSet.passIdCol, effortCol=self._mcDataSet.effortCol,
+                        sampleSelCols=self.sampleSelCols, sampleDecCols=self._mcDataSet.sampleDecFields,
+                        sampleDistCol=self.sampleDistCol, abbrevCol=self.abbrevCol, abbrevBuilder=self.abbrevBuilder,
+                        anlysIndCol=self.anlysIndCol, sampleIndCol=self.sampleIndCol, 
+                        anlysSpecCustCols=[self.OptimTruncFlagCol],
                         distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                         surveyType=self.surveyType, distanceType=self.distanceType,
                         clustering=self.clustering,
                         resultsHeadCols=dict(before=[self.anlysIndCol, self.sampleIndCol],
                                              sample=self.sampleSelCols,
                                              after=userParamSpecCols),
-                        workDir=self.workDir, logData=self.logData, autoClean=self.autoClean,
+                        workDir=self.workDir, logData=self.logData,
+                        logProgressEvery=self.logOptimProgressEvery, autoClean=self.autoClean,
                         defEstimKeyFn=self.defEstimKeyFn, defEstimAdjustFn=self.defEstimAdjustFn,
                         defEstimCriterion=self.defEstimCriterion, defCVInterval=self.defCVInterval,
                         defExpr2Optimise=self.defExpr2Optimise, defMinimiseExpr=self.defMinimiseExpr,
@@ -170,7 +209,6 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
 
             # b. Run optimisations
             self.optimResults = zoptr.run(dfExplOptimParamSpecs, threads=threads)
-
             zoptr.shutdown()
             
             # c. Merge optimisation results into param. specs.
@@ -200,9 +238,14 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
 
             # * Concat const specs to computed ones.
             dfExplParamSpecs.set_index(self.anlysIndCol, inplace=True)
-            dfExplConstParamSpecs = dfExplParamSpecs.loc[~dfExplParamSpecs.index.isin(dfExplOptimParamSpecs.index)]
+
+            dfExplConstParamSpecs = dfExplParamSpecs.loc[~dfExplParamSpecs.index.isin(dfExplOptimParamSpecs.index)].copy()
             dfExplConstParamSpecs.reset_index(inplace=True)
+            dfExplConstParamSpecs[self.OptimTruncFlagCol] = 0  # Const = "unoptimised" truncation params.
+
             dfExplCompdParamSpecs.reset_index(inplace=True)
+            dfExplCompdParamSpecs[self.OptimTruncFlagCol] = 1  # Computed = "optimised" truncation params.
+
             dfExplParamSpecs = dfExplConstParamSpecs.append(dfExplCompdParamSpecs, ignore_index=True)
             dfExplParamSpecs.sort_values(by=self.anlysIndCol, inplace=True)
 
@@ -225,14 +268,20 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         :return: 
         """
         
-        # 1. Run optimisations if needed and replace computed truncation params in analysis specs
+        # 1. Run optimisations when needed and replace computed truncation params in analysis specs
         #    (warning: as some optimisation specs may specify to keep more than 1 "best" result,
-        #              dfExplParamSpecs may grow accordingly, as well as the final number of result rows)
+        #              dfExplParamSpecs may grow accordingly, as well as the final number of result rows).
         dfExplParamSpecs = \
             self.computeUndeterminedParamSpecs(dfExplParamSpecs, implParamSpecs, threads=threads)
 
         # 2. Run all analyses, now all parameters are there.
         return super().run(dfExplParamSpecs, threads=threads)
+
+    def shutdown(self):
+    
+        self.zoptr4Specs.shutdown()
+
+        super().shutdown()
 
 
 if __name__ == '__main__':
