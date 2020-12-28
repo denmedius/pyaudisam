@@ -521,6 +521,9 @@ class ResultsSet(object):
         self.rightColOrder = False # self._dfData columns are assumed to be in a wrong order.
         self.postComputed = False # Post-computation not yet done.
     
+        # Specifications of computations that led to the results
+        self.specs = dict()
+
     def __len__(self):
         
         return len(self._dfData)
@@ -746,50 +749,131 @@ class ResultsSet(object):
         
         return dfTrData
 
-    # Save data to an Excel worksheet (XLSX format).
-    def toExcel(self, fileName, sheetName=None, lang=None, subset=None, engine='openpyxl'):
+    def setSpecs(self, **specs):
+
+        """Store specs as is"""
+
+        self.specs = specs
+
+    def toExcel(self, fileName, sheetName=None, lang=None, subset=None,
+                specs=True, specSheetsPrfx='sp-', engine='openpyxl'):
+
+        """Save data and specs to an Excel workbook (XLSX format).
+        * data to the named sheet (sheetName)
+        * specs to the sheets given spec name, prefixed a specified (specSheetsPrfx)
+
+        Parameters:
+        :param sheetName: for results data only
+        :param engine: use openpyxl (default) for newer Excel formats, xlrd for older ones, odf for ODF format.
+        """
         
+        assert sheetName is None or not specs or not sheetName.lower().startswith(specSheetsPrfx), \
+               f"Results data sheet name can't start with reserved prefix {specSheetsPrfx} (whatever case)"
+        assert not (sheetName is None and specs and 'AllResults'.lower().startswith(specSheetsPrfx.lower())), \
+               f"Sheet prefix '{specSheetsPrfx}' can't be a heading part of 'AllResults' (whatever case)"
+
         dfOutData = self.dfSubData(subset=subset) \
                     if lang is None else self.dfTransData(subset=subset, lang=lang)
         
-        dfOutData.to_excel(fileName, sheet_name=sheetName or 'AllResults', engine=engine)
+        with pd.ExcelWriter(fileName, engine=engine) as xlWrtr:
+            dfOutData.to_excel(xlWrtr, sheet_name=sheetName or 'AllResults')
+            if specs:
+                for spName, spData in self.specs.items():
+                    if isinstance(spData, (dict, list, pd.Series)):
+                        if not isinstance(spData, pd.Series):
+                            spData = pd.Series(spData)
+                        spData = spData.to_frame()
+                    spData.to_excel(xlWrtr, sheet_name=specSheetsPrfx + spName, index=True)
 
-        logger.info(f'Results saved to {fileName} ({len(self)} rows)')
+        logger.info('Results and {}specs saved to {} ({} rows, {} specs)'
+                    .format('' if specs and self.specs else 'not ', fileName, len(self), len(self.specs)))
 
-    # Save data to an Open Document worksheet (ODS format).
-    def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None):
+    def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None,
+                  specs=True, specSheetsPrfx='sp-'):
         
+        """Save data and specs to an Open Document workbook (ODS format) :
+        * data to the named sheet (sheetName)
+        * specs to the sheets given spec name, prefixed a specified (specSheetsPrfx)
+
+        Parameters:
+        :param sheetName: for results data only
+        """
+
         assert pkgver.parse(pd.__version__).release >= (1, 1), \
                'Don\'t know how to write to OpenDoc format before Pandas 1.1'
         
-        self.toExcel(fileName, sheetName, lang, subset, engine='odf')
+        self.toExcel(fileName, sheetName, lang, subset,
+                     specs=specs, specSheetsPrfx=specSheetsPrfx, engine='odf')
 
-    def fromExcel(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3]):
+    def fromExcel(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3],
+                  specs=True, specSheetsPrfx='sp-', engine='openpyxl'):
         
-        """Load (overwrite) data from an Excel worksheet (XLSX format),
+        """Load (overwrite) data from the first or named sheet of an Excel worksheet (XLSX format),
         assuming ctor params match with Excel sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
+
+        Also load specs from other sheets named with given prefix, as dataframes
+        (ignore others ; empty prefix => all others)
+
+        Parameters:
+        :param sheetName: for results data only
+        :param engine: use openpyxl (default) for newer Excel formats, xlrd for older ones, odf for ODF format.
         """
 
+        # TODO: can this be done in 1 only read_excel call ?
+        #       Not as of pandas 1.1, 'cause of 1st call params, specific to results data structure,
+        #       whereas specs sheets are in "free" format.
+
+        # Load results data.
         self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
-                                    header=header, skiprows=skiprows, index_col=0)
+                                    header=header, skiprows=skiprows, index_col=0, engine=engine)
 
-        logger.info(f'Loaded results from {fileName} ({len(self)} rows)')
+        # Load specs
+        self.specs = dict()
+        if specs:
+            ddfAll = pd.read_excel(fileName, sheet_name=None, index_col=0, engine=engine) #, header=None, names=[0])
+            for shName, dfShData in ddfAll.items():
+                if shName.startswith(specSheetsPrfx):
+                    self.specs[shName[len(specSheetsPrfx):]] = dfShData
 
-    def fromOpenDoc(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3]):
+        logger.info('Loaded results and {}specs from {} ({} rows, {} specs)'
+                    .format('' if specs and self.specs else 'not ', fileName, len(self), len(self.specs)))
+
+    def fromOpenDoc(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3],
+                    specs=True, specSheetsPrfx='sp-'):
         
-        """Load (overwrite) data from an Open Document worksheet (ODS format),
+        """Load (overwrite) data from the first or named sheet of an Open Document worksheet (ODS format),
         assuming ctor params match with ODF sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
+
+        Also load specs from other sheets with given prefix as dataframes
+        (ignore others ; empty prefix => all others)
         """
 
         assert pkgver.parse(pd.__version__).release >= (0, 25, 1), \
                'Don\'t know how to read from OpenDoc format before Pandas 0.25.1 (using odfpy module)'
         
-        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
-                                    header=header, skiprows=skiprows, index_col=0, engine='odf')
+        self.fromExcel(fileName, sheetName, header, skiprows, specs, specSheetsPrfx, engine='odf')
 
-        logger.info(f'Loaded results from {fileName} ({len(self)} rows)')
+        # # TODO: can this be done in 1 only read_excel call ?
+        # #       Not as of pandas 1.1, 'cause of 1st call params, specific to results data structure,
+        # #       whereas specs sheets are in "free" format.
+
+        # # Load results data.
+        # self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
+        #                             header=header, skiprows=skiprows, index_col=0, engine='odf')
+
+        # # Load specs
+        # self.specs = dict()
+        # if specs:
+        #     ddfAll = pd.read_excel(fileName, sheet_name=None, engine='odf',
+        #                            index_col=0, header=None, names=[0])
+        #     for shName, dfShData in ddfAll.items():
+        #         if shName.startswith(specSheetsPrfx):
+        #             self.specs[shName[len(specSheetsPrfx):]] = dfShData
+
+        # logger.info('Loaded results and {}specs from {fileName} ({len(self)} rows)'
+        #             .format('' if specs else 'not ', fileName, len(self)))
 
     @staticmethod
     def _closeness(sLeftRight):
