@@ -493,7 +493,7 @@ class DSParamsOptimiser(object):
 
         raise NotImplementedError('DSParamsOptimiser: Abstract class, implement setupOptimisation in derived one')
 
-    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None, check=False):
+    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None, dropDupes=True, check=False):
     
         """Explicitate analysis and optimisation param. specs if not already done, and complete columns if needed ;
         also automatically extract (regexps) columns which are really analysis parameters,
@@ -509,6 +509,7 @@ class DSParamsOptimiser(object):
            through explicitVariantSpecs()
         :param dfExplParamSpecs: Explicit analysis param specs, as a DataFrame
            (generated through explicitVariantSpecs, as an example)
+        :param dropDupes: if True, drop duplicates (keep first)
         :param check: if True, checks params for usability by run(),
            and return a bool verdict and a list of strings explaining the negative (False) verdict
 
@@ -528,7 +529,8 @@ class DSParamsOptimiser(object):
         tplRslt = DSAnalyser._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
                                                  sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
                                                  abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
-                                                 sampleIndCol=self.sampleIndCol, anlysSpecCustCols=self.anlysSpecCustCols)
+                                                 sampleIndCol=self.sampleIndCol,
+                                                 anlysSpecCustCols=self.anlysSpecCustCols, dropDupes=dropDupes)
         
         # Check if requested
         if check:
@@ -1144,7 +1146,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # Explicitate and complete analysis and optimisation specs, and check for usability.
         # (should be also done before calling run, to avoid failure).
         dfExplParamSpecs, userParamSpecCols, intParamSpecCols, _, checkVerdict, checkErrors = \
-            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
+            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, dropDupes=True, check=True)
         assert checkVerdict, 'Error: Analysis / Optimisation params check failed: {}'.format('; '.join(checkErrors))
         
         # Build internal name => user name converter for spec. columns

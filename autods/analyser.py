@@ -483,7 +483,7 @@ class DSAnalyser(Analyser):
     def _explicitParamSpecs(implParamSpecs=None, dfExplParamSpecs=None, int2UserSpecREs=dict(),
                             sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'],
                             abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum',
-                            sampleIndCol='SampleNum', anlysSpecCustCols=[]):
+                            sampleIndCol='SampleNum', anlysSpecCustCols=[], dropDupes=True):
                            
         """Explicitate analysis param. specs if not already done, and complete columns if needed ;
         also automatically extract (regexps) columns which are really analysis parameters,
@@ -501,6 +501,7 @@ class DSAnalyser(Analyser):
         :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
         :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
         :param anlysSpecCustCols: special columns from analysis specs to simply pass through and ignore
+        :param dropDupes: if True, drop duplicates (keep first) in the final explicit DataFrame
            
         :return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified : a new one is returned),
                  list of matched analysis param. columns user names,
@@ -562,10 +563,19 @@ class DSAnalyser(Analyser):
         # Cleanup implicit name list from Nones (strict=False)
         intParamSpecCols = [inp for inp in intParamSpecCols if inp]
 
+        # Drop duplicate specs if specified.
+        if dropDupes:
+            nBefore = len(dfExplParamSpecs)
+            dupDetCols = sampleSelCols + userParamSpecCols
+            dfExplParamSpecs.drop_duplicates(subset=dupDetCols, inplace=True)
+            dfExplParamSpecs.reset_index(drop=True, inplace=True)
+            logger.info('Dropped {} last duplicate specs on [{}] columns'
+                        .format(nBefore - len(dfExplParamSpecs), ', '.join(dupDetCols)))
+
         # Done.
         return dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols
 
-    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None, check=False):
+    def explicitParamSpecs(self, implParamSpecs=None, dfExplParamSpecs=None, dropDupes=True, check=False):
     
         """Explicitate analysis param. specs if not already done, and complete columns if needed ;
         also automatically extract (regexps) columns which are really analysis parameters,
@@ -581,6 +591,7 @@ class DSAnalyser(Analyser):
            through explicitVariantSpecs()
         :param dfExplParamSpecs: Explicit analysis param specs, as a DataFrame
            (generated through explicitVariantSpecs, as an example)
+        :param dropDupes: if True, drop duplicates (keep first)
         :param check: if True, checks params for usability by run(),
            and return a bool verdict and a list of strings explaining the negative (False) verdict
 
@@ -600,7 +611,8 @@ class DSAnalyser(Analyser):
         tplRslt = self._explicitParamSpecs(implParamSpecs, dfExplParamSpecs, self.Int2UserSpecREs,
                                            sampleSelCols=self.sampleSelCols, abbrevCol=self.abbrevCol,
                                            abbrevBuilder=self.abbrevBuilder, anlysIndCol=self.anlysIndCol,
-                                           sampleIndCol=self.sampleIndCol, anlysSpecCustCols=self.anlysSpecCustCols)
+                                           sampleIndCol=self.sampleIndCol, anlysSpecCustCols=self.anlysSpecCustCols,
+                                           dropDupes=dropDupes)
         
         # Check if requested
         if check:
@@ -981,7 +993,7 @@ class MCDSAnalyser(DSAnalyser):
         # Explicitate and complete analysis specs, and check for usability
         # (should be also done before calling run, to avoid failure).
         dfExplParamSpecs, userParamSpecCols, intParamSpecCols, _, checkVerdict, checkErrors = \
-            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, check=True)
+            self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, dropDupes=True, check=True)
         assert checkVerdict, 'Analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each analysis to run :
@@ -1004,6 +1016,7 @@ class MCDSAnalyser(DSAnalyser):
             dAnlysParams = self._getAnalysisParams(sAnIntSpec)
             
             # Analysis object
+            logger.debug('Anlys params: {}'.format(', '.join(f'{k}:{v}' for k,v in dAnlysParams.items())))
             anlys = MCDSAnalysis(engine=self._engine, sampleDataSet=sds, name=sAnSpec[self.abbrevCol],
                                  customData=sAnSpec[customCols].copy(), logData=self.logData, **dAnlysParams)
 
@@ -1019,6 +1032,7 @@ class MCDSAnalyser(DSAnalyser):
 
         # Wait for and gather results of all analyses.
         self.results = self._getResults(dAnlyses)
+        self.results.setSpecs(analyses=dfExplParamSpecs)
         
         # Done.
         logger.info(f'Analyses completed ({len(self.results)} results).')
@@ -1039,7 +1053,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                  transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                  sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], sampleDecCols=['Effort', 'Distance'],
-                 abbrevCol='SampAbbrev', abbrevBuilder=None, sampleIndCol='SampleNum',
+                 sampleSpecCustCols=[], abbrevCol='SampAbbrev', abbrevBuilder=None, sampleIndCol='SampleNum',
                  distanceUnit='Meter', areaUnit='Hectare',
                  surveyType='Point', distanceType='Radial', clustering=False,
                  resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
@@ -1050,6 +1064,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
                          sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
+                         anlysSpecCustCols=sampleSpecCustCols,
                          abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder, sampleIndCol=sampleIndCol,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
@@ -1087,7 +1102,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         # Explicitate and complete analysis specs, and check for usability
         # (should be also done before calling run, to avoid failure).
         dfExplSampleSpecs, _, _, _, checkVerdict, checkErrors = \
-            self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
+            self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, dropDupes=True, check=True)
         assert checkVerdict, 'Pre-analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each sample to analyse :
@@ -1122,6 +1137,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         # Wait for and gaher results of all analyses.
         results = self._getResults(dAnlyses)
+        self.results.setSpecs(samples=dfExplSampleSpecs, models=dModelStrategy)
         
         # Done.
         logger.info('Analyses completed.')
@@ -1151,7 +1167,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         # Explicitate and complete analysis specs, and check for usability
         # (should be also done before calling run, to avoid failure).
         dfExplSampleSpecs, _, _, _, checkVerdict, checkErrors = \
-            self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, check=True)
+            self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, dropDupes=True, check=True)
         assert checkVerdict, 'Sample specs check failed: {}'.format('; '.join(checkErrors))
         
         # For each sample to export:
