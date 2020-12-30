@@ -298,7 +298,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
 
         if left.success() or left.warnings():
             if right.success() or right.warnings():
-                answ = left.getResults()[cls.MIAicValue] < right.getResults()[cls.MIAicValue]
+                answ = left.getResults().get(cls.MIAicValue, 1e9) < right.getResults().get(cls.MIAicValue, 1e9)
             else:
                 answ = True
         else:
