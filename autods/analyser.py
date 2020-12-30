@@ -15,6 +15,8 @@ import re
 import pathlib as pl
 from packaging import version
 
+from collections import namedtuple as ntuple
+
 import numpy as np
 import pandas as pd
 
@@ -90,6 +92,34 @@ class Analyser(object):
     
     Abstract base class for DS analysers.
     """
+
+    def __init__(self):
+
+        # Computation specifications, for traceability only.
+        # For gathering copies of computations default parameter values, and stuff like that.
+        self.specs = dict()
+
+    def addSpecs(self, dSpecs=dict()):
+
+        assert all(name not in self.specs for name in dSpecs), \
+               "Can't add already present specs {}" \
+               .format(', '.join(name for name in dSpecs if name in self.specs))
+
+        self.specs.update(dSpecs)
+
+    def getFlatSpecs(self):
+
+        # Flatten "in-line" 2nd level dicts if any (with 1st level name prefixing).
+        dFlatSpecs = dict()
+        for name, value in self.specs.items():
+            if isinstance(value, dict):
+                for n, v in value.items():
+                    dFlatSpecs[name + n[0].upper() + n[1:]] = v
+            else:
+                dFlatSpecs[name] = value
+
+        # Done.
+        return dFlatSpecs
 
     # Generation of a table of implicit "partial variant" specification,
     # from a list of possible data selection criteria for each variable.
@@ -399,6 +429,8 @@ class DSAnalyser(Analyser):
 
         assert all(col in resultsHeadCols for col in ['before', 'sample', 'after'])
 
+        super().__init__()
+
         self.dfMonoCatObs = dfMonoCatObs
 
         self.resultsHeadCols = resultsHeadCols.copy()
@@ -434,6 +466,10 @@ class DSAnalyser(Analyser):
         
         # Results.
         self.results = None
+
+        # Specs.
+        self.addSpecs(dSurveyArea)
+        self.addSpecs({name: getattr(self, name) for name in ['distanceUnit', 'areaUnit']})
 
     # Possible regexps (values) for auto-detection of analyser _internal_ parameter spec names (keys)
     # from explicit _user_ spec columns
@@ -807,6 +843,7 @@ class MCDSAnalyser(DSAnalyser):
         
         self.logData = logData
         self.logProgressEvery = logProgressEvery
+
         self.defEstimKeyFn = defEstimKeyFn
         self.defEstimAdjustFn = defEstimAdjustFn
         self.defEstimCriterion = defEstimCriterion
@@ -816,6 +853,12 @@ class MCDSAnalyser(DSAnalyser):
         self.defFitDistCuts = defFitDistCuts
         self.defDiscrDistCuts = defDiscrDistCuts
                          
+        # Specs.
+        self.addSpecs({name: getattr(self, name)
+                       for name in ['surveyType', 'distanceType', 'clustering',
+                                    'defEstimKeyFn', 'defEstimAdjustFn', 'defEstimCriterion', 'defCVInterval',
+                                    'defMinDist', 'defMaxDist', 'defFitDistCuts', 'defDiscrDistCuts']})
+
     # Analyser internal parameter spec names, for which a match should be found (when one is needed)
     # with user explicit optimisation specs used in run() calls.
     IntSpecEstimKeyFn = 'EstimKeyFn'
@@ -1032,7 +1075,9 @@ class MCDSAnalyser(DSAnalyser):
 
         # Wait for and gather results of all analyses.
         self.results = self._getResults(dAnlyses)
-        self.results.setSpecs(analyses=dfExplParamSpecs)
+
+        # Set results specs for traceability.
+        self.results.setSpecs(analyser=self.getFlatSpecs(), analyses=dfExplParamSpecs)
         
         # Done.
         logger.info(f'Analyses completed ({len(self.results)} results).')
@@ -1135,14 +1180,15 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         logger.info('All analyses started ; now waiting for their end, and results ...')
 
-        # Wait for and gaher results of all analyses.
-        results = self._getResults(dAnlyses)
-        self.results.setSpecs(samples=dfExplSampleSpecs, models=dModelStrategy)
+        # Wait for and gather results of all analyses.
+        self.results = self._getResults(dAnlyses)
+        self.results.setSpecs(analyser=self.getFlatSpecs(),
+                              samples=dfExplSampleSpecs, models=pd.DataFrame(dModelStrategy))
         
         # Done.
         logger.info('Analyses completed.')
 
-        return results
+        return self.results
 
     def exportDSInputData(self, dfExplSampleSpecs=None, implSampleSpecs=None, format='Distance'):
     
