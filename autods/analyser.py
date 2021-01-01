@@ -99,15 +99,19 @@ class Analyser(object):
         # For gathering copies of computations default parameter values, and stuff like that.
         self.specs = dict()
 
-    def addSpecs(self, dSpecs=dict()):
+    def updateSpecs(self, reset=False, overwrite=False, **specs):
 
-        assert all(name not in self.specs for name in dSpecs), \
-               "Can't add already present specs {}" \
-               .format(', '.join(name for name in dSpecs if name in self.specs))
+        if not overwrite:
+            assert all(name not in self.specs for name in specs), \
+                   "Won't overwrite already present specs {}" \
+                   .format(', '.join(name for name in specs if name in self.specs))
 
-        self.specs.update(dSpecs)
+        if reset:
+            self.specs.clear()
 
-    def getFlatSpecs(self):
+        self.specs.update(specs)
+
+    def flatSpecs(self):
 
         # Flatten "in-line" 2nd level dicts if any (with 1st level name prefixing).
         dFlatSpecs = dict()
@@ -468,8 +472,8 @@ class DSAnalyser(Analyser):
         self.results = None
 
         # Specs.
-        self.addSpecs(dSurveyArea)
-        self.addSpecs({name: getattr(self, name) for name in ['distanceUnit', 'areaUnit']})
+        self.updateSpecs(**dSurveyArea)
+        self.updateSpecs(**{name: getattr(self, name) for name in ['distanceUnit', 'areaUnit']})
 
     # Possible regexps (values) for auto-detection of analyser _internal_ parameter spec names (keys)
     # from explicit _user_ spec columns
@@ -854,10 +858,10 @@ class MCDSAnalyser(DSAnalyser):
         self.defDiscrDistCuts = defDiscrDistCuts
                          
         # Specs.
-        self.addSpecs({name: getattr(self, name)
-                       for name in ['surveyType', 'distanceType', 'clustering',
-                                    'defEstimKeyFn', 'defEstimAdjustFn', 'defEstimCriterion', 'defCVInterval',
-                                    'defMinDist', 'defMaxDist', 'defFitDistCuts', 'defDiscrDistCuts']})
+        self.updateSpecs(**{name: getattr(self, name)
+                            for name in ['surveyType', 'distanceType', 'clustering',
+                                         'defEstimKeyFn', 'defEstimAdjustFn', 'defEstimCriterion', 'defCVInterval',
+                                         'defMinDist', 'defMaxDist', 'defFitDistCuts', 'defDiscrDistCuts']})
 
     # Analyser internal parameter spec names, for which a match should be found (when one is needed)
     # with user explicit optimisation specs used in run() calls.
@@ -1077,7 +1081,7 @@ class MCDSAnalyser(DSAnalyser):
         self.results = self._getResults(dAnlyses)
 
         # Set results specs for traceability.
-        self.results.setSpecs(analyser=self.getFlatSpecs(), analyses=dfExplParamSpecs)
+        self.results.updateSpecs(analyser=self.flatSpecs(), analyses=dfExplParamSpecs)
         
         # Done.
         logger.info(f'Analyses completed ({len(self.results)} results).')
@@ -1182,8 +1186,10 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         # Wait for and gather results of all analyses.
         self.results = self._getResults(dAnlyses)
-        self.results.setSpecs(analyser=self.getFlatSpecs(),
-                              samples=dfExplSampleSpecs, models=pd.DataFrame(dModelStrategy))
+
+        # Set results specs for traceability.
+        self.results.updateSpecs(analyser=self.flatSpecs(), samples=dfExplSampleSpecs,
+                                 models=pd.DataFrame(dModelStrategy))
         
         # Done.
         logger.info('Analyses completed.')

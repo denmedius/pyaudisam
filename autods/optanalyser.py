@@ -104,11 +104,11 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         self.defDiscrDistCutsFctr = defDiscrDistCutsFctr
 
         # Specs.
-        self.addSpecs({name: getattr(self, name)
-                       for name in ['defExpr2Optimise', 'defMinimiseExpr', 'dDefOptimCoreParams',
-                                    'defSubmitTimes', 'defSubmitOnlyBest', 'dDefSubmitOtherParams',
-                                    'defOutliersMethod', 'defOutliersQuantCutPct',
-                                    'defFitDistCutsFctr', 'defDiscrDistCutsFctr']})
+        self.updateSpecs(**{name: getattr(self, name)
+                            for name in ['defExpr2Optimise', 'defMinimiseExpr', 'dDefOptimCoreParams',
+                                        'defSubmitTimes', 'defSubmitOnlyBest', 'dDefSubmitOtherParams',
+                                        'defOutliersMethod', 'defOutliersQuantCutPct',
+                                        'defFitDistCutsFctr', 'defDiscrDistCutsFctr']})
 
         # An optimiser instance only there for explicitParamSpecs() delegation.
         # Note: For the moment, only zoopt engine supported

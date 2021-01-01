@@ -749,11 +749,25 @@ class ResultsSet(object):
         
         return dfTrData
 
-    def setSpecs(self, **specs):
+    def updateSpecs(self, reset=False, overwrite=False, **specs):
 
-        """Store specs as is"""
+        """Update specs as given
 
-        self.specs = specs
+        Parameters:
+        :param reset: if True, cleanup before updating => like a set !
+        :param overwrite: 
+        """
+        if reset:
+            self.specs.clear()
+
+        if not overwrite:
+            assert all(name not in self.specs for name in specs), \
+                   "Won't overwrite already present specs {}" \
+                   .format(', '.join(name for name in specs if name in self.specs))
+
+        self.specs.update(specs)
+
+    DefAllResultsSheetName = 'all-results'
 
     def toExcel(self, fileName, sheetName=None, lang=None, subset=None,
                 specs=True, specSheetsPrfx='sp-', engine='openpyxl'):
@@ -769,14 +783,16 @@ class ResultsSet(object):
         
         assert sheetName is None or not specs or not sheetName.lower().startswith(specSheetsPrfx), \
                f"Results data sheet name can't start with reserved prefix {specSheetsPrfx} (whatever case)"
-        assert not (sheetName is None and specs and 'AllResults'.lower().startswith(specSheetsPrfx.lower())), \
-               f"Sheet prefix '{specSheetsPrfx}' can't be a heading part of 'AllResults' (whatever case)"
+        assert not (sheetName is None \
+               and specs and self.DefAllResultsSheetName.lower().startswith(specSheetsPrfx.lower())), \
+               "Sheet prefix '{}' can't be a heading part of {} (whatever case)" \
+               .format(specSheetsPrfx, self.DefAllResultsSheetName)
 
         dfOutData = self.dfSubData(subset=subset) \
                     if lang is None else self.dfTransData(subset=subset, lang=lang)
         
         with pd.ExcelWriter(fileName, engine=engine) as xlWrtr:
-            dfOutData.to_excel(xlWrtr, sheet_name=sheetName or 'AllResults')
+            dfOutData.to_excel(xlWrtr, sheet_name=sheetName or self.DefAllResultsSheetName)
             if specs:
                 for spName, spData in self.specs.items():
                     if isinstance(spData, (dict, list, pd.Series)):
@@ -834,7 +850,14 @@ class ResultsSet(object):
             ddfAll = pd.read_excel(fileName, sheet_name=None, index_col=0, engine=engine) #, header=None, names=[0])
             for shName, dfShData in ddfAll.items():
                 if shName.startswith(specSheetsPrfx):
-                    self.specs[shName[len(specSheetsPrfx):]] = dfShData
+                    spName = shName[len(specSheetsPrfx):]
+                    if len(dfShData.columns) == 1 and dfShData.columns[0] == 0:
+                        if dfShData.index.equals(pd.RangeIndex(stop=len(dfShData))):
+                            self.specs[spName] = dfShData.loc[:, 0].to_list()
+                        else:
+                            self.specs[spName] = dfShData.loc[:, 0].to_dict()
+                    else:
+                        self.specs[spName] = dfShData
 
         logger.info('Loaded results and {}specs from {} ({} rows, {} specs)'
                     .format('' if specs and self.specs else 'not ', fileName, len(self), len(self.specs)))
