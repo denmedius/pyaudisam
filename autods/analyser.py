@@ -998,7 +998,7 @@ class MCDSAnalyser(DSAnalyser):
                     endOfMsg = 'should end around ' + expectedEnd
                 else:
                     endOfMsg = 'done'
-                logger.info1('{}/{} analyses in {} (mean {:.1f}s): {}.'
+                logger.info1('{}/{} analyses in {} (mean {:.3f}s): {}.'
                              .format(nDone, len(dAnlyses), str(elapsedTilNow.round('S')).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nDone, endOfMsg))
 

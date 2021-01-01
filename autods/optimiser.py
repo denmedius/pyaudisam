@@ -1105,7 +1105,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                     endOfMsg = 'should end around ' + expectedEnd
                 else:
                     endOfMsg = 'done'
-                logger.info1('{}/{} optimisations in {} (mean {:.1f}s): {}.'
+                logger.info1('{}/{} optimisations in {} (mean {:.2f}s): {}.'
                              .format(nDone, len(dOptims), str(elapsedTilNow.round('S')).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nDone, endOfMsg))
 
