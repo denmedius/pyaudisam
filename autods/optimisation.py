@@ -324,7 +324,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         if not any(optPar is not None for optPar in [minDist, maxDist, fitDistCuts, discrDistCuts]):
             moreError.append('At least 1 analysis parameter has to be optimised')
             
-        self.dConstParams = dict()  # Params that won't be otimised : constants.
+        self.dConstParams = dict()  # Params that won't be optimised : constants.
         if minDist is not None and not isinstance(minDist, (int, float)):
             minDist = Interval(minDist)
         elif minDist is not None:

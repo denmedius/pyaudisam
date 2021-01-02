@@ -15,6 +15,9 @@ import sys
 import pathlib as pl
 from packaging import version as pkgver
 
+import lzma
+import pickle
+
 import numpy as np
 import pandas as pd
 
@@ -767,6 +770,26 @@ class ResultsSet(object):
 
         self.specs.update(specs)
 
+    def toPickle(self, fileName):
+
+        """Save data and specs to a pickle file (XZ compressed format if requested).
+
+        Parameters:
+        :param fileName: target file pathname ; file is auto-compressed to XZ format
+                         through the lzma module if its extension is .xz or .lzma,
+                         or else not compressed.
+        """
+        
+        start = pd.Timestamp.now()
+
+        compress = pl.Path(fileName).suffix in ['.xz', '.lzma']
+        with lzma.open(fileName, 'wb') if compress else open(fileName, 'wb') as file:
+            pickle.dump(self, file)
+
+        logger.info('{} results rows and {} specs saved to {} in {:.3f}s'
+                    .format(len(self), len(self.specs), fileName,
+                            (pd.Timestamp.now() - start).total_seconds()))
+
     DefAllResultsSheetName = 'all-results'
 
     def toExcel(self, fileName, sheetName=None, lang=None, subset=None,
@@ -788,6 +811,8 @@ class ResultsSet(object):
                "Sheet prefix '{}' can't be a heading part of {} (whatever case)" \
                .format(specSheetsPrfx, self.DefAllResultsSheetName)
 
+        start = pd.Timestamp.now()
+        
         dfOutData = self.dfSubData(subset=subset) \
                     if lang is None else self.dfTransData(subset=subset, lang=lang)
         
@@ -801,8 +826,9 @@ class ResultsSet(object):
                         spData = spData.to_frame()
                     spData.to_excel(xlWrtr, sheet_name=specSheetsPrfx + spName, index=True)
 
-        logger.info('Results and {}specs saved to {} ({} rows, {} specs)'
-                    .format('' if specs and self.specs else 'not ', fileName, len(self), len(self.specs)))
+        logger.info('{} results rows and {} specs saved to {} in {:.3f}s'
+                    .format(len(self), len(self.specs) if specs else 'no', fileName,
+                            (pd.Timestamp.now() - start).total_seconds()))
 
     def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None,
                   specs=True, specSheetsPrfx='sp-'):
@@ -840,6 +866,8 @@ class ResultsSet(object):
         #       Not as of pandas 1.1, 'cause of 1st call params, specific to results data structure,
         #       whereas specs sheets are in "free" format.
 
+        start = pd.Timestamp.now()
+        
         # Load results data.
         self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
                                     header=header, skiprows=skiprows, index_col=0, engine=engine)
@@ -859,8 +887,9 @@ class ResultsSet(object):
                     else:
                         self.specs[spName] = dfShData
 
-        logger.info('Loaded results and {}specs from {} ({} rows, {} specs)'
-                    .format('' if specs and self.specs else 'not ', fileName, len(self), len(self.specs)))
+        logger.info('{} results rows and {} specs loaded from {} in {:.3f}s'
+                    .format(len(self), len(self.specs) if specs else 'no', fileName,
+                            (pd.Timestamp.now() - start).total_seconds()))
 
     def fromOpenDoc(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3],
                     specs=True, specSheetsPrfx='sp-'):
@@ -878,25 +907,28 @@ class ResultsSet(object):
         
         self.fromExcel(fileName, sheetName, header, skiprows, specs, specSheetsPrfx, engine='odf')
 
-        # # TODO: can this be done in 1 only read_excel call ?
-        # #       Not as of pandas 1.1, 'cause of 1st call params, specific to results data structure,
-        # #       whereas specs sheets are in "free" format.
+    def fromPickle(self, fileName):
 
-        # # Load results data.
-        # self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
-        #                             header=header, skiprows=skiprows, index_col=0, engine='odf')
+        """Load (overwrite) data and specs from a pickle file, possibly lzma-compressed,
+        assuming ctor params match the results object contained inside,
+        which can well be ensured by using the same ctor params as used for saving !
 
-        # # Load specs
-        # self.specs = dict()
-        # if specs:
-        #     ddfAll = pd.read_excel(fileName, sheet_name=None, engine='odf',
-        #                            index_col=0, header=None, names=[0])
-        #     for shName, dfShData in ddfAll.items():
-        #         if shName.startswith(specSheetsPrfx):
-        #             self.specs[shName[len(specSheetsPrfx):]] = dfShData
+        :param fileName: target file pathname ; file is auto-decompressed through the lzma module
+                         if its extension is .xz or .lzma.
+        """
+        
+        start = pd.Timestamp.now()
+        
+        compressed = pl.Path(fileName).suffix in ['.xz', '.lzma']
+        with lzma.open(fileName, 'rb') if compressed else open(fileName, 'rb') as file:
+            other = pickle.load(file)
 
-        # logger.info('Loaded results and {}specs from {fileName} ({len(self)} rows)'
-        #             .format('' if specs else 'not ', fileName, len(self)))
+        self.dfData = other.dfData
+        self.specs = other.specs
+
+        logger.info('{} results rows and {} specs loaded from {} in {:.3f}s'
+                    .format(len(self), len(self.specs), fileName,
+                            (pd.Timestamp.now() - start).total_seconds()))
 
     @staticmethod
     def _closeness(sLeftRight):
