@@ -21,6 +21,9 @@ from collections import namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
+import pickle
+import lzma
+
 import autods.log as log
 
 logger = log.logger('ads.opr')
@@ -572,8 +575,8 @@ class DSParamsOptimiser(object):
 #    def __del__(self):
 #    
 #        self.shutdown()
-        
- 
+
+
 class MCDSTruncationOptimiser(DSParamsOptimiser):
 
     """Abstract class ; Run a bunch of MCDS truncation optimisations"""
@@ -1093,8 +1096,19 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             # Save results
             results.append(dfResults, sCustomHead=sCustomHead)
             
-            # Report elapsed time and number of optimisations completed until now.
+            # Backup results (alternate scheme for safety) in case of unavoidable crash (or reboot).
+            backupEvery = 50
             nDone += 1
+            if nDone % backupEvery == 0:
+                nBackupInd = (nDone // backupEvery) % 2
+                backupFpn = pl.Path(self.workDir) / f'optr-resbak-{nBackupInd}.pickle.xz'
+                start = pd.Timestamp.now()
+                with lzma.open(backupFpn, 'wb') as file:
+                    pickle.dump(results, file)
+                logger.info1('Saved {} intermediate results to {} ({:.3f}s)'
+                             .format(nDone, backupFpn.as_posix(), (pd.Timestamp.now() - start).total_seconds()))
+
+            # Report elapsed time and number of optimisations completed until now.
             if nDone % self.logProgressEvery == 0 or nDone == len(dOptims):
                 now = pd.Timestamp.now()
                 elapsedTilNow = now - optimStart
