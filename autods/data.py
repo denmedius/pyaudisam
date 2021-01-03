@@ -25,52 +25,93 @@ import autods.log as log
 
 logger = log.logger('ads.dat')
 
-from autods.analysis import DSAnalysis, MCDSAnalysis
-
 
 class DataSet(object):
 
-    """"A tabular data set built from various input sources (only 1 table supported)"""
+    """"A tabular data set built by concatenating various-formatted source tables into one.
     
-    def __init__(self, source, importDecFields=[], separator='\t', sheet=None):
+    Note: visionat module also defines this class: no reason it differs in any way => synchronise please !"""
+    
+    def __init__(self, sources, dRenameCols={}, dComputeCols={}, importDecFields=[],
+                 sheet=None, skipRows=None, headerRows=0, indexCols=None, separator='\t', encoding='utf-8'):
     
         """Ctor
-        :param source: input support provided for pandas.DataFrame, Excel .xlsx file,
-             tab-separated .csv/.txt files, and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
-        :param decimalFields: for smart ./, decimal character management in CSV sources (pandas is not smart on this)
+        :param sources: input support provided for pandas.DataFrame,
+             Excel .xlsx (through 'openpyxl' or 'xlrd' module) and .xls files (through 'openpyxl' module, no need for 'xlwt'),
+             tab-separated .csv/.txt files, and even OpenDoc .ods file with pandas >= 0.25 (through 'odfpy' module)
+             when multiple source provided, supposed to have compatible columns names, and appended 1 after 1.
+        :param dRenameCols: dict for renaming input columns right after loading data
+        :param dComputeCols: name and compute method for computed columns to be auto-added (but not renamed) ;
+                          as a dict { new col. name => constant, or function to apply
+                          to each row to auto-compute the new sightings column }
+        :param importDecFields: for smart ./, decimal character management in CSV sources (pandas is not smart on this)
+        :param sheet: name of the sheet to read from, for multi-sheet data files (like Excel or Open Doc. workbooks)
+        :param skipRows: list of indexes of initial rows to skip for file sources (before the column names row)
+        :param headerRows: index (or list of) of rows holding columns names (default 0 => 1st row)
+        :param indexCols: index (or list of) of first columns to use as (multi)index (default None => auto-gen index)
         :param separator: columns separator for CSV sources
-        :param sheet: name of the sheet to read from, for multi-sheet data files
-                                (like Excel or Open Doc. workbooks)
+        :param encoding: encodig for CSV sources
         """
     
-        if isinstance(source, str) or isinstance(source, pl.Path):
-            self._dfData = self._fromDataFile(source, importDecFields, separator, sheet)
-        elif isinstance(source, pd.DataFrame):
-            self._dfData = self._fromDataFrame(source)
+        if isinstance(sources, (str, pl.Path)):
+            self._dfData = self._fromDataFile(sources, sheet=sheet, decimalFields=importDecFields,
+                                              skipRows=skipRows, headerRows=headerRows, indexCols=indexCols,
+                                              separator=separator, encoding=encoding)
+        elif isinstance(sources, pd.DataFrame):
+            self._dfData = self._fromDataFrame(sources)
+        elif isinstance(sources, list):
+            ldfData = list()
+            for source in sources:
+                if isinstance(source, (str, pl.Path)):
+                    dfData = self._fromDataFile(source, sheet=sheet, decimalFields=importDecFields,
+                                                skipRows=skipRows, headerRows=headerRows, indexCols=indexCols,
+                                                separator=separator, encoding=encoding)
+                elif isinstance(source, pd.DataFrame):
+                    dfData = self._fromDataFrame(source)
+                else:
+                    raise Exception('source for DataSet must be a pandas.DataFrame or an existing file')
+                ldfData.append(dfData)
+            self._dfData = pd.concat(ldfData, ignore_index=True)
         else:
-            raise Exception('source for DataSet must be a pandas.DataFrame or an existing file')
+            raise Exception('Source for DataSet must be a pandas.DataFrame or an existing file')
 
-        assert not self._dfData.empty, 'No data in source data set'
+        if self._dfData.empty:
+            logger.warning('No data in source data set')
+            return
+            
+        logger.info(f'Loaded {len(self)} rows in data set ...')
+        logger.info('... found columns: [{}]'.format('|'.join(str(c) for c in self.columns)))
+        
+        # Rename columns if requested.
+        if dRenameCols:
+            self.renameColumns(dRenameCols)
+            
+        # Add auto-computed columns if any.
+        if dComputeCols:
+            self.addColumns(dComputeCols)
 
     # Wrapper around pd.read_csv for smart ./, decimal character management (pandas is not smart on this)
     # TODO: Make this more efficient
     @staticmethod
-    def _csv2df(fileName, decCols, sep='\t'):
-        df = pd.read_csv(fileName, sep=sep)
+    def _csv2df(fileName, decCols, skipRows=None, headerRows=0, indexCols=None, sep='\t'):
+        df = pd.read_csv(fileName, sep=sep, skiprows=skipRows,
+                         header=headerRows, index_col=indexCols)
         allRight = True
         for col in decCols:
             if df[col].dropna().apply(lambda v: isinstance(v, str)).any():
                 allRight = False
                 break
         if not allRight:
-            df = pd.read_csv(fileName, sep=sep, decimal=',')
+            df = pd.read_csv(fileName, sep=sep, skiprows=skipRows,
+                             header=headerRows, index_col=indexCols, decimal=',')
         return df
     
-    SupportedFileExts = ['.xlsx', '.csv', '.txt'] \
+    SupportedFileExts = ['.xlsx', '.xls', '.csv', '.txt'] \
                         + (['.ods'] if pkgver.parse(pd.__version__).release >= (0, 25) else [])
     
     @classmethod
-    def _fromDataFile(cls, sourceFpn, decimalFields, separator='\t', sheet=None):
+    def _fromDataFile(cls, sourceFpn, sheet=None, skipRows=None, headerRows=0, indexCols=None,
+                           decimalFields=[], separator='\t', encoding='utf-8'):
         
         if isinstance(sourceFpn, str):
             sourceFpn = pl.Path(sourceFpn)
@@ -81,12 +122,12 @@ class DataSet(object):
         assert ext in cls.SupportedFileExts, \
                'Unsupported source file type {}: not from {{{}}}' \
                .format(ext, ','.join(cls.SupportedFileExts))
-        if ext in ['.xlsx']:
-            dfData = pd.read_excel(sourceFpn, sheet_name=sheet or 0)
-        elif ext in ['.ods']:
-            dfData = pd.read_excel(sourceFpn, sheet_name=sheet or 0, engine='odf')
+        if ext in ['.xlsx', '.xls', '.ods']:
+            dfData = pd.read_excel(sourceFpn, sheet_name=sheet or 0,
+                                   skiprows=skipRows, header=headerRows, index_col=indexCols)
         elif ext in ['.csv', '.txt']:
-            dfData = cls._csv2df(sourceFpn, decCols=decimalFields, sep=separator)
+            dfData = cls._csv2df(sourceFpn, decCols=decimalFields, sep=separator,
+                                 skipRows=skipRows, headerRows=headerRows, indexCols=indexCols)
             
         return dfData
     
@@ -100,6 +141,11 @@ class DataSet(object):
         return len(self._dfData)
     
     @property
+    def columns(self):
+        
+        return self._dfData.columns
+
+    @property
     def dfData(self):
         
         return self._dfData
@@ -108,6 +154,253 @@ class DataSet(object):
     def dfData(self, dfData_):
         
         raise NotImplementedError('No change allowed to data ; create a new dataset !')
+
+    def dfSubData(self, subset=None, copy=False):
+    
+        """Get a subset of the table columns
+        :param subset: columns to select, as a list(string) or pd.Index.
+        :param copy: if True, return a full copy of the data, not a "reference" to the internal table
+        """
+        
+        assert subset is None or isinstance(subset, list) or isinstance(subset, pd.Index), \
+               'subset columns must be specified as None (all), or as a list of tuples, or as a pandas.Index'
+
+        # Make a copy of / extract selected columns of dfData.
+        if subset is None:
+            dfSbData = self.dfData
+        else:
+            dfSbData = self.dfData.reindex(columns=subset)
+        
+        if copy:
+            dfSbData = dfSbData.copy()
+        
+        return dfSbData
+
+    def dropColumns(self, cols):
+    
+        self._dfData.drop(columns=cols, inplace=True)
+        
+    def dropRows(self, sbSelRows):
+    
+        self._dfData.drop(self._dfData[sbSelRows].index, inplace=True)
+        
+    @staticmethod
+    def _addComputedColumns(dfData, dComputeCols):
+    
+        """Add computed columns to a DataFrame
+        
+        :param dfData: the DataFrame to update
+        :param dComputeCols: dict new col. name => constant, or function to apply
+                          to each row to compute its value
+        """
+        
+        for colName, computeCol in dComputeCols.items():
+            if callable(computeCol):
+                dfData[colName] = dfData.apply(computeCol, axis='columns')
+            else:
+                dfData[colName] = computeCol
+               
+        return dfData # Can be usefull when chaining ...
+
+    def addColumns(self, dComputeCols):
+    
+        """Add computed columns to the sightings data set
+        
+        :param dComputeCols: dict new col. name => constant, or function to apply
+                          to each row to compute its value
+        """
+            
+        self._addComputedColumns(self._dfData, dComputeCols)
+
+    def renameColumns(self, dRenameCols):
+    
+        self._dfData.rename(columns=dRenameCols, inplace=True)
+
+    def toExcel(self, fileName, sheetName=None, subset=None, index=True, engine=None):
+        
+        """Save data to an Excel worksheet :
+        * newer XLSX format for .xlsx extensions (through 'openpyxl' or 'xlrd' module)
+        * .xls (through 'xlwt').
+
+        Note: if a .ods fileName is given, and pandas >= 0.25, will automatically save
+              to the ODF format through 'odfpy' module if present.
+        """
+
+        dfOutData = self.dfSubData(subset=subset)
+        
+        dfOutData.to_excel(fileName, sheet_name=sheetName or 'AllResults',
+                           index=index, engine=engine)
+
+    # Save data to an Open Document worksheet (through 'odfpy' module)
+    def toOpenDoc(self, fileName, sheetName=None, subset=None, index=True):
+
+        """Save data to an Open Document worksheet, ODF format (through 'odfpy' module)
+
+        Warning: Need pandas >= 0.25
+        """
+        
+        assert pkgver.parse(pd.__version__).release >= (1, 1), \
+               'Don\'t know how to write to OpenDoc format before Pandas 1.1'
+        
+        return self.toExcel(fileName, sheetName=sheetName, subset=subset,
+                            index=index, engine='odf')  # Force engine in case not a .ods.
+
+    @staticmethod
+    def _closeness(sLeftRight):
+
+        """
+        Relative closeness of 2 numbers : -round(log10((actual - reference) / max(abs(actual), abs(reference))), 1)
+        = Compute the order of magnitude that separate the difference to the absolute max. of the two values.
+        
+        The greater it is, the lower the relative difference
+           Ex: 3 = 10**3 ratio between max absolute difference of the two,
+               +inf = NO difference at all,
+               0 = bad, one of the two is 0, and the other not.
+               
+        See unitary test in unintests notebook.
+        """
+
+        x, y = sLeftRight.to_list()
+        
+        # Special cases with 1 NaN, or 1 or more inf => all different
+        if np.isnan(x):
+            if not np.isnan(y):
+                return 0 # All different
+        elif np.isnan(y):
+            return 0 # All different
+        
+        if np.isinf(x) or np.isinf(y):
+            return 0 # All different
+        
+        # Normal case
+        c = abs(x - y)
+        if not np.isnan(c) and c != 0:
+            c = c / max(abs(x), abs(y))
+        
+        return np.inf if c == 0 else round(-np.log10(c), 1)
+
+    # Make results cell values hashable (and especially analysis model params)
+    # * needed for use in indexes (hashability)
+    # * needed to cope with to_excel/read_excel unconsistent None management
+    @staticmethod
+    def _toHashable(value):
+    
+        if isinstance(value, list):
+            hValue = str([float(v) for v in value])
+        elif pd.isnull(value):
+            hValue = 'None'
+        elif isinstance(value, (int, float)):
+            hValue = value
+        elif isinstance(value, str):
+            if ',' in value: # Assumed already somewhat stringified list
+                hValue = str([float(v) for v in value.strip('[]').split(',')])
+            else:
+                hValue = str(value)
+        else:
+            hValue = str(value)
+        
+        return hValue
+    
+    @classmethod
+    def compareDataFrames(cls, dfLeft, dfRight, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
+    
+        """
+        Compare 2 DataFrames.
+        
+        Parameters:
+        :param dfLeft: Left DataFrame
+        :param dfRight: Right DataFrame
+        :param list subsetCols: on a subset of columns,
+        :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
+        :param float dropCloser: with only rows with all cell closeness > dropCloser
+                                 (default: np.inf => all cols and rows kept).
+        :param bool dropNans: with only rows with all cell closeness > dropCloser or of NaN value ('cause NaN != Nan :-(.
+        :returns: a diagnostic DataFrame with same columns and merged index, with a "closeness" value
+                  for each cell (see _closeness method) ; rows with closeness > dropCloser are yet dropped.
+        """
+        
+        # Make copies : we need to change the frames.
+        dfLeft = dfLeft.copy()
+        dfRight = dfRight.copy()
+        
+        # Check input columns
+        dColsSets = { 'Subset column': subsetCols, 'Index column': indexCols }
+        for colsSetName, colsSet in dColsSets.items():
+            for col in colsSet:
+                if col not in dfLeft.columns:
+                    raise KeyError('{} {} not in left result set'.format(colsSetName, col))
+                if col not in dfRight.columns:
+                    raise KeyError('{} {} not in right result set'.format(colsSetName, col))
+        
+        # Set specified cols as the index (after making them hashable) and sort it.
+        dfLeft[indexCols] = dfLeft[indexCols].applymap(cls._toHashable)
+        dfLeft.set_index(indexCols, inplace=True)
+        dfLeft = dfLeft.sort_index() # Not inplace: don't modify a copy/slice
+
+        dfRight[indexCols] = dfRight[indexCols].applymap(cls._toHashable)
+        dfRight.set_index(indexCols, inplace=True)
+        dfRight = dfRight.sort_index() # Idem
+
+        # Filter data to compare (subset of columns).
+        if subsetCols:
+            dfLeft = dfLeft[subsetCols]
+            dfRight = dfRight[subsetCols]
+
+        # Append mutually missing rows to the 2 tables => a complete and identical index.
+        anyCol = dfLeft.columns[0] # Need one, whichever.
+        dfLeft = dfLeft.join(dfRight[[anyCol]], rsuffix='_r', how='outer')
+        dfLeft.drop(columns=dfLeft.columns[-1], inplace=True)
+        dfRight = dfRight.join(dfLeft[[anyCol]], rsuffix='_l', how='outer')
+        dfRight.drop(columns=dfRight.columns[-1], inplace=True)
+
+        # Compare : Compute closeness 
+        nColLevels = dfLeft.columns.nlevels
+        KRightCol = 'tmp' if nColLevels == 1 else tuple('tmp{}'.format(i) for i in range(nColLevels))
+        dfRelDiff = dfLeft.copy()
+        exception = False
+        for leftCol in dfLeft.columns:
+            dfRelDiff[KRightCol] = dfRight[leftCol]
+            try:
+                dfRelDiff[leftCol] = dfRelDiff[[leftCol, KRightCol]].apply(cls._closeness, axis='columns')
+            except TypeError as exc:
+                logger.error(f'Column {leftCol} : {exc}')
+                exception = True
+            dfRelDiff.drop(columns=[KRightCol], inplace=True)
+            
+        if exception:
+            raise TypeError('Stopping: Some columns could not be compared')
+            
+        # Complete comparison : rows with index not in both frames forced to all-0 closeness
+        # (of course they should result so ... unless some NaNs here and there : fix this)
+        dfRelDiff.loc[dfLeft[~dfLeft.index.isin(dfRight.index)].index, :] = 0
+        dfRelDiff.loc[dfRight[~dfRight.index.isin(dfLeft.index)].index, :] = 0
+        
+        # Drop rows and columns with closeness over the threshold (or of NaN value if authorized)
+        sbRows2Drop = dfRelDiff.applymap(lambda v: v > dropCloser or (dropNans and pd.isnull(v))).all(axis='columns')
+        dfRelDiff.drop(dfRelDiff[sbRows2Drop].index, axis='index', inplace=True)
+        
+        return dfRelDiff
+
+    def compare(self, dsOther, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
+    
+        """
+        Compare 2 data sets.
+        
+        Parameters:
+        :param dsOther: Right data set object to compare
+        :param list subsetCols: on a subset of columns,
+        :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
+        :param float dropCloser: with only rows with all cell closeness > dropCloser
+                                 (default: np.inf => all cols and rows kept).
+        :param bool dropNans: with only rows with all cell closeness > dropCloser or of NaN value ('cause NaN != Nan :-(.
+        :returns: a diagnostic DataFrame with same columns and merged index, with a "closeness" value
+                  for each cell (see _closeness method) ; without rows with closeness > dropCloser.
+        """
+        
+        return self.compareDataFrames(dfLeft=self.dfData, dfRight=dsOther.dfData,
+                                      subsetCols=subsetCols, indexCols=indexCols,
+                                      dropCloser=dropCloser, dropNans=dropNans)
+        
 
 
 # A tabular data set for producing mono-category or even indivividuals data sets
@@ -125,9 +418,9 @@ class FieldDataSet(DataSet):
     #   (each column to add is computed through :
     #      dfMonoCatSights[colName] = dfMonoCatSights[].apply(computeCol, axis='columns')
     #      for colName, computeCol in addMonoCatCols.items()) 
-    def __init__(self, source, countCols, addMonoCatCols=dict(), importDecFields=[], separator='\t', sheet=None):
+    def __init__(self, source, countCols, addMonoCatCols=dict(), importDecFields=[], sheet=None, separator='\t'):
         
-        super().__init__(source, importDecFields, separator, sheet)
+        super().__init__(sources=source, importDecFields=importDecFields, sheet=sheet, separator=separator)
         
         self.countCols = countCols
         self.dCompdMonoCatColSpecs = addMonoCatCols
@@ -266,9 +559,9 @@ class MonoCategoryDataSet(DataSet):
     def __init__(self, source, dSurveyArea, importDecFields=[], dfTransects=None,
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                        sampleDecFields=['Effort', 'Distance'], effortConstVal=1, 
-                       separator='\t', sheet=None):
+                       sheet=None, separator='\t'):
         
-        super().__init__(source, importDecFields, separator, sheet)
+        super().__init__(sources=source, importDecFields=importDecFields, sheet=sheet, separator=separator)
         
         self.dSurveyArea = dSurveyArea
         self.transectPlaceCols = transectPlaceCols
@@ -440,6 +733,7 @@ class MonoCategoryDataSet(DataSet):
         # Done.
         return self._sdsSampleDataSetCache
 
+
 # A tabular input data set for multiple analyses on the same sample, with 1 or 0 individual per row
 # Warning:
 # * Only Point transect supported as for now
@@ -449,11 +743,11 @@ class MonoCategoryDataSet(DataSet):
 #   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
 class SampleDataSet(DataSet):
     
-    def __init__(self, source, decimalFields=[], sortFields=[], separator='\t', sheet=None):
+    def __init__(self, source, decimalFields=[], sortFields=[], sheet=None, separator='\t'):
         
         self.decimalFields = decimalFields
 
-        super().__init__(source, importDecFields=decimalFields, separator=separator, sheet=sheet)
+        super().__init__(sources=source, importDecFields=decimalFields, sheet=sheet, separator=separator)
                 
         assert not self._dfData.empty, 'No data in set'
         assert len(self._dfData.columns) >= 5, 'Not enough columns (should be at leat 5)'
@@ -847,6 +1141,29 @@ class ResultsSet(object):
         self.toExcel(fileName, sheetName, lang, subset,
                      specs=specs, specSheetsPrfx=specSheetsPrfx, engine='odf')
 
+    def fromPickle(self, fileName):
+
+        """Load (overwrite) data and specs from a pickle file, possibly lzma-compressed,
+        assuming ctor params match the results object contained inside,
+        which can well be ensured by using the same ctor params as used for saving !
+
+        :param fileName: target file pathname ; file is auto-decompressed through the lzma module
+                         if its extension is .xz or .lzma.
+        """
+        
+        start = pd.Timestamp.now()
+        
+        compressed = pl.Path(fileName).suffix in ['.xz', '.lzma']
+        with lzma.open(fileName, 'rb') if compressed else open(fileName, 'rb') as file:
+            other = pickle.load(file)
+
+        self.dfData = other.dfData
+        self.specs = other.specs
+
+        logger.info('{} results rows and {} specs loaded from {} in {:.3f}s'
+                    .format(len(self), len(self.specs), fileName,
+                            (pd.Timestamp.now() - start).total_seconds()))
+
     def fromExcel(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3],
                   specs=True, specSheetsPrfx='sp-', engine='openpyxl'):
         
@@ -907,172 +1224,13 @@ class ResultsSet(object):
         
         self.fromExcel(fileName, sheetName, header, skiprows, specs, specSheetsPrfx, engine='odf')
 
-    def fromPickle(self, fileName):
-
-        """Load (overwrite) data and specs from a pickle file, possibly lzma-compressed,
-        assuming ctor params match the results object contained inside,
-        which can well be ensured by using the same ctor params as used for saving !
-
-        :param fileName: target file pathname ; file is auto-decompressed through the lzma module
-                         if its extension is .xz or .lzma.
-        """
-        
-        start = pd.Timestamp.now()
-        
-        compressed = pl.Path(fileName).suffix in ['.xz', '.lzma']
-        with lzma.open(fileName, 'rb') if compressed else open(fileName, 'rb') as file:
-            other = pickle.load(file)
-
-        self.dfData = other.dfData
-        self.specs = other.specs
-
-        logger.info('{} results rows and {} specs loaded from {} in {:.3f}s'
-                    .format(len(self), len(self.specs), fileName,
-                            (pd.Timestamp.now() - start).total_seconds()))
-
-    @staticmethod
-    def _closeness(sLeftRight):
-
-        """
-        Relative closeness of 2 numbers : -round(log10((actual - reference) / max(abs(actual), abs(reference))), 1)
-        = Compute the order of magnitude that separate the difference to the absolute max. of the two values.
-        
-        The greater it is, the lower the relative difference
-           Ex: 3 = 10**3 ratio between max absolute difference of the two,
-               +inf = NO difference at all,
-               0 = bad, one of the two is 0, and the other not.
-               
-        See unitary test in unintests notebook.
-        """
-
-        x, y = sLeftRight.to_list()
-        
-        # Special cases with 1 NaN, or 1 or more inf => all different
-        if np.isnan(x):
-            if not np.isnan(y):
-                return 0 # All different
-        elif np.isnan(y):
-            return 0 # All different
-        
-        if np.isinf(x) or np.isinf(y):
-            return 0 # All different
-        
-        # Normal case
-        c = abs(x - y)
-        if not np.isnan(c) and c != 0:
-            c = c / max(abs(x), abs(y))
-        
-        return np.inf if c == 0 else round(-np.log10(c), 1)
-
-    # Make results cell values hashable (and especially analysis model params)
-    # * needed for use in indexes (hashability)
-    # * needed to cope with to_excel/read_excel unconsistent None management
-    @staticmethod
-    def _toHashable(value):
-    
-        if isinstance(value, list):
-            hValue = str([float(v) for v in value])
-        elif pd.isnull(value):
-            hValue = 'None'
-        elif isinstance(value, (int, float)):
-            hValue = value
-        elif isinstance(value, str):
-            if ',' in value: # Assumed already somewhat stringified list
-                hValue = str([float(v) for v in value.strip('[]').split(',')])
-            else:
-                hValue = str(value)
-        else:
-            hValue = str(value)
-        
-        return hValue
-    
-    @classmethod
-    def compareDataFrames(cls, dfLeft, dfRight, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
-    
-        """
-        Compare 2 DataFrames.
-        
-        Parameters:
-        :param dfLeft: Left DataFrame
-        :param dfRight: Right DataFrame
-        :param list subsetCols: on a subset of columns,
-        :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
-        :param float dropCloser: with only rows with all cell closeness > dropCloser
-                                 (default: np.inf => all cols and rows kept).
-        :param bool dropNans: with only rows with all cell closeness > dropCloser or of NaN value ('cause NaN != Nan :-(.
-        :returns: a diagnostic DataFrame with same columns and merged index, with a "closeness" value
-                  for each cell (see _closeness method) ; rows with closeness > dropCloser are yet dropped.
-        """
-        
-        # Make copies : we need to change the frames.
-        dfLeft = dfLeft.copy()
-        dfRight = dfRight.copy()
-        
-        # Check input columns
-        dColsSets = { 'Subset column': subsetCols, 'Index column': indexCols }
-        for colsSetName, colsSet in dColsSets.items():
-            for col in colsSet:
-                if col not in dfLeft.columns:
-                    raise KeyError('{} {} not in left result set'.format(colsSetName, col))
-                if col not in dfRight.columns:
-                    raise KeyError('{} {} not in right result set'.format(colsSetName, col))
-        
-        # Set specified cols as the index (after making them hashable) and sort it.
-        dfLeft[indexCols] = dfLeft[indexCols].applymap(cls._toHashable)
-        dfLeft.set_index(indexCols, inplace=True)
-        dfLeft = dfLeft.sort_index() # Not inplace: don't modify a copy/slice
-
-        dfRight[indexCols] = dfRight[indexCols].applymap(cls._toHashable)
-        dfRight.set_index(indexCols, inplace=True)
-        dfRight = dfRight.sort_index() # Idem
-
-        # Filter data to compare (subset of columns).
-        if subsetCols:
-            dfLeft = dfLeft[subsetCols]
-            dfRight = dfRight[subsetCols]
-
-        # Append mutually missing rows to the 2 tables => a complete and identical index.
-        anyCol = dfLeft.columns[0] # Need one, whichever.
-        dfLeft = dfLeft.join(dfRight[[anyCol]], rsuffix='_r', how='outer')
-        dfLeft.drop(columns=dfLeft.columns[-1], inplace=True)
-        dfRight = dfRight.join(dfLeft[[anyCol]], rsuffix='_l', how='outer')
-        dfRight.drop(columns=dfRight.columns[-1], inplace=True)
-
-        # Compare : Compute closeness 
-        nColLevels = dfLeft.columns.nlevels
-        KRightCol = 'tmp' if nColLevels == 1 else tuple('tmp{}'.format(i) for i in range(nColLevels))
-        dfRelDiff = dfLeft.copy()
-        exception = False
-        for leftCol in dfLeft.columns:
-            dfRelDiff[KRightCol] = dfRight[leftCol]
-            try:
-                dfRelDiff[leftCol] = dfRelDiff[[leftCol, KRightCol]].apply(cls._closeness, axis='columns')
-            except TypeError as exc:
-                logger.error(f'Column {leftCol} : {exc}')
-                exception = True
-            dfRelDiff.drop(columns=[KRightCol], inplace=True)
-            
-        if exception:
-            raise TypeError('Stopping: Some columns could not be compared')
-            
-        # Complete comparison : rows with index not in both frames forced to all-0 closeness
-        # (of course they should result so ... unless some NaNs here and there : fix this)
-        dfRelDiff.loc[dfLeft[~dfLeft.index.isin(dfRight.index)].index, :] = 0
-        dfRelDiff.loc[dfRight[~dfRight.index.isin(dfLeft.index)].index, :] = 0
-        
-        # Drop rows and columns with closeness over the threshold (or of NaN value if authorized)
-        sbRows2Drop = dfRelDiff.applymap(lambda v: v > dropCloser or (dropNans and pd.isnull(v))).all(axis='columns')
-        dfRelDiff.drop(dfRelDiff[sbRows2Drop].index, axis='index', inplace=True)
-        
-        return dfRelDiff
-
     def compare(self, rsOther, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
     
         """
         Compare 2 results sets.
         
         Parameters:
-        :param rsOther: Right results object to comare
+        :param rsOther: Right results object to compare
         :param list subsetCols: on a subset of columns,
         :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
         :param float dropCloser: with only rows with all cell closeness > dropCloser
@@ -1082,9 +1240,9 @@ class ResultsSet(object):
                   for each cell (see _closeness method) ; rows with closeness > dropCloser are yet dropped.
         """
         
-        return self.compareDataFrames(dfLeft=self.dfData, dfRight=rsOther.dfData,
-                                      subsetCols=subsetCols, indexCols=indexCols,
-                                      dropCloser=dropCloser, dropNans=dropNans)
+        return DataSet.compareDataFrames(dfLeft=self.dfData, dfRight=rsOther.dfData,
+                                         subsetCols=subsetCols, indexCols=indexCols,
+                                         dropCloser=dropCloser, dropNans=dropNans)
         
 
 if __name__ == '__main__':
