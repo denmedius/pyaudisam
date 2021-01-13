@@ -354,9 +354,9 @@ class ResultsFullReport(ResultsReport):
             # Generate an image file for the plot figure (forcing the specified patch background color).
             tgtFileName = tgtFileName + '.' + imgFormat.lower()
             fig.tight_layout()
-            fig.savefig(os.path.join(tgtFolder, tgtFileName),
-                       box_inches='tight', quality=imgQuality, transparent=transparent,
-                       facecolor=axes.figure.get_facecolor(), edgecolor='none')
+            pilArgs = dict(quality=imgQuality) if imgFormat == 'jpg' else dict()
+            fig.savefig(os.path.join(tgtFolder, tgtFileName), bbox_inches='tight', transparent=transparent,
+                        facecolor=axes.figure.get_facecolor(), edgecolor='none', pil_kwargs=pilArgs)
 
             # Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
             axes.clear()
@@ -469,7 +469,7 @@ class ResultsFullReport(ResultsReport):
         
         # i. Start generation of all pages in parallel (unless specified not)
         genStart = pd.Timestamp.now()  # Start of elapsed time measurement.
-        executor = exor.Executor(processes=generators)
+        executor = exor.Executor(processes=generators if generators > 1 else None)
         pages = dict()
         for lblRes in dfSynthRes.index:
             
