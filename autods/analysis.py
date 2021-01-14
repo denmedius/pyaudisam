@@ -19,6 +19,8 @@ import argparse
 import numpy as np
 import pandas as pd
 
+import concurrent.futures as cofu
+
 import autods.log as log
 
 logger = log.logger('ads.ans')
@@ -36,13 +38,14 @@ class DSAnalysis(object):
     
     # Run columns for output : root engine output (3-level multi-index)
     RunRunColumns = [('run output', 'run status', 'Value'),
-                     ('run output', 'run time',   'Value'),
+                     ('run output', 'start time', 'Value'),
+                     ('run output', 'elapsed time', 'Value'),
                      ('run output', 'run folder', 'Value')]
-    RunFolderColumn = RunRunColumns[2]
+    RunFolderColumn = next(iter(col for col in RunRunColumns if col[1] == 'run folder'))
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
-    DRunRunColumnTrans = dict(en=['ExCod', 'RunTime', 'RunFolder'],
-                              fr=['CodEx', 'HeureExec', 'DossierExec'])
+    DRunRunColumnTrans = dict(en=['ExCod', 'StartTime', 'ElapsedTime', 'RunFolder'],
+                              fr=['CodEx', 'HeureExec', 'DuréeExec', 'DossierExec'])
     
     # Ctor
     # * :param: engine : DS engine to use
@@ -147,7 +150,13 @@ class MCDSAnalysis(DSAnalysis):
 
         # Initialise base.
         super().__init__(engine, sampleDataSet, name, customData)
-        
+
+        # Analysis run time-out implemented here if engine doesn't know how to do it
+        # (but then, MCDS exe are not killed, only abandonned in "space")
+        self.timeOut = engine.timeOut if engine.runMethod == 'os.system' else None
+        if self.timeOut is not None:
+            logger.debug(f"Will take care of {self.timeOut}s time limit because engine can't do this")
+
         # Save params.
         self.logData = logData
         self.estimKeyFn = estimKeyFn
@@ -200,7 +209,15 @@ class MCDSAnalysis(DSAnalysis):
     def _wait4Results(self):
         
         # Get analysis execution results, when the computation is finished (blocking)
-        self.runStatus, self.runTime, self.runDir, self.sResults = self.future.result()
+        try:
+            if self.timeOut is not None:
+                startTime = pd.Timestamp.now()  # In case of cofu.TimeoutError
+            self.runStatus, self.startTime, self.elapsedTime, self.runDir, self.sResults = \
+                self.future.result(timeout=self.timeOut)
+        except cofu.TimeoutError:
+            logger.error('MCDS Analysis run timed-out after {}s'.format(self.timeOut))
+            self.runStatus, self.startTime, self.elapsedTime, self.runDir, self.sResults = \
+                self.engine.RCTimedOut, startTime, self.timeOut, None, None
         
     # Wait for the real end of analysis execution, and return its results.
     # This terminates an async. run when returning.
@@ -212,7 +229,7 @@ class MCDSAnalysis(DSAnalysis):
         # Append the analysis stats (if any usable) to the input parameters.
         sParams = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
                                   self.cvInterval, self.minDist, self.maxDist, self.fitDistCuts, self.discrDistCuts,
-                                  self.runStatus, self.runTime, self.runDir],
+                                  self.runStatus, self.startTime, self.elapsedTime, self.runDir],
                             index=self.MIRunColumns)
         
         if self.engine.success(self.runStatus) or self.engine.warnings(self.runStatus):
@@ -229,15 +246,15 @@ class MCDSAnalysis(DSAnalysis):
         
     def cleanup(self):
     
-        if 'runDir' in dir(self):
+        if 'runDir' in dir(self) and self.runDir is not None:
         
             runDir = pl.Path(self.runDir)
             if runDir.is_dir():
             
                 # Take extra precautions before rm -fr :-) (at least 14 files inside after a report generation)
                 if not runDir.is_symlink() and len(list(runDir.rglob('*'))) < 15:
-                    logger.debug('Removing run folder "{}"'.format(runDir))
-                    shutil.rmtree(self.runDir)
+                    logger.debug('Removing run folder "{}"'.format(runDir.as_posix()))
+                    shutil.rmtree(runDir)
                 else:
                     logger.warning('Cowardly refused to remove suspect analysis run folder "{}"'.format(runDir))
         
@@ -348,7 +365,8 @@ class MCDSPreAnalysis(MCDSAnalysis):
         sResults = anlys.getResults()
         
         # Store best analysis other outputs ... as self ones
-        self.runStatus, self.runTime, self.runDir = anlys.runStatus, anlys.runTime, anlys.runDir
+        self.runStatus, self.startTime, self.elapsedTime, self.runDir = \
+            anlys.runStatus, anlys.startTime, anlys.elapsedTime, anlys.runDir
         
         return sResults
 

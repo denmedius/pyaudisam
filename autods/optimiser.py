@@ -566,7 +566,7 @@ class DSParamsOptimiser(object):
         """
     
         if self._engine:
-            self._engine.shutdown()
+            self._engine.shutdown(executor=True)
             self._engine = None
         if self._executor:
             self._executor.shutdown()
@@ -590,7 +590,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       workDir='.', logData=False, logProgressEvery=5, autoClean=True,
+                       workDir='.', runMethod='subprocess.run', runTimeOut=120,
+                       logData=False, logProgressEvery=5, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
@@ -617,6 +618,10 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         :param defDiscrDistCutsFctr: Factor multiplied to sqrt(nb of sightings)
                to get min/max DiscrDistCuts when discrDistCutsFctr is auto with no parameters (min and max)
 
+        :param runMethod: for calling MCDS engine executable : 'os.system' or 'subprocess.run'
+        :param runTimeOut: engine call time limit (s) ; None => no limit ;
+                           WARNING: Not implemented (no way) for 'os.system' run method (no solution found)
+
         Other parameters: See base class.
         """
 
@@ -633,10 +638,15 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                          defSubmitTimes=defSubmitTimes, defSubmitOnlyBest=defSubmitOnlyBest,
                          dDefSubmitOtherParams=dDefSubmitOtherParams, dDefOptimCoreParams=dDefOptimCoreParams)
 
+        assert runTimeOut is None or runMethod != 'os.system', \
+               f"Can't care about {runTimeOut}s execution time limit with os.system run method (not implemented)"
+
         self.surveyType = surveyType
         self.distanceType = distanceType
         self.clustering = clustering
         
+        self.runMethod = runMethod
+        self.runTimeOut = runTimeOut
         self.logData = logData
         self.logProgressEvery = logProgressEvery
         self.autoClean = autoClean
@@ -1131,24 +1141,30 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         
         return results
 
-    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=1):
+    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None):
    
         """Optimise specified analyses
         
         Call checkUserSpecs(...) before this to make sure user specs are OK
         
         Parameters:
-           :param dfExplParamSpecs: optimisation params specs table, as a DataFrame
-           :param implParamSpecs: Implicit pd.DataFrame and optimisation param specs, suitable for explicitation
-              through Analyser.explicitVariantSpecs
-           :param threads: Number of parallel threads to use (default: no parallelism)
+        :param dfExplParamSpecs: optimisation params specs table, as a DataFrame
+        :param implParamSpecs: Implicit pd.DataFrame and optimisation param specs, suitable for explicitation
+                               through Analyser.explicitVariantSpecs
+        :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
         """
     
-        # Executor (parallel or sequential).
+        # Executor for optimisations.
         self._executor = Executor(threads=threads)
 
-        # MCDS analysis engine (a sequential one: 'cause MCDSOptimisation does the parallel stuff itself).
-        self._engine = MCDSEngine(workDir=self.workDir,
+        # MCDS analysis engine (a sequential one, because MCDSOptimisation does the parallel stuff itself,
+        # but an asynchronous one if execution time limit is to be enforced with os.system run method).
+
+        # Failed try: Seems we can't stack ThreadPoolExecutors, as optimisations get run sequentially
+        #             when using an Executor(threads=1) (means async) for self._engine ... 
+        #engineExor = None if self.runMethod != 'os.system' or self.runTimeOut is None else Executor(threads=1)
+        self._engine = MCDSEngine(workDir=self.workDir, #executor=engineExor,
+                                  runMethod=self.runMethod, timeOut=self.runTimeOut,
                                   distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                   surveyType=self.surveyType, distanceType=self.distanceType,
                                   clustering=self.clustering)
@@ -1166,7 +1182,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # Build internal name => user name converter for spec. columns
         self.dInt2UserParamSpecNames = dict(zip(intParamSpecCols, userParamSpecCols))
         
-        # For each analysis to run :
+        # For each optimisation to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
         logger.info('Running MCDS truncation optimisations for {} analyses specs ({}) ...' \
                     .format(len(dfExplParamSpecs), runHow))
@@ -1205,7 +1221,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             
             # Next analysis (loop).
 
-        if self._executor.isParallel():
+        if self._executor.isAsync():
             logger.info('All optimisations started; now waiting for their end, and results ...')
         else:
             logger.info('All optimisations done; now collecting their results ...')
@@ -1233,7 +1249,8 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       workDir='.', logData=False, logProgressEvery=5, autoClean=True,
+                       workDir='.', runMethod='subprocess.run', runTimeOut=120,
+                       logData=False, logProgressEvery=5, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
@@ -1253,7 +1270,8 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols,
-                         workDir=workDir, logData=logData, logProgressEvery=logProgressEvery, autoClean=autoClean,
+                         workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut, logData=logData,
+                         logProgressEvery=logProgressEvery, autoClean=autoClean,
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
                          defOutliersMethod=defOutliersMethod, defOutliersQuantCutPct=defOutliersQuantCutPct,
                          defFitDistCutsFctr=defFitDistCutsFctr, defDiscrDistCutsFctr=defDiscrDistCutsFctr,

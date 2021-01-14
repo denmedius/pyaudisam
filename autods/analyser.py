@@ -808,9 +808,6 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 class MCDSAnalyser(DSAnalyser):
 
     """Run a bunch of MCDS analyses
-
-    Parameters:
-    :param anlysSpecCustCols: Special columns from analysis specs to simply pass through in results
     """
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
@@ -822,11 +819,20 @@ class MCDSAnalyser(DSAnalyser):
                  resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                       sample=['Species', 'Pass', 'Adult', 'Duration']),
                  abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
-                 workDir='.', logData=False, logProgressEvery=50,
+                 workDir='.', runMethod='subprocess.run', runTimeOut=120, logData=False, logProgressEvery=50,
                  defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                  defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                  defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
                  defFitDistCuts=MCDSEngine.DistFitCutsDef, defDiscrDistCuts=MCDSEngine.DistDiscrCutsDef):
+
+        """Ctor
+
+        Parameters:
+        :param anlysSpecCustCols: Special columns from analysis specs to simply pass through in results
+        :param runTimeOut: time-out for every analysis run (s) (None => no limit)
+        :param runMethod: for calling MCDS engine executable : 'os.system' or 'subprocess.run'
+        :param timeOut: engine call time limit (s) ; None => no limit ;
+        """
 
         assert distanceUnit == 'Meter', 'Not implemented: Only "Meter" distance unit supported for the moment'
 
@@ -845,6 +851,8 @@ class MCDSAnalyser(DSAnalyser):
         self.distanceType = distanceType
         self.clustering = clustering
         
+        self.runMethod = runMethod
+        self.runTimeOut = runTimeOut
         self.logData = logData
         self.logProgressEvery = logProgressEvery
 
@@ -859,7 +867,7 @@ class MCDSAnalyser(DSAnalyser):
                          
         # Specs.
         self.updateSpecs(**{name: getattr(self, name)
-                            for name in ['surveyType', 'distanceType', 'clustering',
+                            for name in ['runMethod', 'runTimeOut', 'surveyType', 'distanceType', 'clustering',
                                          'defEstimKeyFn', 'defEstimAdjustFn', 'defEstimCriterion', 'defCVInterval',
                                          'defMinDist', 'defMaxDist', 'defFitDistCuts', 'defDiscrDistCuts']})
 
@@ -1010,7 +1018,7 @@ class MCDSAnalyser(DSAnalyser):
 
         return results
 
-    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=1):
+    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None):
     
         """Run specified analyses
         
@@ -1021,14 +1029,15 @@ class MCDSAnalyser(DSAnalyser):
           (generated through explicitVariantSpecs, as an example),
         :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
           through explicitVariantSpecs
-        :param threads: Number of parallel threads to use (default=1: no parallelism)
+        :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
         """
     
         # Executor (parallel or sequential).
         self._executor = Executor(threads=threads)
 
         # MCDS analysis engine
-        self._engine = MCDSEngine(workDir=self.workDir, executor=self._executor, 
+        self._engine = MCDSEngine(workDir=self.workDir, executor=self._executor,
+                                  runMethod=self.runMethod, timeOut=self.runTimeOut,
                                   distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                   surveyType=self.surveyType, distanceType=self.distanceType,
                                   clustering=self.clustering)
@@ -1098,7 +1107,6 @@ ModelStrategyDef = [dict(keyFn=kf, adjSr='COSINE', estCrit=ModelEstimCritDef, cv
 # MCDSPreAnalyser: Run a bunch of MCDS pre-analyses
 class MCDSPreAnalyser(MCDSAnalyser):
 
-
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                  transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
                  sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], sampleDecCols=['Effort', 'Distance'],
@@ -1107,7 +1115,21 @@ class MCDSPreAnalyser(MCDSAnalyser):
                  surveyType='Point', distanceType='Radial', clustering=False,
                  resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
                                       sample=['Species', 'Pass', 'Adult', 'Duration']),
-                 workDir='.', logProgressEvery=5):
+                 workDir='.', runMethod='subprocess.run', runTimeOut=120, logProgressEvery=5):
+
+        """Ctor
+        
+        Parameters:
+        :param dfExplParamSpecs: Explicit sample specs, as a DataFrame
+          (generated through explicitVariantSpecs, as an example),
+        :param implParamSpecs: Implicit sample specs, suitable for explicitation
+          through explicitVariantSpecs
+        :param dModelStrategy: Sequence of fallback models to use when analyses fails.
+        :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
+        :param runMethod: for calling MCDS engine executable : 'os.system' or 'subprocess.run'
+        :param timeOut: engine call time limit (s) ; None => no limit ;
+                WARNING: Not implemented (no way) for 'os.system' run method (no solution found)
+        """
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
@@ -1117,10 +1139,14 @@ class MCDSPreAnalyser(MCDSAnalyser):
                          abbrevCol=abbrevCol, abbrevBuilder=abbrevBuilder, sampleIndCol=sampleIndCol,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
-                         resultsHeadCols=resultsHeadCols,
-                         anlysIndCol=None, workDir=workDir, logProgressEvery=logProgressEvery)
+                         resultsHeadCols=resultsHeadCols, anlysIndCol=None, 
+                         workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut,
+                         logProgressEvery=logProgressEvery)
 
-    def run(self, dfExplSampleSpecs=None, implSampleSpecs=None, dModelStrategy=ModelStrategyDef, threads=1):
+        assert runTimeOut is None or runMethod != 'os.system', \
+               f"Can't care about {runTimeOut}s execution time limit with os.system run method (not implemented)"
+
+    def run(self, dfExplSampleSpecs=None, implSampleSpecs=None, dModelStrategy=ModelStrategyDef, threads=None):
     
         """Run specified analyses
         
@@ -1132,14 +1158,19 @@ class MCDSPreAnalyser(MCDSAnalyser):
         :param implParamSpecs: Implicit sample specs, suitable for explicitation
           through explicitVariantSpecs
         :param dModelStrategy: Sequence of fallback models to use when analyses fails.
-        :param threads: Number of parallel threads to use (default=1: no parallelism)
+        :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
         """
     
         # Executor (parallel or sequential).
         self._executor = Executor(threads=threads)
 
         # MCDS analysis engine (a sequential one: 'cause MCDSPreAnalysis does the parallel stuff itself).
-        self._engine = MCDSEngine(workDir=self.workDir,
+
+        # Failed try: Seems we can't stack ThreadPoolExecutors, as optimisations get run sequentially
+        #             when using an Executor(threads=1) (means async) for self._engine ... 
+        #engineExor = None if self.runMethod != 'os.system' or self.runTimeOut is None else Executor(threads=1)
+        self._engine = MCDSEngine(workDir=self.workDir, #executor=engineExor,
+                                  runMethod=self.runMethod, timeOut=self.runTimeOut,
                                   distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                   surveyType=self.surveyType, distanceType=self.distanceType,
                                   clustering=self.clustering)
@@ -1211,7 +1242,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         assert format == 'Distance', 'Only Distance format supported for the moment'
     
         # MCDS analysis engine
-        self._engine = MCDSEngine(workDir=self.workDir, 
+        self._engine = MCDSEngine(workDir=self.workDir, runMethod=self.runMethod, timeOut=self.runTimeOut,
                                   distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                   surveyType=self.surveyType, distanceType=self.distanceType,
                                   clustering=self.clustering)

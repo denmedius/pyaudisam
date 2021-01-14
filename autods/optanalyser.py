@@ -43,7 +43,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       workDir='.', logData=False, logAnlysProgressEvery=50, logOptimProgressEvery=5, autoClean=True,
+                       workDir='.', runMethod='subprocess.run', runTimeOut=120, logData=False,
+                       logAnlysProgressEvery=50, logOptimProgressEvery=5, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
@@ -78,7 +79,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                          anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol,
                          anlysSpecCustCols=anlysSpecCustCols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
-                         resultsHeadCols=resultsHeadCols, workDir=workDir,
+                         resultsHeadCols=resultsHeadCols,
+                         workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut,
                          logData=logData, logProgressEvery=logAnlysProgressEvery,
                          defEstimKeyFn=defEstimKeyFn, defEstimAdjustFn=defEstimAdjustFn,
                          defEstimCriterion=defEstimCriterion, defCVInterval=defCVInterval,
@@ -106,9 +108,9 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Specs.
         self.updateSpecs(**{name: getattr(self, name)
                             for name in ['defExpr2Optimise', 'defMinimiseExpr', 'dDefOptimCoreParams',
-                                        'defSubmitTimes', 'defSubmitOnlyBest', 'dDefSubmitOtherParams',
-                                        'defOutliersMethod', 'defOutliersQuantCutPct',
-                                        'defFitDistCutsFctr', 'defDiscrDistCutsFctr']})
+                                         'defSubmitTimes', 'defSubmitOnlyBest', 'dDefSubmitOtherParams',
+                                         'defOutliersMethod', 'defOutliersQuantCutPct',
+                                         'defFitDistCutsFctr', 'defDiscrDistCutsFctr']})
 
         # An optimiser instance only there for explicitParamSpecs() delegation.
         # Note: For the moment, only zoopt engine supported
@@ -123,10 +125,9 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                 sampleDistCol=self.sampleDistCol, abbrevCol=self.abbrevCol, abbrevBuilder=self.abbrevBuilder,
                 anlysIndCol=self.anlysIndCol, sampleIndCol=self.sampleIndCol, anlysSpecCustCols=anlysSpecCustCols,
                 distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
-                surveyType=self.surveyType, distanceType=self.distanceType,
-                clustering=self.clustering,
+                surveyType=self.surveyType, distanceType=self.distanceType, clustering=self.clustering,
                 resultsHeadCols=dict(),
-                workDir=self.workDir, logData=self.logData,
+                workDir=self.workDir, runMethod=self.runMethod, runTimeOut=self.runTimeOut, logData=self.logData,
                 logProgressEvery=self.logOptimProgressEvery, autoClean=self.autoClean,
                 defEstimKeyFn=self.defEstimKeyFn, defEstimAdjustFn=self.defEstimAdjustFn,
                 defEstimCriterion=self.defEstimCriterion, defCVInterval=self.defCVInterval,
@@ -147,18 +148,21 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         return self.zoptr4Specs.explicitParamSpecs(implParamSpecs=implParamSpecs, dfExplParamSpecs=dfExplParamSpecs,
                                                    dropDupes=dropDupes, check=check)
 
-    def computeUndeterminedParamSpecs(self, dfExplParamSpecs=None, implParamSpecs=None, threads=1):
+    def computeUndeterminedParamSpecs(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None):
     
-        """Run truncation optimisation for analyses with undetermined truncation parameter specs
+        """Run truncation optimisation for analyses with undetermined truncation param. specs
+        and merge the computed specs to the ones of analyses with already determined truncation param. specs.
         
         Call explicitParamSpecs(..., check=True) before this to make sure user specs are OK
 
         Parameters:
-           :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
-             (generated through explicitVariantSpecs, as an example),
-           :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
-             through explicitVariantSpecs
-           :param threads:, :param processes: Number of parallel threads / processes to use (default: no parallelism)
+        :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
+          (generated through explicitVariantSpecs, as an example),
+        :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
+          through explicitVariantSpecs
+        :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
+           
+        :return: the merged explicit param. specs for all the analyses (with optimised or not truncation param. specs)
         """
         
         # 1. Explicitate, complete and check analysis specs (for usability).
@@ -202,8 +206,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                         resultsHeadCols=dict(before=[self.anlysIndCol, self.sampleIndCol],
                                              sample=self.sampleSelCols,
                                              after=userParamSpecCols),
-                        workDir=self.workDir, logData=self.logData,
-                        logProgressEvery=self.logOptimProgressEvery, autoClean=self.autoClean,
+                        workDir=self.workDir, runMethod=self.runMethod, runTimeOut=self.runTimeOut,
+                        logData=self.logData, logProgressEvery=self.logOptimProgressEvery, autoClean=self.autoClean,
                         defEstimKeyFn=self.defEstimKeyFn, defEstimAdjustFn=self.defEstimAdjustFn,
                         defEstimCriterion=self.defEstimCriterion, defCVInterval=self.defCVInterval,
                         defExpr2Optimise=self.defExpr2Optimise, defMinimiseExpr=self.defMinimiseExpr,
@@ -266,20 +270,20 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Done.
         return dfExplParamSpecs
 
-    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=1):
+    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None):
     
         """Run specified analyses, after automatic computing of truncation parameter if needed
         
         Call explicitParamSpecs(..., check=True) before this to make sure user specs are OK
 
         Parameters:
-           :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
-             (generated through explicitVariantSpecs, as an example),
-           :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
-             through explicitVariantSpecs
-           :param threads:, :param processes: Number of parallel threads / processes to use (default: no parallelism)
+        :param dfExplParamSpecs: Explicit MCDS analysis param specs, as a DataFrame
+          (generated through explicitVariantSpecs, as an example),
+        :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
+          through explicitVariantSpecs
+        :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
            
-        :return: 
+        :return: the MCDSAnalysisResultsSet holding the analyses results
         """
         
         # 1. Run optimisations when needed and replace computed truncation params in analysis specs

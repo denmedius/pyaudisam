@@ -20,6 +20,8 @@ import tempfile
 
 from collections import namedtuple as ntuple
 
+import subprocess as sproc
+
 import numpy as np
 import pandas as pd
 
@@ -29,6 +31,10 @@ logger = log.logger('ads.eng', level=log.INFO) # Initial config (can be changed 
 
 from autods.executor import Executor
 
+# Keep ruin'dows from opening a GPF dialog box every time a launched executable (like MCDS.exe) crashes !
+if sys.platform.startswith('win'):
+    import ctypes, msvcrt
+    ctypes.windll.kernel32.SetErrorMode(msvcrt.SEM_NOGPFAULTERRORBOX);
 
 # Actual package install dir.
 KInstDirPath = pl.Path(__file__).parent.resolve()
@@ -80,11 +86,16 @@ class DSEngine(object):
     # Specifications of output stats.
     DfStatRowSpecs, DfStatModSpecs, DfStatModNotes, MIStatModCols, DfStatModColTrans = None, None, None, None, None
     
-    # Ctor.
-    # :param: workDir: As a simple str, or a pl.Path
-    # :param: executor: Executor object to use (None => a sequential one will be auto-generated)
-    def __init__(self, workDir='.', executor=None, 
+    def __init__(self, workDir='.', executor=None, runMethod='subprocess.run', timeOut=None,
                  distanceUnit='Meter', areaUnit='Hectare', **options):
+
+        """Ctor
+        :param workDir: As a simple str, or a pl.Path
+        :param executor: Executor object to use (None => a sequential one will be auto-generated)
+        :param runMethod: for calling engine executable : 'os.system' or 'subprocess.run'
+        :param timeOut: engine call time limit (s) ; None => no limit ;
+                WARNING: Not implemented (no way) for 'os.system' run method (see MCDSAnalysis for this)
+        """
 
         # Check base options
         assert distanceUnit in self.DistUnits, \
@@ -100,6 +111,13 @@ class DSEngine(object):
         
         # Set executor for runAnalysis().
         self.executor = executor if executor is not None else Executor()
+        assert timeOut is None or runMethod != 'os.system' or self.executor.isAsync(), \
+               f"Can't care about {timeOut}s execution time limit" \
+               " with a non-asynchronous executor and os.system run method"
+
+        # Parameters for engine subprocess creation.
+        self.runMethod = runMethod
+        self.timeOut = timeOut
         
         # Check and prepare workdir if needed, and save.
         assert all(c not in str(workDir) for c in self.ForbidPathChars), \
@@ -358,13 +376,18 @@ class MCDSEngine(DSEngine):
 
         return cls.DfStatModColsTrans
         
-    # Ctor.
-    # :param: workDir: As a simple str, or a pl.Path
-    # :param: executor: Executor object to use (None => a sequential one will be auto-generated)
-    def __init__(self, workDir='.', executor=None,
+    def __init__(self, workDir='.', executor=None, runMethod='subprocess.run', timeOut=None,
                  distanceUnit='Meter', areaUnit='Hectare',
                  surveyType='Point', distanceType='Radial', clustering=False):
         
+        """Ctor.
+        :param workDir: As a simple str, or a pl.Path
+        :param executor: Executor object to use (None => a sequential one will be auto-generated)
+        :param runMethod: Method used to run the MCDS executable : os.system or subprocess.run
+        :param timeOut: Time-out (s) for analysis execution (None => no limit);
+                        WARNING: NOT implemented here when 'os.system' runMethod ... see MCDSAnalysis
+        """
+
         # Initialize dynamic class variables.
         MCDSEngine.loadStatSpecs()    
 
@@ -384,7 +407,7 @@ class MCDSEngine(DSEngine):
     
         # Initialise base.
         firstDataFields = [fld for fld in self.FirstDataFields[surveyType] if fld in self.importFieldAliasREs]
-        super().__init__(workDir=workDir, executor=executor,
+        super().__init__(workDir=workDir, executor=executor, runMethod=runMethod, timeOut=timeOut,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          firstDataFields=firstDataFields)
@@ -569,7 +592,8 @@ class MCDSEngine(DSEngine):
     RCWarnings    = 2
     RCErrors      = 3
     RCFileErrors  = 4
-    RCOtherErrors = 5 # and above.
+    RCOtherErrors = 5  # and above, straight from MCDS.exe.
+    RCTimedOut    = 555  # as named (through subprocess or concurrent.futures modules)
     
     @classmethod
     def wasRun(cls, runCode):
@@ -587,11 +611,92 @@ class MCDSEngine(DSEngine):
     def errors(cls, runCode):
         return runCode >= cls.RCErrors
     
+    @classmethod
+    def _runThroughOSSystem(cls, execFileName, cmdFileName, forReal=True):
+
+        """Run MCDS command through os.system
+
+        Under Ruin'dows, this means an intermediate "cmd.exe" subprocess.
+        """
+
+        # Call executable (no " around cmdFile, don't forget the space after ',', ...)
+        cmd = '"{}" 0, {}'.format(execFileName, cmdFileName)
+        if forReal:
+            logger.info1(f'Running MCDS through os.system({cmd}) ...')
+            startTime = pd.Timestamp.now()
+            status = os.system(cmd)
+            elapsedTime = (pd.Timestamp.now() - startTime).total_seconds()
+            logger.info2(f'... MCDS done : status={status}, elapsed={elapsedTime:.2f}s')
+            
+        # ... unless specified not to (input files generated, but no execution).
+        else:
+            logger.info1(f'NOT running MCDS through os.system({cmd}).')
+            startTime = pd.NaT
+            status = cls.RCNotRun
+            elapsedTime = 0
+
+        return status, startTime, elapsedTime
+
+    # MCDS.exe subprocess creation flags under ruin'dows: no window please !
+    ExeCrFlags = sproc.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
+
+    @classmethod
+    def _runThroughSubProcessRun(cls, execFileName, cmdFileName, forReal=True, timeOut=None):
+
+        """Run MCDS command through subprocess.run
+
+        Under Ruin'dows, no "cmd.exe" intermediate subprocess, but only a conhost.exe.
+        """
+
+        # Call executable (no " around cmdFile, don't forget the space after ',', ...)
+        cmd = [str(execFileName), '0,', str(cmdFileName)]
+        if forReal:
+            logger.info1(f'Running MCDS through subprocess.run({cmd}, ) ...')
+            startTime = pd.Timestamp.now()
+            try:
+                proc = sproc.run(cmd, text=True, stdout=sproc.PIPE, stderr=sproc.STDOUT,
+                                 timeout=timeOut, creationflags=cls.ExeCrFlags)
+                status = proc.returncode
+                stdouterr = proc.stdout
+            except sproc.TimeoutExpired as toExc:
+                logger.error(f'MCDS timed out after {toExc.timeout:.2f}s')
+                status = cls.RCTimedOut
+                stdouterr = toExc.stdout
+            elapsedTime = (pd.Timestamp.now() - startTime).total_seconds()
+            logger.info3('MCDS stdout&err:')
+            logger.info3(stdouterr)
+            logger.info2(f'... MCDS done : status={status}, elapsed={elapsedTime:.2f}s')
+
+        # ... unless specified not to (input files generated, but no execution).
+        else:
+            logger.info1(f'NOT running MCDS through subprocess.run({cmd}).')
+            startTime = pd.NaT
+            status = cls.RCNotRun
+            elapsedTime = 0
+
+        return status, startTime, elapsedTime
+
+    @classmethod
+    def _run(cls, execFileName, cmdFileName, forReal=True, method='subprocess.run', timeOut=None):
+
+        """Run MCDS command through the given method
+        """
+
+        if method == 'os.system':
+            return cls._runThroughOSSystem(execFileName, cmdFileName,
+                                          forReal=forReal)
+        elif method == 'subprocess.run':
+            return cls._runThroughSubProcessRun(execFileName, cmdFileName,
+                                               forReal=forReal, timeOut=timeOut)
+
+        raise NotImplementedError(f'Unkown MCDSEngine run method "{method}"')
+
     # Run 1 MCDS analysis from the beginning to the end (blocking for the calling thread)
     # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
     def _runAnalysis(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
         # Create a new exclusive thread and process-safe run folder
+        anlysStartTime = pd.Timestamp.now()
         runDir = self.setupRunFolder(runPrefix)
         logger.debug('Will run in {}'.format(runDir))
         
@@ -600,38 +705,35 @@ class MCDSEngine(DSEngine):
         self.buildDataFile(runDir, sampleDataSet)
         cmdFileName = self.buildCmdFile(runDir, **analysisParms)
         
-        # Call executable (no " around cmdFile, don't forget the space after ',', ...)
-        cmd = '"{}" 0, {}'.format(self.ExeFilePathName, cmdFileName)
-        if realRun:
-            logger.info1('Running MCDS: ' + cmd)
-            runTime = pd.Timestamp.now()
-            runStatus = os.system(cmd)
-            logger.info2('Run MCDS : status = ' + str(runStatus))
-            
-        # ... unless specified not to (input files generated, but no execution).
-        else:
-            logger.info1('Not running MCDS : ' + cmd)
-            runTime = pd.NaT
-            runStatus = self.RCNotRun
-            
+        anlysElapsedTime = (pd.Timestamp.now() - anlysStartTime).total_seconds()
+
+        # Run executable as an OS sub-process.
+        runStatus, engStartTime, engElapsedTime = \
+            self._run(self.ExeFilePathName, cmdFileName, forReal=realRun,
+                      method=self.runMethod, timeOut=self.timeOut)
+        anlysElapsedTime += engElapsedTime
+
         # Extract and decode results.
+        startTime = pd.Timestamp.now()
+
         if self.success(runStatus) or self.warnings(runStatus):
             sResults = self.decodeStats(runDir)
         else:
             sResults = None
 
-        return runStatus, runTime, runDir, sResults
+        anlysElapsedTime += (pd.Timestamp.now() - startTime).total_seconds()
+
+        return runStatus, anlysStartTime, anlysElapsedTime + engElapsedTime, runDir, sResults
     
-   # Start running an MCDS analysis
+   # Start running an MCDS analysis, using the executor (possibly asynchronously if it is not a sequential one)
     def submitAnalysis(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
-        # Check really options
+        # Check really implemented options
         assert self.options.surveyType == 'Point', \
                'Not yet implemented survey type {}'.format(self.options.surveyType)
         assert self.options.distanceType == 'Radial', \
                'Not yet implemented distance type {}'.format(self.options.distanceType)
         
-        # Check implememented options.
         # Submit analysis work and return a Future object to ask from and wait for its results.
         return self.executor.submit(self._runAnalysis, sampleDataSet, runPrefix, realRun, **analysisParms)
     

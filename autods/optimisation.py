@@ -429,6 +429,9 @@ class MCDSTruncationOptimisation(DSOptimisation):
         fltSup = float('inf') # sys.float_info.max
         self.invalidFuncValue = fltSup if minimiseExpr else -fltSup
 
+        # Where to store analyses elapsed times before computing stats at the end.
+        self.elapsedTimes = list()
+
     # Post-process analysis results (adapted from MCDSAnalysisResultsSet.postComputeColumns)
     @staticmethod
     def _postProcessAnalysisResults(sResults):
@@ -478,6 +481,8 @@ class MCDSTruncationOptimisation(DSOptimisation):
         """
 
         # Run analysis (Submit, and wait for end of execution) : parallelism taken care elsewhere.
+        startTime = pd.Timestamp.now()
+
         dNameFlds = dict(l=minDist, r=maxDist, f=fitDistCuts, d=discrDistCuts)
         nameSufx = ''.join(c+str(int(v)) for c, v in dNameFlds.items() if v is not None)
 
@@ -507,6 +512,9 @@ class MCDSTruncationOptimisation(DSOptimisation):
             value = self.invalidFuncValue
 
         logger.debug1('Analysis result value : {} = {}'.format(valueExpr, value))
+
+        # Store elapsed time for this analysis, for later stats
+        self.elapsedTimes.append((pd.Timestamp.now() - startTime).total_seconds())
 
         return value
     
@@ -646,8 +654,8 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         logger.info(f'ZOTrOptimisation({self.dVariantParams})')
         
         # Columns names for each optimisation result row (see _run).
-        self.resultsCols = \
-            ['SetupStatus', 'SubmitStatus', 'NFunEvals'] + list(self.dVariantParams.keys()) + [self.expr2Optimise]
+        self.resultsCols = ['SetupStatus', 'SubmitStatus', 'NFunEvals', 'MeanFunElapd'] \
+                           + list(self.dVariantParams.keys()) + [self.expr2Optimise]
         
         # zoopt optimiser initialisation.
         self.zooptDims = \
@@ -716,7 +724,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         # When self.setupError or (submit) error, simply return a well-formed but empty results.
         if self.setupError or error:
             return [dict(zip(self.resultsCols, 
-                             [self.setupError, error, self.nFunEvals] + [None]*(len(self.resultsCols) - 3)))]
+                             [self.setupError, error, self.nFunEvals, 0.0] + [None]*(len(self.resultsCols) - 3)))]
             
         # Run the requested optimisations and get the solutions (ignore None ones).
         solutions = [self._optimize() for _ in range(times)]
@@ -731,8 +739,10 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
             return []
         
         nMeanFunEvals = int(round(self.nFunEvals / len(solutions)))
-        return [dict(zip(self.resultsCols,
-                         [None, None, nMeanFunEvals] + sol.get_x() + [self.analysisValue(sol.get_value())]))
+        meanFunElapd = np.nan if not self.nFunEvals or not self.elapsedTimes \
+                              else sum(self.elapsedTimes) / self.nFunEvals
+        return [dict(zip(self.resultsCols, [None, None, nMeanFunEvals, meanFunElapd] \
+                                           + sol.get_x() + [self.analysisValue(sol.get_value())]))
                 for sol in solutions]
 
 

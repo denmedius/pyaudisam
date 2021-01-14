@@ -61,7 +61,7 @@ class SequentialExecutor(cofu.Executor):
 
     def __init__(self):
         
-        logger.debug('Started the SequentialExecutor.')
+        logger.info2('Started the SequentialExecutor.')
             
     def submit(self, func, *args, **kwargs):
         
@@ -93,9 +93,13 @@ class Executor(object):
         Parameters:
         :param threads: Must be None or >= 0 ; 0 for auto-number (5 x nb of actual CPUs) ;
                         None or 1 for no actual parallelism = sequential execution,
+                        but 1 is slightly different, in that it means asynchronous call,
+                        whereas None means pure sequential calling ;
                         if processes is not None, must be None (= unspecified)
         :param processes: Must be None or >= 0 ; 0 for auto-number (nb of actual CPUs), ;
                           None or 1 for no actual parallelism = sequential execution,
+                          but 1 is slightly different, in that it means asynchronous call,
+                          whereas None means pure sequential calling ;,
                           if threads is not None, must be None (= unspecified)
         :param name_prefix: See concurrent module (only for multi-threading)
         :param mp_context: See concurrent module (only for multi-processing)
@@ -109,19 +113,19 @@ class Executor(object):
                
         self.realExor = None
 
-        if not(threads is None or threads == 1):
+        if threads is not None:
             self.realExor = \
                 cofu.ThreadPoolExecutor(max_workers=threads or None,
                                         thread_name_prefix=name_prefix,
                                         initializer=None, initargs=initargs)
-            logger.debug('Started a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
+            logger.info1('Started a ThreadPoolExecutor(max_workers={})'.format(threads or 'None'))
         
-        elif not(processes is None or processes == 1):
+        elif processes is not None:
             self.realExor = \
                 cofu.ProcessPoolExecutor(max_workers=processes or None,
                                          mp_context=mp_context,
                                          initializer=initializer, initargs=initargs)
-            logger.debug('Started a ProcessPoolExecutor(max_workers={})'.format(processes or 'None'))
+            logger.info1('Started a ProcessPoolExecutor(max_workers={})'.format(processes or 'None'))
                     
         else:
             if self.TheSeqExor is None:
@@ -129,6 +133,10 @@ class Executor(object):
             self.realExor = self.TheSeqExor
     
     def isParallel(self):
+    
+        return self.realExor is not self.TheSeqExor and self.realExor._max_workers > 1
+    
+    def isAsync(self):
     
         return self.realExor is not self.TheSeqExor
     
@@ -150,7 +158,7 @@ class Executor(object):
     def shutdown(self, wait=True):
               
         if self.realExor is not None and self.realExor is not self.TheSeqExor:
-            logger.debug(self.realExor.__class__.__name__ + ' shut down.')
+            logger.info2(self.realExor.__class__.__name__ + ' shut down.')
             self.realExor.shutdown(wait=wait)
         self.realExor = None
         
