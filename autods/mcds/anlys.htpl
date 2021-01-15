@@ -37,7 +37,7 @@
 
   <table id="title">
     <tr>
-      <td style="font-size: 480%">{{title}}</td>
+      <td style="font-size: 480%; text-align: center">{{title}}</td>
     </tr>
     <tr>
       <td style="font-size: 240%; text-align: center">{{subtitle}}</td>
