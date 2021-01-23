@@ -101,13 +101,13 @@ class Analyser(object):
 
     def updateSpecs(self, reset=False, overwrite=False, **specs):
 
+        if reset:
+            self.specs.clear()
+
         if not overwrite:
             assert all(name not in self.specs for name in specs), \
                    "Won't overwrite already present specs {}" \
                    .format(', '.join(name for name in specs if name in self.specs))
-
-        if reset:
-            self.specs.clear()
 
         self.specs.update(specs)
 
@@ -609,8 +609,8 @@ class DSAnalyser(Analyser):
             dupDetCols = sampleSelCols + userParamSpecCols
             dfExplParamSpecs.drop_duplicates(subset=dupDetCols, inplace=True)
             dfExplParamSpecs.reset_index(drop=True, inplace=True)
-            logger.info('Dropped {} last duplicate specs on [{}] columns'
-                        .format(nBefore - len(dfExplParamSpecs), ', '.join(dupDetCols)))
+            logger.info('Dropped {} last duplicate specs of {}, on [{}] columns'
+                        .format(nBefore - len(dfExplParamSpecs), nBefore, ', '.join(dupDetCols)))
 
         # Done.
         return dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols
