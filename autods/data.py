@@ -36,10 +36,14 @@ class DataSet(object):
                  sheet=None, skipRows=None, headerRows=0, indexCols=None, separator='\t', encoding='utf-8'):
     
         """Ctor
-        :param sources: input support provided for pandas.DataFrame,
-             Excel .xlsx (through 'openpyxl' or 'xlrd' module) and .xls files (through 'openpyxl' module, no need for 'xlwt'),
-             tab-separated .csv/.txt files, and even OpenDoc .ods file with pandas >= 0.25 (through 'odfpy' module)
-             when multiple source provided, supposed to have compatible columns names, and appended 1 after 1.
+        :param sources: data sources to read from ; input support provided for:
+             * pandas.DataFrame,
+             * Excel .xlsx (through 'openpyxl' or 'xlrd' module)
+               and .xls files (through 'openpyxl' module, no need for 'xlwt'),
+             * tab-separated .csv/.txt files,
+             * and even OpenDoc .ods file with pandas >= 0.25 (through 'odfpy' module) ;
+             when multiple source provided, sources are supposed to have compatible columns names,
+             and data rows from each source are appended 1 source after the previous.
         :param dRenameCols: dict for renaming input columns right after loading data
         :param dComputeCols: name and compute method for computed columns to be auto-added (but not renamed) ;
                           as a dict { new col. name => constant, or function to apply
@@ -146,6 +150,11 @@ class DataSet(object):
         return self._dfData.columns
 
     @property
+    def empty(self):
+        
+        return self._dfData.empty
+
+    @property
     def dfData(self):
         
         return self._dfData
@@ -216,14 +225,43 @@ class DataSet(object):
     
         self._dfData.rename(columns=dRenameCols, inplace=True)
 
+    def toPickle(self, fileName, subset=None, index=True):
+
+        """Save data table to a pickle file (XZ compressed format if requested).
+
+        Parameters:
+        :param fileName: target file pathname ; file is auto-compressed to XZ format
+                         through the lzma module if its extension is .xz or .lzma,
+                         or else not compressed.
+        :param subset: subset of columns to save
+        :param index: if True, save index column as is (otherwise reset&drop it to a range(size)-like)
+        """
+        
+        start = pd.Timestamp.now()
+
+        dfOutData = self.dfSubData(subset=subset)
+        if not index:
+            dfOutData = dfOutData.reset_index(drop=True)
+
+        compress = pl.Path(fileName).suffix in ['.xz', '.lzma']
+        with lzma.open(fileName, 'wb') if compress else open(fileName, 'wb') as file:
+            pickle.dump(dfOutData, file)
+
+        logger.info('{} results rows saved to {} in {:.3f}s'
+                    .format(len(self), fileName, (pd.Timestamp.now() - start).total_seconds()))
+
     def toExcel(self, fileName, sheetName=None, subset=None, index=True, engine=None):
         
-        """Save data to an Excel worksheet :
+        """Save data table to a worksheet format (Excel, ODF, ...) :
         * newer XLSX format for .xlsx extensions (through 'openpyxl' or 'xlrd' module)
         * .xls (through 'xlwt').
+        * .ods (through 'odfpy'), if pandas >= 0.25.
 
-        Note: if a .ods fileName is given, and pandas >= 0.25, will automatically save
-              to the ODF format through 'odfpy' module if present.
+        Parameters:
+        :param sheetName: for results data only
+        :param subset: subset of columns to save
+        :param index: if True, save index column
+        :param engine: None => auto-selection from file extension ; otherwise, use xlrd, openpyxl or odf.
         """
 
         dfOutData = self.dfSubData(subset=subset)
@@ -234,9 +272,9 @@ class DataSet(object):
     # Save data to an Open Document worksheet (through 'odfpy' module)
     def toOpenDoc(self, fileName, sheetName=None, subset=None, index=True):
 
-        """Save data to an Open Document worksheet, ODF format (through 'odfpy' module)
+        """Save data table to an Open Document worksheet, ODF format (through 'odfpy' module)
 
-        Warning: Need pandas >= 0.25
+        Warning: Needs pandas >= 0.25
         """
         
         assert pkgver.parse(pd.__version__).release >= (1, 1), \
@@ -781,8 +819,8 @@ class ResultsSet(object):
     """
 
     def __init__(self, miCols, dfColTrans=None, miCustomCols=None, dfCustomColTrans=None,
-                       dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
-                       
+                 dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[], dropNACols=True):
+    
         """Ctor
         
         :param miCols: process results columns (MultiIndex or not)
@@ -796,22 +834,22 @@ class ResultsSet(object):
             dComputedCols = dict()
             dfComputedColTrans = pd.DataFrame()
 
-        self.miCols = miCols
+        self.miCols = miCols.copy()
         for col, ind in dComputedCols.items(): # Add post-computed columns at the right place
             self.miCols = self.miCols.insert(ind, col)
         self.computedCols = list(dComputedCols.keys())
-        self.miCustomCols = miCustomCols
+        self.miCustomCols = miCustomCols.copy()
         
         self.isMultiIndexedCols = isinstance(miCols, pd.MultiIndex)
-        
+
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        self.dfColTrans = dfColTrans
-        self.dfColTrans = self.dfColTrans.append(dfComputedColTrans)
-        self.dfCustomColTrans = dfCustomColTrans
+        self.dfColTrans = dfColTrans.append(dfComputedColTrans)
+        self.dfCustomColTrans = dfCustomColTrans.copy()
         
-        # Sorting parameters (after postComuting)
+        # Sorting and cleaning parameters (after postComputing)
         self.sortCols = sortCols
         self.sortAscend = sortAscend
+        self.dropNACols = dropNACols
         
         # Non-constant data members
         self._dfData = pd.DataFrame() # The real data (frame).
@@ -830,6 +868,11 @@ class ResultsSet(object):
     
         return self.dfData.columns
         
+    @property
+    def empty(self):
+        
+        return self._dfData.empty
+
     def dropRows(self, sbSelRows):
     
         """Drop specific rows in-place, selected through boolean indexing on self.dfData
@@ -842,17 +885,18 @@ class ResultsSet(object):
     def copy(self, withData=True):
     
         """Clone function (shallow), with optional (deep) data copy"""
-    
+
         # 1. Call ctor without computed columns stuff for now and here (we no more have initial data)
-        clone = ResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                           sortCols=[], sortAscend=[])
+        clone = ResultsSet(miCustomCols=self.miCustomCols.copy(),
+                           dfCustomColTrans=self.dfCustomColTrans.copy(),
+                           sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy())
     
         # 2. Complete clone initialisation.
-        clone.miCols = self.miCols
-        clone.computedCols = self.computedCols
+        clone.miCols = self.miCols.copy()
+        clone.computedCols = self.computedCols.copy()
         
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        clone.dfColTrans = self.dfColTrans
+        clone.dfColTrans = self.dfColTrans.copy()
         
         # Copy data if needed.
         if withData:
@@ -862,10 +906,37 @@ class ResultsSet(object):
 
         return clone
 
-    def append(self, sdfResult, sCustomHead=None):
+    def _acceptNewColumns(self, newCols):
+
+        """Update results columns list (self.miCols) with new columns if not already present"""
+
+        logger.debug(f'_acceptNewColumns: {newCols=}')
+        logger.debug(f'{self.miCols=}')
+        logger.debug(f'{self.miCustomCols=}')
+        
+        # Select columns to really append.
+        newCols = [col for col in newCols if col not in self.miCols and col not in self.miCustomCols]
+        logger.debug(f'{newCols=}')
+
+        if self.isMultiIndexedCols:
+            self.miCols = self.miCols.append(newCols)
+            newColTrans = [' '.join(col) for col in newCols]  # Quite rough, but what else ?
+        else:
+            self.miCols += newCols
+            newColTrans = newCols
+        logger.debug(f'{self.miCols=}')
+
+        # Update columns translation table also.
+        dfNewColTrans = pd.DataFrame(index=newCols,
+                                     data={ lang: newColTrans for lang in self.dfColTrans.columns})
+        self.dfColTrans = self.dfColTrans.append(dfNewColTrans)
+
+    def append(self, sdfResult, sCustomHead=None, acceptNewCols=False):
         
         """Append row(s) of results to the all-results table
         :param sdfResult: the Series (1 row) or DataFrame (N rows) to append
+        :param acceptNewCols: if True, append results columns list (self.miCols) dynamically 
+            as unexpected columns appear in results to append
         :param sCustomHead: Series holding custom cols values, to prepend (left) to each row of sdfResult,
             before appending to the internal table.
         
@@ -884,13 +955,20 @@ class ResultsSet(object):
           --------------------------------------------------------------------------
         """
 
-        assert not self.postComputed, 'Can\'t append after columns post-computation'
+        assert not self.postComputed, "Can't append after columns post-computation"
         
         assert isinstance(sdfResult, (pd.Series, pd.DataFrame)), \
                'sdfResult : Can only append a pd.Series or pd.DataFrame'
         assert sCustomHead is None or isinstance(sCustomHead, pd.Series), \
                'sCustomHead : Can only append a pd.Series'
-        
+
+        # If specified, update results columns list (self.miCols) dynamically 
+        # as unexpected columns appear in results to append.
+        if acceptNewCols:
+            resCols = list(sdfResult.index) if isinstance(sdfResult, pd.Series) else list(sdfResult.columns)
+            self._acceptNewColumns(resCols)
+
+        # Prepend header columns to results (on the left) if any.
         if sCustomHead is not None:
             if isinstance(sdfResult, pd.Series):
                 sdfResult = sCustomHead.append(sdfResult)
@@ -898,6 +976,7 @@ class ResultsSet(object):
                 dfCustomHead = pd.DataFrame([sCustomHead]*len(sdfResult)).reset_index(drop=True)
                 sdfResult = pd.concat([dfCustomHead, sdfResult], axis='columns')
         
+        # Append results rows to the already present ones (at the end)
         if self._dfData.columns.empty:
             # In order to preserve types, we can't use self._dfData.append(sdfResult),
             # because it doesn't preserve original types (int => float)
@@ -917,6 +996,25 @@ class ResultsSet(object):
         
         # Derive class to really compute things (=> work directly on self._dfData),
         pass
+        
+    @property
+    def dfRawData(self):
+
+        """Direct access to unpostprocessed data
+
+        May have to removed computed columns and reset postCompute state.
+        """
+
+        if self.postComputed:
+
+            # Remove any computed column: will be recomputed later on
+            # (but ignore those which are not there : backward compat. / tolerance)
+            self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
+            
+            # Post-computation not yet done.
+            self.postComputed = False
+
+        return self._dfData
         
     @property
     def dfData(self):
@@ -941,7 +1039,10 @@ class ResultsSet(object):
             
             miTgtColumns = self.miCols
             if self.miCustomCols is not None:
-                miTgtColumns = self.miCustomCols.append(miTgtColumns)
+                if self.isMultiIndexedCols:
+                    miTgtColumns = self.miCustomCols.append(miTgtColumns)
+                else:
+                    miTgtColumns = self.miCustomCols + miTgtColumns
             self._dfData = self._dfData.reindex(columns=miTgtColumns)
             self.rightColOrder = True # No need to do it again, until next append() !
         
@@ -949,8 +1050,8 @@ class ResultsSet(object):
         if self.isMultiIndexedCols and not self._dfData.empty:
             assert isinstance(self._dfData.columns, pd.MultiIndex)
         
-        # Don't return columns with no relevant results data (unless among custom cols).
-        if not self._dfData.empty:
+        # If specified, don't return columns with no relevant results data (unless among custom cols).
+        if self.dropNACols and not self._dfData.empty:
             miCols2Cleanup = self._dfData.columns
             if self.miCustomCols is not None:
                 if self.isMultiIndexedCols:
@@ -1052,50 +1153,69 @@ class ResultsSet(object):
 
         Parameters:
         :param reset: if True, cleanup before updating => like a set !
-        :param overwrite: 
+        :param overwrite: if False, and at least 1 of the spec already exists,
+                      raise an exception (refuse to update) ; otherwise, overwrite silently
+        :param **specs: named specs to add/update
         """
         if reset:
             self.specs.clear()
 
         if not overwrite:
             assert all(name not in self.specs for name in specs), \
-                   "Won't overwrite already present specs {}" \
+                   "Unless explicitly  specified, won't overwrite already present specs {}" \
                    .format(', '.join(name for name in specs if name in self.specs))
 
         self.specs.update(specs)
 
-    def toPickle(self, fileName):
+    def toPickle(self, fileName, specs=True, raw=False):
 
-        """Save data and specs to a pickle file (XZ compressed format if requested).
+        """Save raw data and specs to a pickle file (XZ compressed format if requested).
 
         Parameters:
         :param fileName: target file pathname ; file is auto-compressed to XZ format
                          through the lzma module if its extension is .xz or .lzma,
                          or else not compressed.
+        :param specs: if False, don't save specs (actually save empty specs)
+        :param raw: if False, save post-processed data (through dfData) ;
+                    if True, save raw data (through dfRawData)
         """
         
         start = pd.Timestamp.now()
 
+        dfOutData = self.dfRawData if raw else self.dfData
+
+        logger.debug(f'toPickle: {dfOutData.columns=}')
+
         compress = pl.Path(fileName).suffix in ['.xz', '.lzma']
         with lzma.open(fileName, 'wb') if compress else open(fileName, 'wb') as file:
-            pickle.dump(self, file)
+            pickle.dump((dfOutData, self.specs if specs else dict()), file)
 
         logger.info('{} results rows and {} specs saved to {} in {:.3f}s'
-                    .format(len(self), len(self.specs), fileName,
+                    .format(len(dfOutData), len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
     DefAllResultsSheetName = 'all-results'
 
-    def toExcel(self, fileName, sheetName=None, lang=None, subset=None,
-                specs=True, specSheetsPrfx='sp-', engine='openpyxl'):
+    def toExcel(self, fileName, sheetName=None, lang=None, subset=None, index=True,
+                specs=True, specSheetsPrfx='sp-', engine=None):
 
-        """Save data and specs to an Excel workbook (XLSX format).
+        """Save data and specs to a worksheet format (Excel, ODF, ...) :
+        * newer XLSX format for .xlsx extensions (through 'openpyxl' or 'xlrd' module)
+        * .xls (through 'xlwt').
+        * .ods (through 'odfpy'), if pandas >= 0.25.
+
+        Details:
         * data to the named sheet (sheetName)
-        * specs to the sheets given spec name, prefixed a specified (specSheetsPrfx)
+        * specs to the sheets given spec name, prefixed as specified (specSheetsPrfx)
 
         Parameters:
         :param sheetName: for results data only
-        :param engine: use openpyxl (default) for newer Excel formats, xlrd for older ones, odf for ODF format.
+        :param lang: if not None, save translated data columns names
+        :param subset: subset of data columns to save
+        :param index: if True, save data index column
+        :param specs: if False, don't save specs
+        :param specSheetsPrfx: prefix to spec names to use to build spec sheet names
+        :param engine: None => auto-selection from file extension ; otherwise, use xlrd, openpyxl or odf.
         """
         
         assert sheetName is None or not specs or not sheetName.lower().startswith(specSheetsPrfx), \
@@ -1111,7 +1231,7 @@ class ResultsSet(object):
                     if lang is None else self.dfTransData(subset=subset, lang=lang)
         
         with pd.ExcelWriter(fileName, engine=engine) as xlWrtr:
-            dfOutData.to_excel(xlWrtr, sheet_name=sheetName or self.DefAllResultsSheetName)
+            dfOutData.to_excel(xlWrtr, sheet_name=sheetName or self.DefAllResultsSheetName, index=index)
             if specs:
                 for spName, spData in self.specs.items():
                     if isinstance(spData, (dict, list, pd.Series)):
@@ -1124,59 +1244,86 @@ class ResultsSet(object):
                     .format(len(self), len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
-    def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None,
+    def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None, index=True,
                   specs=True, specSheetsPrfx='sp-'):
         
-        """Save data and specs to an Open Document workbook (ODS format) :
+        """Save data and specs to ODF worksheet format
+        
+        Note: Needs pandas >= 0.25.
+
+        Details:
         * data to the named sheet (sheetName)
-        * specs to the sheets given spec name, prefixed a specified (specSheetsPrfx)
+        * specs to the sheets given spec name, prefixed as specified (specSheetsPrfx)
 
         Parameters:
         :param sheetName: for results data only
+        :param lang: if not None, save translated data columns names
+        :param subset: subset of data columns to save
+        :param index: if True, save data index column
+        :param specs: if False, don't save specs
+        :param specSheetsPrfx: prefix to spec names to use to build spec sheet names
         """
 
         assert pkgver.parse(pd.__version__).release >= (1, 1), \
                'Don\'t know how to write to OpenDoc format before Pandas 1.1'
         
-        self.toExcel(fileName, sheetName, lang, subset,
+        self.toExcel(fileName, sheetName=sheetName, lang=lang, subset=subset, index=index,
                      specs=specs, specSheetsPrfx=specSheetsPrfx, engine='odf')
 
-    def fromPickle(self, fileName):
+    def fromPickle(self, fileName, specs=True, acceptNewCols=False):
 
-        """Load (overwrite) data and specs from a pickle file, possibly lzma-compressed,
-        assuming ctor params match the results object contained inside,
+        """Load (overwrite) data and optionnaly specs from a pickle file, possibly lzma-compressed,
+        assuming ctor params match the results object used for prior toPickle(),
         which can well be ensured by using the same ctor params as used for saving !
 
         :param fileName: target file pathname ; file is auto-decompressed through the lzma module
                          if its extension is .xz or .lzma.
+        :param specs: if False, don't load specs
+        :param acceptNewCols: if True, append results columns list (self.miCols) dynamically 
+            if unexpected columns appear in loaded data to append
         """
         
         start = pd.Timestamp.now()
         
         compressed = pl.Path(fileName).suffix in ['.xz', '.lzma']
         with lzma.open(fileName, 'rb') if compressed else open(fileName, 'rb') as file:
-            other = pickle.load(file)
+            dfData, dSpecs = pickle.load(file)
 
-        self.dfData = other.dfData
-        self.specs = other.specs
+        # Set data.
+        self.dfData = dfData
+
+        # If specified, update results columns list (self.miCols) dynamically 
+        # if unexpected columns appear in loaded data.
+        if acceptNewCols:
+            self._acceptNewColumns(dfData.columns)
+
+        # Set specs if specified.
+        if specs:
+            self.specs = dSpecs
 
         logger.info('{} results rows and {} specs loaded from {} in {:.3f}s'
-                    .format(len(self), len(self.specs), fileName,
+                    .format(len(self), len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
-    def fromExcel(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3],
-                  specs=True, specSheetsPrfx='sp-', engine='openpyxl'):
+    def fromExcel(self, fileName, sheetName=None, header=[0, 1, 2], skipRows=[3], indexCol=0,
+                  specs=True, specSheetsPrfx='sp-', engine=None):
         
-        """Load (overwrite) data from the first or named sheet of an Excel worksheet (XLSX format),
+        """Load (overwrite) data from the first or named sheet of an Excel worksheet (XLSX or XLS format),
         assuming ctor params match with Excel sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
 
-        Also load specs from other sheets named with given prefix, as dataframes
+        Also optionnaly load specs from other sheets named with given prefix, as dataframes
         (ignore others ; empty prefix => all others)
 
         Parameters:
-        :param sheetName: for results data only
-        :param engine: use openpyxl (default) for newer Excel formats, xlrd for older ones, odf for ODF format.
+        :param fileName: source file name
+        :param sheetName: name of the sheet to load data from (default None => 1st)
+        :param header: list of source data row indexes to use for column index
+        :param skipRows: list of source data row indexes to ignore
+        :param indexCol: index of the source data column to use as index (None => auto-generated, not read)
+        :param specs: if False, don't load specs
+        :param specSheetsPrfx: name prefix to use to detect spec sheets
+        :param engine: None => auto-selection from file extension ; otherwise, use xlrd, openpyxl or odf.
         """
 
         # TODO: can this be done in 1 only read_excel call ?
@@ -1186,13 +1333,13 @@ class ResultsSet(object):
         start = pd.Timestamp.now()
         
         # Load results data.
-        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, 
-                                    header=header, skiprows=skiprows, index_col=0, engine=engine)
+        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, header=header,
+                                    skiprows=skipRows, index_col=indexCol, engine=engine)
 
         # Load specs
         self.specs = dict()
         if specs:
-            ddfAll = pd.read_excel(fileName, sheet_name=None, index_col=0, engine=engine) #, header=None, names=[0])
+            ddfAll = pd.read_excel(fileName, sheet_name=None, index_col=0, engine=engine)
             for shName, dfShData in ddfAll.items():
                 if shName.startswith(specSheetsPrfx):
                     spName = shName[len(specSheetsPrfx):]
@@ -1208,21 +1355,44 @@ class ResultsSet(object):
                     .format(len(self), len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
-    def fromOpenDoc(self, fileName, sheetName=None, header=[0, 1, 2], skiprows=[3],
+    def fromOpenDoc(self, fileName, sheetName=None, header=[0, 1, 2], skipRows=[3], indexCol=0,
                     specs=True, specSheetsPrfx='sp-'):
         
         """Load (overwrite) data from the first or named sheet of an Open Document worksheet (ODS format),
         assuming ctor params match with ODF sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
 
-        Also load specs from other sheets with given prefix as dataframes
+        Also optionnaly load specs from other sheets with given prefix as dataframes
         (ignore others ; empty prefix => all others)
         """
 
         assert pkgver.parse(pd.__version__).release >= (0, 25, 1), \
                'Don\'t know how to read from OpenDoc format before Pandas 0.25.1 (using odfpy module)'
         
-        self.fromExcel(fileName, sheetName, header, skiprows, specs, specSheetsPrfx, engine='odf')
+        self.fromExcel(fileName, sheetName=sheetName, header=header, skipRows=skipRows, indexCol=indexCol,
+                       specs=specs, specSheetsPrfx=specSheetsPrfx)
+
+    def fromFile(self, fileName, sheetName=None, header=[0, 1, 2], skipRows=[3], indexCol=0,
+                 specs=True, specSheetsPrfx='sp-'):
+        
+        """Load (overwrite) data data and optionnaly specs from a given file,
+        (supported formats are .pickle, .pickle.xz, .ods, .xlsx, .xls, autodetected from file name)
+        assuming ctor params match with the results object used to generate source file,
+        which can well be ensured by using the same ctor params as used for saving !
+        Notes: Needs odfpy module and pandas.version >= 0.25.1
+        """
+
+        fpn = pl.Path(fileName)
+        if fpn.suffix in ['.xz', '.pickle']:
+            self.fromPickle(fileName, specs=specs)
+        elif fpn.suffix in ['.ods']:
+            self.fromOpenDoc(fileName, sheetName=sheetName, header=header, skipRows=skipRows,
+                             indexCol=indexCol, specs=specs, specSheetsPrfx=specSheetsPrfx)
+        elif fpn.suffix in ['.xls', '.xlsx']:
+            self.fromExcel(fileName, sheetName=sheetName, header=header, skipRows=skipRows,
+                           indexCol=indexCol, specs=specs, specSheetsPrfx=specSheetsPrfx)
+        else:
+            raise NotImplementedError(f'Unsupported ResultsSet input file format: {fileName}')
 
     def compare(self, rsOther, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
     
