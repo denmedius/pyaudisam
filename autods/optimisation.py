@@ -518,10 +518,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
 
         return value
     
+    # Column names and translations
     RunColumns = ['OptAbbrev', 'KeyFn', 'AdjSer', 'EstCrit', 'CVInt', 'OptCrit',
                   'MinDist', 'MaxDist', 'FitDistCuts', 'DiscrDistCuts']
     
-    # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DfRunColumnTrans = \
         pd.DataFrame(index=RunColumns,
                      data=dict(en=['Optim Abbrev', 'Mod Key Fn', 'Mod Adj Ser', 'Mod Chc Crit', 'Conf Interv',
@@ -559,6 +559,17 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
     
     EngineClass = MCDSEngine
         
+    # Column names and translations
+# TODO
+#    RunColumns = MCDSTruncationOptimisation.RunColumns + ['SetupStatus', 'SubmitStatus', 'NFunEvals', 'MeanFunElapd']
+#    
+#    DfRunColumnTrans = \
+#        pd.DataFrame(index=RunColumns,
+#                     data=dict(en=list(MCDSTruncationOptimisation.DfRunColumnTrans.en)
+#                                  + ['Setup Status', 'Submit Status', 'Num Fun Evals', 'Mean Fun Elapsed'],
+#                               fr=list(MCDSTruncationOptimisation.DfRunColumnTrans.fr)
+#                                  + ['Setup Status', 'Submit Status', 'Num Fun Evals', 'Mean Fun Elapd']))
+
     @staticmethod
     def zoopt(mxi=100, tv=None, a='racos', mxr=0):
     
