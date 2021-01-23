@@ -61,7 +61,7 @@ class OptimisationResultsSet(ResultsSet):
         # Initialize base class.
         super().__init__(miCols=miCols, dfColTrans=dfColTrans,
                          miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
-                         sortCols=sortCols, sortAscend=sortAscend)
+                         sortCols=sortCols, sortAscend=sortAscend, dropNACols=False)
     
     def copy(self, withData=True):
     
@@ -69,17 +69,17 @@ class OptimisationResultsSet(ResultsSet):
     
         # 1. Call ctor without computed columns stuff (we no more have initial data)
         clone = OptimisationResultsSet(optimisationClass=self.optimisationClass,
-                                       miCustomCols=self.miCustomCols,
-                                       dfCustomColTrans=self.dfCustomColTrans,
-                                       sortCols=[], sortAscend=[])
+                                       miCustomCols=self.miCustomCols.copy(),
+                                       dfCustomColTrans=self.dfCustomColTrans.copy(),
+                                       sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy())
     
         # 2. Complete clone initialisation.
         # 3-level multi-index columns (module, statistic, figure)
-        clone.miCols = self.miCols
-        clone.computedCols = self.computedCols
+        clone.miCols = self.miCols.copy()
+        clone.computedCols = self.computedCols.copy()
         
         # DataFrames for translating columns names
-        clone.dfColTrans = self.dfColTrans
+        clone.dfColTrans = self.dfColTrans.copy()
         
         # Copy data if needed.
         if withData:
@@ -89,24 +89,37 @@ class OptimisationResultsSet(ResultsSet):
 
         return clone
 
-    def fromExcel(self, fileName, sheetName=None):
+    def fromExcel(self, fileName, sheetName=None, specs=True, specSheetsPrfx='sp-'):
 
-        """Load (overwrite) data from an Excel worksheet (XLSX format),
+        """Load (overwrite) data and optionnaly specs from an Excel worksheet (XLSX format),
         assuming ctor params match with Excel sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
         """
         
-        super().fromExcel(fileName, sheetName=sheetName, header=0, skiprows=None)
+        super().fromExcel(fileName, sheetName=sheetName, header=0, skipRows=None, indexCol=None,
+                          specs=specs, specSheetsPrfx=specSheetsPrfx)
 
-    def fromOpenDoc(self, fileName, sheetName=None):
+    def fromOpenDoc(self, fileName, sheetName=None, specs=True, specSheetsPrfx='sp-'):
 
-        """Load (overwrite) data from an Open Document worksheet (ODS format),
+        """Load (overwrite) data and optionnaly specs from an Open Document worksheet (ODS format),
         assuming ctor params match with ODF sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
         Notes: Needs odfpy module and pandas.version >= 0.25.1
         """
         
-        super().fromOpenDoc(fileName, sheetName=sheetName, header=0, skiprows=None)
+        super().fromOpenDoc(fileName, sheetName=sheetName, header=0, skipRows=None, indexCol=None,
+                            specs=specs, specSheetsPrfx=specSheetsPrfx)
+
+    def fromFile(self, fileName, sheetName=None, specs=True, specSheetsPrfx='sp-'):
+
+        """Load (overwrite) data data and optionnaly specs from a given file,
+        (see ResultsSet.fromFile for supported formats, autodetected from file extensions)
+        assuming ctor params match with the file contents,
+        which can well be ensured by using the same ctor params as used for saving !
+        """
+
+        super().fromFile(fileName, sheetName=sheetName, header=0, skipRows=None, indexCol=None,
+                         specs=specs, specSheetsPrfx=specSheetsPrfx)
 
     def optimisationTargetColumns(self):
     
@@ -114,6 +127,7 @@ class OptimisationResultsSet(ResultsSet):
         """
     
         return [col for col in self.optimisationClass.SolutionDimensionNames if col in self.columns]
+
 
 class DSParamsOptimiser(object):
 
@@ -224,6 +238,40 @@ class DSParamsOptimiser(object):
 
         # Results.
         self.results = None
+
+        # Computation specifications, for traceability only.
+        # For gathering copies of computations default parameter values, and stuff like that.
+        self.specs = dict()
+        self.updateSpecs(**{name: getattr(self, name) for name in ['distanceUnit', 'areaUnit']})
+        self.updateSpecs(**{name: getattr(self, name)
+                            for name in ['defExpr2Optimise', 'defMinimiseExpr', 'dDefOptimCoreParams',
+                                         'defSubmitTimes', 'defSubmitOnlyBest', 'dDefSubmitOtherParams']})
+
+    def updateSpecs(self, reset=False, overwrite=False, **specs):
+
+        if reset:
+            self.specs.clear()
+
+        if not overwrite:
+            assert all(name not in self.specs for name in specs), \
+                   "Unless specified, won't overwrite already present specs {}" \
+                   .format(', '.join(name for name in specs if name in self.specs))
+
+        self.specs.update(specs)
+
+    def flatSpecs(self):
+
+        # Flatten "in-line" 2nd level dicts if any (with 1st level name prefixing).
+        dFlatSpecs = dict()
+        for name, value in self.specs.items():
+            if isinstance(value, dict):
+                for n, v in value.items():
+                    dFlatSpecs[name + n[0].upper() + n[1:]] = v
+            else:
+                dFlatSpecs[name] = value
+
+        # Done.
+        return dFlatSpecs
 
     # Optimiser internal parameter spec names, for which a match should be found (when one is needed)
     # with user explicit optimisation specs used in run() calls.
@@ -591,7 +639,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        workDir='.', runMethod='subprocess.run', runTimeOut=120,
-                       logData=False, logProgressEvery=5, autoClean=True,
+                       logData=False, logProgressEvery=5, backupEvery=50, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
@@ -649,6 +697,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         self.runTimeOut = runTimeOut
         self.logData = logData
         self.logProgressEvery = logProgressEvery
+        self.backupEvery = backupEvery
         self.autoClean = autoClean
         
         self.defEstimKeyFn = defEstimKeyFn
@@ -662,6 +711,13 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         self.defDiscrDistCutsFctr = \
             defDiscrDistCutsFctr if defDiscrDistCutsFctr is None else Interval(defDiscrDistCutsFctr)
                          
+        self.updateSpecs(**{name: getattr(self, name)
+                            for name in ['runMethod', 'runTimeOut', 'surveyType', 'distanceType', 'clustering',
+                                         'defEstimKeyFn', 'defEstimAdjustFn', 'defEstimCriterion', 'defCVInterval']})
+        self.updateSpecs(**{name: getattr(self, name)
+                            for name in ['defOutliersMethod', 'defOutliersQuantCutPct',
+                                         'defFitDistCutsFctr', 'defDiscrDistCutsFctr']})
+
     # Optimiser internal parameter spec names, for which a match should be found (when one is needed)
     # with user explicit optimisation specs used in run() calls.
     IntSpecEstimKeyFn = MCDSAnalyser.IntSpecEstimKeyFn
@@ -1047,22 +1103,80 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                                  **dOtherOptimParms)
                                  
         return optimion
-                          
-    def setupResults(self):
+
+    # Number of optimisation auto-backup files (alternating scheme)
+    BackupAltNum = 2
+
+    def _backupFileName(self, index=0):
+
+        return pl.Path(self.workDir) / f'optr-resbak-{index}.pickle.xz'
+
+    def setupResults(self, dfOptimParamSpecs=None, recover=False, loadFrom=None, sheetName=None):
     
-        """Build an empty results objects (suitable for from-disk loading).
+        """Build an empty results objects and optionnaly pre-load results
+        * from the last auto-backup file, after a crash / interruption of the optimisations,
+        * or from the given file name.
+
+        Parameters:
+        :param dfOptimParamSpecs: if not None, optim. param. specs for the result object
+                                  (overwrite any specs loaded from file; see blow)
+        :param recover: if True, try and load the last backup file (see completeResults)
+        :param loadFrom: if specified, and not recover, try and load the specified file
+                         (see OptimisationResultsSet.fromFile for supported formats, autodetected from file extensions)
+        :param sheetName: when loadFrom targets a workbook format file, the name of the sheet to load.
         """
     
-        customCols = self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] \
-                     + self.resultsHeadCols['after']
-
-        # c. Translation for it (well, only one language forced for all ...)
+        # Build the empty result object
+        customCols = \
+            self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
         dfCustColTrans = pd.DataFrame(index=customCols, data={ lang: customCols for lang in ['fr', 'en'] })
 
-        # d. And finally, the result object
-        return OptimisationResultsSet(optimisationClass=MCDSTruncationOptimisation,
-                                      miCustomCols=customCols, dfCustomColTrans=dfCustColTrans)
-   
+        self.results = OptimisationResultsSet(optimisationClass=MCDSTruncationOptimisation,
+                                                                # TODO: MCDSZerothOrderTruncationOptimisation,
+                                              miCustomCols=customCols, dfCustomColTrans=dfCustColTrans)
+
+        # e. Load data from file if resquested to.
+        if recover:
+
+            # Check that there will be an analysis index = Id column in results
+            assert self.anlysIndCol, "Can't recover optimisation results if no analysis index column specified !"
+
+            # Search for backup files and sort them by modification time in descending order.
+            bkupFileNames = [self._backupFileName(ind) for ind in range(self.BackupAltNum)]
+            bkupFileNames = [fpn for fpn in bkupFileNames if fpn.is_file()]
+            sBkupFileMTimes = pd.Series(index=[fpn.as_posix() for fpn in bkupFileNames], 
+                                        data=[fpn.stat().st_mtime for fpn in bkupFileNames])
+            assert not sBkupFileMTimes.empty, 'No such backup file found: {}'.format(self._backupFileName('*'))
+
+            sBkupFileMTimes.sort_values(inplace=True, ascending=False)
+
+            for bkupFpn in sBkupFileMTimes.index:
+                logger.info('Recovering optimisation results from auto-backup {} ...'.format(bkupFpn))
+                try:
+                    self.results.fromPickle(bkupFpn, acceptNewCols=True)
+                    break
+                except Exception as exc:
+                    if bkupFpn == sBkupFileMTimes.index[-1]:
+                        logger.error('... failed ; no other usable backup file, sorry.')
+                        raise
+                    else:
+                        logger.info('... failed ; trying next ...')
+
+            logger.info('... success !')
+
+            # Check that there IS really an analysis index = Id column in results
+            assert self.anlysIndCol in self.results.columns, \
+                   "Can't recover from backup results file because no analysis index/Id column found !"
+
+        elif loadFrom:
+
+            self.results.fromFile(fileName=loadFrom, sheetName=sheetName)
+
+        if dfOptimParamSpecs is not None:
+
+            # Set results specs for traceability.
+            self.results.updateSpecs(overwrite=True, optimiser=self.flatSpecs(), optimisations=dfOptimParamSpecs)
+        
     def optimisationTargetColumnUserNames(self):
     
         """Determine the user names of the results optimisation target columns
@@ -1075,7 +1189,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         return [self.dInt2UserParamSpecNames[self.SolDim2IntSpecOptimTargetParamNames[solDimName]]
                 for solDimName in self.results.optimisationTargetColumns()]
 
-    def _getResults(self, dOptims):
+    def completeResults(self, dOptims):
     
         """Wait for and gather dOptims (MCDSOptimisation futures) results into a ResultsSet
         
@@ -1086,9 +1200,6 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # neglectable when compared to optimisation time ; and better here for evaluating mean per optimisation).
         optimStart = pd.Timestamp.now()
         
-        # Results object construction
-        results = self.setupResults()
-
         # For each optimisation as it gets completed (first completed => first yielded)
         nDone = 0
         for optimFut in self._executor.asCompleted(dOptims):
@@ -1101,22 +1212,17 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
             # Get custom header values, and set target index (= columns) for results
             sCustomHead = optim.customData
-            sCustomHead.index = results.miCustomCols
+            sCustomHead.index = self.results.miCustomCols
 
-            # Save results
-            results.append(dfResults, sCustomHead=sCustomHead)
-            
-            # Backup results (alternate scheme for safety) in case of unavoidable crash (or reboot).
-            backupEvery = 50
+            # Save results (exact column list changes among optimisations objects so we must acceptNewCols)
+            self.results.append(dfResults, sCustomHead=sCustomHead, acceptNewCols=True)
+
+            # Backup raw results (with an alternate file scheme for safety) in case of unavoidable crash (or reboot).
+            # See setupResults for how these files can be reused later for recovery.
             nDone += 1
-            if nDone % backupEvery == 0:
-                nBackupInd = (nDone // backupEvery) % 2
-                backupFpn = pl.Path(self.workDir) / f'optr-resbak-{nBackupInd}.pickle.xz'
-                start = pd.Timestamp.now()
-                with lzma.open(backupFpn, 'wb') as file:
-                    pickle.dump(results, file)
-                logger.info1('Saved {} intermediate results to {} ({:.3f}s)'
-                             .format(nDone, backupFpn.as_posix(), (pd.Timestamp.now() - start).total_seconds()))
+            if nDone % self.backupEvery == 0:
+                nBackupInd = (nDone // self.backupEvery) % self.BackupAltNum
+                self.results.toPickle(fileName=self._backupFileName(nBackupInd), raw=True)
 
             # Report elapsed time and number of optimisations completed until now.
             if nDone % self.logProgressEvery == 0 or nDone == len(dOptims):
@@ -1139,9 +1245,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # Terminate analysis engine
         self._engine.shutdown()
         
-        return results
-
-    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None):
+    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None, recover=False):
    
         """Optimise specified analyses
         
@@ -1152,6 +1256,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         :param implParamSpecs: Implicit pd.DataFrame and optimisation param specs, suitable for explicitation
                                through Analyser.explicitVariantSpecs
         :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
+        :param recover: Recover a previously interrupted run using last available auto-backup file
         """
     
         # Executor for optimisations.
@@ -1182,14 +1287,28 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # Build internal name => user name converter for spec. columns
         self.dInt2UserParamSpecNames = dict(zip(intParamSpecCols, userParamSpecCols))
         
+        # Results object construction
+        self.setupResults(recover=recover, dfOptimParamSpecs=dfExplParamSpecs)
+        recoveredOptims = [] if self.results.empty else list(self.results.dfRawData[self.anlysIndCol].unique())
+
         # For each optimisation to run :
         runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
-        logger.info('Running MCDS truncation optimisations for {} analyses specs ({}) ...' \
+        logger.info('Running MCDS truncation optimisations for {} analyses specs ({}) ...'
                     .format(len(dfExplParamSpecs), runHow))
+        if recoveredOptims:
+            logger.info("... but {} already done and recovered won't be again ...".format(len(recoveredOptims)))
+            logger.debug(f'{recoveredOptims=}')
+
         dOptims = dict()
-        for optimInd, (optimLbl, sOptimSpec) in enumerate(dfExplParamSpecs.iterrows()):
+        for optimInd, (_, sOptimSpec) in enumerate(dfExplParamSpecs.iterrows()):
             
-            logger.info(f'#{optimInd+1}/{len(dfExplParamSpecs)} ({optimLbl}): {sOptimSpec[self.abbrevCol]}')
+            logger.info('#{}/{}: {} (Id {})'.format(optimInd+1, len(dfExplParamSpecs),
+                                                    sOptimSpec[self.abbrevCol], sOptimSpec[self.anlysIndCol]))
+
+            # Skip optimisation if already in results (recovered).
+            if sOptimSpec[self.anlysIndCol] in recoveredOptims:
+                logger.info('Skipping this one: already present in recovered results')
+                continue
 
             # Select data sample to process (and skip if empty)
             sds = self._mcDataSet.sampleDataSet(sOptimSpec[self.sampleSelCols])
@@ -1227,7 +1346,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             logger.info('All optimisations done; now collecting their results ...')
 
         # Wait for and gather results of all analyses.
-        self.results = self._getResults(dOptims)
+        self.completeResults(dOptims)
         
         # Done.
         logger.info('Optimisations completed ({} analyses => {} results).'
@@ -1250,7 +1369,7 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        workDir='.', runMethod='subprocess.run', runTimeOut=120,
-                       logData=False, logProgressEvery=5, autoClean=True,
+                       logData=False, logProgressEvery=5, backupEvery=50, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defExpr2Optimise='chi2', defMinimiseExpr=False,
@@ -1271,7 +1390,7 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols,
                          workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut, logData=logData,
-                         logProgressEvery=logProgressEvery, autoClean=autoClean,
+                         logProgressEvery=logProgressEvery, backupEvery=backupEvery, autoClean=autoClean,
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
                          defOutliersMethod=defOutliersMethod, defOutliersQuantCutPct=defOutliersQuantCutPct,
                          defFitDistCutsFctr=defFitDistCutsFctr, defDiscrDistCutsFctr=defDiscrDistCutsFctr,
@@ -1279,6 +1398,7 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                          dDefOptimCoreParams=dict(core='zoopt', maxIters=defCoreMaxIters, termExprValue=defCoreTermExprValue,
                                                   algorithm=defCoreAlgorithm, maxRetries=defCoreMaxRetries))
                          
+
 if __name__ == '__main__':
 
     import sys

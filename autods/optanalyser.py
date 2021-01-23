@@ -44,7 +44,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
                        workDir='.', runMethod='subprocess.run', runTimeOut=120, logData=False,
-                       logAnlysProgressEvery=50, logOptimProgressEvery=5, autoClean=True,
+                       logAnlysProgressEvery=50, logOptimProgressEvery=5, backupOptimEvery=50, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                        defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                        defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
@@ -67,6 +67,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
 
         Other parameters: See base class.
         """
+
+        assert anlysIndCol, 'anlysIndCol must not be None, needed for analysis identification'
 
         if MCDSTruncationOptanalyser.OptimTruncFlagCol not in anlysSpecCustCols:
             anlysSpecCustCols = anlysSpecCustCols + [MCDSTruncationOptanalyser.OptimTruncFlagCol]
@@ -91,6 +93,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         self.sampleDistCol = sampleDistCol
         
         self.logOptimProgressEvery = logOptimProgressEvery
+        self.backupOptimEvery = backupOptimEvery
         self.autoClean = autoClean
         
         # Default values for optimisation parameters.
@@ -116,6 +119,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Note: For the moment, only zoopt engine supported
         # TODO: Add support for other engines, thanks to the OptimCore columns spec (default = zoopt)
         #       provided the associated MCDSXXXTruncationOptimiser classes derive from MCDSTruncationOptimiser.
+        # TODO: Make this instanciation simpler (most params unused => default values would then fit well !)
         self.zoptr4Specs = \
             MCDSZerothOrderTruncationOptimiser(
                 self.dfMonoCatObs, dfTransects=self._mcDataSet.dfTransects,
@@ -127,8 +131,9 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                 distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                 surveyType=self.surveyType, distanceType=self.distanceType, clustering=self.clustering,
                 resultsHeadCols=dict(),
-                workDir=self.workDir, runMethod=self.runMethod, runTimeOut=self.runTimeOut, logData=self.logData,
-                logProgressEvery=self.logOptimProgressEvery, autoClean=self.autoClean,
+                workDir=self.workDir, runMethod=self.runMethod, runTimeOut=self.runTimeOut,
+                logData=self.logData, logProgressEvery=self.logOptimProgressEvery,
+                backupEvery=self.backupOptimEvery, autoClean=self.autoClean,
                 defEstimKeyFn=self.defEstimKeyFn, defEstimAdjustFn=self.defEstimAdjustFn,
                 defEstimCriterion=self.defEstimCriterion, defCVInterval=self.defCVInterval,
                 defExpr2Optimise=self.defExpr2Optimise, defMinimiseExpr=self.defMinimiseExpr,
@@ -148,7 +153,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         return self.zoptr4Specs.explicitParamSpecs(implParamSpecs=implParamSpecs, dfExplParamSpecs=dfExplParamSpecs,
                                                    dropDupes=dropDupes, check=check)
 
-    def computeUndeterminedParamSpecs(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None):
+    def computeUndeterminedParamSpecs(self, dfExplParamSpecs=None, implParamSpecs=None,
+                                      threads=None, recover=False):
     
         """Run truncation optimisation for analyses with undetermined truncation param. specs
         and merge the computed specs to the ones of analyses with already determined truncation param. specs.
@@ -161,6 +167,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
           through explicitVariantSpecs
         :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
+        :param recover: Recover a previous run interrupted during optimisations ; using last available backup file
            
         :return: the merged explicit param. specs for all the analyses (with optimised or not truncation param. specs)
         """
@@ -176,7 +183,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         optimUserParamSpecCols = \
             self.zoptr4Specs.optimisationParamSpecUserNames(userParamSpecCols, intParamSpecCols)
         
-        # b. Search for (possibly) optimisation. specs with string data (const params are numbers or lists)
+        # b. Search for (possibly) optimisation specs with string data (const params are numbers or lists)
         def analysisNeedsOptimisationFirst(sAnlysSpec):
             return any(isinstance(v, str) for v in sAnlysSpec.values)
         dfExplOptimParamSpecs = \
@@ -207,7 +214,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                                              sample=self.sampleSelCols,
                                              after=userParamSpecCols),
                         workDir=self.workDir, runMethod=self.runMethod, runTimeOut=self.runTimeOut,
-                        logData=self.logData, logProgressEvery=self.logOptimProgressEvery, autoClean=self.autoClean,
+                        logData=self.logData, logProgressEvery=self.logOptimProgressEvery,
+                        backupEvery=self.backupOptimEvery, autoClean=self.autoClean,
                         defEstimKeyFn=self.defEstimKeyFn, defEstimAdjustFn=self.defEstimAdjustFn,
                         defEstimCriterion=self.defEstimCriterion, defCVInterval=self.defCVInterval,
                         defExpr2Optimise=self.defExpr2Optimise, defMinimiseExpr=self.defMinimiseExpr,
@@ -220,7 +228,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                         defCoreMaxRetries=self.dDefOptimCoreParams['maxRetries'])
 
             # b. Run optimisations
-            optimResults = self.zoptr.run(dfExplOptimParamSpecs, threads=threads)
+            optimResults = self.zoptr.run(dfExplOptimParamSpecs, threads=threads, recover=recover)
             self.zoptr.shutdown()
             
             # c. Merge optimisation results into param. specs.
@@ -236,7 +244,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
             dfExplCompdParamSpecs.set_index(self.anlysIndCol, inplace=True)
             dfExplCompdParamSpecs.sort_index(inplace=True)
             dfExplCompdParamSpecs = \
-                dfExplCompdParamSpecs.loc[np.repeat(dfExplCompdParamSpecs.index, #.to_numpy(),
+                dfExplCompdParamSpecs.loc[np.repeat(dfExplCompdParamSpecs.index,
                                                     np.unique(dfOptimRes.index, return_counts=True)[1])]
 
             # * Replace optim. specs by optim. results (optim. target columns = truncation param. ones)
@@ -270,7 +278,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Done.
         return dfExplParamSpecs
 
-    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None):
+    def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None, recoverOptims=False):
     
         """Run specified analyses, after automatic computing of truncation parameter if needed
         
@@ -282,6 +290,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         :param implParamSpecs: Implicit MCDS analysis param specs, suitable for explicitation
           through explicitVariantSpecs
         :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
+        :param recoverOptims: Recover a previous run interrupted during optimisations ; using last available backup file
            
         :return: the MCDSAnalysisResultsSet holding the analyses results
         """
@@ -290,7 +299,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         #    (warning: as some optimisation specs may specify to keep more than 1 "best" result,
         #              dfExplParamSpecs may grow accordingly, as well as the final number of result rows).
         dfExplParamSpecs = \
-            self.computeUndeterminedParamSpecs(dfExplParamSpecs, implParamSpecs, threads=threads)
+            self.computeUndeterminedParamSpecs(dfExplParamSpecs, implParamSpecs,
+                                               threads=threads, recover=recoverOptims)
 
         # 2. Run all analyses, now all parameters are there.
         return super().run(dfExplParamSpecs, threads=threads)
