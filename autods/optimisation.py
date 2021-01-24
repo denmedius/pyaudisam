@@ -349,7 +349,8 @@ class MCDSTruncationOptimisation(DSOptimisation):
         elif discrDistCuts is not None and discrDistCutsFctr is None:
             self.dConstParams['discrDistCuts'] = discrDistCuts
 
-        logger.info(f'TrOptimisation({self.dConstParams})')
+        if self.dConstParams:
+            logger.info(f'TrOptimisation({self.dConstParams})')
         
         if not (minDist is None or isinstance(minDist, (int, float)) or 0 <= minDist.min < minDist.max):
             moreError.append('Invalid left truncation distance {}'.format(minDist))
@@ -662,8 +663,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         
         assert all(name in self.SolutionDimensionNames for name in self.dVariantParams)
         
-        if self.dVariantParams:
-            logger.info(f'ZOTrOptimisation({self.dVariantParams})')
+        logger.info(f'ZOTrOptimisation({self.dVariantParams})')
         
         # Columns names for each optimisation result row (see _run).
         self.resultsCols = ['SetupStatus', 'SubmitStatus', 'NFunEvals', 'MeanFunElapd'] \
