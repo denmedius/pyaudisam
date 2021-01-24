@@ -505,7 +505,7 @@ class ResultsFullReport(ResultsReport):
                     expectedEnd = \
                         now + pd.Timedelta(elapsedTilNow.value * (len(pages) - nDone) / nDone)
                     expectedEnd = expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')
-                logger.info1('{}/{} pages in {} (mean {:.1f}s){}'
+                logger.info1('{}/{} pages in {} (mean {:.2f}s){}'
                              .format(nDone, len(pages), str(elapsedTilNow.round('S')).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nDone,
                                      ': done.' if nDone == len(pages) else ': should end around ' + expectedEnd))

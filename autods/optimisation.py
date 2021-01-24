@@ -662,7 +662,8 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         
         assert all(name in self.SolutionDimensionNames for name in self.dVariantParams)
         
-        logger.info(f'ZOTrOptimisation({self.dVariantParams})')
+        if self.dVariantParams:
+            logger.info(f'ZOTrOptimisation({self.dVariantParams})')
         
         # Columns names for each optimisation result row (see _run).
         self.resultsCols = ['SetupStatus', 'SubmitStatus', 'NFunEvals', 'MeanFunElapd'] \

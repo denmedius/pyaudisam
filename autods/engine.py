@@ -32,6 +32,7 @@ logger = log.logger('ads.eng', level=log.INFO) # Initial config (can be changed 
 from autods.executor import Executor
 
 # Keep ruin'dows from opening a GPF dialog box every time a launched executable (like MCDS.exe) crashes !
+# BUT: This does NOT work :-(
 if sys.platform.startswith('win'):
     import ctypes, msvcrt
     ctypes.windll.kernel32.SetErrorMode(msvcrt.SEM_NOGPFAULTERRORBOX);
@@ -638,6 +639,7 @@ class MCDSEngine(DSEngine):
         return status, startTime, elapsedTime
 
     # MCDS.exe subprocess creation flags under ruin'dows: no window please !
+    # BUT: Does not help with fucking Ruin'dows crash window ... alas !
     ExeCrFlags = sproc.CREATE_NO_WINDOW if sys.platform.startswith('win') else 0
 
     @classmethod
