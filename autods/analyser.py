@@ -819,7 +819,7 @@ class MCDSAnalyser(DSAnalyser):
                  resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                       sample=['Species', 'Pass', 'Adult', 'Duration']),
                  abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
-                 workDir='.', runMethod='subprocess.run', runTimeOut=120, logData=False, logProgressEvery=50,
+                 workDir='.', runMethod='subprocess.run', runTimeOut=300, logData=False, logProgressEvery=50,
                  defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
                  defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
                  defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
@@ -1115,7 +1115,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                  surveyType='Point', distanceType='Radial', clustering=False,
                  resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
                                       sample=['Species', 'Pass', 'Adult', 'Duration']),
-                 workDir='.', runMethod='subprocess.run', runTimeOut=120, logProgressEvery=5):
+                 workDir='.', runMethod='subprocess.run', runTimeOut=300, logProgressEvery=5):
 
         """Ctor
         
