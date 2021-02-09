@@ -97,11 +97,11 @@
     
     <h6 style="margin-bottom: 10px">
       {{tr['Page generated with']}} <a href="https://www.python.org/" target="_blank">Python 3</a>,
-      <a href="http://jpmeuret.free.fr/informatique.html#AutoDS" target="_blank">AutoDS</a>,
       <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>,
       <a href="https://matplotlib.org/" target="_blank">Matplotlib</a>,
       <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
-      {{tr['and']}} {{tr['other modules']}},
+      ... {{tr['and']}}
+      <a href="http://jpmeuret.free.fr/informatique.html#AutoDS" target="_blank">AutoDS {{autodsVersion}}</a>,
       {{tr['with icons from']}} <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>
       ({{tr['sources']}} :
       {% for pySrc in pySources %}
@@ -117,3 +117,4 @@
   </button>
 
 </body>
+, autodsVersion=ads.__version__

@@ -842,6 +842,23 @@ class MCDSEngine(DSEngine):
 
         return dPlots
 
+    @classmethod
+    def loadDataFile(cls, runDir):
+
+        runDir = pl.Path(runDir)
+        with open(runDir / cls.CmdFileName, 'r') as cmdFile:
+            fieldsLine = next(line for line in cmdFile.readlines() if line.startswith('Fields='))
+
+        dataCols = fieldsLine.strip('\n;')[len('Fields='):].split(',')
+
+        dataFilePathName = runDir / cls.DataFileName
+        dfData = pd.read_csv(dataFilePathName, sep='\t', names=dataCols)
+
+        logger.debug('Loaded {} rows with columns {} from MCDS data file {}.' \
+                     .format(len(dfData), ','.join(dataCols), dataFilePathName.as_posix()))
+
+        return dfData
+
     # Associated Distance import fields.
     DistanceFields = \
         dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',

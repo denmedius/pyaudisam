@@ -28,9 +28,12 @@ import pandas as pd
 import jinja2
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
+import seaborn as sb
 
 import autods.log as log
 import autods.executor as exor
+import autods as ads
+
 
 logger = log.logger('ads.rep')
 
@@ -167,7 +170,7 @@ class ResultsFullReport(ResultsReport):
                        'Back to top': 'Back to global report',
                        'If the fit was perfect ...': 'If the fit was perfect ...',
                        'Real observations': 'Real observations',
-                       'Page generated with': 'Page generated with', 'other modules': 'other modules',
+                       'Page generated with': 'Page generated with',
                        'with icons from': 'with icons from',
                        'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
                        'Point': 'Point transect', 'Line': 'Line transect',
@@ -190,7 +193,7 @@ class ResultsFullReport(ResultsReport):
                        'Back to top': 'Retour au rapport global',
                        'If the fit was perfect ...': 'Si la correspondance était parfaite ...',
                        'Real observations': 'Observations réelles',
-                       'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
+                       'Page generated with': 'Page générée via',
                        'with icons from': 'avec les pictogrammes de',
                        'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
                        'Point': 'Point fixe', 'Line': 'Transect',
@@ -228,7 +231,8 @@ class ResultsFullReport(ResultsReport):
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
                        synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=dict(), lang='en',
-                       plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=90,
+                       plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
+                       plotLineWidth=2, plotDotWidth=6, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
                        tgtFolder='.', tgtPrefix='results', logProgressEvery=5):
                        
         """Ctor
@@ -237,6 +241,9 @@ class ResultsFullReport(ResultsReport):
         :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
         :param plotImgSize: size of the image generated for each plot = (width, height) in pixels
         :param plotImgQuality: JPEG format quality (%) ; ignored if plotImgFormat not in ('jpg', 'jpeg')
+        :param plotLineWidth: width (unit: pixel) of drawn lines (observation histograms, fitted curves)
+        :param plotDotWidth: width (unit: pixel) of drawn dots / points (observation distances)
+        :param plotFontSizes: font sizes (unit: point) for plots (dict with keys from title, axes, ticks, legend)
         :param logProgressEvery: every such nb of details pages, log some elapsed time stats
                                  and end of generation forecast
         """
@@ -261,6 +268,9 @@ class ResultsFullReport(ResultsReport):
         self.plotImgFormat = plotImgFormat
         self.plotImgSize = plotImgSize
         self.plotImgQuality = plotImgQuality
+        self.plotLineWidth = plotLineWidth
+        self.plotDotWidth = plotDotWidth
+        self.plotFontSizes = plotFontSizes
 
         self.anlysSubTitle = anlysSubTitle
 
@@ -275,17 +285,23 @@ class ResultsFullReport(ResultsReport):
     PlotImgPrfxQqPlot = 'qqplot'
     PlotImgPrfxDetProb = 'detprob'
     PlotImgPrfxProbDens = 'probdens'
+    StripPlotAlpha, StripPlotJitter = 0.5, 0.3
     
     @classmethod
-    def generatePlots(cls, plotsData, tgtFolder, lang='en', imgFormat='png', imgSize=(800, 400), imgQuality=90,
-                      grid=True, bgColor='#f9fbf3', transparent=False, trColors=['blue', 'red']):
+    def generatePlots(cls, plotsData, tgtFolder, sDistances=None, lang='en',
+                      imgFormat='png', imgSize=(640, 400), imgQuality=90, grid=True, transparent=False,
+                      colors=dict(background='#f9fbf3', histograms='blue', curves='red', dots='green'),
+                      widths=dict(lines=2, dots=6), fontSizes=dict(title=11, axes=10, ticks=9, legend=10)):
         
         # For each plot, 
         dPlots = dict()
         for title, pld in plotsData.items():
             
-            # Create the target figure and one-only subplot.
-            fig = plt.figure(figsize=(imgSize[0] / plt.rcParams['figure.dpi'], imgSize[1] / plt.rcParams['figure.dpi']))
+            # Create the target figure and one-only subplot (note: QQ plots with forced height square shape).
+            figHeight = imgSize[1] / plt.rcParams['figure.dpi']
+            figWidth = figHeight if 'Qq-plot' in title else imgSize[0] / plt.rcParams['figure.dpi']
+
+            fig = plt.figure(figsize=(figWidth, figHeight))
             axes = fig.subplots()
             
             # Plot a figure from the plot data (3 possible types, from title).
@@ -299,22 +315,27 @@ class ResultsFullReport(ResultsReport):
                                                 for s in ['If the fit was perfect ...', 'Real observations']],
                                        index=np.linspace(0.5/n, 1.0-0.5/n, n))
                 
-                df2Plot.plot(ax=axes, color=trColors, grid=grid,
-                             xlim=(pld['xMin'], pld['xMax']),
-                             ylim=(pld['yMin'], pld['yMax']))
+                df2Plot.plot(ax=axes, color=[colors['histograms'], colors['curves']],
+                             linewidth=widths['lines'], grid=grid,
+                             xlim=(pld['xMin'], pld['xMax']), ylim=(pld['yMin'], pld['yMax']))
 
             elif 'Detection Probability' in title:
                 
                 tgtFileName = cls.PlotImgPrfxDetProb + title.split(' ')[-1] # Assume last "word" is the hist. number
                 
+                if sDistances is not None:
+                    axes2 = axes.twinx()
+                    sb.stripplot(ax=axes2, x=sDistances, color=colors['dots'], size=widths['dots'],
+                                 alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
+
                 df2Plot = pd.DataFrame(data=pld['dataRows'], 
                                        columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
                                                 pld['yLabel'] + ' (fitted)'])
                 df2Plot.set_index(pld['xLabel'], inplace=True)
                 
-                df2Plot.plot(ax=axes, color=trColors, grid=grid,
-                             xlim=(pld['xMin'], pld['xMax']), 
-                             ylim=(pld['yMin'], pld['yMax']))
+                df2Plot.plot(ax=axes, color=[colors['histograms'], colors['curves']],
+                             linewidth=widths['lines'], grid=grid,
+                             xlim=(pld['xMin'], pld['xMax']), ylim=(pld['yMin'], pld['yMax']))
                 
                 aMTicks = axes.get_xticks()
                 axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
@@ -325,31 +346,36 @@ class ResultsFullReport(ResultsReport):
                 
                 tgtFileName = cls.PlotImgPrfxProbDens + title.split(' ')[-1] # Assume last "word" is the Pdf number
                 
+                if sDistances is not None:
+                    axes2 = axes.twinx()
+                    sb.stripplot(ax=axes2, x=sDistances, color=colors['dots'], size=widths['dots'],
+                                 alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
+
                 df2Plot = pd.DataFrame(data=pld['dataRows'], 
                                        columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
                                                 pld['yLabel'] + ' (fitted)'])
                 df2Plot.set_index(pld['xLabel'], inplace=True)
                 
-                df2Plot.plot(ax=axes, color=trColors, grid=grid,
-                             xlim=(pld['xMin'], pld['xMax']), 
-                             ylim=(pld['yMin'], pld['yMax']))
-        
+                df2Plot.plot(ax=axes, color=[colors['histograms'], colors['curves']],
+                             linewidth=widths['lines'], grid=grid,
+                             xlim=(pld['xMin'], pld['xMax']), ylim=(pld['yMin'], pld['yMax']))
+
                 aMTicks = axes.get_xticks()
                 axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
                 axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
                 axes.grid(True, which='minor')
                 
             # Finish plotting.
-            axes.legend(df2Plot.columns, fontsize=10)
+            axes.legend(df2Plot.columns, fontsize=fontSizes['legend'])
             axes.set_title(label=pld['title'] + ' : ' + pld['subTitle'],
-                           fontdict=dict(fontsize=14), pad=10)
-            axes.set_xlabel(pld['xLabel'], fontsize=10)
-            axes.set_ylabel(pld['yLabel'], fontsize=10)
-            axes.tick_params(axis = 'both', labelsize=9)
+                           fontdict=dict(fontsize=fontSizes['title']), pad=10)
+            axes.set_xlabel(pld['xLabel'], fontsize=fontSizes['axes'])
+            axes.set_ylabel(pld['yLabel'], fontsize=fontSizes['axes'])
+            axes.tick_params(axis = 'both', labelsize=fontSizes['ticks'])
             axes.grid(True, which='major')
             if not transparent:
-                axes.set_facecolor(bgColor)
-                axes.figure.patch.set_facecolor(bgColor)
+                axes.set_facecolor(colors['background'])
+                axes.figure.patch.set_facecolor(colors['background'])
                 
             # Generate an image file for the plot figure (forcing the specified patch background color).
             tgtFileName = tgtFileName + '.' + imgFormat.lower()
@@ -418,7 +444,7 @@ class ResultsFullReport(ResultsReport):
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang], 
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime, 
+                           genDateTime=genDateTime, autodsVersion=ads.__version__,
                            distanceUnit=self.tr(self.resultsSet.distanceUnit),
                            areaUnit=self.tr(self.resultsSet.areaUnit),
                            surveyType=self.tr(self.resultsSet.surveyType),
@@ -542,15 +568,19 @@ class ResultsFullReport(ResultsReport):
                            details=dfsDet.render(),
                            log=engineClass.decodeLog(anlysFolder),
                            output=engineClass.decodeOutput(anlysFolder),
-                           plots=self.generatePlots(engineClass.decodePlots(anlysFolder), anlysFolder,
+                           plots=self.generatePlots(plotsData=engineClass.decodePlots(anlysFolder), 
+                                                    sDistances=engineClass.loadDataFile(anlysFolder).DISTANCE,
+                                                    tgtFolder=anlysFolder, lang='en', # No translation.
                                                     imgFormat=self.plotImgFormat, imgSize=self.plotImgSize,
-                                                    imgQuality=self.plotImgQuality, lang='en'), # No translation !
+                                                    imgQuality=self.plotImgQuality,
+                                                    widths=dict(lines=self.plotLineWidth, dots=self.plotDotWidth),
+                                                    fontSizes=self.plotFontSizes),
                            title=self.title, subtitle=subTitle, keywords=self.keywords,
                            navUrls=dict(prevAnlys='../' + sResNav.previous,
                                         nextAnlys='../' + sResNav.next,
                                         back2Top='../' + os.path.basename(topHtmlPathName)),
                            tr=self.dTrans[self.lang], pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime, 
+                           genDateTime=genDateTime, autodsVersion=ads.__version__, 
                            distanceUnit=self.tr(self.resultsSet.distanceUnit),
                            areaUnit=self.tr(self.resultsSet.areaUnit),
                            surveyType=self.tr(self.resultsSet.surveyType),
@@ -657,13 +687,15 @@ class MCDSResultsFullReport(ResultsFullReport):
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
                        synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=None, lang='en',
-                       plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=90,
+                       plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
+                       plotLineWidth=2, plotDotWidth=5, plotFontSizes=dict(title=12, axes=10, ticks=9, legend=10),
                        tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          pySources=pySources, synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend,
                          dCustomTrans=self.DCustTrans if dCustomTrans is None else dCustomTrans, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
+                         plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
     # Styling colors
@@ -889,10 +921,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
                        'Synthesis table': 'Synthesis table',
                        'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'Sample': 'Sample', 'Parameters': 'Parameters', 'Results': 'Results',
-                       'ProbDens': 'Detection probability density (PDF)',
-                       'DetProb': 'Detection probability',
-                       'Detailed results': 'Detailed results',
+                       'SampleParams': 'Sample & Model', 'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
+                       'QqPlot': 'Quantile-Quantile plot', 'ProbDens': 'Detection probability density (PDF)',
+                       'DetProb': 'Detection probability', 'Detailed results': 'Detailed results',
                        'Download Excel': 'Download as Excel(TM) file',
                        'Summary computation log': 'Summary computation log',
                        'Detailed computation log': 'Detailed computation log',
@@ -900,7 +931,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Back to top': 'Back to global report',
                        'If the fit was perfect ...': 'If the fit was perfect ...',
                        'Real observations': 'Real observations',
-                       'Page generated with': 'Page generated with', 'other modules': 'other modules',
+                       'Page generated with': 'Page generated with',
                        'with icons from': 'with icons from',
                        'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
                        'Point': 'Point transect', 'Line': 'Line transect',
@@ -916,17 +947,16 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                   fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
                        'Synthesis table': 'Tableau de synthèse',
                        'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'Sample': 'Echantillon', 'Parameters': 'Paramètres', 'Results': 'Résultats',
-                       'ProbDens': 'Densité de probabilité de détection (DdP)',
-                       'DetProb': 'Probabilité de détection',
-                       'Detailed results': 'Résultats en détails',
+                       'SampleParams': 'Echantillon & Modèle', 'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
+                       'QqPlot': 'Diagramme Quantile-Quantile', 'ProbDens': 'Densité de probabilité de détection (DdP)',
+                       'DetProb': 'Probabilité de détection', 'Detailed results': 'Résultats en détails',
                        'Download Excel': 'Télécharger le classeur Excel (TM)',
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
                        'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
                        'Back to top': 'Retour au rapport global',
                        'If the fit was perfect ...': 'Si la correspondance était parfaite ...',
                        'Real observations': 'Observations réelles',
-                       'Page generated with': 'Page générée via', 'other modules': 'd\'autres modules',
+                       'Page generated with': 'Page générée via',
                        'with icons from': 'avec les pictogrammes de',
                        'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
                        'Point': 'Point fixe', 'Line': 'Transect',
@@ -950,7 +980,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                      " but CoefVar Density have been further modified : converted to %",
                   'Note: All figures untouched, as output by MCDS': 
                      "<strong>Note</strong>: All values have been left untouched,"
-                     " as outuput by MCDS (no rounding, no conversion)" },
+                     " as outuput by MCDS (no rounding, no conversion)",
+                  'Max Distance': 'Max Distance' },
              fr={ 'Study type:': "<strong>Type d'étude</strong>:",
                   'Units used:': "<strong>Unités utilisées</strong>:",
                   'for distances': 'pour les distances',
@@ -960,12 +991,14 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                      " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
                   'Note: All figures untouched, as output by MCDS':
                      "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                     " elles sont toutes telles que produites par MCDS" })
+                     " elles sont toutes telles que produites par MCDS",
+                  'Max Distance': 'Max Distance' })
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                  sampleCols, paramCols, resultCols, anlysSynthCols=None,
-                 pySources=[], lang='en', synthPlotsHeight=256,
-                 plotImgFormat='png', plotImgSize=(800, 400), plotImgQuality=95,
+                 pySources=[], lang='en', synthPlotsHeight=320,
+                 plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
+                 plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=10, axes=9, ticks=8, legend=9),
                  tgtFolder='.', tgtPrefix='results'):
 
         """Ctor
@@ -978,6 +1011,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                          pySources=pySources, synthCols=anlysSynthCols,
                          dCustomTrans=self.DCustTrans, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
+                         plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.sampleCols = self.noDupColumns(sampleCols, head='Sample columns')
@@ -1005,10 +1039,6 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # Converting to other units, or so.
         kVarDens = 1.0
         if convert:
-            
-            #for col in self.trEnColNames(['Density', 'Min Density', 'Max Density']):
-            #    if col in df.columns:
-            #        df[col] *= 1000000 / 10000 # ha => km2
             
             col = self.trEnColNames('CoefVar Density')
             if col in df.columns:
@@ -1044,15 +1074,21 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     
     def plotImageHtmlElement(self, runFolder, plotImgPrfx):
         
-        for plotInd in range(3, 0, -1):
-            plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
-            if os.path.isfile(os.path.join(runFolder, plotFileName)):
-                return '<img src="./{}/{}" style="height: {}px" />' \
-                       .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.synthPlotsHeight)
+        if plotImgPrfx == self.PlotImgPrfxQqPlot:
+            plotFileName = '{}.{}'.format(plotImgPrfx, self.plotImgFormat)
+            return '<img src="./{}/{}" style="height: {}px" />' \
+                   .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.synthPlotsHeight)
+        else:
+          for plotInd in range(3, 0, -1):
+              plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
+              if os.path.isfile(os.path.join(runFolder, plotFileName)):
+                  return '<img src="./{}/{}" style="height: {}px" />' \
+                         .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.synthPlotsHeight)
         
         return '{} plot image file not found'.format(plotImgPrfx)
         
     # Top page
+    RightTruncCol = ('encounter rate', 'right truncation distance (w)', 'Value')
     def toHtmlAllAnalyses(self):
         
         logger.info('Top page ...')
@@ -1070,12 +1106,23 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         dTransResCol = self.resultsSet.transTable()
         sampleTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.sampleCols]
         paramTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.paramCols]
-        resultTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
+        result1TrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
+
+        if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
+            rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol, str(self.RightTruncCol)))
+            dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
+            result1TrCols[rightTruncColInd] = self.tr('Max Distance')
+
+        midResInd = len(result1TrCols) // 2 + len(result1TrCols) % 2
+        result2TrCols = result1TrCols[midResInd:]
+        result1TrCols = result1TrCols[:midResInd]
         
         # 3. Fill target table index and columns
-        dfSyn = pd.DataFrame(dict(Sample=dfDet[sampleTrCols].apply(self.series2VertTable, axis='columns'),
-                                  Parameters=dfDet[paramTrCols].apply(self.series2VertTable, axis='columns'),
-                                  Results=dfDet[resultTrCols].apply(self.series2VertTable, axis='columns'),
+        dfSyn = pd.DataFrame(dict(SampleParams=dfDet[sampleTrCols + paramTrCols].apply(self.series2VertTable, axis='columns'),
+                                  Results1=dfDet[result1TrCols].apply(self.series2VertTable, axis='columns'),
+                                  Results2=dfDet[result2TrCols].apply(self.series2VertTable, axis='columns'),
+                                  QqPlot=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                          plotImgPrfx=self.PlotImgPrfxQqPlot),
                                   ProbDens=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
                                                                             plotImgPrfx=self.PlotImgPrfxProbDens),
                                   DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
@@ -1103,7 +1150,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime, 
+                           genDateTime=genDateTime, autodsVersion=ads.__version__, 
                            distanceUnit=self.tr(self.resultsSet.distanceUnit),
                            areaUnit=self.tr(self.resultsSet.areaUnit),
                            surveyType=self.tr(self.resultsSet.surveyType),
