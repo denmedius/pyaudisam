@@ -285,7 +285,9 @@ class ResultsFullReport(ResultsReport):
     PlotImgPrfxQqPlot = 'qqplot'
     PlotImgPrfxDetProb = 'detprob'
     PlotImgPrfxProbDens = 'probdens'
+    PlotImgPrfxDistHist = 'disthist'
     StripPlotAlpha, StripPlotJitter = 0.5, 0.3
+    DistHistBinWidth = 10 # unit = Distance unit
     
     @classmethod
     def generatePlots(cls, plotsData, tgtFolder, sDistances=None, lang='en',
@@ -293,18 +295,19 @@ class ResultsFullReport(ResultsReport):
                       colors=dict(background='#f9fbf3', histograms='blue', curves='red', dots='green'),
                       widths=dict(lines=2, dots=6), fontSizes=dict(title=11, axes=10, ticks=9, legend=10)):
         
-        # For each plot, 
         dPlots = dict()
+
+        # For each plot from extracted plotsData, 
         for title, pld in plotsData.items():
             
-            # Create the target figure and one-only subplot (note: QQ plots with forced height square shape).
+            # a. Create the target figure and one-only subplot (note: QQ plots with forced height square shape).
             figHeight = imgSize[1] / plt.rcParams['figure.dpi']
             figWidth = figHeight if 'Qq-plot' in title else imgSize[0] / plt.rcParams['figure.dpi']
 
             fig = plt.figure(figsize=(figWidth, figHeight))
             axes = fig.subplots()
             
-            # Plot a figure from the plot data (3 possible types, from title).
+            # b. Plot a figure from the plot data (3 possible types, from title).
             if 'Qq-plot' in title:
                 
                 tgtFileName = cls.PlotImgPrfxQqPlot
@@ -315,7 +318,7 @@ class ResultsFullReport(ResultsReport):
                                                 for s in ['If the fit was perfect ...', 'Real observations']],
                                        index=np.linspace(0.5/n, 1.0-0.5/n, n))
                 
-                df2Plot.plot(ax=axes, color=[colors['histograms'], colors['curves']],
+                df2Plot.plot(ax=axes, zorder=10, color=[colors['histograms'], colors['curves']],
                              linewidth=widths['lines'], grid=grid,
                              xlim=(pld['xMin'], pld['xMax']), ylim=(pld['yMin'], pld['yMax']))
 
@@ -323,75 +326,135 @@ class ResultsFullReport(ResultsReport):
                 
                 tgtFileName = cls.PlotImgPrfxDetProb + title.split(' ')[-1] # Assume last "word" is the hist. number
                 
-                if sDistances is not None:
-                    axes2 = axes.twinx()
-                    sb.stripplot(ax=axes2, x=sDistances, color=colors['dots'], size=widths['dots'],
-                                 alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
+                #if sDistances is not None:
+                #    axes2 = axes.twinx()
+                #    sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
+                #                 alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
 
                 df2Plot = pd.DataFrame(data=pld['dataRows'], 
                                        columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
                                                 pld['yLabel'] + ' (fitted)'])
                 df2Plot.set_index(pld['xLabel'], inplace=True)
                 
-                df2Plot.plot(ax=axes, color=[colors['histograms'], colors['curves']],
+                df2Plot.plot(ax=axes, zorder=10, color=[colors['histograms'], colors['curves']],
                              linewidth=widths['lines'], grid=grid,
                              xlim=(pld['xMin'], pld['xMax']), ylim=(pld['yMin'], pld['yMax']))
                 
                 aMTicks = axes.get_xticks()
                 axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
                 axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
-                axes.grid(True, which='minor')
+                axes.grid(True, which='minor', zorder=0)
         
+
             elif 'Pdf' in title:
                 
                 tgtFileName = cls.PlotImgPrfxProbDens + title.split(' ')[-1] # Assume last "word" is the Pdf number
                 
-                if sDistances is not None:
-                    axes2 = axes.twinx()
-                    sb.stripplot(ax=axes2, x=sDistances, color=colors['dots'], size=widths['dots'],
-                                 alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
+                #if sDistances is not None:
+                #    axes2 = axes.twinx()
+                #    sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
+                #                 alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
 
                 df2Plot = pd.DataFrame(data=pld['dataRows'], 
                                        columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
                                                 pld['yLabel'] + ' (fitted)'])
                 df2Plot.set_index(pld['xLabel'], inplace=True)
                 
-                df2Plot.plot(ax=axes, color=[colors['histograms'], colors['curves']],
+                df2Plot.plot(ax=axes, zorder=10, color=[colors['histograms'], colors['curves']],
                              linewidth=widths['lines'], grid=grid,
                              xlim=(pld['xMin'], pld['xMax']), ylim=(pld['yMin'], pld['yMax']))
 
                 aMTicks = axes.get_xticks()
                 axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
                 axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
-                axes.grid(True, which='minor')
+                axes.grid(True, which='minor', zorder=0)
                 
-            # Finish plotting.
+            # c. Finish plotting.
             axes.legend(df2Plot.columns, fontsize=fontSizes['legend'])
             axes.set_title(label=pld['title'] + ' : ' + pld['subTitle'],
                            fontdict=dict(fontsize=fontSizes['title']), pad=10)
             axes.set_xlabel(pld['xLabel'], fontsize=fontSizes['axes'])
             axes.set_ylabel(pld['yLabel'], fontsize=fontSizes['axes'])
-            axes.tick_params(axis = 'both', labelsize=fontSizes['ticks'])
-            axes.grid(True, which='major')
+            axes.tick_params(axis='both', labelsize=fontSizes['ticks'])
+            axes.grid(True, which='major', zorder=0)
             if not transparent:
                 axes.set_facecolor(colors['background'])
-                axes.figure.patch.set_facecolor(colors['background'])
+                fig.patch.set_facecolor(colors['background'])
                 
-            # Generate an image file for the plot figure (forcing the specified patch background color).
+            # d. Generate an image file for the plot figure (forcing the specified patch background color).
             tgtFileName = tgtFileName + '.' + imgFormat.lower()
             fig.tight_layout()
             pilArgs = dict(quality=imgQuality) if imgFormat == 'jpg' else dict()
             fig.savefig(os.path.join(tgtFolder, tgtFileName), bbox_inches='tight', transparent=transparent,
                         facecolor=axes.figure.get_facecolor(), edgecolor='none', pil_kwargs=pilArgs)
 
-            # Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
+            # e. Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
             axes.clear()
             fig.clear()
             plt.close(fig)
 
-            # Save image URL.
+            # f. Save image URL.
             dPlots[title] = tgtFileName
                 
+        # Standard fixed-bin-width histogram
+        if sDistances is not None:
+
+            title = 'Standard Distance Histogram'
+            tgtFileName = cls.PlotImgPrfxDistHist
+
+            # a. Create the target figure and one-only subplot
+            figHeight = imgSize[1] / plt.rcParams['figure.dpi']
+            figWidth = imgSize[0] / plt.rcParams['figure.dpi']
+
+            fig = plt.figure(figsize=(figWidth, figHeight))
+            axes = fig.subplots()
+                
+            # b. Plot the figure from the distance data
+            #axes2 = axes.twinx()
+            #sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
+            #             alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
+
+            distMax = sDistances.max()
+            aDistBins = np.linspace(start=0, stop=cls.DistHistBinWidth * int(distMax / cls.DistHistBinWidth),
+                                    num=1 + int(distMax / cls.DistHistBinWidth)).tolist()
+            if aDistBins[-1] < distMax:
+                aDistBins.append(distMax)
+
+            sDistances.plot.hist(ax=axes, zorder=10, bins=aDistBins, fill=None,
+                                 edgecolor=colors['histograms'], rwidth=1.0, linewidth=1)
+            axes.set_xlim((0, distMax))
+            axes.grid(True, which='minor', zorder=0)
+            aMTicks = axes.get_xticks()
+            axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
+            axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
+
+            # c. Finish plotting.
+            axes.legend(['Num. of observations (sampled)'], fontsize=fontSizes['legend'])
+            axes.set_title(label='Fixed bin distance histogram',
+                           fontdict=dict(fontsize=fontSizes['title']), pad=10)
+            axes.set_xlabel('Distance', fontsize=fontSizes['axes'])
+            axes.set_ylabel('Number of observations', fontsize=fontSizes['axes'])
+            axes.tick_params(axis='both', labelsize=fontSizes['ticks'])
+            axes.grid(True, which='major', zorder=0)
+            if not transparent:
+                axes.set_facecolor(colors['background'])
+                fig.patch.set_facecolor(colors['background'])
+                
+            # d. Generate an image file for the plot figure (forcing the specified patch background color).
+            tgtFileName = tgtFileName + '.' + imgFormat.lower()
+            fig.tight_layout()
+            pilArgs = dict(quality=imgQuality) if imgFormat == 'jpg' else dict()
+            fig.savefig(os.path.join(tgtFolder, tgtFileName), bbox_inches='tight', transparent=transparent,
+                        facecolor=axes.figure.get_facecolor(), edgecolor='none', pil_kwargs=pilArgs)
+
+            # e. Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
+            axes.clear()
+            fig.clear()
+            plt.close(fig)
+
+            # f. Save image URL.
+            dPlots[title] = tgtFileName
+
         return dPlots
     
     # Top page
@@ -922,8 +985,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Synthesis table': 'Synthesis table',
                        'Click on analysis # for details': 'Click on analysis number to get to detailed report',
                        'SampleParams': 'Sample & Model', 'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
-                       'QqPlot': 'Quantile-Quantile plot', 'ProbDens': 'Detection probability density (PDF)',
-                       'DetProb': 'Detection probability', 'Detailed results': 'Detailed results',
+                       'QqPlot': 'Quantile-Quantile plot', 'DistHist': 'Standard distance histogram',
+                       'ProbDens': 'Detection probability density (PDF)', 'DetProb': 'Detection probability',
+                       'Detailed results': 'Detailed results',
                        'Download Excel': 'Download as Excel(TM) file',
                        'Summary computation log': 'Summary computation log',
                        'Detailed computation log': 'Detailed computation log',
@@ -948,7 +1012,8 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                        'Synthesis table': 'Tableau de synthèse',
                        'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
                        'SampleParams': 'Echantillon & Modèle', 'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
-                       'QqPlot': 'Diagramme Quantile-Quantile', 'ProbDens': 'Densité de probabilité de détection (DdP)',
+                       'QqPlot': 'Diagramme Quantile-Quantile', 'DistHist': 'Histogramme standard des distances',
+                       'ProbDens': 'Densité de probabilité de détection (DdP)',
                        'DetProb': 'Probabilité de détection', 'Detailed results': 'Résultats en détails',
                        'Download Excel': 'Télécharger le classeur Excel (TM)',
                        'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
@@ -996,9 +1061,9 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                  sampleCols, paramCols, resultCols, anlysSynthCols=None,
-                 pySources=[], lang='en', synthPlotsHeight=320,
+                 pySources=[], lang='en', synthPlotsHeight=288,
                  plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
-                 plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=10, axes=9, ticks=8, legend=9),
+                 plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
                  tgtFolder='.', tgtPrefix='results'):
 
         """Ctor
@@ -1074,7 +1139,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
     
     def plotImageHtmlElement(self, runFolder, plotImgPrfx):
         
-        if plotImgPrfx == self.PlotImgPrfxQqPlot:
+        if plotImgPrfx in [self.PlotImgPrfxQqPlot, self.PlotImgPrfxDistHist]:
             plotFileName = '{}.{}'.format(plotImgPrfx, self.plotImgFormat)
             return '<img src="./{}/{}" style="height: {}px" />' \
                    .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.synthPlotsHeight)
@@ -1121,8 +1186,10 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         dfSyn = pd.DataFrame(dict(SampleParams=dfDet[sampleTrCols + paramTrCols].apply(self.series2VertTable, axis='columns'),
                                   Results1=dfDet[result1TrCols].apply(self.series2VertTable, axis='columns'),
                                   Results2=dfDet[result2TrCols].apply(self.series2VertTable, axis='columns'),
-                                  QqPlot=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
-                                                                          plotImgPrfx=self.PlotImgPrfxQqPlot),
+                                  DistHist=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                            plotImgPrfx=self.PlotImgPrfxDistHist),
+                                  #QqPlot=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                  #                                        plotImgPrfx=self.PlotImgPrfxQqPlot),
                                   ProbDens=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
                                                                             plotImgPrfx=self.PlotImgPrfxProbDens),
                                   DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
