@@ -6,7 +6,7 @@
   <meta name="copyright" content="Jean-Philippe Meuret 2019"/>
   <meta name="license" content="CC BY NC SA"/>
   <meta name="description" content="{{title}}"/>
-  <meta name="keywords" content="distance, sampling, mcds, pre-analysis, {{keywords}}"/>
+  <meta name="keywords" content="distance, sampling, mcds, full, {{keywords}}"/>
   <meta name="datetime" content="{{genDateTime}}"/>
   
   <title>{{title}}</title>
@@ -52,14 +52,14 @@
     <img class="center" height="32" style="margin-top: 30px"
          src="./fa-feather-alt.svg" alt="---" />
 
-    <h2 id="synthesis">
+    <h2 id="super-synthesis">
       <a href="./{{xlUrl}}" target="_blank">
         <img height="48" style="margin-right: 16px" src="./fa-file-excel.svg"
              onmouseover="this.src='./fa-file-excel-hover.svg';"
              onmouseout="this.src='./fa-file-excel.svg';"
              title="{{tr['Download Excel']}}"
              alt="{{tr['Download Excel']}}" /></a>
-      {{tr['Synthesis table']}}
+      {{tr['Super-synthesis table']}}
     </h2>
     
     <div class="chapter" style="margin-left: 10px">
@@ -69,10 +69,50 @@
       <p>{{tr['Note: Some figures rounded, but not converted']}}</p>
       <p style='font-size: 80%'>{{tr['Click on analysis # for details']}}</p>
       
-	  {{synthesis}}
+	  {{supersynthesis}}
 
     </div>
         
+    <h2 id="synthesis">
+      <a href="./{{xlUrl}}" target="_blank">
+        <img height="48" style="margin-right: 16px" src="./fa-file-excel.svg"
+             onmouseover="this.src='./fa-file-excel-hover.svg';"
+             onmouseout="this.src='./fa-file-excel.svg';"
+             title="{{tr['Download Excel']}}"
+             alt="{{tr['Download Excel']}}" /></a>
+      {{tr['Synthesis table']}}
+    </h2>
+    <div class="chapter" style="margin-left: 10px">
+
+      <p>{{tr['Study type:']}} {{surveyType}}, {{distanceType}}, {{clustering}}.</p>
+      <p>{{tr['Units used:']}} {{distanceUnit}} {{tr['for distances']}}, {{areaUnit}} {{tr['for areas']}}.</p>
+      <p>{{tr['Note: Some figures rounded, but not converted']}}</p>
+      <p style='font-size: 80%'>{{tr['Click on analysis # for details']}}</p>
+      
+    {{synthesis}}
+
+    </div>
+    
+    <h2 id="details">
+      <a href="./{{xlUrl}}" target="_blank">
+        <img height="48" style="margin-right: 8px" src="./fa-file-excel.svg"
+             onmouseover="this.src='./fa-file-excel-hover.svg';"
+             onmouseout="this.src='./fa-file-excel.svg';"
+             title="{{tr['Download Excel']}}"
+             alt="{{tr['Download Excel']}}" /></a>
+      {{tr['Detailed results']}}
+    </h2>
+    <div class="chapter" style="margin-left: 10px">
+
+      <p>{{tr['Study type:']}} {{surveyType}}, {{distanceType}}, {{clustering}}.</p>
+      <p>{{tr['Units used:']}} {{distanceUnit}} {{tr['for distances']}}, {{areaUnit}} {{tr['for areas']}}.</p>
+      <p>{{tr['Note: All figures untouched, as output by MCDS']}}</p>
+      <p style='font-size: 80%'>{{tr['Click on analysis # for details']}}</p>
+      
+    {{details}}
+      
+    </div>
+    
     <h6 style="margin-bottom: 10px">
       {{tr['Page generated with']}} <a href="https://www.python.org/" target="_blank">Python 3</a>,
       <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>,

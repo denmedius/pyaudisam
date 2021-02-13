@@ -110,6 +110,7 @@ class ResultsReport(object):
         return os.path.join(tgtFolder or self.tgtFolder, (prefix or self.tgtPrefix) + suffix)
     
     def relativeRunFolderUrl(self, runFolderPath):
+
         return os.path.relpath(runFolderPath, self.tgtFolder).replace(os.sep, '/')
     
     # Install needed attached files for HTML report.
@@ -155,8 +156,8 @@ class ResultsReport(object):
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
     
-# Results full reports class (Excel and HTML, targeting similar result as in Distance 6+)
-class ResultsFullReport(ResultsReport):
+# DS results reports class (Excel and HTML, targeting similar layout as in Distance 6+)
+class DSResultsDistanceReport(ResultsReport):
 
     # Translation table.
     DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
@@ -468,13 +469,12 @@ class ResultsFullReport(ResultsReport):
         if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
             synCols += [self.resultsSet.analysisClass.RunFolderColumn]
         dfSyn = self.resultsSet.dfTransData(self.lang, subset=synCols)
-        dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         
         # b. Links to each analysis detailled report.
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
         def numNavLink(sAnlys):
-            return numNavLinkFmt.format(p=sAnlys[self.trRunFolderCol], n=sAnlys.name)
+            return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
        
         # c. Post-format as specified in actual class.
         dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=numNavLink,
@@ -487,7 +487,6 @@ class ResultsFullReport(ResultsReport):
         detTrCols = list(dfDet.columns)
         if self.trRunFolderCol not in detTrCols:
             detTrCols += [self.trRunFolderCol]
-        dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         dfDet = dfDet.reindex(columns=detTrCols)
        
         # b. Links to each analysis detailed report.
@@ -611,12 +610,14 @@ class ResultsFullReport(ResultsReport):
         # Postprocess synthesis table :
         dfSyn = pd.DataFrame([sSynthRes])
         idxFmt = '{{:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
+        dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         dfSyn.index = dfSyn.index.map(lambda n: idxFmt.format(n))
         dfsSyn = self.finalformatEachAnalysisData(dfSyn, sort=False, indexer=None,
                                                   convert=True, round_=True, style=True)
         
         # Postprocess detailed table :
         dfDet = pd.DataFrame([sDetRes])
+        dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         dfDet.index = dfDet.index.map(lambda n: idxFmt.format(n))
         dfsDet = self.finalformatEachAnalysisData(dfDet, sort=False, indexer=None,
                                                   convert=False, round_=False, style=True)
@@ -627,8 +628,7 @@ class ResultsFullReport(ResultsReport):
         engineClass = self.resultsSet.engineClass
         anlysFolder = sDetRes[self.trRunFolderCol]
         tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
-        html = tmpl.render(synthesis=dfsSyn.render(),
-                           details=dfsDet.render(),
+        html = tmpl.render(synthesis=dfsSyn.render(), details=dfsDet.render(),
                            log=engineClass.decodeLog(anlysFolder),
                            output=engineClass.decodeOutput(anlysFolder),
                            plots=self.generatePlots(plotsData=engineClass.decodePlots(anlysFolder), 
@@ -656,10 +656,10 @@ class ResultsFullReport(ResultsReport):
         with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
             tgtFile.write(html)
 
-    # HTML report generation (based on results.dfTransData).
-    def toHtml(self): #, generators=1):
+    # HTML report generation.
+    def toHtml(self):
     
-        # For some obscure reason, parallelism does not work here (while it does for MCDSResultsPreReport !).
+        # For some obscure reason, parallelism does not work here (while it does for MCDSResultsPre/FullReport !).
         generators = 1
         
         # Install needed attached files.
@@ -723,8 +723,8 @@ class ResultsFullReport(ResultsReport):
         
         return self.toExcel(fileName, engine='odf')
         
-# A specialized full report for MCDS analyses, with actual output formating
-class MCDSResultsFullReport(ResultsFullReport):
+# A specialized report for MCDS analyses, targeting similar layout as in Distance 6+, with actual output formating.
+class MCDSResultsDistanceReport(DSResultsDistanceReport):
 
     DCustTrans = \
         dict(en={ 'Study type:': "<strong>Study type</strong>:",
@@ -748,37 +748,40 @@ class MCDSResultsFullReport(ResultsFullReport):
                      "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
                      " elles sont toutes telles que produites par MCDS" })
     
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
-                       synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=None, lang='en',
-                       plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
-                       plotLineWidth=2, plotDotWidth=5, plotFontSizes=dict(title=12, axes=10, ticks=9, legend=10),
-                       tgtFolder='.', tgtPrefix='results'):
+    RightTruncCol = ('encounter rate', 'right truncation distance (w)', 'Value')
+
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
+                 synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=None, pySources=[], lang='en',
+                 plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
+                 plotLineWidth=2, plotDotWidth=5, plotFontSizes=dict(title=12, axes=10, ticks=9, legend=10),
+                 tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         pySources=pySources, synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend,
-                         dCustomTrans=self.DCustTrans if dCustomTrans is None else dCustomTrans, lang=lang,
+                         synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend,
+                         dCustomTrans=self.DCustTrans if dCustomTrans is None else dCustomTrans,
+                         pySources=pySources, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
                          plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
     # Styling colors
-    cChrGray = '#869074'
-    cBckGreen, cBckGray = '#e0ef8c', '#dae3cb'
-    cSclGreen, cSclOrange, cSclRed = '#cbef8c', '#f9da56', '#fe835a'
-    cChrInvis = '#e8efd1' # body background
-    scaledColors = [cSclGreen, cSclOrange, cSclRed]
-    scaledColorsRvd = list(reversed(scaledColors))
+    CChrGray = '#869074'
+    CBckGreen, CBckGray = '#e0ef8c', '#dae3cb'
+    CSclGreen, CSclOrange, CSclRed = '#cbef8c', '#f9da56', '#fe835a'
+    CChrInvis = '#e8efd1' # body background
+    ScaledColors = [CSclGreen, CSclOrange, CSclRed]
+    ScaledColorsRvd = list(reversed(ScaledColors))
     
-    dExCodeColors = dict(zip([1, 2, 3], scaledColors))
+    DExCodeColors = dict(zip([1, 2, 3], ScaledColors))
     
     @classmethod
     def colorExecCodes(cls, sCodes):
-        return ['background-color: ' + cls.dExCodeColors.get(c, cls.dExCodeColors[3]) for c in sCodes]
+        return ['background-color: ' + cls.DExCodeColors.get(c, cls.DExCodeColors[3]) for c in sCodes]
     
     @classmethod
     def scaledColorV(cls, v, thresholds, colors): # len(thresholds) == len(colors) - 1
         if pd.isnull(v):
-            return cls.cBckGray
+            return cls.CBckGray
         for ind, thresh in enumerate(thresholds):
             if v > thresh:
                 return colors[ind]
@@ -927,7 +930,7 @@ class MCDSResultsFullReport(ResultsFullReport):
             col = self.trEnColNames('Delta AIC')
             if col in df.columns and df[col].max() > 0: # if all delta AIC == 0, no need to stress it.
                 dfs.set_properties(subset=pd.IndexSlice[df[df[col] == 0].index, :],
-                                   **{'background-color': self.cBckGreen})
+                                   **{'background-color': self.CBckGreen})
                
             # Red/Orange/Green color code for exec. codes for normal codes
             col = self.trEnColNames('ExCod')
@@ -939,25 +942,25 @@ class MCDSResultsFullReport(ResultsFullReport):
             if col in df.columns:
                 kVarDens = 100.0 if convert else 1.0
                 dfs.apply(self.scaledColorS, subset=[col], axis='columns',
-                          thresholds=[v * kVarDens for v in [0.3, 0.2]], colors=self.scaledColorsRvd)
+                          thresholds=[v * kVarDens for v in [0.3, 0.2]], colors=self.ScaledColorsRvd)
             
             # Red/Orange/Green color code for DCV based on thresholds
             col = self.trEnColNames('KS P')
             if col in df.columns:
                 dfs.apply(self.scaledColorS, subset=[col], axis='columns',
-                          thresholds=[0.7, 0.2], colors=self.scaledColors)
+                          thresholds=[0.7, 0.2], colors=self.ScaledColors)
             
             # Red/Orange/Green color code for DCV based on thresholds
             col = self.trEnColNames('Chi2 P')
             if col in df.columns:
                 dfs.apply(self.scaledColorS, subset=[col], axis='columns',
-                          thresholds=[0.7, 0.2], colors=self.scaledColors)
+                          thresholds=[0.7, 0.2], colors=self.ScaledColors)
             
             # Greyed foreground for rows with bad exec codes
             col = self.trEnColNames('ExCod')
             if col in df.columns:
                 dfs.set_properties(subset=pd.IndexSlice[df[~df[col].isin([1, 2])].index, :],
-                                   **{'color': self.cChrGray})
+                                   **{'color': self.CChrGray})
             
             # NaN cells are set to transparent foreground / no shadow (to hide NaNs).
             dfs.where(self.isNull, 'color: transparent').where(self.isNull, 'text-shadow: none')
@@ -974,11 +977,36 @@ class MCDSResultsFullReport(ResultsFullReport):
         return self.finalFormatAllAnalysesData(dfTrData, sort=sort, indexer=indexer,
                                                convert=convert, round_=round_, style=style)
 
+    @staticmethod
+    def series2VertTable(ser):
+        
+        def float2str(v): # Workaround to_html non transparent default float format (!?)
+            return format(v, 'g')
+        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, float_format=float2str))
+    
+    def plotImageHtmlElement(self, runFolder, plotImgPrfx, plotHeight):
+        
+        if plotImgPrfx in [self.PlotImgPrfxQqPlot, self.PlotImgPrfxDistHist]:
+            plotFileName = '{}.{}'.format(plotImgPrfx, self.plotImgFormat)
+            return '<img src="./{}/{}" style="height: {}px" />' \
+                   .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
+        else:
+          for plotInd in range(3, 0, -1):
+              plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
+              if os.path.isfile(os.path.join(runFolder, plotFileName)):
+                  return '<img src="./{}/{}" style="height: {}px" />' \
+                         .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
+        
+        return '{} plot image file not found'.format(plotImgPrfx)
+        
 
 # A specialized pre-report for MCDS analyses, with actual output formating
-# (HTML only, targeting very simple mono-table synthesis for fully automatic pre-analyses,
-#  in order to give the user hints about what analyses are to be done, and with what parameter values).
-class MCDSResultsPreReport(MCDSResultsFullReport):
+# (HTML mode gives a specialized main page layout, with a plots + super-synthesis table,
+#  in place of the synthesis table of MCDSResultsDistanceReport ;
+#  detailled pages unchanged from MCDSResultsDistanceReport ;
+# For fully automatic pre-analyses, in order to give the user hints about what analyses are to be done,
+# and with what parameter values.
+class MCDSResultsPreReport(MCDSResultsDistanceReport):
 
     # Translation table.
     DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
@@ -1059,22 +1087,24 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                      " elles sont toutes telles que produites par MCDS",
                   'Max Distance': 'Max Distance' })
     
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                 sampleCols, paramCols, resultCols, anlysSynthCols=None,
-                 pySources=[], lang='en', synthPlotsHeight=288,
-                 plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
+                 sampleCols, paramCols, resultCols, synthCols=None, lang='en', pySources=[],
+                 superSynthPlotsHeight=288, plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
                  plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
                  tgtFolder='.', tgtPrefix='results'):
 
         """Ctor
         
         Parameters:
-        :param synthPlotsHeight: Display height (in pixels) of the synthesis page plots
+        :param sampleCols: for main page table, 1st column (top)
+        :param paramCols: for main page table, 1st column (bottom)
+        :param resultCols: for main page table, 2nd and 3rd columns
+        :param synthCols: for synthesis table (Excel format only, "Synthesis" tab)
+        :param superSynthPlotsHeight: Display height (in pixels) of the synthesis page plots
         """
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         pySources=pySources, synthCols=anlysSynthCols,
-                         dCustomTrans=self.DCustTrans, lang=lang,
+                         synthCols=synthCols, dCustomTrans=self.DCustTrans, pySources=pySources, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
                          plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
@@ -1082,7 +1112,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         self.sampleCols = self.noDupColumns(sampleCols, head='Sample columns')
         self.paramCols = self.noDupColumns(paramCols, head='Parameter columns')
         self.resultCols = self.noDupColumns(resultCols, head='Result columns')
-        self.synthPlotsHeight = synthPlotsHeight
+        self.superSynthPlotsHeight = superSynthPlotsHeight
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
     # in the "one analysis at a time" case.
@@ -1130,30 +1160,7 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         # Styling
         return self.styleAllAnalysesData(df, convert=convert, round_=round_, style=style)
 
-    @staticmethod
-    def series2VertTable(ser):
-        
-        def float2str(v): # Workaround to_html non transparent default float format (!?)
-            return format(v, 'g')
-        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, float_format=float2str))
-    
-    def plotImageHtmlElement(self, runFolder, plotImgPrfx):
-        
-        if plotImgPrfx in [self.PlotImgPrfxQqPlot, self.PlotImgPrfxDistHist]:
-            plotFileName = '{}.{}'.format(plotImgPrfx, self.plotImgFormat)
-            return '<img src="./{}/{}" style="height: {}px" />' \
-                   .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.synthPlotsHeight)
-        else:
-          for plotInd in range(3, 0, -1):
-              plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
-              if os.path.isfile(os.path.join(runFolder, plotFileName)):
-                  return '<img src="./{}/{}" style="height: {}px" />' \
-                         .format(self.relativeRunFolderUrl(runFolder), plotFileName, self.synthPlotsHeight)
-        
-        return '{} plot image file not found'.format(plotImgPrfx)
-        
     # Top page
-    RightTruncCol = ('encounter rate', 'right truncation distance (w)', 'Value')
     def toHtmlAllAnalyses(self):
         
         logger.info('Top page ...')
@@ -1187,19 +1194,19 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
                                   Results1=dfDet[result1TrCols].apply(self.series2VertTable, axis='columns'),
                                   Results2=dfDet[result2TrCols].apply(self.series2VertTable, axis='columns'),
                                   DistHist=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
-                                                                            plotImgPrfx=self.PlotImgPrfxDistHist),
-                                  #QqPlot=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
-                                  #                                        plotImgPrfx=self.PlotImgPrfxQqPlot),
+                                                                            plotImgPrfx=self.PlotImgPrfxDistHist,
+                                                                            plotHeight=self.superSynthPlotsHeight),
                                   ProbDens=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
-                                                                            plotImgPrfx=self.PlotImgPrfxProbDens),
+                                                                            plotImgPrfx=self.PlotImgPrfxProbDens,
+                                                                            plotHeight=self.superSynthPlotsHeight),
                                   DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
-                                                                           plotImgPrfx=self.PlotImgPrfxDetProb)))
+                                                                           plotImgPrfx=self.PlotImgPrfxDetProb,
+                                                                           plotHeight=self.superSynthPlotsHeight)))
         
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
         def numNavLink(sAnlys):
-            return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]),
-                                        n=sAnlys.name)
+            return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
         dfSyn.index = dfDet.apply(numNavLink, axis='columns')
         
         # 4. Translate table columns.
@@ -1213,6 +1220,250 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         tmpl = self.getTemplateEnv().get_template('mcds/pretop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(synthesis=dfSyn.to_html(escape=False),
+                           title=self.title, subtitle=self.subTitle,
+                           description=self.description, keywords=self.keywords,
+                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
+                           pySources=[pl.Path(fpn).name for fpn in self.pySources],
+                           genDateTime=genDateTime, autodsVersion=ads.__version__, 
+                           distanceUnit=self.tr(self.resultsSet.distanceUnit),
+                           areaUnit=self.tr(self.resultsSet.areaUnit),
+                           surveyType=self.tr(self.resultsSet.surveyType),
+                           distanceType=self.tr(self.resultsSet.distanceType),
+                           clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
+
+        # Write top HTML to file.
+        htmlPathName = self.targetFilePathName(suffix='.html')
+        with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
+            tgtFile.write(html)
+
+        return htmlPathName
+    
+    # HTML report generation.
+    def toHtml(self, generators=1):
+        
+        # Install needed attached files.
+        self.installAttFiles(self.AttachedFiles)
+            
+        # Generate full report detailed pages (one for each analysis)
+        # (done first to have plot image files generated for top report page generation right below).
+        self.toHtmlEachAnalysis(generators=generators)
+        
+        # Generate top = synthesis report page (one for all analyses).
+        topHtmlPathName = self.toHtmlAllAnalyses()
+
+        logger.info('... done.')
+                
+        return topHtmlPathName
+
+# A specialized full report for MCDS analyses, with actual output formating
+# (HTML mode gives a mix of Distance and PreReport main page layout,
+#  with a plots + super-synthesis table, a synthesis table, and a detailled table ;
+#  detailled pages unchanged from MCDSResultsDistanceReport).
+class MCDSResultsFullReport(MCDSResultsDistanceReport):
+
+    # Translation table.
+    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
+                       'Super-synthesis table': 'Synthesis table', 'Synthesis table': 'Synthesis results',
+                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
+                       'SampleParams': 'Sample & Model', 'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
+                       'QqPlot': 'Quantile-Quantile plot', 'DistHist': 'Standard distance histogram',
+                       'ProbDens': 'Detection probability density (PDF)', 'DetProb': 'Detection probability',
+                       'Detailed results': 'Detailed results',
+                       'Download Excel': 'Download as Excel(TM) file',
+                       'Summary computation log': 'Summary computation log',
+                       'Detailed computation log': 'Detailed computation log',
+                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
+                       'Back to top': 'Back to global report',
+                       'If the fit was perfect ...': 'If the fit was perfect ...',
+                       'Real observations': 'Real observations',
+                       'Page generated with': 'Page generated with',
+                       'with icons from': 'with icons from',
+                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
+                       'Point': 'Point transect', 'Line': 'Line transect',
+                       'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
+                       'Radial & Angle': 'Radial distance & Angle',
+                       'Clustering': 'With clustering', 'No clustering': 'No clustering',
+                       'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
+                       'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
+                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
+                       'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
+                       'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
+                       'Sq. Nautical mile': 'Sq. Nautical mile' },
+                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
+                       'Super-synthesis table': 'Tableau de synthèse', 'Synthesis table': 'Résultats synthétiques',
+                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
+                       'SampleParams': 'Echantillon & Modèle', 'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
+                       'QqPlot': 'Diagramme Quantile-Quantile', 'DistHist': 'Histogramme standard des distances',
+                       'ProbDens': 'Densité de probabilité de détection (DdP)',
+                       'DetProb': 'Probabilité de détection', 'Detailed results': 'Résultats en détails',
+                       'Download Excel': 'Télécharger le classeur Excel (TM)',
+                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
+                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
+                       'Back to top': 'Retour au rapport global',
+                       'If the fit was perfect ...': 'Si la correspondance était parfaite ...',
+                       'Real observations': 'Observations réelles',
+                       'Page generated with': 'Page générée via',
+                       'with icons from': 'avec les pictogrammes de',
+                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
+                       'Point': 'Point fixe', 'Line': 'Transect',
+                       'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
+                       'Radial & Angle': 'Distance radiale & Angle',
+                       'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
+                       'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
+                       'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
+                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
+                       'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
+                       'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
+                       'Sq. Nautical mile': 'Mille marin carré' })
+
+    DCustTrans = \
+        dict(en={ 'Study type:': "<strong>Study type</strong>:",
+                  'Units used:': "<strong>Units used</strong>:",
+                  'for distances': 'for distances',
+                  'for areas': 'for areas',
+                  'Note: Some figures rounded, but not converted':
+                     "<strong>Note</strong>: Most figures have been rounded for readability,"
+                     " but CoefVar Density have been further modified : converted to %",
+                  'Note: All figures untouched, as output by MCDS': 
+                     "<strong>Note</strong>: All values have been left untouched,"
+                     " as outuput by MCDS (no rounding, no conversion)",
+                  'Max Distance': 'Max Distance' },
+             fr={ 'Study type:': "<strong>Type d'étude</strong>:",
+                  'Units used:': "<strong>Unités utilisées</strong>:",
+                  'for distances': 'pour les distances',
+                  'for areas': 'pour les surfaces',
+                  'Note: Some figures rounded, but not converted':
+                     "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
+                     " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
+                  'Note: All figures untouched, as output by MCDS':
+                     "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
+                     " elles sont toutes telles que produites par MCDS",
+                  'Max Distance': 'Max Distance' })
+    
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
+                 sampleCols, paramCols, resultCols, synthCols=None, sortCols=None, sortAscend=None,
+                 lang='en', pySources=[],
+                 superSynthPlotsHeight=288, plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
+                 plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
+                 tgtFolder='.', tgtPrefix='results'):
+
+        """Ctor
+        
+        Parameters:
+        :param sampleCols: for main page table, 1st column (top)
+        :param paramCols: for main page table, 1st column (bottom)
+        :param resultCols: for main page table, 2nd and 3rd columns
+        :param synthCols: for synthesis table (Excel format only, "Synthesis" tab)
+        :param superSynthPlotsHeight: Display height (in pixels) of the synthesis page plots
+        """
+
+        super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
+                         synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend, 
+                         dCustomTrans=self.DCustTrans, pySources=pySources, lang=lang,
+                         plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
+                         plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
+                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+        
+        self.sampleCols = self.noDupColumns(sampleCols, head='Sample columns')
+        self.paramCols = self.noDupColumns(paramCols, head='Parameter columns')
+        self.resultCols = self.noDupColumns(resultCols, head='Result columns')
+        self.superSynthPlotsHeight = superSynthPlotsHeight
+
+    # Top page
+    def toHtmlAllAnalyses(self):
+        
+        logger.info('Top page ...')
+        
+        # 1. Super-synthesis: Generate post-processed and translated table.
+        #    (index + 5 columns : sample + params, results, Qq plot, ProbDens plot, DetProb plot)
+        # a. Get translated and post-formated detailed results
+        dfDet = self.resultsSet.dfTransData(self.lang)
+        
+        # b. Styling not used for super-synthesis, so don't do it.
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True, convert=True, round_=True, style=False)
+        dfDet = dfsDet.data
+
+        # c. Translate sample, parameter and result columns
+        dTransResCol = self.resultsSet.transTable()
+        sampleTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.sampleCols]
+        paramTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.paramCols]
+        result1TrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
+
+        if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
+            rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol, str(self.RightTruncCol)))
+            dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
+            result1TrCols[rightTruncColInd] = self.tr('Max Distance')
+
+        midResInd = len(result1TrCols) // 2 + len(result1TrCols) % 2
+        result2TrCols = result1TrCols[midResInd:]
+        result1TrCols = result1TrCols[:midResInd]
+        
+        # d. Fill target table index and columns
+        dfSupSyn = pd.DataFrame(dict(SampleParams=dfDet[sampleTrCols + paramTrCols].apply(self.series2VertTable, axis='columns'),
+                                     Results1=dfDet[result1TrCols].apply(self.series2VertTable, axis='columns'),
+                                     Results2=dfDet[result2TrCols].apply(self.series2VertTable, axis='columns'),
+                                     QqPlot=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                             plotImgPrfx=self.PlotImgPrfxQqPlot,
+                                                                             plotHeight=self.superSynthPlotsHeight),
+                                     ProbDens=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                               plotImgPrfx=self.PlotImgPrfxProbDens,
+                                                                               plotHeight=self.superSynthPlotsHeight),
+                                     DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                              plotImgPrfx=self.PlotImgPrfxDetProb,
+                                                                              plotHeight=self.superSynthPlotsHeight)))
+        
+        idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSupSyn))), 1))
+        numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+        def numNavLink(sAnlys):
+            return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
+        dfSupSyn.index = dfDet.apply(numNavLink, axis='columns')
+        
+        # e. Translate table columns.
+        dfSupSyn.columns = [self.tr(col) for col in dfSupSyn.columns]
+
+        # 2. Synthesis: Generate post-processed and translated table.
+        # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
+        synCols = self.synthCols
+        if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
+            synCols += [self.resultsSet.analysisClass.RunFolderColumn]
+        dfSyn = self.resultsSet.dfTransData(self.lang, subset=synCols)
+        dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
+        
+        # b. Links to each analysis detailled report.
+        idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
+        numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+        def numNavLink(sAnlys):
+            return numNavLinkFmt.format(p=sAnlys[self.trRunFolderCol], n=sAnlys.name)
+       
+        # c. Post-format as specified in actual class.
+        dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=numNavLink,
+                                                 convert=True, round_=True, style=True)
+
+        # 3. Details: Generate post-processed and translated table.
+        dfDet = self.resultsSet.dfTransData(self.lang)  # Again, but clean for sure ...
+
+        # a. Add run folder column if not there (will serve to generate the link to the analysis detailed report)
+        detTrCols = list(dfDet.columns)
+        if self.trRunFolderCol not in detTrCols:
+            detTrCols += [self.trRunFolderCol]
+        dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
+        dfDet = dfDet.reindex(columns=detTrCols)
+       
+        # b. Links to each analysis detailed report.
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=numNavLink,
+                                                 convert=False, round_=False, style=True)
+
+        # 5. Generate techs infos parts.
+        # TODO
+
+        # Generate top report page.
+        genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        tmpl = self.getTemplateEnv().get_template('mcds/fulltop.htpl')
+        xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
+        html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
+                           synthesis=dfsSyn.render(), #escape=False, index=False),
+                           details=dfsDet.render(), #escape=False, index=False),
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
@@ -1248,7 +1499,6 @@ class MCDSResultsPreReport(MCDSResultsFullReport):
         logger.info('... done.')
                 
         return topHtmlPathName
-
 
 if __name__ == '__main__':
 
