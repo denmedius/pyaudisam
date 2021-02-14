@@ -47,13 +47,13 @@
     </tr>
   </table>
   
-  <div style="margin-left: 15px">
+  <div style="margin-left: 10px">
 
-     <img class="center" height="32" style="margin-top: 30px"
+    <img class="center" height="32" style="margin-top: 30px"
          src="../fa-feather-alt.svg" alt="---" />
 
     <h2 id="synthesis">
-      {{tr['Synthesis table']}}
+      {{tr['Main results']}}
       <a href="./{{navUrls.prevAnlys}}">
         <img height="32" style="margin-left: 32px" src="../fa-arrow-left.svg"
              onmouseover="this.src='../fa-arrow-left-hover.svg';"
@@ -189,18 +189,20 @@
     </div>
     
     <h6 style="margin-bottom: 10px">
-      {{tr['Page generated with']}} <a href="https://www.python.org/" target="_blank">Python 3</a>,
+      {{tr['Page generated']}} {{tr['on']}} {{genDateTime}}
+      {{tr['with']}} <a href="https://www.python.org/" target="_blank">Python 3</a>,
       <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>,
       <a href="https://matplotlib.org/" target="_blank">Matplotlib</a>,
       <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
       ... {{tr['and']}}
       <a href="http://jpmeuret.free.fr/informatique.html#AutoDS" target="_blank">AutoDS {{autodsVersion}}</a>,
       {{tr['with icons from']}} <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>
-      ({{tr['sources']}} :
-      {% for pySrc in pySources %}
-        <a href="./{{pySrc}}" target="_blank">{{pySrc}}</a>,
-      {% endfor %})
-      {{tr['on']}} {{genDateTime}}.
+      {%if pySources %}
+        ({{tr['sources']}} :
+        {% for pySrc in pySources %}
+          <a href="./{{pySrc}}" target="_blank">{{pySrc}}</a>,
+        {% endfor %})
+      {% endif %}.
     </h6>
 
   </div>

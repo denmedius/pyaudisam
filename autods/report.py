@@ -41,14 +41,29 @@ logger = log.logger('ads.rep')
 KInstDirPath = pl.Path(__file__).parent.resolve()
 
 
+def _mergeTransTables(base, update):
+
+    """Merge an 'update' translation table into a 'base' one ('update' completes or overwrites 'base').
+
+    Note: Trans. tables are dict(<lang>=dict(<source>: <translation>))
+    """
+
+    final = copy.deepcopy(base)
+    for lang in update.keys():
+        if lang not in final:
+            final[lang] = dict()
+        final[lang].update(update[lang])
+    return final
+
+
 # Base for results reports classes (abstract)
 class ResultsReport(object):
 
-    # Translation table for output documents.
-    DTrans = dict(en={ }, fr={ })
+    # Translation table for output documents (specialized in derived classes, merged with custom instance one).
+    DTrans = dict(en={}, fr={})
 
-    def __init__(self, resultsSet, title, subTitle, description, keywords, pySources=[],
-                 dCustomTrans=dict(), lang='en', tgtFolder='.', tgtPrefix='results'):
+    def __init__(self, resultsSet, title, subTitle, description, keywords,
+                 dCustomTrans=None, lang='en', pySources=[], tgtFolder='.', tgtPrefix='results'):
     
         assert len(resultsSet) > 0, 'Can\'t build reports with nothing inside'
         assert os.path.isdir(tgtFolder), 'Target folder {} doesn\'t seem to exist ...'.format(tgtFolder)
@@ -64,12 +79,7 @@ class ResultsReport(object):
         self.description = description
         self.keywords = keywords
         self.pySources = pySources
-        
-        self.dTrans = copy.deepcopy(dCustomTrans)
-        for lang in self.DTrans.keys():
-            if lang not in self.dTrans:
-                self.dTrans[lang] = dict()
-            self.dTrans[lang].update(self.DTrans[lang])
+        self.dTrans = _mergeTransTables(self.DTrans, dict() if dCustomTrans is None else dCustomTrans)
         
         self.tgtPrefix = tgtPrefix
         self.tgtFolder = tgtFolder
@@ -160,53 +170,61 @@ class ResultsReport(object):
 class DSResultsDistanceReport(ResultsReport):
 
     # Translation table.
-    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
-                       'Synthesis table': 'Synthesis table',
-                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'Detailed results': 'Detailed results',
-                       'Download Excel': 'Download as Excel(TM) file',
-                       'Summary computation log': 'Summary computation log',
-                       'Detailed computation log': 'Detailed computation log',
-                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
-                       'Back to top': 'Back to global report',
-                       'If the fit was perfect ...': 'If the fit was perfect ...',
-                       'Real observations': 'Real observations',
-                       'Page generated with': 'Page generated with',
-                       'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
-                       'Point': 'Point transect', 'Line': 'Line transect',
-                       'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
-                       'Radial & Angle': 'Radial distance & Angle',
-                       'Clustering': 'With clustering', 'No clustering': 'No clustering',
-                       'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
-                       'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
-                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
-                       'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
-                       'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
-                       'Sq. Nautical mile': 'Sq. Nautical mile' },
-                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
-                       'Synthesis table': 'Tableau de synthèse',
-                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'Detailed results': 'Résultats en détails',
-                       'Download Excel': 'Télécharger le classeur Excel (TM)',
-                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
-                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
-                       'Back to top': 'Retour au rapport global',
-                       'If the fit was perfect ...': 'Si la correspondance était parfaite ...',
-                       'Real observations': 'Observations réelles',
-                       'Page generated with': 'Page générée via',
-                       'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
-                       'Point': 'Point fixe', 'Line': 'Transect',
-                       'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
-                       'Radial & Angle': 'Distance radiale & Angle',
-                       'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
-                       'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
-                       'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
-                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
-                       'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
-                       'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
-                       'Sq. Nautical mile': 'Mille marin carré' })
+    DTrans = _mergeTransTables(base=ResultsReport.DTrans,
+      update=dict(en={'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
+                      'Table of contents': 'Table of contents',
+                      'Click on analysis # for details': 'Click on analysis number to get to detailed report',
+                      'Main results': 'Results: main figures',
+                      'Detailed results': 'Results: all details',
+                      'Download Excel': 'Download as Excel(TM) file',
+                      'Summary computation log': 'Summary computation log',
+                      'Detailed computation log': 'Detailed computation log',
+                      'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
+                      'Back to top': 'Back to global report',
+                      'Observation model': 'Observations (fitted)',
+                      'Real observations': 'Observations (sampled)',
+                      'Fixed bin distance histogram': 'Fixed bin distance histogram',
+                      'Distance': 'Distance', 'Number of observations': 'Number of observations',
+                      'Page generated': 'Page generated', 'with': 'with',
+                      'with icons from': 'with icons from',
+                      'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
+                      'Point': 'Point transect', 'Line': 'Line transect',
+                      'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
+                      'Radial & Angle': 'Radial distance & Angle',
+                      'Clustering': 'With clustering', 'No clustering': 'No clustering',
+                      'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
+                      'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
+                      'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
+                      'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
+                      'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
+                      'Sq. Nautical mile': 'Sq. Nautical mile' },
+                  fr={'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
+                      'Table of contents': 'Table des matières',
+                      'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
+                      'Main results': 'Résultats : indicateurs principaux',
+                      'Detailed results': 'Résultats : tous les détails',
+                      'Download Excel': 'Télécharger le classeur Excel (TM)',
+                      'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
+                      'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
+                      'Back to top': 'Retour au rapport global',
+                      'Observation model': 'Observations (fitted)',  # No actual translation for plots
+                      'Real observations': 'Observations (sampled)',  # No actual translation for plots
+                      'Fixed bin distance histogram': 'Fixed bin distance histogram',  # No actual translation for plots
+                      'Distance': 'Distance',  # No actual translation for plots
+                      'Number of observations': 'Number of observations',  # No actual translation for plots
+                      'Page generated': 'Page générée', 'with': 'avec',
+                      'with icons from': 'avec les pictogrammes de',
+                      'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
+                      'Point': 'Point fixe', 'Line': 'Transect',
+                      'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
+                      'Radial & Angle': 'Distance radiale & Angle',
+                      'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
+                      'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
+                      'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
+                      'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
+                      'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
+                      'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
+                      'Sq. Nautical mile': 'Mille marin carré' }))
 
     @staticmethod
     def noDupColumns(cols, log=True, head='Results cols'):
@@ -230,11 +248,11 @@ class DSResultsDistanceReport(ResultsReport):
 
         return cols
 
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, pySources=[],
-                       synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=dict(), lang='en',
-                       plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
-                       plotLineWidth=2, plotDotWidth=6, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
-                       tgtFolder='.', tgtPrefix='results', logProgressEvery=5):
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
+                 synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=None, lang='en',
+                 plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
+                 plotLineWidth=2, plotDotWidth=6, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
+                 pySources=[], tgtFolder='.', tgtPrefix='results', logProgressEvery=5):
                        
         """Ctor
         
@@ -255,7 +273,7 @@ class DSResultsDistanceReport(ResultsReport):
         assert logProgressEvery > 0, 'logProgressEvery must be positive'
 
         super().__init__(resultsSet, title, subTitle, description, keywords,
-                         pySources=pySources, dCustomTrans=dCustomTrans, lang=lang,
+                         dCustomTrans=dCustomTrans, lang=lang, pySources=pySources,
                          tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.synthCols = self.noDupColumns(synthCols, head='Synthesis columns')
@@ -290,8 +308,7 @@ class DSResultsDistanceReport(ResultsReport):
     StripPlotAlpha, StripPlotJitter = 0.5, 0.3
     DistHistBinWidth = 10 # unit = Distance unit
     
-    @classmethod
-    def generatePlots(cls, plotsData, tgtFolder, sDistances=None, lang='en',
+    def generatePlots(self, plotsData, tgtFolder, sDistances=None, lang='en',
                       imgFormat='png', imgSize=(640, 400), imgQuality=90, grid=True, transparent=False,
                       colors=dict(background='#f9fbf3', histograms='blue', curves='red', dots='green'),
                       widths=dict(lines=2, dots=6), fontSizes=dict(title=11, axes=10, ticks=9, legend=10)):
@@ -311,12 +328,11 @@ class DSResultsDistanceReport(ResultsReport):
             # b. Plot a figure from the plot data (3 possible types, from title).
             if 'Qq-plot' in title:
                 
-                tgtFileName = cls.PlotImgPrfxQqPlot
+                tgtFileName = self.PlotImgPrfxQqPlot
                 
                 n = len(pld['dataRows'])
                 df2Plot = pd.DataFrame(data=pld['dataRows'],
-                                       columns=[cls.DTrans[lang][s] 
-                                                for s in ['If the fit was perfect ...', 'Real observations']],
+                                       columns=[self.tr(s) for s in ['Observation model', 'Real observations']],
                                        index=np.linspace(0.5/n, 1.0-0.5/n, n))
                 
                 df2Plot.plot(ax=axes, zorder=10, color=[colors['histograms'], colors['curves']],
@@ -325,12 +341,14 @@ class DSResultsDistanceReport(ResultsReport):
 
             elif 'Detection Probability' in title:
                 
-                tgtFileName = cls.PlotImgPrfxDetProb + title.split(' ')[-1] # Assume last "word" is the hist. number
+                sufx = title.split(' ')[-1] # Assume last "word" is the plot number
+                sufx = sufx if sufx.isnumeric() else '' # But when only 1, there's no number.
+                tgtFileName = self.PlotImgPrfxDetProb + sufx
                 
                 #if sDistances is not None:
                 #    axes2 = axes.twinx()
                 #    sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
-                #                 alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
+                #                 alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
 
                 df2Plot = pd.DataFrame(data=pld['dataRows'], 
                                        columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
@@ -349,12 +367,14 @@ class DSResultsDistanceReport(ResultsReport):
 
             elif 'Pdf' in title:
                 
-                tgtFileName = cls.PlotImgPrfxProbDens + title.split(' ')[-1] # Assume last "word" is the Pdf number
+                sufx = title.split(' ')[-1] # Assume last "word" is the plot number
+                sufx = sufx if sufx.isnumeric() else '' # But when only 1, there's no number.
+                tgtFileName = self.PlotImgPrfxProbDens + sufx
                 
                 #if sDistances is not None:
                 #    axes2 = axes.twinx()
                 #    sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
-                #                 alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
+                #                 alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
 
                 df2Plot = pd.DataFrame(data=pld['dataRows'], 
                                        columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
@@ -401,7 +421,7 @@ class DSResultsDistanceReport(ResultsReport):
         if sDistances is not None:
 
             title = 'Standard Distance Histogram'
-            tgtFileName = cls.PlotImgPrfxDistHist
+            tgtFileName = self.PlotImgPrfxDistHist
 
             # a. Create the target figure and one-only subplot
             figHeight = imgSize[1] / plt.rcParams['figure.dpi']
@@ -413,11 +433,11 @@ class DSResultsDistanceReport(ResultsReport):
             # b. Plot the figure from the distance data
             #axes2 = axes.twinx()
             #sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
-            #             alpha=cls.StripPlotAlpha, jitter=cls.StripPlotJitter)
+            #             alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
 
             distMax = sDistances.max()
-            aDistBins = np.linspace(start=0, stop=cls.DistHistBinWidth * int(distMax / cls.DistHistBinWidth),
-                                    num=1 + int(distMax / cls.DistHistBinWidth)).tolist()
+            aDistBins = np.linspace(start=0, stop=self.DistHistBinWidth * int(distMax / self.DistHistBinWidth),
+                                    num=1 + int(distMax / self.DistHistBinWidth)).tolist()
             if aDistBins[-1] < distMax:
                 aDistBins.append(distMax)
 
@@ -428,13 +448,14 @@ class DSResultsDistanceReport(ResultsReport):
             aMTicks = axes.get_xticks()
             axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
             axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
+            axes.yaxis.set_major_locator(pltt.MaxNLocator(integer=True))
 
             # c. Finish plotting.
-            axes.legend(['Num. of observations (sampled)'], fontsize=fontSizes['legend'])
-            axes.set_title(label='Fixed bin distance histogram',
+            axes.legend([self.tr('Real observations')], fontsize=fontSizes['legend'])
+            axes.set_title(label=self.tr('Fixed bin distance histogram'),
                            fontdict=dict(fontsize=fontSizes['title']), pad=10)
-            axes.set_xlabel('Distance', fontsize=fontSizes['axes'])
-            axes.set_ylabel('Number of observations', fontsize=fontSizes['axes'])
+            axes.set_xlabel(self.tr('Distance'), fontsize=fontSizes['axes'])
+            axes.set_ylabel(self.tr('Number of observations'), fontsize=fontSizes['axes'])
             axes.tick_params(axis='both', labelsize=fontSizes['ticks'])
             axes.grid(True, which='major', zorder=0)
             if not transparent:
@@ -628,7 +649,8 @@ class DSResultsDistanceReport(ResultsReport):
         engineClass = self.resultsSet.engineClass
         anlysFolder = sDetRes[self.trRunFolderCol]
         tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
-        html = tmpl.render(synthesis=dfsSyn.render(), details=dfsDet.render(),
+        html = tmpl.render(synthesis=dfsSyn.render(),
+                           details=dfsDet.render(),
                            log=engineClass.decodeLog(anlysFolder),
                            output=engineClass.decodeOutput(anlysFolder),
                            plots=self.generatePlots(plotsData=engineClass.decodePlots(anlysFolder), 
@@ -726,43 +748,42 @@ class DSResultsDistanceReport(ResultsReport):
 # A specialized report for MCDS analyses, targeting similar layout as in Distance 6+, with actual output formating.
 class MCDSResultsDistanceReport(DSResultsDistanceReport):
 
-    DCustTrans = \
-        dict(en={ 'Study type:': "<strong>Study type</strong>:",
-                  'Units used:': "<strong>Units used</strong>:",
-                  'for distances': 'for distances',
-                  'for areas': 'for areas',
-                  'Note: Some figures rounded, but not converted':
-                     "<strong>Note</strong>: Most figures have been rounded for readability,"
-                     " but 'CoefVar Density' have been further modified : converted to %",
-                  'Note: All figures untouched, as output by MCDS': 
-                     "<strong>Note</strong>: All values have been left untouched,"
-                     " as outuput by MCDS (no rounding, no conversion)" },
-             fr={ 'Study type:': "<strong>Type d'étude</strong>:",
-                  'Units used:': "<strong>Unités utilisées</strong>:",
-                  'for distances': 'pour les distances',
-                  'for areas': 'pour les surfaces',
-                  'Note: Some figures rounded, but not converted':
-                     "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
-                     " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
-                  'Note: All figures untouched, as output by MCDS':
-                     "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                     " elles sont toutes telles que produites par MCDS" })
+    DTrans = _mergeTransTables(base=DSResultsDistanceReport.DTrans,
+      update=dict(en={'Study type:': "<strong>Study type</strong>:",
+                      'Units used:': "<strong>Units used</strong>:",
+                      'for distances': 'for distances',
+                      'for areas': 'for areas',
+                      'Note: Some figures rounded, but not converted':
+                         "<strong>Note</strong>: Most figures have been rounded for readability,"
+                         " but 'CoefVar Density' have been further modified : converted to %",
+                      'Note: All figures untouched, as output by MCDS': 
+                         "<strong>Note</strong>: All values have been left untouched,"
+                         " as outuput by MCDS (no rounding, no conversion)" },
+                  fr={'Study type:': "<strong>Type d'étude</strong>:",
+                      'Units used:': "<strong>Unités utilisées</strong>:",
+                      'for distances': 'pour les distances',
+                      'for areas': 'pour les surfaces',
+                      'Note: Some figures rounded, but not converted':
+                         "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
+                         " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
+                      'Note: All figures untouched, as output by MCDS':
+                         "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
+                         " elles sont toutes telles que produites par MCDS" }))
     
     RightTruncCol = ('encounter rate', 'right truncation distance (w)', 'Value')
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                 synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=None, pySources=[], lang='en',
+                 synthCols=None, sortCols=None, sortAscend=None, dCustomTrans=None, lang='en',
                  plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
                  plotLineWidth=2, plotDotWidth=5, plotFontSizes=dict(title=12, axes=10, ticks=9, legend=10),
-                 tgtFolder='.', tgtPrefix='results'):
+                 pySources=[], tgtFolder='.', tgtPrefix='results'):
     
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend,
-                         dCustomTrans=self.DCustTrans if dCustomTrans is None else dCustomTrans,
-                         pySources=pySources, lang=lang,
+                         dCustomTrans=dCustomTrans, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
                          plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
-                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+                         pySources=pySources, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
     # Styling colors
     CChrGray = '#869074'
@@ -988,16 +1009,21 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
         
         if plotImgPrfx in [self.PlotImgPrfxQqPlot, self.PlotImgPrfxDistHist]:
             plotFileName = '{}.{}'.format(plotImgPrfx, self.plotImgFormat)
-            return '<img src="./{}/{}" style="height: {}px" />' \
-                   .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
+            if os.path.isfile(os.path.join(runFolder, plotFileName)):
+                return '<img src="./{}/{}" style="height: {}px" />' \
+                       .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
         else:
           for plotInd in range(3, 0, -1):
               plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
               if os.path.isfile(os.path.join(runFolder, plotFileName)):
                   return '<img src="./{}/{}" style="height: {}px" />' \
                          .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
+          plotFileName = '{}.{}'.format(plotImgPrfx, self.plotImgFormat)
+          if os.path.isfile(os.path.join(runFolder, plotFileName)):
+              return '<img src="./{}/{}" style="height: {}px" />' \
+                     .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
         
-        return '{} plot image file not found'.format(plotImgPrfx)
+        return f'No {plotImgPrfx} plot produced'
         
 
 # A specialized pre-report for MCDS analyses, with actual output formating
@@ -1009,89 +1035,27 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
 class MCDSResultsPreReport(MCDSResultsDistanceReport):
 
     # Translation table.
-    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
-                       'Synthesis table': 'Synthesis table',
-                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'SampleParams': 'Sample & Model', 'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
-                       'QqPlot': 'Quantile-Quantile plot', 'DistHist': 'Standard distance histogram',
-                       'ProbDens': 'Detection probability density (PDF)', 'DetProb': 'Detection probability',
-                       'Detailed results': 'Detailed results',
-                       'Download Excel': 'Download as Excel(TM) file',
-                       'Summary computation log': 'Summary computation log',
-                       'Detailed computation log': 'Detailed computation log',
-                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
-                       'Back to top': 'Back to global report',
-                       'If the fit was perfect ...': 'If the fit was perfect ...',
-                       'Real observations': 'Real observations',
-                       'Page generated with': 'Page generated with',
-                       'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
-                       'Point': 'Point transect', 'Line': 'Line transect',
-                       'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
-                       'Radial & Angle': 'Radial distance & Angle',
-                       'Clustering': 'With clustering', 'No clustering': 'No clustering',
-                       'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
-                       'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
-                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
-                       'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
-                       'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
-                       'Sq. Nautical mile': 'Sq. Nautical mile' },
-                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
-                       'Synthesis table': 'Tableau de synthèse',
-                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'SampleParams': 'Echantillon & Modèle', 'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
-                       'QqPlot': 'Diagramme Quantile-Quantile', 'DistHist': 'Histogramme standard des distances',
-                       'ProbDens': 'Densité de probabilité de détection (DdP)',
-                       'DetProb': 'Probabilité de détection', 'Detailed results': 'Résultats en détails',
-                       'Download Excel': 'Télécharger le classeur Excel (TM)',
-                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
-                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
-                       'Back to top': 'Retour au rapport global',
-                       'If the fit was perfect ...': 'Si la correspondance était parfaite ...',
-                       'Real observations': 'Observations réelles',
-                       'Page generated with': 'Page générée via',
-                       'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
-                       'Point': 'Point fixe', 'Line': 'Transect',
-                       'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
-                       'Radial & Angle': 'Distance radiale & Angle',
-                       'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
-                       'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
-                       'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
-                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
-                       'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
-                       'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
-                       'Sq. Nautical mile': 'Mille marin carré' })
+    DTrans = _mergeTransTables(base=MCDSResultsDistanceReport.DTrans,
+      update=dict(en={'Quick-view results': 'Results: the essence', 
+                      'SampleParams': 'Sample & Model',
+                      'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
+                      'DistHist': 'Standard distance histogram',
+                      'ProbDens': 'Detection probability density (PDF)',
+                      'DetProb': 'Detection probability',
+                      'Max Distance': 'Max Distance'},
+                  fr={'Quick-view results': 'Résultats : l\'essentiel', 
+                      'SampleParams': 'Echantillon & Modèle',
+                      'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
+                      'DistHist': 'Histogramme standard des distances',
+                      'ProbDens': 'Densité de probabilité de détection (DdP)',
+                      'DetProb': 'Probabilité de détection',
+                      'Max Distance': 'Max Distance'}))
 
-    DCustTrans = \
-        dict(en={ 'Study type:': "<strong>Study type</strong>:",
-                  'Units used:': "<strong>Units used</strong>:",
-                  'for distances': 'for distances',
-                  'for areas': 'for areas',
-                  'Note: Some figures rounded, but not converted':
-                     "<strong>Note</strong>: Most figures have been rounded for readability,"
-                     " but CoefVar Density have been further modified : converted to %",
-                  'Note: All figures untouched, as output by MCDS': 
-                     "<strong>Note</strong>: All values have been left untouched,"
-                     " as outuput by MCDS (no rounding, no conversion)",
-                  'Max Distance': 'Max Distance' },
-             fr={ 'Study type:': "<strong>Type d'étude</strong>:",
-                  'Units used:': "<strong>Unités utilisées</strong>:",
-                  'for distances': 'pour les distances',
-                  'for areas': 'pour les surfaces',
-                  'Note: Some figures rounded, but not converted':
-                     "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
-                     " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
-                  'Note: All figures untouched, as output by MCDS':
-                     "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                     " elles sont toutes telles que produites par MCDS",
-                  'Max Distance': 'Max Distance' })
-    
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
-                 sampleCols, paramCols, resultCols, synthCols=None, lang='en', pySources=[],
+                 sampleCols, paramCols, resultCols, synthCols=None, dCustomTrans=None, lang='en',
                  superSynthPlotsHeight=288, plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
                  plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
-                 tgtFolder='.', tgtPrefix='results'):
+                 pySources=[], tgtFolder='.', tgtPrefix='results'):
 
         """Ctor
         
@@ -1104,10 +1068,10 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         """
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         synthCols=synthCols, dCustomTrans=self.DCustTrans, pySources=pySources, lang=lang,
+                         synthCols=synthCols, dCustomTrans=dCustomTrans, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
                          plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
-                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+                         pySources=pySources, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.sampleCols = self.noDupColumns(sampleCols, head='Sample columns')
         self.paramCols = self.noDupColumns(paramCols, head='Parameter columns')
@@ -1219,7 +1183,7 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         tmpl = self.getTemplateEnv().get_template('mcds/pretop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
-        html = tmpl.render(synthesis=dfSyn.to_html(escape=False),
+        html = tmpl.render(supersynthesis=dfSyn.to_html(escape=False),
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
@@ -1263,90 +1227,28 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
 class MCDSResultsFullReport(MCDSResultsDistanceReport):
 
     # Translation table.
-    DTrans = dict(en={ 'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
-                       'Super-synthesis table': 'Synthesis table', 'Synthesis table': 'Synthesis results',
-                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                       'SampleParams': 'Sample & Model', 'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
-                       'QqPlot': 'Quantile-Quantile plot', 'DistHist': 'Standard distance histogram',
-                       'ProbDens': 'Detection probability density (PDF)', 'DetProb': 'Detection probability',
-                       'Detailed results': 'Detailed results',
-                       'Download Excel': 'Download as Excel(TM) file',
-                       'Summary computation log': 'Summary computation log',
-                       'Detailed computation log': 'Detailed computation log',
-                       'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
-                       'Back to top': 'Back to global report',
-                       'If the fit was perfect ...': 'If the fit was perfect ...',
-                       'Real observations': 'Real observations',
-                       'Page generated with': 'Page generated with',
-                       'with icons from': 'with icons from',
-                       'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
-                       'Point': 'Point transect', 'Line': 'Line transect',
-                       'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
-                       'Radial & Angle': 'Radial distance & Angle',
-                       'Clustering': 'With clustering', 'No clustering': 'No clustering',
-                       'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
-                       'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
-                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
-                       'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
-                       'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
-                       'Sq. Nautical mile': 'Sq. Nautical mile' },
-                  fr={ 'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
-                       'Super-synthesis table': 'Tableau de synthèse', 'Synthesis table': 'Résultats synthétiques',
-                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
-                       'SampleParams': 'Echantillon & Modèle', 'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
-                       'QqPlot': 'Diagramme Quantile-Quantile', 'DistHist': 'Histogramme standard des distances',
-                       'ProbDens': 'Densité de probabilité de détection (DdP)',
-                       'DetProb': 'Probabilité de détection', 'Detailed results': 'Résultats en détails',
-                       'Download Excel': 'Télécharger le classeur Excel (TM)',
-                       'Summary computation log': 'Résumé des calculs', 'Detailed computation log': 'Détail des calculs',
-                       'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
-                       'Back to top': 'Retour au rapport global',
-                       'If the fit was perfect ...': 'Si la correspondance était parfaite ...',
-                       'Real observations': 'Observations réelles',
-                       'Page generated with': 'Page générée via',
-                       'with icons from': 'avec les pictogrammes de',
-                       'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
-                       'Point': 'Point fixe', 'Line': 'Transect',
-                       'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
-                       'Radial & Angle': 'Distance radiale & Angle',
-                       'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
-                       'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
-                       'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
-                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
-                       'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
-                       'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
-                       'Sq. Nautical mile': 'Mille marin carré' })
-
-    DCustTrans = \
-        dict(en={ 'Study type:': "<strong>Study type</strong>:",
-                  'Units used:': "<strong>Units used</strong>:",
-                  'for distances': 'for distances',
-                  'for areas': 'for areas',
-                  'Note: Some figures rounded, but not converted':
-                     "<strong>Note</strong>: Most figures have been rounded for readability,"
-                     " but CoefVar Density have been further modified : converted to %",
-                  'Note: All figures untouched, as output by MCDS': 
-                     "<strong>Note</strong>: All values have been left untouched,"
-                     " as outuput by MCDS (no rounding, no conversion)",
-                  'Max Distance': 'Max Distance' },
-             fr={ 'Study type:': "<strong>Type d'étude</strong>:",
-                  'Units used:': "<strong>Unités utilisées</strong>:",
-                  'for distances': 'pour les distances',
-                  'for areas': 'pour les surfaces',
-                  'Note: Some figures rounded, but not converted':
-                     "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
-                     " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
-                  'Note: All figures untouched, as output by MCDS':
-                     "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                     " elles sont toutes telles que produites par MCDS",
-                  'Max Distance': 'Max Distance' })
+    DTrans = _mergeTransTables(base=MCDSResultsDistanceReport.DTrans,
+      update=dict(en={'Quick-view results': 'Results: the essence', 
+                      'SampleParams': 'Sample & Model',
+                      'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
+                      'QqPlot': 'Quantile-quantile plot',
+                      'ProbDens': 'Detection probability density (PDF)',
+                      'DetProb': 'Detection probability',
+                      'Max Distance': 'Max Distance'},
+                  fr={'Quick-view results': 'Résultats : l\'essentiel', 
+                      'SampleParams': 'Echantillon & Modèle',
+                      'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
+                      'QqPlot': 'Diagramme quantile-quantile',
+                      'ProbDens': 'Densité de probabilité de détection (DdP)',
+                      'DetProb': 'Probabilité de détection',
+                      'Max Distance': 'Max Distance'}))
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
                  sampleCols, paramCols, resultCols, synthCols=None, sortCols=None, sortAscend=None,
-                 lang='en', pySources=[],
+                 dCustomTrans=None, lang='en',
                  superSynthPlotsHeight=288, plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
                  plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
-                 tgtFolder='.', tgtPrefix='results'):
+                 pySources=[], tgtFolder='.', tgtPrefix='results'):
 
         """Ctor
         
@@ -1360,10 +1262,10 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend, 
-                         dCustomTrans=self.DCustTrans, pySources=pySources, lang=lang,
+                         dCustomTrans=dCustomTrans, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
                          plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
-                         tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+                         pySources=pySources, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
         
         self.sampleCols = self.noDupColumns(sampleCols, head='Sample columns')
         self.paramCols = self.noDupColumns(paramCols, head='Parameter columns')
