@@ -183,7 +183,7 @@ class DSResultsDistanceReport(ResultsReport):
                       'Back to top': 'Back to global report',
                       'Observation model': 'Observations (fitted)',
                       'Real observations': 'Observations (sampled)',
-                      'Fixed bin distance histogram': 'Fixed bin distance histogram',
+                      'Fixed bin distance histograms': 'Fixed bin distance histograms',
                       'Distance': 'Distance', 'Number of observations': 'Number of observations',
                       'Page generated': 'Page generated', 'with': 'with',
                       'with icons from': 'with icons from',
@@ -209,7 +209,7 @@ class DSResultsDistanceReport(ResultsReport):
                       'Back to top': 'Retour au rapport global',
                       'Observation model': 'Observations (fitted)',  # No actual translation for plots
                       'Real observations': 'Observations (sampled)',  # No actual translation for plots
-                      'Fixed bin distance histogram': 'Fixed bin distance histogram',  # No actual translation for plots
+                      'Fixed bin distance histograms': 'Fixed bin distance histograms',  # No actual translation for plots
                       'Distance': 'Distance',  # No actual translation for plots
                       'Number of observations': 'Number of observations',  # No actual translation for plots
                       'Page generated': 'Page générée', 'with': 'avec',
@@ -306,11 +306,13 @@ class DSResultsDistanceReport(ResultsReport):
     PlotImgPrfxProbDens = 'probdens'
     PlotImgPrfxDistHist = 'disthist'
     StripPlotAlpha, StripPlotJitter = 0.5, 0.3
-    DistHistBinWidth = 10 # unit = Distance unit
+    RefDistHistBinWidths = [10, 20, 40]  # unit = Distance unit
+    HistBinWithRefDist = 600  # unit = Distance unit
     
     def generatePlots(self, plotsData, tgtFolder, sDistances=None, lang='en',
                       imgFormat='png', imgSize=(640, 400), imgQuality=90, grid=True, transparent=False,
-                      colors=dict(background='#f9fbf3', histograms='blue', curves='red', dots='green'),
+                      colors=dict(background='#f9fbf3', histograms='blue',
+                                  multihistograms=['blue', 'green', 'red'], curves='red', dots='green'),
                       widths=dict(lines=2, dots=6), fontSizes=dict(title=11, axes=10, ticks=9, legend=10)):
         
         dPlots = dict()
@@ -417,10 +419,10 @@ class DSResultsDistanceReport(ResultsReport):
             # f. Save image URL.
             dPlots[title] = tgtFileName
                 
-        # Standard fixed-bin-width histogram
+        # Standard fixed-bin-width super-imposed histograms (multiple bin width, scaled with distMax)
         if sDistances is not None:
 
-            title = 'Standard Distance Histogram'
+            title = 'Standard Distance Histograms'
             tgtFileName = self.PlotImgPrfxDistHist
 
             # a. Create the target figure and one-only subplot
@@ -436,13 +438,22 @@ class DSResultsDistanceReport(ResultsReport):
             #             alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
 
             distMax = sDistances.max()
-            aDistBins = np.linspace(start=0, stop=self.DistHistBinWidth * int(distMax / self.DistHistBinWidth),
-                                    num=1 + int(distMax / self.DistHistBinWidth)).tolist()
-            if aDistBins[-1] < distMax:
-                aDistBins.append(distMax)
 
-            sDistances.plot.hist(ax=axes, zorder=10, bins=aDistBins, fill=None,
-                                 edgecolor=colors['histograms'], rwidth=1.0, linewidth=1)
+            distHistBinWidths = np.array(self.RefDistHistBinWidths, dtype=float)
+            distHistBinWidths *= 2 ** int(distMax / self.HistBinWithRefDist)
+
+            for binWidthInd, binWidth in enumerate(distHistBinWidths):
+            
+                aDistBins = np.linspace(start=0, stop=binWidth * int(distMax / binWidth),
+                                        num=1 + int(distMax / binWidth)).tolist()
+                if aDistBins[-1] < distMax:
+                    aDistBins.append(distMax)
+
+                binWidthRInd = len(distHistBinWidths) - binWidthInd - 1
+                sDistances.plot.hist(ax=axes, bins=aDistBins, fill=None, linewidth=1,
+                                     zorder=10*(1+binWidthRInd), rwidth=1-0.15*binWidthRInd,
+                                     edgecolor=colors['multihistograms'][binWidthInd])
+
             axes.set_xlim((0, distMax))
             axes.grid(True, which='minor', zorder=0)
             aMTicks = axes.get_xticks()
@@ -451,8 +462,9 @@ class DSResultsDistanceReport(ResultsReport):
             axes.yaxis.set_major_locator(pltt.MaxNLocator(integer=True))
 
             # c. Finish plotting.
-            axes.legend([self.tr('Real observations')], fontsize=fontSizes['legend'])
-            axes.set_title(label=self.tr('Fixed bin distance histogram'),
+            axes.legend([self.tr('Real observations') + ' ' + str(int(binWidth))
+                         for binWidth in distHistBinWidths], fontsize=fontSizes['legend'])
+            axes.set_title(label=self.tr('Fixed bin distance histograms'),
                            fontdict=dict(fontsize=fontSizes['title']), pad=10)
             axes.set_xlabel(self.tr('Distance'), fontsize=fontSizes['axes'])
             axes.set_ylabel(self.tr('Number of observations'), fontsize=fontSizes['axes'])
@@ -659,6 +671,9 @@ class DSResultsDistanceReport(ResultsReport):
                                                     imgFormat=self.plotImgFormat, imgSize=self.plotImgSize,
                                                     imgQuality=self.plotImgQuality,
                                                     widths=dict(lines=self.plotLineWidth, dots=self.plotDotWidth),
+                                                    colors=dict(background='#f9fbf3', histograms='blue',
+                                                                multihistograms=['blue', 'green', 'red'],
+                                                                curves='red', dots='green'),
                                                     fontSizes=self.plotFontSizes),
                            title=self.title, subtitle=subTitle, keywords=self.keywords,
                            navUrls=dict(prevAnlys='../' + sResNav.previous,
