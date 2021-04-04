@@ -30,7 +30,8 @@ class DataSet(object):
 
     """"A tabular data set built by concatenating various-formatted source tables into one.
     
-    Note: visionat module also defines this class: no reason it differs in any way => synchronise please !"""
+    Note: visionat module also defines this class: no reason it differs in any way => synchronise please !
+    Why ? Just to keep the 2 modules independent ; might change in the future"""
     
     def __init__(self, sources, dRenameCols={}, dComputeCols={}, importDecFields=[],
                  sheet=None, skipRows=None, headerRows=0, indexCols=None, separator='\t', encoding='utf-8'):
@@ -45,16 +46,17 @@ class DataSet(object):
              when multiple source provided, sources are supposed to have compatible columns names,
              and data rows from each source are appended 1 source after the previous.
         :param dRenameCols: dict for renaming input columns right after loading data
-        :param dComputeCols: name and compute method for computed columns to be auto-added (but not renamed) ;
-                          as a dict { new col. name => constant, or function to apply
-                          to each row to auto-compute the new sightings column }
+        :param dComputeCols: name and compute method for computed columns to be auto-added ;
+                             as a dict { new col. name => constant, or function to apply
+                             to each row to auto-compute the new sightings column } ;
+                             note: these columns can also be renamed, through dRenameCols
         :param importDecFields: for smart ./, decimal character management in CSV sources (pandas is not smart on this)
         :param sheet: name of the sheet to read from, for multi-sheet data files (like Excel or Open Doc. workbooks)
         :param skipRows: list of indexes of initial rows to skip for file sources (before the column names row)
         :param headerRows: index (or list of) of rows holding columns names (default 0 => 1st row)
         :param indexCols: index (or list of) of first columns to use as (multi)index (default None => auto-gen index)
         :param separator: columns separator for CSV sources
-        :param encoding: encodig for CSV sources
+        :param encoding: encoding for CSV sources
         """
     
         if isinstance(sources, (str, pl.Path)):
@@ -88,10 +90,15 @@ class DataSet(object):
         
         # Rename columns if requested.
         if dRenameCols:
+            for key in dRenameCols.keys():
+                if key in dComputeCols:
+                    dComputeCols[dRenameCols[key]] = dComputeCols[key]
+                    dComputeCols.pop(key)            
             self.renameColumns(dRenameCols)
-            
+
         # Add auto-computed columns if any.
         if dComputeCols:
+
             self.addColumns(dComputeCols)
 
     # Wrapper around pd.read_csv for smart ./, decimal character management (pandas is not smart on this)
@@ -102,12 +109,14 @@ class DataSet(object):
                          header=headerRows, index_col=indexCols)
         allRight = True
         for col in decCols:
+            
             if df[col].dropna().apply(lambda v: isinstance(v, str)).any():
                 allRight = False
                 break
         if not allRight:
             df = pd.read_csv(fileName, sep=sep, skiprows=skipRows,
                              header=headerRows, index_col=indexCols, decimal=',')
+
         return df
     
     SupportedFileExts = ['.xlsx', '.xls', '.csv', '.txt'] \
@@ -167,12 +176,13 @@ class DataSet(object):
     def dfSubData(self, subset=None, copy=False):
     
         """Get a subset of the table columns
-        :param subset: columns to select, as a list(string) or pd.Index.
+        :param subset: columns to select, as a list(string or tuple) or pd.Index (possibly Multi.),
+                       or None (all columns selected)
         :param copy: if True, return a full copy of the data, not a "reference" to the internal table
         """
         
         assert subset is None or isinstance(subset, list) or isinstance(subset, pd.Index), \
-               'subset columns must be specified as None (all), or as a list of tuples, or as a pandas.Index'
+               'subset columns must be specified as None (all), or as a list, or as a pandas.Index'
 
         # Make a copy of / extract selected columns of dfData.
         if subset is None:
@@ -190,7 +200,7 @@ class DataSet(object):
         self._dfData.drop(columns=cols, inplace=True)
         
     def dropRows(self, sbSelRows):
-    
+        
         self._dfData.drop(self._dfData[sbSelRows].index, inplace=True)
         
     @staticmethod
@@ -222,7 +232,7 @@ class DataSet(object):
         self._addComputedColumns(self._dfData, dComputeCols)
 
     def renameColumns(self, dRenameCols):
-    
+
         self._dfData.rename(columns=dRenameCols, inplace=True)
 
     def toPickle(self, fileName, subset=None, index=True):
@@ -1418,3 +1428,4 @@ class ResultsSet(object):
 if __name__ == '__main__':
 
     sys.exit(0)
+
