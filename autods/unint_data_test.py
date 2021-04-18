@@ -12,6 +12,7 @@ import pathlib as pl
 import pandas as pd
 import numpy as np
 import logging
+
 sys.path.insert(0, '..')
 import autods as ads
 
@@ -54,10 +55,10 @@ def configureLoggers(loggers=[dict(name='child', level=logging.ERROR)],
     root.setLevel(logging.INFO)
 
     # Configure children loggers.
-    # msg = 'Logging to {}'.format(', '.join(handlerId(hdlr) for hdlr in handlers))
+    msg = 'Logging to {}'.format(', '.join(handlerId(hdlr) for hdlr in handlers))
     for logrCfg in loggers:
         logr = logging.getLogger(logrCfg['name'])
-        # logr.info(msg)
+        logr.info(msg)
         if 'level' in logrCfg:
             logr.setLevel(logrCfg['level'])
 
@@ -72,28 +73,28 @@ def describeRunEnv():
     logger.info('')
 
 
-# logger = logging.getLogger('unint_test')
-logger = ads.logger('unint_test')  # works with both lines. This ones seems more consistent to me
+# logger = logging.getLogger('unint_data_test')
+logger = ads.logger('unint_data_test')  # works with both lines. This ones seems more consistent to me
 
 # List of logger/sub_loggers
-l_loggers = [dict(name='unint_test', level=ads.DEBUG),
+l_loggers = [dict(name='unint_data_test', level=ads.DEBUG),
              dict(name='ads', level=ads.INFO),
              dict(name='matplotlib', level=ads.WARNING),
              dict(name='ads.eng', level=ads.INFO2),
              dict(name='ads.opn', level=ads.INFO1),
              dict(name='ads.opr', level=ads.INFO1),
              dict(name='ads.anr', level=ads.INFO1)]
-            # line below added to limit log ouput
-            # dict(name='ads.dat', level=ads.WARNING)]
+#          line below added to limit log ouput
+#            dict(name='ads.dat', level=ads.WARNING)]
 
 # Configure logging.
-configureLoggers(l_loggers, handlers=['tmp/unint-data-test.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d'))])
+configureLoggers(l_loggers, handlers=['tmp/unit-int-test.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d'))])
 logger.info('')
 
 # Describe environment.
 describeRunEnv()
 
-logger.info(f'Testing ads.data {ads.__version__} ...')
+logger.info(f'Testing ads {ads.__version__} ...')
 
 
 ###############################################################################
@@ -143,15 +144,8 @@ def newval2othercol(s):
 ###############################################################################
 #                                Test Cases                                   #
 ###############################################################################
-def test_executableNotFound():
-
-    with pytest.raises(Exception) as e_info:
-        ads.MCDSEngine().findExecutable('WrongName')
-    logger.info0('PASS => EXCEPTION RAISED AS AWAITED with the following Exception message:\n{}'.format(e_info.value))
-
-
 # test DataSet - method "Ctor", getter "dfData", and "__len__"
-    # from various sources: .ods, .xslx, .xls, .csv and from DataFrame
+    # from various sources: .ads, .xslx, .xls, .csv and from DataFrame
 def test_DataSet_Ctor_len(sources_fxt):
 
     # gather source DataFrame (used for checking size of DataSet)
@@ -167,15 +161,17 @@ def test_DataSet_Ctor_len(sources_fxt):
 
     # checking size of DataFrame
     assert ds.dfData.size == srcDf.size * len(sources_fxt), \
-        'DataSet Ctor: Size of DataFrame "DataFrame.dfData" inconsistent with sources'
+        'Error: test_DataSet_Ctor_len: DataSet Ctor: Size of DataFrame "DataFrame.dfData" inconsistent with sources'
     # checking list of columns of DataFrame
     assert sorted(ds.columns) == sorted(dTypes.keys()), \
-        'DataSet Ctor: Columns list from "DataFrame.dfData" mismatched with columns list of the source file'
+        'Error: test_DataSet_Ctor_len: Ctor: Columns list from "DataFrame.dfData" mismatched with columns list of \
+        the source file'
     # checking column dtypes of DataFrame
     assert all(typ.name.startswith(dTypes[col]) for col, typ in ds.dfData.dtypes.items()), \
-        'DataSet Ctor: types of data from the "DataFrame.dfData" mismatched awaited data types'
+        'Error: test_DataSet_Ctor_len: DataSet Ctor: types of data from the "DataFrame.dfData" mismatched awaited \
+        data types'
 
-    logger.info0('PASS => DATASET => Constructor, getter "dfData" and \
+    logger.info0('PASS (test_DataSet_Ctor_len) => DATASET => Constructor, getter "dfData" and \
     method "__len__"\n(Includes _csv2df, _fromDataFrame, _fromDataFile)')
 
 
@@ -187,7 +183,8 @@ def test_DataSet_dfData_getter_setter(sources_fxt):
     # Check Exception raising with dfData setter call
     with pytest.raises(NotImplementedError) as e:
         ds.dfData = pd.DataFrame()
-    logger.info0('PASS => EXCEPTION RAISED AS AWAITED with the following Exception message:\n{}'.format(e))
+    logger.info0('PASS (test_DataSet_dfData_getter_setter) => EXCEPTION RAISED AS AWAITED with the following \
+    Exception message:\n{}'.format(e))
 
 
 # test DataSet - methoc "empty"
@@ -195,12 +192,12 @@ def test_DataSet_empty():
 
     emptyDf = pd.DataFrame()
     emptyDs = ads.DataSet(emptyDf)
-    assert emptyDs.empty, 'empty: DataFrame from DataSet should be empty'
+    assert emptyDs.empty, 'Error: test_DataSet_empty: DataFrame from DataSet should be empty'
 
     ds = pd.DataFrame(data={'col1': [1, 2]})
-    assert not ds.empty, 'empty: DataFrame from DataSet should not be empty'
+    assert not ds.empty, 'Error: test_DataSet_empty: DataFrame from DataSet should not be empty'
 
-    logger.info0('PASS => DATASET => method "empty"')
+    logger.info0('PASS (test_DataSet_empty) => DATASET => method "empty"')
 
 
 # test DataSet - method "columns"
@@ -208,9 +205,10 @@ def test_DataSet_columns(sources_fxt):
 
     ds = ads.DataSet(sources_fxt, sheet='Sheet1', skipRows=None, separator='\t')
 
-    assert (ds.columns == ds.dfData.columns).all(), 'columns: Issue occurred with method "DataSet.columns"'
+    assert (ds.columns == ds.dfData.columns).all(), 'Error: test_DataSet_columns: columns: Issue occurred with \
+    method "DataSet.columns"'
 
-    logger.info0('PASS => DATASET => method "columns"')
+    logger.info0('PASS (test_DataSet_columns) => DATASET => method "columns"')
 
 
 # test columns renaming
@@ -220,10 +218,12 @@ def test_DataSet_renameColumns(sources_fxt):
                      importDecFields=['EFFORT', 'DISTANCE', 'NOMBRE'], sheet='Sheet1', skipRows=None, separator='\t')
 
     assert all([(col not in ds.columns) for col in ['MALE', 'NOMBRE']]) \
-        and all([(col in ds.columns) for col in ['SEXE', 'INDIVIDUS']]), 'renameColumns: Issue occurred with \
-        renaming process: columns "NOMBRE" and "MALE" should have been renamed "INDIVIDUS" and "SEXE"'
+        and all([(col in ds.columns) for col in ['SEXE', 'INDIVIDUS']]), 'Error: test_DataSet_renameColumns: \
+        renameColumns: Issue occurred with renaming process: columns "NOMBRE" and "MALE" should have been \
+        renamed "INDIVIDUS" and "SEXE"'
 
-    logger.info0('PASS => DATASET => method "renameColumns"\n(Includes _csv2df, _fromDataFrame, _fromDataFile)')
+    logger.info0('PASS (test_DataSet_renameColumns) => DATASET => method "renameColumns"\n(Includes _csv2df, \
+    _fromDataFrame, _fromDataFile)')
 
 
 # test columns addition, recomputing, and combination addition/recomputing
@@ -234,23 +234,24 @@ def test_DataSet_addComputedColumns(sources_fxt):
 
     # Checking addition of a columns
     ds = ads.DataSet(ds.dfData, dComputeCols={'NEWCOL': ''})
-    assert 'NEWCOL' in ds.columns, '_addComputedColumns: Issue occurred with simple addition \
-    of a new column. Columns "NEWCOL" should have been added'
+    assert 'NEWCOL' in ds.columns, 'Error: test_DataSet_addComputedColumns: _addComputedColumns: Issue occurred with \
+    simple addition of a new column. Columns "NEWCOL" should have been added'
 
     # Checking re-computing a columns
     #   Checking initial data type of 'MALE' column values are not boolean
-    assert ds.dfData['MALE'].dtype != bool, 'Pre-test: Values from MALE column should not be bool'
+    assert ds.dfData['MALE'].dtype != bool, 'Error: test_DataSet_addComputedColumns: Pre-test: Values from MALE \
+    column should not be bool'
     #   Checking data type of 'MALE' column modified to boolean (dComputeCols)
     ds = ads.DataSet(ds.dfData, dComputeCols={'MALE': male2bool})
     assert ds.dfData['MALE'].dtype == bool, \
-        '_addComputedColumns: Issue occurred with recomputing existing column process. \
-        Values from MALE column should be bool'
+        'Error: test_DataSet_addComputedColumns: _addComputedColumns: Issue occurred with recomputing existing \
+        column process. Values from MALE column should be bool'
 
     # Checking adding a new column with computing process
     #   Checking data type of 'NEWCOL' colonne was added with boolean (dComputeCols)
     ds = ads.DataSet(ds.dfData, dComputeCols={'OTHERCOL': newval2othercol})
-    assert ds.dfData.OTHERCOL[0] == 'New Value', \
-        '_addComputedColumns: Issue occurred with process of adding a new AND computed column.'
+    assert ds.dfData.OTHERCOL[0] == 'New Value', 'Error: test_DataSet_addComputedColumns: _addComputedColumns: \
+    Issue occurred with process of adding a new AND computed column.'
 
     # Checking adding a new column with computing process and rename it
     #   a new column also added to prepare following test step
@@ -259,9 +260,10 @@ def test_DataSet_addComputedColumns(sources_fxt):
     print(ds.columns)
     print(ds.dfData.SEXE)
     assert ds.dfData['SEXE'].dtype == bool, \
-        '_addComputedColumns: Issue occurred with process of adding and renaming a new AND computed column.'
+        'Error: test_DataSet_addComputedColumns: _addComputedColumns: Issue occurred with process of adding and \
+        renaming a new AND computed column.'
 
-    logger.info0('PASS => DATASET => methods "addColumns" and "_addComputedColumns": \
+    logger.info0('PASS (test_DataSet_renameColumns) => DATASET => methods "addColumns" and "_addComputedColumns": \
     \n\t\t\t\t\t\taddition, recomputing, and combination addition/recomputing for existing or new column checked \
     \n\t\t\t\t\t\t(Includes _csv2df, _fromDataFrame, _fromDataFile)')
 
@@ -273,32 +275,35 @@ def test_DataSet_dfSubData(sources_fxt):
 
     # subset = None
     df = ds.dfSubData()
-    assert df.compare(ds.dfData).empty, 'dfSubData: Issue occurred. With "None", df should be a copy of source DataSet.'
-    assert id(df) == id(ds.dfData), 'dfSubData: Issue occurred. With "copy = False (default)", subset of DataFrame \
-    should be a reference to the subset of source DataFrame, not a copy of data.'
+    assert df.compare(ds.dfData).empty, 'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "None", \
+    df should be a copy of source DataSet.'
+    assert id(df) == id(ds.dfData), 'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "copy = False \
+    (default)", subset of DataFrame should be a reference to the subset of source DataFrame, not a copy of data.'
 
     df = ds.dfSubData(copy=True)
-    assert df.compare(ds.dfData).empty, 'dfSubData: Issue occurred. With "None", df should be a copy of source DataSet.'
-    assert id(df) != id(ds.dfData), 'dfSubData: Issue occurred. With "copy = True", subset of DataFrame should be a \
-    copy of data, not a reference to the subset of source DataFrame.'
+    assert df.compare(ds.dfData).empty, 'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "None", \
+    df should be a copy of source DataSet.'
+    assert id(df) != id(ds.dfData), 'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "copy = True", \
+    subset of DataFrame should be a copy of data, not a reference to the subset of source DataFrame.'
 
     # subset = as list
     df = ds.dfSubData(subset=['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT'])
     assert df.compare(ds.dfData.reindex(columns=['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT'])).empty, \
-        'dfSubData: Issue occurred. With "None", df should be a copy of source DataSet.'
+        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "None", df should be a copy of source DataSet.'
 
     # subset = as pandas.index
     df = ds.dfSubData(subset=pd.Index(['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']))
     assert df.compare(ds.dfSubData(subset=pd.Index(['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']))).empty, \
-        'dfSubData: Issue occurred. With "None", df should be a copy of source DataSet.'
+        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "None", df should be a copy of source DataSet.'
 
     # subset = as other (str)
     # Check Exception raising
     with pytest.raises(Exception) as e:
         df = ds.dfSubData(subset='POINT')
-    logger.info0('PASS => EXCEPTION RAISED AS AWAITED with the following Exception message:\n{}'.format(e))
+    logger.info0('PASS (test_DataSet_dfSubData) => EXCEPTION RAISED AS AWAITED with the \
+    following Exception message:\n{}'.format(e))
 
-    logger.info0('PASS => DATASET => method "dfSubData"')
+    logger.info0('PASS (test_DataSet_dfSubData) => DATASET => method "dfSubData"')
 
 
 # test columns deletion
@@ -315,12 +320,14 @@ def test_DataSet_dropColumns(sources_fxt):
     ds.dropColumns(dropCols)
 
     assert ds.columns.to_list() == ['POINT', 'ESPECE', 'DISTANCE', 'MALE', 'DATE', 'PASSAGE', 'NOMBRE', 'EFFORT'], \
-        'dropColumns: Issue occurred with dropping columns: one or more columns were not drop.'
+        'Error: test_DataSet_dropColumns: dropColumns: Issue occurred with dropping columns: one or more \
+        columns were not drop.'
 
     assert len(ds) == len(srcDf) * len(sources_fxt),  \
-        'dropColumns: Issue occurred: inconsistent size of the DataFrame next to columns dropping.'
+        'Error: test_DataSet_dropColumns: dropColumns: Issue occurred: inconsistent size of the DataFrame next \
+        to columns dropping.'
 
-    logger.info0('PASS => DATASET => method "dropColumns"')
+    logger.info0('PASS (test_DataSet_dropColumns) => DATASET => method "dropColumns"')
 
 
 # test rows deletion
@@ -336,16 +343,18 @@ def test_DataSet_dropRows(sources_fxt):
 
     # check result DataFrame is same size than entry with distance not null in source DataFrame
     assert len(ds) == len(srcDf[srcDf.DISTANCE.notnull()]) * len(sources_fxt), \
-        'dropRows: Issue occurred. Size of resulted DataFrame not consistent after deletion process.'
+        'Error: test_DataSet_dropRows: dropRows: Issue occurred. Size of resulted DataFrame \
+        not consistent after deletion process.'
 
     # check nb of rows are consistent with data before/after deletion (refer source files data)
     assert ds.dfData.MALE.value_counts()[True] == ds.dfData.NOMBRE.sum() == srcDf.NOMBRE.sum() * len(sources_fxt), \
-        'dropRows: Issue occurred. Comparison of numbers of data in resulted DataFrame not consistentafter \
-        deletion process.'
+        'Error: test_DataSet_dropRows: dropRows: Issue occurred. Comparison of numbers of data in resulted DataFrame \
+        not consistentafter deletion process.'
 
-    logger.info0('PASS => DATASET => method "dropRows"')
+    logger.info0('PASS (test_DataSet_dropRows) => DATASET => method "dropRows"')
 
 
+# DATASET TESTS
 # test methods "toExcel", "toOpenDoc", "toPickle", "compareDataFrames"
 def test_toFiles(sources_fxt):
 
@@ -370,7 +379,7 @@ def test_toFiles(sources_fxt):
             ds.toExcel(fpn, sheetName='utest', subset=subsetCols, index=False)
         elif fpn.suffix in ['.pickle', '.xz']:
             ds.toPickle(fpn, subset=subsetCols, index=False)
-        assert fpn.is_file()
+        assert fpn.is_file(), 'Error: test_toFiles'
 
         if fpn.suffix in ['.ods', '.xlsx', '.xls']:
             df = pd.read_excel(fpn, sheet_name='utest')
@@ -380,10 +389,11 @@ def test_toFiles(sources_fxt):
         assert ds.compareDataFrames(df.reset_index(), dfRef.reset_index(),
                                     subsetCols=['POINT', 'DISTANCE', 'INDIVIDUS', 'EFFORT'],
                                     indexCols=['index'], dropCloser=closenessThreshold, dropNans=True).empty
-        print('1e-{} comparison OK (df.equals(dfRef) is {}, df.compare(dfRef) {}empty)'
-              .format(closenessThreshold, df.equals(dfRef), '' if df.compare(dfRef).empty else 'not'))
+        print('1e-{} comparison OK (df.equals(dfRef) is {}, df.compare(dfRef) {}empty)'.
+              format(closenessThreshold, df.equals(dfRef), '' if df.compare(dfRef).empty else 'not')), \
+            'Error: test_toFiles'
 
-    logger.info0('PASS => DATASET => method "toExcel", "toOpenDoc", "toPickle", "compareDataFrames"')
+    logger.info0('PASS (test_toFiles) => DATASET => method "toExcel", "toOpenDoc", "toPickle", "compareDataFrames"')
 
 
 # Test of the base function for comparison (test from static hard-coded data, not from loaded DataSets)
@@ -407,17 +417,18 @@ def test_closeness():
 
     # Infinite closeness on the diagonal (except for nan and +/-inf)
     assert all(np.isnan(values[i]) or np.isinf(values[i]) or np.isinf(aClose[i, i]) for i in range(len(values))), \
-           'Error: Inequality on the diagonal'
+           'Error: test_closeness: Inequality on the diagonal'
 
     # No infinite proximity elsewhere
     assert all(r == c or not np.isinf(aClose[r, c]) for r in range(len(values)) for c in range(len(values))), \
-           'Error: No equality should be found outside the diagonal'
+           'Error: test_closeness: No equality should be found outside the diagonal'
 
     # Good closeness around -1 only
     whereClose = [i for i in range(len(values)) if abs(values[i] + 1) <= 1.0e-5]
-    assert all(aClose[r, c] > 4 for r in whereClose for c in whereClose), 'Error: Unexpectedly bad closeness around -1'
+    assert all(aClose[r, c] > 4 for r in whereClose for c in whereClose), \
+        'Error: test_closeness: Unexpectedly bad closeness around -1'
 
-    logger.info0('PASS => DATASET => method "_closeness"')
+    logger.info0('PASS (test_closeness) => DATASET => method "_closeness"')
 
 
 # Comparison (from other files data sources, the same as for ResultsSet.compare below, but through DataSet)
@@ -448,21 +459,117 @@ def test_compare():
 
     # # d. "Exact" Comparison : no line pass (majority of epsilons due to IO ODS)
     dfRelDiff = dsDist.compare(dsAuto, subsetCols=subsetCols, indexCols=indexCols)
-    assert len(dfRelDiff) == len(dsDist), 'compare: Issue occurred. Exact row by row comparison of both DataSets \
-    should fail for all rows.'
+    assert len(dfRelDiff) == len(dsDist), 'Error: test_compare: compare: Issue occurred. Exact row by row comparison \
+    of both DataSets should fail for all rows.'
 
     # # e. Comparison with 10**-16 accuracy : almost all lines pass, but 3 (majority of epsilons due to IO ODS)
     dfRelDiff = dsDist.compare(dsAuto, subsetCols=subsetCols, indexCols=indexCols, dropCloser=16, dropNans=True)
-    assert len(dfRelDiff) == 3, 'compare: Issue occurred. Row by row comparison of both DataSet with accuracy of \
-    10**-16 should fail for all rows but 3.'
+    assert len(dfRelDiff) == 3, 'Error: test_compare: compare: Issue occurred. Row by row comparison of both DataSet \
+    with accuracy of 10**-16 should fail for all rows but 3.'
     print(dfRelDiff)
 
     # # e. Comparison with 10**-5 accuracy : all lines pass
     dfRelDiff = dsDist.compare(dsAuto, subsetCols=subsetCols, indexCols=indexCols, dropCloser=5, dropNans=True)
-    assert len(dfRelDiff) == 2,  'compare: Issue occurred. Row by row comparison of both DataSet with accuracy of \
-    10**5 should pass for all rows.'
+    assert len(dfRelDiff) == 2,  'Error: test_compare: compare: Issue occurred. Row by row comparison of both DataSet \
+    with accuracy of 10**5 should pass for all rows.'
 
-    logger.info0('PASS => DATASET => method "_closeness" and "compare"')
+    logger.info0('PASS (test_compare) => DATASET => method "_closeness" and "compare"')
+
+
+# SAMPLEDATASET TESTS
+# test methods "toExcel", "toOpenDoc", "toPickle", "compareDataFrames"
+def test_SDS_Ctor():
+    # test: creation of SDS from DataFrame source.
+    dfData = pd.DataFrame(columns=['Date', 'TrucDec', 'Espece', 'Point', 'Effort', 'Distance'],
+                          data=[('2019-05-13', 3.5, 'TURMER', 23, 2, 83),
+                                ('2019-05-15', np.nan, 'TURMER', 23, 2, 27.355),
+                                ('2019-05-13', 0, 'ALAARV', 29, 2, 56.85),
+                                ('2019-04-03', 1.325, 'PRUMOD', 53, 1.3, 7.2),
+                                ('2019-06-01', 2, 'PHICOL', 12, 1, np.nan),
+                                ('2019-06-19', np.nan, 'PHICOL', 17, 0.5, np.nan),
+                                ])
+    dfData['Region'] = 'ACDC'
+    dfData['Surface'] = '2400'
+
+    sds = ads.SampleDataSet(source=dfData, decimalFields=['Effort', 'Distance', 'TrucDec'])
+
+    assert not any(sds.dfData[col].dropna().apply(lambda v: isinstance(v, str)).any() for col in sds.decimalFields), \
+        'Error: test_SDS_Ctor: Some strings found in declared decimal fields ... any decimal format issue ?'
+
+    assert sds.columns.equals(dfData.columns), 'Error: test_SDS_Ctor: inconsistency with columns list \
+    of SDS vs source DataFrame'
+    assert len(sds) == len(dfData),  'Error: test_SDS_Ctor: inconsistency with size of SDS vs source DataFrame'
+    assert sds.dfData.Distance.notnull().sum() == 4, 'Error: test_SDS_Ctor: issue with NaN values \
+    that should be considered a null'
+
+    # test: empty SDS raises exception
+    emptyDf = pd.DataFrame()
+    with pytest.raises(Exception) as e_info:
+        ads.SampleDataSet(emptyDf)
+    logger.info0('PASS (test_SDS_Ctor) => EXCEPTION RAISED AS AWAITED with the following Exception message:\n{}'.
+                 format(e_info.value))
+
+    # test: exception raised if SDS created with DataFrame < 5 columns
+    dfData = pd.DataFrame(columns=['Col1', 'Col2', 'Col3', 'Col4'], data=[(1, 2, 3, 4)])
+    with pytest.raises(Exception) as e_info:
+        sds = ads.SampleDataSet(source=dfData)
+    logger.info0('PASS (test_SDS_Ctor) => EXCEPTION RAISED AS AWAITED with the following Exception message:\n{}'.
+                 format(e_info.value))
+
+    # Excel source (path as simple string)
+    sds = ads.SampleDataSet(source='refin/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',
+                            decimalFields=['EFFORT', 'DISTANCE', 'NOMBRE'])
+
+    assert sds.columns.to_list() == ['ZONE', 'HA', 'POINT', 'ESPECE', 'DISTANCE', 'MALE', 'DATE',
+                                     'OBSERVATEUR', 'PASSAGE', 'NOMBRE', 'EFFORT'], \
+        'Error: test_SDS_Ctor: inconsistency with columns list of SDS vs source file'
+    assert len(sds) == 256, 'Error: test_SDS_Ctor: inconsistency with size of the resulting SDS. \
+    It should contain 256 rows'
+    assert sds.dfData.NOMBRE.sum() == 217, 'Error: test_SDS_Ctor: inconsistency with data loaded in SDS: \
+    Sum of values from column "NOMBRE" should be 217'
+
+    # Libre / Open Office source (path as simple string)
+    sds = ads.SampleDataSet(source='refin/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',
+                            decimalFields=['EFFORT', 'DISTANCE', 'NOMBRE'])
+
+    assert sds.columns.to_list() == ['ZONE', 'HA', 'POINT', 'ESPECE', 'DISTANCE', 'MALE', 'DATE',
+                                     'OBSERVATEUR', 'PASSAGE', 'NOMBRE', 'EFFORT'], \
+        'Error: test_SDS_Ctor: inconsistency with columns list of SDS vs source file'
+    assert len(sds) == 256, 'Error: inconsistency with size of the resulting SDS. It should contain 256 rows'
+    assert sds.dfData.NOMBRE.sum() == 217, 'Error: test_SDS_Ctor: inconsistency with data loaded in SDS: Sum of values \
+    from column "NOMBRE" should be 217'
+
+    # CSV source with ',' as decimal point (path as pl.Path)
+    sds = ads.SampleDataSet(source=pl.Path('refin/ACDC2019-Papyrus-TURMER-AB-5mn-1dec-dist.txt'),
+                            decimalFields=['Point transect*Survey effort', 'Observation*Radial distance'])
+
+    assert not any(sds.dfData[col].dropna().apply(lambda v: isinstance(v, str)).any() for col in sds.decimalFields), \
+        'Error: test_SDS_Ctor: Some strings found in declared decimal fields ... any decimal format issue ?'
+
+    assert sds.columns.to_list() == ['Region*Label', 'Region*Area', 'Point transect*Label',
+                                     'Point transect*Survey effort', 'Observation*Radial distance'], \
+        'Error: test_SDS_Ctor: inconsistency with columns list of SDS vs source file'
+    assert len(sds) == 330, 'Error: test_SDS_Ctor: inconsistency with size of the resulting SDS. \
+    It should contain 330 rows'
+    assert sds.dfData['Observation*Radial distance'].notnull().sum() == 324, 'Error: test_SDS_Ctor: inconsistency with \
+    data loaded in SDS: Sum of values from column "Observation*Radial distance" should be 324'
+
+    # CSV source with '.' as decimal point
+    sds = ads.SampleDataSet(source=pl.Path('refin/ACDC2019-Papyrus-ALAARV-AB-10mn-1dotdec-dist.txt'),
+                            decimalFields=['Point transect*Survey effort', 'Observation*Radial distance'])
+
+    assert not any(sds.dfData[col].dropna().apply(lambda v: isinstance(v, str)).any() for col in sds.decimalFields), \
+        'Error: test_SDS_Ctor: Some strings found in declared decimal fields ... any decimal format issue ?'
+
+    assert sds.columns.to_list() == ['Region*Label', 'Region*Area', 'Point transect*Label',
+                                     'Point transect*Survey effort', 'Observation*Radial distance'], \
+        'Error: test_SDS_Ctor: inconsistency with columns list of SDS vs source file'
+    assert len(sds) == 256,  'Error: test_SDS_Ctor: inconsistency with size of the resulting SDS. \
+    It should contain 256 rows'
+    assert sds.dfData['Observation*Radial distance'].notnull().sum() == 217, 'Error: test_SDS_Ctor: inconsistency with \
+    data loaded in SDS: Sum of values from column "Observation*Radial distance" should be 217'
+
+    logger.info0('PASS (test_SDS_Ctor) => SampleDATASET => Constructor')
 
 
 if __name__ == '__main__':
@@ -474,7 +581,6 @@ if __name__ == '__main__':
     if run:
         try:
             # Tests for DataSet
-            test_executableNotFound()
             test_DataSet_Ctor_len(sources())
             test_DataSet_dfData_getter_setter(sources())
             test_DataSet_empty()
@@ -487,6 +593,9 @@ if __name__ == '__main__':
             test_toFiles(sources())
             test_closeness()
             test_compare()
+
+            # Tests for SampleDataSet
+            test_SDS_Ctor()
 
             # Success !
             rc = 0
