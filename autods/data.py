@@ -72,8 +72,11 @@ class DataSet(object):
                     dfData = self._fromDataFile(source, sheet=sheet, decimalFields=importDecFields,
                                                 skipRows=skipRows, headerRows=headerRows, indexCols=indexCols,
                                                 separator=separator, encoding=encoding)
+                    logger.info1('Loaded {} rows from file {}'
+                                 .format(len(dfData), source if isinstance(source, str) else source.as_posix()))
                 elif isinstance(source, pd.DataFrame):
                     dfData = self._fromDataFrame(source)
+                    logger.info1('Loaded {} rows from data frame'.format(len(dfData)))
                 else:
                     raise Exception('source for DataSet must be a pandas.DataFrame or an existing file')
                 ldfData.append(dfData)
@@ -85,7 +88,7 @@ class DataSet(object):
             logger.warning('No data in source data set')
             return
             
-        logger.info(f'Loaded {len(self)} rows in data set ...')
+        logger.info(f'Loaded {len(self)} total rows in data set ...')
         logger.info('... found columns: [{}]'.format('|'.join(str(c) for c in self.columns)))
         
         # Rename columns if requested.
