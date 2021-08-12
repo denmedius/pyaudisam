@@ -836,8 +836,18 @@ class ResultsSet(object):
     
         """Ctor
         
+        Parameters:
         :param miCols: process results columns (MultiIndex or not)
+        :param dfColTrans: translation DataFrame for results column labels,
+                           * index=column labels,
+                           * data=dict(<lang>=[<translation for each label> for all labels] for all <lang>)
         :param miCustomCols: custom columns to prepend (on the left) to process results columns (MultiIndex or not)
+        :param dfCustomColTrans: translation DataFrame for custom column labels,
+        :param dComputedCols: dict(label: position) for inserting computed columns in results table (None = after end)
+        :param dfComputedColTrans: translation DataFrame for computed column labels,
+        :param sortCols: if not empty, iterable of columns to sort values by in dfData()
+        :param sortAscend: sorting order for all (bool), or each column (iterable of bool) in dfData()
+        :param dropNACols: If True, dfData() won't return columns with no relevant results data (except for custom cols).
         """
         
         assert len(sortCols) == len(sortAscend), 'sortCols and sortAscend must have same length'
@@ -847,16 +857,23 @@ class ResultsSet(object):
             dComputedCols = dict()
             dfComputedColTrans = pd.DataFrame()
 
+        # Columns : Process results + computed results (at the specified position if any)
         self.miCols = miCols.copy()
-        for col, ind in dComputedCols.items(): # Add post-computed columns at the right place
-            self.miCols = self.miCols.insert(ind, col)
+        for col, ind in dComputedCols.items():
+            if ind is not None:
+                self.miCols = self.miCols.insert(ind, col)
+        lastCompCols = [col for col, ind in dComputedCols.items() if ind is None]
+        if lastCompCols:
+            self.miCols = self.miCols.append(pd.MultiIndex.from_tuples(lastCompCols))
+
+        # 
         self.computedCols = list(dComputedCols.keys())
         self.miCustomCols = miCustomCols.copy()
         
         self.isMultiIndexedCols = isinstance(miCols, pd.MultiIndex)
 
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        self.dfColTrans = dfColTrans.append(dfComputedColTrans)
+        self.dfColTrans = pd.concat([dfColTrans, dfComputedColTrans])
         self.dfCustomColTrans = dfCustomColTrans.copy()
         
         # Sorting and cleaning parameters (after postComputing)
@@ -877,15 +894,15 @@ class ResultsSet(object):
         return len(self._dfData)
     
     @property
-    def columns(self):
-    
-        return self.dfData.columns
-        
-    @property
     def empty(self):
         
         return self._dfData.empty
 
+    @property
+    def columns(self):
+    
+        return self.dfData.columns
+        
     def dropRows(self, sbSelRows):
     
         """Drop specific rows in-place, selected through boolean indexing on self.dfData
@@ -1015,7 +1032,7 @@ class ResultsSet(object):
 
         """Direct access to unpostprocessed data
 
-        May have to removed computed columns and reset postCompute state.
+        May have to remove computed columns and reset postCompute state.
         """
 
         if self.postComputed:
@@ -1072,13 +1089,13 @@ class ResultsSet(object):
                 else:
                     miCols2Cleanup = [col for col in miCols2Cleanup if col not in self.miCustomCols]
             cols2Drop = [col for col in miCols2Cleanup if self._dfData[col].isna().all()]
+            logger.debug(f'Dropping all-NaN columns {cols2Drop}')
             self._dfData.drop(columns=cols2Drop, inplace=True)
 
         # Done.
         return self._dfData.copy()
 
-    @dfData.setter
-    def dfData(self, dfData):
+    def setData(self, dfData, postComputed=False):
         
         assert isinstance(dfData, pd.DataFrame), 'dfData must be a pd.DataFrame'
         
@@ -1087,12 +1104,18 @@ class ResultsSet(object):
         # Let's assume that columns order is dirty.
         self.rightColOrder = False
         
-        # Remove any computed column: will be recomputed later on
-        # (but ignore those which are not there : backward compat. / tolerance)
-        self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
+        # If not specified as already postComputed, prepare for recomputation later by removing any "computed" column.
+        if not postComputed:
+            # ... but ignore those which are not there : backward compat. / tolerance ...
+            self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
         
         # Post-computation not yet done.
-        self.postComputed = False
+        self.postComputed = postComputed
+    
+    @dfData.setter
+    def dfData(self, dfData):
+        
+        self.setData(dfData)
     
     # Sort rows in place and overwrite initial sortCols / sortAscend values.
     def sortRows(self, by, ascending=True):
@@ -1203,8 +1226,9 @@ class ResultsSet(object):
         with lzma.open(fileName, 'wb') if compress else open(fileName, 'wb') as file:
             pickle.dump((dfOutData, self.specs if specs else dict()), file)
 
-        logger.info('{} results rows and {} specs saved to {} in {:.3f}s'
-                    .format(len(dfOutData), len(self.specs) if specs else 'no', fileName,
+        logger.info('{}x{} results rows x columns and {} specs saved to {} in {:.3f}s'
+                    .format(len(dfOutData), len(dfOutData.columns),
+                            len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
     DefAllResultsSheetName = 'all-results'
@@ -1253,8 +1277,9 @@ class ResultsSet(object):
                         spData = spData.to_frame()
                     spData.to_excel(xlWrtr, sheet_name=specSheetsPrfx + spName, index=True)
 
-        logger.info('{} results rows and {} specs saved to {} in {:.3f}s'
-                    .format(len(self), len(self.specs) if specs else 'no', fileName,
+        logger.info('{}x{} results rows x columns and {} specs saved to {} in {:.3f}s'
+                    .format(len(dfOutData), len(dfOutData.columns),
+                            len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
     def toOpenDoc(self, fileName, sheetName=None, lang=None, subset=None, index=True,
@@ -1283,7 +1308,7 @@ class ResultsSet(object):
         self.toExcel(fileName, sheetName=sheetName, lang=lang, subset=subset, index=index,
                      specs=specs, specSheetsPrfx=specSheetsPrfx, engine='odf')
 
-    def fromPickle(self, fileName, specs=True, acceptNewCols=False):
+    def fromPickle(self, fileName, specs=True, postComputed=False, acceptNewCols=False, dDefMissingCols=dict()):
 
         """Load (overwrite) data and optionnaly specs from a pickle file, possibly lzma-compressed,
         assuming ctor params match the results object used for prior toPickle(),
@@ -1292,18 +1317,27 @@ class ResultsSet(object):
         :param fileName: target file pathname ; file is auto-decompressed through the lzma module
                          if its extension is .xz or .lzma.
         :param specs: if False, don't load specs
+        :param postComputed: if True, prevents next post-computation 
         :param acceptNewCols: if True, append results columns list (self.miCols) dynamically 
             if unexpected columns appear in loaded data to append
+        :param dDefMissingCols: default row value to use for missing columns (as a dict/pd.Series)
+            (Warning: only from self.miCols)
         """
         
         start = pd.Timestamp.now()
-        
+
+        # Load resultas data and spec from file
         compressed = pl.Path(fileName).suffix in ['.xz', '.lzma']
         with lzma.open(fileName, 'rb') if compressed else open(fileName, 'rb') as file:
             dfData, dSpecs = pickle.load(file)
 
+        # Complete missing columns if any.
+        for colName, colDefVal in dDefMissingCols.items():
+            if colName not in dfData.columns:
+                dfData[colName] = colDefVal
+
         # Set data.
-        self.dfData = dfData
+        self.setData(dfData, postComputed=postComputed)
 
         # If specified, update results columns list (self.miCols) dynamically 
         # if unexpected columns appear in loaded data.
@@ -1314,12 +1348,14 @@ class ResultsSet(object):
         if specs:
             self.specs = dSpecs
 
-        logger.info('{} results rows and {} specs loaded from {} in {:.3f}s'
-                    .format(len(self), len(self.specs) if specs else 'no', fileName,
+        logger.info('{}x{} results rows x columns and {} specs loaded from {} in {:.3f}s'
+                    .format(len(dfData), len(dfData.columns),
+                            len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
     def fromExcel(self, fileName, sheetName=None, header=[0, 1, 2], skipRows=[3], indexCol=0,
-                  specs=True, specSheetsPrfx='sp-', engine=None):
+                  specs=True, specSheetsPrfx='sp-', postComputed=False,
+                  acceptNewCols=False, dDefMissingCols=dict(), engine=None):
         
         """Load (overwrite) data from the first or named sheet of an Excel worksheet (XLSX or XLS format),
         assuming ctor params match with Excel sheet column names and list,
@@ -1336,6 +1372,11 @@ class ResultsSet(object):
         :param indexCol: index of the source data column to use as index (None => auto-generated, not read)
         :param specs: if False, don't load specs
         :param specSheetsPrfx: name prefix to use to detect spec sheets
+        :param postComputed: if True, prevents next post-computation 
+        :param acceptNewCols: if True, append results columns list (self.miCols) dynamically 
+            if unexpected columns appear in loaded data to append
+        :param dDefMissingCols: default row value to use for missing columns (as a dict/pd.Series)
+            (Warning: only from self.miCols)
         :param engine: None => auto-selection from file extension ; otherwise, use xlrd, openpyxl or odf.
         """
 
@@ -1346,8 +1387,21 @@ class ResultsSet(object):
         start = pd.Timestamp.now()
         
         # Load results data.
-        self.dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, header=header,
-                                    skiprows=skipRows, index_col=indexCol, engine=engine)
+        dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, header=header,
+                               skiprows=skipRows, index_col=indexCol, engine=engine)
+
+        # Complete missing columns if any.
+        for colName, colDefVal in dDefMissingCols.items():
+            if colName not in dfData.columns:
+                dfData[colName] = colDefVal
+
+        # Set data.
+        self.setData(dfData, postComputed=postComputed)
+
+        # If specified, update results columns list (self.miCols) dynamically 
+        # if unexpected columns appear in loaded data.
+        if acceptNewCols:
+            self._acceptNewColumns(dfData.columns)
 
         # Load specs
         self.specs = dict()
@@ -1364,12 +1418,14 @@ class ResultsSet(object):
                     else:
                         self.specs[spName] = dfShData
 
-        logger.info('{} results rows and {} specs loaded from {} in {:.3f}s'
-                    .format(len(self), len(self.specs) if specs else 'no', fileName,
+        logger.info('{}x{} results rows x columns and {} specs loaded from {} in {:.3f}s'
+                    .format(len(dfData), len(dfData.columns),
+                            len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
     def fromOpenDoc(self, fileName, sheetName=None, header=[0, 1, 2], skipRows=[3], indexCol=0,
-                    specs=True, specSheetsPrfx='sp-'):
+                    specs=True, specSheetsPrfx='sp-', postComputed=False,
+                    acceptNewCols=False, dDefMissingCols=dict()):
         
         """Load (overwrite) data from the first or named sheet of an Open Document worksheet (ODS format),
         assuming ctor params match with ODF sheet column names and list,
@@ -1377,33 +1433,66 @@ class ResultsSet(object):
 
         Also optionnaly load specs from other sheets with given prefix as dataframes
         (ignore others ; empty prefix => all others)
+
+        Parameters:
+        :param fileName: source file name
+        :param sheetName: name of the sheet to load data from (default None => 1st)
+        :param header: list of source data row indexes to use for column index
+        :param skipRows: list of source data row indexes to ignore
+        :param indexCol: index of the source data column to use as index (None => auto-generated, not read)
+        :param specs: if False, don't load specs
+        :param specSheetsPrfx: name prefix to use to detect spec sheets
+        :param postComputed: if True, prevents next post-computation 
+        :param acceptNewCols: if True, append results columns list (self.miCols) dynamically 
+            if unexpected columns appear in loaded data to append
+        :param dDefMissingCols: default row value to use for missing columns (as a dict/pd.Series)
+            (Warning: only from self.miCols)
         """
 
         assert pkgver.parse(pd.__version__).release >= (0, 25, 1), \
                'Don\'t know how to read from OpenDoc format before Pandas 0.25.1 (using odfpy module)'
         
         self.fromExcel(fileName, sheetName=sheetName, header=header, skipRows=skipRows, indexCol=indexCol,
-                       specs=specs, specSheetsPrfx=specSheetsPrfx)
+                       specs=specs, specSheetsPrfx=specSheetsPrfx, postComputed=postComputed,
+                       acceptNewCols=acceptNewCols, dDefMissingCols=dDefMissingCols)
 
     def fromFile(self, fileName, sheetName=None, header=[0, 1, 2], skipRows=[3], indexCol=0,
-                 specs=True, specSheetsPrfx='sp-'):
+                 specs=True, specSheetsPrfx='sp-', postComputed=False,
+                 acceptNewCols=False, dDefMissingCols=dict()):
         
-        """Load (overwrite) data data and optionnaly specs from a given file,
+        """Load (overwrite) data data and optionaly specs from a given file,
         (supported formats are .pickle, .pickle.xz, .ods, .xlsx, .xls, autodetected from file name)
         assuming ctor params match with the results object used to generate source file,
         which can well be ensured by using the same ctor params as used for saving !
         Notes: Needs odfpy module and pandas.version >= 0.25.1
+
+        Parameters:
+        :param fileName: source file name
+        :param sheetName: name of the sheet to load data from (default None => 1st)
+        :param header: list of source data row indexes to use for column index
+        :param skipRows: list of source data row indexes to ignore
+        :param indexCol: index of the source data column to use as index (None => auto-generated, not read)
+        :param specs: if False, don't load specs
+        :param specSheetsPrfx: name prefix to use to detect spec sheets
+        :param postComputed: if True, prevents next post-computation 
+        :param acceptNewCols: if True, append results columns list (self.miCols) dynamically 
+            if unexpected columns appear in loaded data to append
+        :param dDefMissingCols: default row value to use for missing columns (as a dict/pd.Series)
+            (Warning: only from self.miCols)
         """
 
         fpn = pl.Path(fileName)
         if fpn.suffix in ['.xz', '.pickle']:
-            self.fromPickle(fileName, specs=specs)
+            self.fromPickle(fileName, specs=specs, postComputed=postComputed,
+                            acceptNewCols=acceptNewCols, dDefMissingCols=dDefMissingCols)
         elif fpn.suffix in ['.ods']:
             self.fromOpenDoc(fileName, sheetName=sheetName, header=header, skipRows=skipRows,
-                             indexCol=indexCol, specs=specs, specSheetsPrfx=specSheetsPrfx)
+                             indexCol=indexCol, specs=specs, specSheetsPrfx=specSheetsPrfx, postComputed=postComputed,
+                             acceptNewCols=acceptNewCols, dDefMissingCols=dDefMissingCols)
         elif fpn.suffix in ['.xls', '.xlsx']:
             self.fromExcel(fileName, sheetName=sheetName, header=header, skipRows=skipRows,
-                           indexCol=indexCol, specs=specs, specSheetsPrfx=specSheetsPrfx)
+                           indexCol=indexCol, specs=specs, specSheetsPrfx=specSheetsPrfx, postComputed=postComputed,
+                             acceptNewCols=acceptNewCols, dDefMissingCols=dDefMissingCols)
         else:
             raise NotImplementedError(f'Unsupported ResultsSet input file format: {fileName}')
 
