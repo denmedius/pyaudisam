@@ -23,8 +23,166 @@ import autods.log as log
 logger = log.logger('ads.onr')
 
 from autods.engine import MCDSEngine
-from autods.analyser import MCDSAnalyser
+from autods.analyser import MCDSAnalyser, MCDSAnalysisResultsSet
 from autods.optimiser import MCDSTruncationOptimiser, MCDSZerothOrderTruncationOptimiser
+
+
+class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
+
+    """A specialized results set for MCDS optanalysers"""
+
+    # Shortcut to real truncation params columns names.
+    DCLParTruncDist = dict(left=MCDSAnalysisResultsSet.CLParTruncLeft, 
+                           right=MCDSAnalysisResultsSet.CLParTruncRight)
+
+    # Name of the spec. column to hold the "is truncation stuff optimised" 0/1 flag.
+    OptimTruncFlagCol = 'OptimTrunc'
+    
+    # Computed column labels
+    #CL = ('', '', 'Value')
+
+    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
+                       sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
+                       surveyType='Point', distanceType='Radial', clustering=False,
+                       ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
+                                          dict(col='right', minDist=25.0, maxLen=25.0)],
+                       truncIntrvEpsilon=1e-6):
+        
+        """
+        """
+        super().__init__(miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
+                         miSampleCols=miSampleCols, sampleIndCol=sampleIndCol,
+                         sortCols=sortCols, sortAscend=sortAscend, distanceUnit=distanceUnit, areaUnit=areaUnit,
+                         surveyType=surveyType, distanceType=distanceType, clustering=clustering)
+
+        self.optimTruncFlagMCol = next(mCol for mCol in self.miCustomCols if mCol[1] == self.OptimTruncFlagCol)
+
+        assert all(spec['col'] in self.DCLParTruncDist for spec in ldTruncIntrvSpecs)
+        self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
+        self.truncIntrvEpsilon = truncIntrvEpsilon
+
+    def copy(self, withData=True):
+    
+        """Clone function, with optional data copy"""
+    
+        # Create new instance with same ctor params.
+        clone = MCDSTruncOptanalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                                               miSampleCols=self.miSampleCols, sampleIndCol=self.sampleIndCol,
+                                               sortCols=self.sortCols, sortAscend=self.sortAscend,
+                                               distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                               surveyType=self.surveyType, distanceType=self.distanceType,
+                                               clustering=self.clustering,
+                                               ldTruncIntrvSpecs=self.ldTruncIntrvSpecs,
+                                               truncIntrvEpsilon=self.truncIntrvEpsilon)
+
+        # Copy data if needed.
+        if withData:
+            clone._dfData = self._dfData.copy()
+            clone.rightColOrder = self.rightColOrder
+            clone.postComputed = self.postComputed
+
+        return clone
+    
+    # Post computations : Trunctions groups.
+    def _postComputeTruncationGroups(self):
+        
+        logger.debug('Post-computing Truncation Groups')
+
+        # List samples
+        dfSamples = self._dfData[pd.MultiIndex.from_tuples([self.sampleIndCol]).append(self.miSampleCols)]
+        dfSamples = dfSamples.drop_duplicates()
+        dfSamples.set_index(self.sampleIndCol, inplace=True)
+        assert len(dfSamples) == dfSamples.index.nunique()
+
+        # For each sample,
+        for lblSamp, sSamp in dfSamples.iterrows():
+            
+            logger.debug1('#{} {} '.format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()])))
+
+            # Select sample results
+            dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp]
+
+            # For each truncation type (optimised or not),
+            for isOpt in sorted(dfSampRes[self.optimTruncFlagMCol].unique()):
+                
+                logger.debug2('* {}optimised'.format('' if isOpt else 'non ').title())
+
+                # Select results for this truncation type
+                dfSampResPerOpt = dfSampRes[dfSampRes[self.optimTruncFlagMCol] == isOpt]
+
+                # For each truncation "method" (left or right)
+                for dTrunc in self.ldTruncIntrvSpecs:
+
+                    truncCol = self.DCLParTruncDist[dTrunc['col']]
+                    minIntrvDist = dTrunc['minDist']
+                    maxIntrvLen = dTrunc['maxLen']
+
+                    logger.debug3(f'  - {truncCol[1]}')
+
+                    # For some reason, need for enforcing float dtype ... otherwise dtype='O' !?
+                    sSelDist = dfSampResPerOpt[truncCol].dropna().astype(float).sort_values()
+
+                    # List non-null differences between consecutive sorted distances
+                    dfIntrv = pd.DataFrame(dict(dist=sSelDist.values))
+                    if not dfIntrv.empty:
+
+                        try:
+                            dfIntrv['deltaDist'] = dfIntrv.dist.diff()
+                            dfIntrv.loc[dfIntrv.dist.idxmin(), 'deltaDist'] = np.inf
+                            dfIntrv.dropna(inplace=True)
+                            dfIntrv = dfIntrv[dfIntrv.deltaDist > 0].copy()
+                        except Exception:  # TODO: Remove this debugging try/except code
+                            logger.error(f'_postComputeTruncationGroups(dfIntrv1): dfIntrv.dtypes={dfIntrv.dtypes}')
+                            logger.error(f'_postComputeTruncationGroups(dfIntrv1): dfIntrv.dist.dtype={dfIntrv.dist.dtype}')
+                            dfIntrv.to_pickle('tmp/optanlr-dfIntrv1.pickle')
+                            logger.error(f'_postComputeTruncationGroups(dfIntrv1): {dfIntrv:}')
+                            raise
+
+                        # Deduce start (min) and end (sup) for each such interval (left-closed, right-open)
+                        try:
+                            dfIntrv['dMin'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist']
+                            dfIntrv['dSup'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist'].shift(-1).dropna()
+                            dfIntrv.loc[dfIntrv['dMin'].idxmax(), 'dSup'] = np.inf
+                            dfIntrv.dropna(inplace=True)
+
+                            dfIntrv['dSup'] = \
+                                dfIntrv['dSup'].apply(lambda supV: sSelDist[sSelDist < supV].max() + self.truncIntrvEpsilon)
+                        except Exception:  # TODO: Remove this debugging try/except code
+                            logger.error(f'_postComputeTruncationGroups(dfIntrv2): dfIntrv.dtypes={dfIntrv.dtypes}')
+                            logger.error(f'_postComputeTruncationGroups(dfIntrv2): dfIntrv.dist.dtype={dfIntrv.dist.dtype}')
+                            dfIntrv.to_pickle('tmp/optanlr-dfIntrv2.pickle')
+                            logger.error(f'_postComputeTruncationGroups(dfIntrv2): {dfIntrv:}')
+                            raise
+
+                        dfIntrv = dfIntrv[['dMin', 'dSup']].reset_index(drop=True)
+
+                        # If these intervals are two wide, cut them up in equal sub-intervals and make them new intervals
+                        lsNewIntrvs = list()
+                        for _, sIntrv in dfIntrv.iterrows():
+
+                            if sIntrv.dSup - sIntrv.dMin > maxIntrvLen:
+                                nSubIntrvs = (sIntrv.dSup - sIntrv.dMin) / maxIntrvLen
+                                nSubIntrvs = int(nSubIntrvs) if nSubIntrvs - int(nSubIntrvs) < 0.5 else int(nSubIntrvs) + 1
+                                subIntrvLen = (sIntrv.dSup - sIntrv.dMin) / nSubIntrvs
+                                lsNewIntrvs += [pd.Series(dict(dMin=sIntrv.dMin + nInd * subIntrvLen, 
+                                                               dSup=min(sIntrv.dMin + (nInd + 1) * subIntrvLen,
+                                                                        sIntrv.dSup)))
+                                                for nInd in range(nSubIntrvs)]
+                            else:
+                                lsNewIntrvs.append(sIntrv)
+
+                        dfIntrv = pd.DataFrame(lsNewIntrvs).reset_index(drop=True)
+                        dfIntrv.sort_values(by='dMin', inplace=True)
+
+                    # Update result table : Assign positive interval = "truncation group" number
+                    # to each truncation distance (special case when no truncation: num=0 if NaN truncation distance)
+                    sb = (self._dfData[self.sampleIndCol] == lblSamp) & (self._dfData[self.optimTruncFlagMCol] == isOpt)
+                    def truncationIntervalNumber(d):
+                        return 0 if pd.isnull(d) else 1 + dfIntrv[(dfIntrv.dMin <= d) & (dfIntrv.dSup > d)].index[0]
+                    self._dfData.loc[sb, (self.CLCAFilSor, truncCol[1], self.CLTTruncGroup)] = \
+                        self._dfData.loc[sb, truncCol].apply(truncationIntervalNumber) 
+
+                logger.debug1(f'  => {len(dfSampResPerOpt)} rows')
 
 
 class MCDSTruncationOptanalyser(MCDSAnalyser):
@@ -32,7 +190,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
     """Run a bunch of MCDS analyses, with possibly automatic truncation parameter computation before"""
 
     # Name of the spec. column to hold the "is truncation stuff optimised" 0/1 flag.
-    OptimTruncFlagCol = 'OptimTrunc'
+    OptimTruncFlagCol = MCDSTruncOptanalysisResultsSet.OptimTruncFlagCol
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
                        transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
@@ -43,6 +201,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                        surveyType='Point', distanceType='Radial', clustering=False,
                        resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                             sample=['Species', 'Pass', 'Adult', 'Duration']),
+                       ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
+                                          dict(col='right', minDist=25.0, maxLen=25.0)], truncIntrvEpsilon=1e-6,
                        workDir='.', runMethod='subprocess.run', runTimeOut=300, logData=False,
                        logAnlysProgressEvery=50, logOptimProgressEvery=5, backupOptimEvery=50, autoClean=True,
                        defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
@@ -70,9 +230,14 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
 
         assert anlysIndCol, 'anlysIndCol must not be None, needed for analysis identification'
 
-        if MCDSTruncationOptanalyser.OptimTruncFlagCol not in anlysSpecCustCols:
-            anlysSpecCustCols = anlysSpecCustCols + [MCDSTruncationOptanalyser.OptimTruncFlagCol]
+        # Add OptimTruncFlag column to anlysSpecCustCols if not there
+        if self.OptimTruncFlagCol not in anlysSpecCustCols:
+            anlysSpecCustCols = anlysSpecCustCols + [self.OptimTruncFlagCol]
 
+        # Add OptimTruncFlag column to resultsHeadCols['after']
+        resultsHeadCols['after'].append(self.OptimTruncFlagCol)
+        
+        # Initialise base.
         super().__init__(dfMonoCatObs, dfTransects=dfTransects,
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
@@ -95,6 +260,9 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         self.logOptimProgressEvery = logOptimProgressEvery
         self.backupOptimEvery = backupOptimEvery
         self.autoClean = autoClean
+
+        self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
+        self.truncIntrvEpsilon = truncIntrvEpsilon
         
         # Default values for optimisation parameters.
         self.defExpr2Optimise = defExpr2Optimise
@@ -211,8 +379,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                         surveyType=self.surveyType, distanceType=self.distanceType,
                         clustering=self.clustering,
                         resultsHeadCols=dict(before=[self.anlysIndCol, self.sampleIndCol],
-                                             sample=self.sampleSelCols,
-                                             after=userParamSpecCols),
+                                             sample=self.sampleSelCols, after=userParamSpecCols),
                         workDir=self.workDir, runMethod=self.runMethod, runTimeOut=self.runTimeOut,
                         logData=self.logData, logProgressEvery=self.logOptimProgressEvery,
                         backupEvery=self.backupOptimEvery, autoClean=self.autoClean,
@@ -278,6 +445,23 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Done.
         return dfExplParamSpecs
 
+    def setupResults(self):
+    
+        """Build an empty results objects.
+        """
+
+        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend = \
+            self.prepareResultsColumns()
+
+        return MCDSTruncOptanalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
+                                              miSampleCols=miSampCols, sampleIndCol=sampIndMCol,
+                                              sortCols=sortCols, sortAscend=sortAscend,
+                                              distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                              surveyType=self.surveyType, distanceType=self.distanceType,
+                                              clustering=self.clustering,
+                                              ldTruncIntrvSpecs=self.ldTruncIntrvSpecs,
+                                              truncIntrvEpsilon=self.truncIntrvEpsilon)
+    
     def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None, recoverOptims=False):
     
         """Run specified analyses, after automatic computing of truncation parameter if needed
@@ -292,7 +476,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         :param threads: Number of parallel threads to use (default None: no parallelism, no asynchronism)
         :param recoverOptims: Recover a previous run interrupted during optimisations ; using last available backup file
            
-        :return: the MCDSAnalysisResultsSet holding the analyses results
+        :return: the MCDSTruncOptanalysisResultsSet holding the analyses results
         """
         
         # 1. Run optimisations when needed and replace computed truncation params in analysis specs

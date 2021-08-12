@@ -41,7 +41,7 @@ from .optimisation import Interval, DSOptimisation, MCDSTruncationOptimisation, 
 
 from .optimiser import DSParamsOptimiser, MCDSTruncationOptimiser, MCDSZerothOrderTruncationOptimiser
 
-from .optanalyser import MCDSTruncationOptanalyser
+from .optanalyser import MCDSTruncationOptanalyser, MCDSTruncOptanalysisResultsSet
 
 from .report import MCDSResultsPreReport, MCDSResultsFullReport
 

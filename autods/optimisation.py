@@ -21,6 +21,7 @@ import argparse
 
 from collections import namedtuple as ntuple
 
+import math
 import numpy as np
 import pandas as pd
 
@@ -414,7 +415,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         self.minDist = minDist
         self.maxDist = maxDist
         if fitDistCutsFctr is not None or discrDistCutsFctr is not None:
-            sqrtNbSights = np.sqrt(len(sampleDataSet.dfData[distanceField].dropna()))
+            sqrtNbSights = math.sqrt(len(sampleDataSet.dfData[distanceField].dropna()))
         if fitDistCutsFctr is not None:
             self.fitDistCuts = Interval(min=int(round(fitDistCutsFctr.min*sqrtNbSights)),
                                         max=int(round(fitDistCutsFctr.max*sqrtNbSights)))
@@ -438,10 +439,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
     def _postProcessAnalysisResults(sResults):
 
         # Compute determined Chi2 test probability (last value of all the Chi2 tests done).
-        chi2AllColInds = [col for col in MCDSAnalysisResultsSet.Chi2AllColInds if col in sResults.keys()]
+        chi2AllColLbls = [col for col in MCDSAnalysisResultsSet.CLsChi2All if col in sResults.keys()]
         
-        sResults[MCDSAnalysisResultsSet.Chi2ColInd] = \
-            MCDSAnalysisResultsSet.determineChi2Value(sResults[chi2AllColInds])
+        sResults[MCDSAnalysisResultsSet.CLChi2] = \
+            MCDSAnalysisResultsSet.determineChi2Value(sResults[chi2AllColLbls])
 
         return sResults
 

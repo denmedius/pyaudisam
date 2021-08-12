@@ -17,6 +17,7 @@ from packaging import version
 
 from collections import namedtuple as ntuple
 
+import math
 import numpy as np
 import pandas as pd
 
@@ -49,11 +50,13 @@ class AnalysisResultsSet(ResultsSet):
         self.analysisClass = analysisClass
         self.engineClass = analysisClass.EngineClass
 
-        # 3-level multi-index columns (module, statistic, figure)
-        miCols = analysisClass.MIRunColumns.append(self.engineClass.statModCols())
+        # 3-level multi-index columns (module, statistic, figure) for analyses output
+        miCols = \
+            self.engineClass.statSampCols().append(analysisClass.MIRunColumns).append(self.engineClass.statModCols())
         
         # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
-        dfColTrans = analysisClass.DfRunColumnTrans.append(self.engineClass.statModColTrans())
+        dfColTrans = pd.concat([self.engineClass.statSampColTrans(), analysisClass.DfRunColumnTrans,
+                                self.engineClass.statModColTrans()])
         
         super().__init__(miCols=miCols, dfColTrans=dfColTrans,
                          miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
@@ -422,7 +425,7 @@ class DSAnalyser(Analyser):
         :param areaUnit: see MCDSEngine
         :param resultsHeadCols: dict of list of column names (from dfMonoCatObs) to use in order
             to build results (right) header columns ; 'sample' columns are sample selection columns ;
-            sampleIndCol is added to resultsHeadCols['before'] if not None and not elswehere in resultsHeadCols ;
+            sampleIndCol is added to resultsHeadCols['before'] if not elswehere in resultsHeadCols ;
             same for anlysIndCol, right before sampleIndCol
         :param abbrevCol: Name of column to generate for abbreviating analyses params, not sure really useful ...
         :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
@@ -432,6 +435,7 @@ class DSAnalyser(Analyser):
         """
 
         assert all(col in resultsHeadCols for col in ['before', 'sample', 'after'])
+        assert sampleIndCol
 
         super().__init__()
 
@@ -445,13 +449,21 @@ class DSAnalyser(Analyser):
         self.sampleIndCol = sampleIndCol
         self.anlysSpecCustCols = anlysSpecCustCols
         
-        # sampleIndCol is added to resultsHeadCols['before'] if not None and not elswehere in resultsHeadCols
-        if sampleIndCol and not any(sampleIndCol in cols for cols in resultsHeadCols.values()):
-            resultsHeadCols['before'] = [sampleIndCol] + resultsHeadCols['before']
+        # sampleIndCol is added to resultsHeadCols['before'] if not already somewhere in resultsHeadCols
+        self.sampIndResHChap = None
+        for chap, cols in self.resultsHeadCols.items():
+            for col in cols:
+                if col == sampleIndCol:
+                    self.sampIndResHChap = chap
+                    break
+        if not self.sampIndResHChap:
+            self.sampIndResHChap = 'before'
+            self.resultsHeadCols[self.sampIndResHChap] = [sampleIndCol] + self.resultsHeadCols[self.sampIndResHChap]
 
-        # same for anlysIndCol, right before sampleIndCol
-        if anlysIndCol and not any(anlysIndCol in cols for cols in resultsHeadCols.values()):
-            resultsHeadCols['before'] = [anlysIndCol] + resultsHeadCols['before']
+        # anlysIndCol is added to resultsHeadCols['before'], right at the beginning, if not None
+        # and not already somewhere in resultsHeadCols
+        if anlysIndCol and not any(anlysIndCol in cols for cols in self.resultsHeadCols.values()):
+            self.resultsHeadCols['before'] = [anlysIndCol] + self.resultsHeadCols['before']
         
         self.workDir = workDir
 
@@ -700,32 +712,74 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
     
-    DeltaAicColInd = ('detection probability', 'Delta AIC', 'Value')
-    DeltaDCvColInd = ('density/abundance', 'density of animals', 'Delta Cv')
-    Chi2ColInd = ('detection probability', 'chi-square test probability determined', 'Value')
+    # Usefull parameter columns labels
+    CLParTruncLeft  = ('parameters', 'left truncation distance', 'Value')
+    CLParTruncRight = ('parameters', 'right truncation distance', 'Value')
 
-    # * miSampleCols : only for delta AIC computation ; defaults to miCustomCols if None
-    #                  = the cols to use for grouping by sample
-    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None,
+    # Computed column labels
+    CLDeltaAic = ('detection probability', 'Delta AIC', 'Value')
+    CLDeltaDCv = ('density/abundance', 'density of animals', 'Delta Cv')
+    CLChi2     = ('detection probability', 'chi-square test probability determined', 'Value')
+
+    CLCmbQuaBal1 = ('combined quality', 'balanced 1', 'Value')
+    CLCmbQuaBal2 = ('combined quality', 'balanced 2', 'Value')
+    CLCmbQuaBal3 = ('combined quality', 'balanced 3', 'Value')
+    CLCmbQuaChi2 = ('combined quality', 'more Chi2', 'Value')
+    CLCmbQuaKS   = ('combined quality', 'more KS', 'Value')
+    CLCmbQuaDCV  = ('combined quality', 'more DCV', 'Value')
+
+    CLCAFilSor = 'auto filter sort'
+    CLTTruncGroup = 'Group'
+    CLAFilSorGrpTruncLeft  = (CLCAFilSor, 'left truncation distance', CLTTruncGroup)
+    CLAFilSorGrpTruncRight = (CLCAFilSor, 'right truncation distance', CLTTruncGroup)
+
+    #CL = ('', '', 'Value')
+
+    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
                        sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
                        surveyType='Point', distanceType='Radial', clustering=False):
         
-        # Setup computed columns specs.
-        dCompCols = {self.DeltaAicColInd: 22, # Right before AIC
-                     self.Chi2ColInd:     24, # Right before all Chi2 tests 
-                     self.DeltaDCvColInd: 70} # Right before Density of animals / CV 
-        dfCompColTrans = \
-            pd.DataFrame(index=dCompCols.keys(),
-                         data=dict(en=['Delta AIC', 'Chi2 P', 'Delta CoefVar Density'],
-                                   fr=['Delta AIC', 'Chi2 P', 'Delta CoefVar Densité']))
+        """
+        Parameters:
+        :param miSampleCols: columns to use for grouping by sample ; defaults to miCustomCols if None
+        :param sampleIndCol: multi-column index for the sample Id column ; no default, must be there !
+        """
+
+        assert sampleIndCol is not None
+
+        # Computed columns specs (name translation + position).
+        firstResColInd = len(MCDSEngine.statSampCols()) + len(MCDSAnalysis.MIRunColumns)
+        cls = self
+        DComputedCols = {cls.CLDeltaAic: firstResColInd + 11, # Right before AIC
+                         cls.CLChi2: firstResColInd + 16, # Right before all Chi2 tests 
+                         cls.CLDeltaDCv: firstResColInd + 67, # Right before Density of animals / CV 
+                         cls.CLCmbQuaBal1: -1, # At the end ...
+                         cls.CLCmbQuaBal2: -1,
+                         cls.CLCmbQuaBal3: -1,
+                         cls.CLCmbQuaChi2: -1,
+                         cls.CLCmbQuaKS: -1,
+                         cls.CLCmbQuaDCV: -1,
+                         #cls.CL: ,
+                         #cls.CL: ,
+                        }    
+        DfComputedColTrans = \
+            pd.DataFrame(index=DComputedCols.keys(),
+                         data=dict(en=['Delta AIC', 'Chi2 P', 'Delta CoefVar Density',
+                                       'Qual Bal1', 'Qual Bal2', 'Qual Bal3',
+                                       'Qual Chi2+', 'Qual KS+', 'Qual DCV+'],
+                                   fr=['Delta AIC', 'Chi2 P', 'Delta CoefVar Densité',
+                                       'Qual Equi1', 'Qual Equi2', 'Qual Equi3',
+                                       'Qual Chi2+', 'Qual KS+', 'Qual DCV+']))
+
 
         # Initialise base.
         super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
-                                       dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                       dComputedCols=DComputedCols, dfComputedColTrans=DfComputedColTrans,
                                        sortCols=sortCols, sortAscend=sortAscend)
         
         # Sample columns
         self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
+        self.sampleIndCol = sampleIndCol
     
         # Descriptive parameters, not used in computations actually.
         self.distanceUnit = distanceUnit
@@ -740,7 +794,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     
         # Create new instance with same ctor params.
         clone = MCDSAnalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                                       miSampleCols=self.miSampleCols,
+                                       miSampleCols=self.miSampleCols, sampleIndCol=self.sampleIndCol,
                                        sortCols=self.sortCols, sortAscend=self.sortAscend,
                                        distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                        surveyType=self.surveyType, distanceType=self.distanceType,
@@ -759,9 +813,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         
         return self.dfCustomColTrans.loc[self.miSampleCols, lang].to_list()
 
+    # Post-computations : Actual Chi2 value, from multiple tests done.
     MaxChi2Tests = 3 # TODO: Really a constant, or actually depends on some analysis params ?
-    Chi2AllColInds = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
-                      for i in range(MaxChi2Tests, 0, -1)]
+    CLsChi2All = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
+                  for i in range(MaxChi2Tests, 0, -1)]
     
     @staticmethod
     def determineChi2Value(sChi2AllDists):
@@ -770,39 +825,128 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                 return chi2
         return np.nan
 
-    AicColInd = ('detection probability', 'AIC value', 'Value')
-    DCvColInd = ('density/abundance', 'density of animals', 'Cv')
-    TruncDistColInds = [('encounter rate', 'left truncation distance', 'Value'),
-                        ('encounter rate', 'right truncation distance (w)', 'Value')]
-
-    # Post-computations.
-    def postComputeColumns(self):
+    def _postComputeChi2(self):
         
-        logger.debug('Post-computing Delta AIC')
+        logger.debug(f'Post-computing actual Chi2:{self.CLChi2}')
         
-        # 1. Compute determined Chi2 test probability (last value of all the tests done).
-        chi2AllColInds = [col for col in self.Chi2AllColInds if col in self._dfData.columns]
-        if chi2AllColInds:
-            self._dfData[self.Chi2ColInd] = \
-                self._dfData[chi2AllColInds].apply(self.determineChi2Value, axis='columns')
+        # Last value of all the tests done.
+        chi2AllColLbls = [col for col in self.CLsChi2All if col in self._dfData.columns]
+        if chi2AllColLbls:
+            self._dfData[self.CLChi2] = self._dfData[chi2AllColLbls].apply(self.determineChi2Value, axis='columns')
 
-        # 2. Compute Delta AIC & DCv per sampleCols + truncation param. cols group => AIC - min(group).
+    # Post-computations : Delta AIC/DCV per sampleCols + truncation param. cols group => AIC - min(group).
+    CLAic = ('detection probability', 'AIC value', 'Value')
+    CLDCv = ('density/abundance', 'density of animals', 'Cv')
+    CLsTruncDist = [('encounter rate', 'left truncation distance', 'Value'),
+                    ('encounter rate', 'right truncation distance (w)', 'Value')]
+
+    def _postComputeDeltaAicDcv(self):
+        
+        logger.debug(f'Post-computing Delta AIC/DCV: {self.CLDeltaAic} / {self.CLDeltaDCv}')
+        
         # a. Minimum AIC & DCv per group
         #    (drop all-NaN sample selection columns (sometimes, it happens) for a working groupby())
-        groupColInds = self.miSampleCols.append(pd.MultiIndex.from_tuples(self.TruncDistColInds))
-        groupColInds = [col for col in groupColInds
+        groupColLbls = self.miSampleCols.append(pd.MultiIndex.from_tuples(self.CLsTruncDist))
+        groupColLbls = [col for col in groupColLbls
                         if col in self._dfData.columns and not self._dfData[col].isna().all()]
-        df2Join = self._dfData.groupby(groupColInds)[[self.AicColInd, self.DCvColInd]].min()
+        df2Join = self._dfData.groupby(groupColLbls)[[self.CLAic, self.CLDCv]].min()
         
         # b. Rename computed columns to target 'Delta XXX'
-        df2Join.columns = pd.MultiIndex.from_tuples([self.DeltaAicColInd, self.DeltaDCvColInd])
+        df2Join.columns = pd.MultiIndex.from_tuples([self.CLDeltaAic, self.CLDeltaDCv])
 
         # c. Join the column to the target data-frame
-        self._dfData = self._dfData.join(df2Join, on=groupColInds)
+        self._dfData = self._dfData.join(df2Join, on=groupColLbls)
 
         # d. Compute delta-AIC & DCv in-place
-        self._dfData[self.DeltaAicColInd] = self._dfData[self.AicColInd] - self._dfData[self.DeltaAicColInd]
-        self._dfData[self.DeltaDCvColInd] = self._dfData[self.DCvColInd] - self._dfData[self.DeltaDCvColInd]
+        self._dfData[self.CLDeltaAic] = self._dfData[self.CLAic] - self._dfData[self.CLDeltaAic]
+        self._dfData[self.CLDeltaDCv] = self._dfData[self.CLDCv] - self._dfData[self.CLDeltaDCv]
+
+    # Post computations : Quality indicators.
+    CLNObs = ('encounter rate', 'number of observations (n)', 'Value')
+    CLNTotObs = ('sample stats', 'total number of observations', 'Value')  # Must equal MCDSEngine._MIStatSampCols[0] !
+    CLNTotPars = ('detection probability', 'total number of parameters (m)', 'Value')
+    CLKS = ('detection probability', 'Kolmogorov-Smirnov test probability', 'Value')
+    CLCvMUw = ('detection probability', 'Cramér-von Mises (uniform weighting) test probability', 'Value')
+    CLCvMCw = ('detection probability', 'Cramér-von Mises (cosine weighting) test probability', 'Value')
+    CLDCv = ('density/abundance', 'density of animals', 'Cv')
+
+    @classmethod
+    def _normNObs(cls, sRes):
+        return sRes[cls.CLNObs] / sRes[cls.CLNTotObs]
+
+    @classmethod
+    def _normNTotPars(cls, sRes, a=0.2, b=0.6, c=2):  #, d=1):
+        #return 1 / (a * sRes[cls.CLNTotPars] + b)  # Trop pénalisant: a=0.2, b=1
+        return 1 / (a * max(c, sRes[cls.CLNTotPars]) + b)  # Mieux: a=0.2, b=0.6, c=2 / a=0.2, b=0.8, c=1
+        #return 1 / (a * max(c, sRes[cls.CLNTotPars])**d + b)  # Idem (d=1)
+
+    @classmethod
+    def _normCVDens(cls, sRes, a=12):
+        #return max(0, 1 - a * sRes[cls.CLDCv]) # Pas très pénalisant: a=1
+        return math.exp(-a * sRes[cls.CLDCv] * sRes[cls.CLDCv]) # Mieux : déjà ~0.33 à 30% (a=12)
+
+    @classmethod
+    def _combinedQualityBalanced1(cls, sRes):  # The one used for ACDC 2019 filtering & sorting in jan/feb 2021"""
+        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
+                * cls._normCVDens(sRes, a=12)) ** (1.0/7)
+
+    @classmethod
+    def _combinedQualityBalanced2(cls, sRes):  # A more devaluating version for NTotPars and CVDens
+        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.8, c=1)
+                * cls._normCVDens(sRes, a=16)) ** (1.0/7)
+
+    @classmethod
+    def _combinedQualityBalanced3(cls, sRes):  # An even more devaluating version for NTotPars and CVDens
+        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.3, b=0.7, c=1)
+                * cls._normCVDens(sRes, a=20)) ** (1.0/7)
+
+    @classmethod
+    def _combinedQualityMoreChi2(cls, sRes):
+        return (sRes[[cls.CLChi2, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
+                * cls._normCVDens(sRes, a=12)) ** (1.0/8)
+
+    @classmethod
+    def _combinedQualityMoreKS(cls, sRes):
+        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
+                * cls._normCVDens(sRes, a=12)) ** (1.0/8)
+
+    @classmethod
+    def _combinedQualityMoreDCV(cls, sRes):
+        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
+                * cls._normCVDens(sRes, a=12) ** 2) ** (1.0/8)
+
+    def _postComputeQualityIndicators(self):
+        
+        logger.debug('Post-computing Quality Indicators')
+
+        self._dfData[self.CLCmbQuaBal1] = self._dfData.apply(self._combinedQualityBalanced1, axis='columns')
+        self._dfData[self.CLCmbQuaBal2] = self._dfData.apply(self._combinedQualityBalanced2, axis='columns')
+        self._dfData[self.CLCmbQuaBal3] = self._dfData.apply(self._combinedQualityBalanced3, axis='columns')
+        self._dfData[self.CLCmbQuaChi2] = self._dfData.apply(self._combinedQualityMoreChi2, axis='columns')
+        self._dfData[self.CLCmbQuaKS]   = self._dfData.apply(self._combinedQualityMoreKS, axis='columns')
+        self._dfData[self.CLCmbQuaDCV]  = self._dfData.apply(self._combinedQualityMoreDCV, axis='columns')
+        
+    # Post computations : Quality indicators.
+    def _postComputeTruncationGroups(self):
+        
+        logger.debug('Post-computing Truncation Groups')
+
+        # TODO: Simple solution = copy from MCDSTruncOptanalysisResultsSet and remove optimTrunc stuff
+        # TODO: After that, a more simple groupby should be faster and simpler ... but need for new testing !
+        
+    # Post-computations : All of them.
+    def postComputeColumns(self):
+        
+        self._postComputeChi2()
+        self._postComputeDeltaAicDcv()
+        self._postComputeQualityIndicators()
+        self._postComputeTruncationGroups()
 
 
 class MCDSAnalyser(DSAnalyser):
@@ -918,49 +1062,61 @@ class MCDSAnalyser(DSAnalyser):
         :return: dict(estimKeyFn=, estimAdjustFn=, estimCriterion=, cvInterval=,
                       minDist=, maxDist=, fitDistCuts=, discrDistCuts=)
         """
-        return { self.ParmEstimKeyFn: sAnIntSpec.get(self.IntSpecEstimKeyFn, self.defEstimKeyFn),
-                 self.ParmEstimAdjustFn: sAnIntSpec.get(self.IntSpecEstimAdjustFn, self.defEstimAdjustFn),
-                 self.ParmEstimCriterion: sAnIntSpec.get(self.IntSpecEstimCriterion, self.defEstimCriterion),
-                 self.ParmCVInterval: sAnIntSpec.get(self.IntSpecCVInterval, self.defCVInterval),
-                 self.ParmMinDist: sAnIntSpec.get(self.IntSpecMinDist, self.defMinDist),
-                 self.ParmMaxDist: sAnIntSpec.get(self.IntSpecMaxDist, self.defMaxDist),
-                 self.ParmFitDistCuts: sAnIntSpec.get(self.IntSpecFitDistCuts, self.defFitDistCuts),
-                 self.ParmDiscrDistCuts: sAnIntSpec.get(self.IntSpecDiscrDistCuts, self.defDiscrDistCuts) }
+        return {self.ParmEstimKeyFn: sAnIntSpec.get(self.IntSpecEstimKeyFn, self.defEstimKeyFn),
+                self.ParmEstimAdjustFn: sAnIntSpec.get(self.IntSpecEstimAdjustFn, self.defEstimAdjustFn),
+                self.ParmEstimCriterion: sAnIntSpec.get(self.IntSpecEstimCriterion, self.defEstimCriterion),
+                self.ParmCVInterval: sAnIntSpec.get(self.IntSpecCVInterval, self.defCVInterval),
+                self.ParmMinDist: sAnIntSpec.get(self.IntSpecMinDist, self.defMinDist),
+                self.ParmMaxDist: sAnIntSpec.get(self.IntSpecMaxDist, self.defMaxDist),
+                self.ParmFitDistCuts: sAnIntSpec.get(self.IntSpecFitDistCuts, self.defFitDistCuts),
+                self.ParmDiscrDistCuts: sAnIntSpec.get(self.IntSpecDiscrDistCuts, self.defDiscrDistCuts)}
+
+    def prepareResultsColumns(self):
+        
+        DAnlr2ResChapName = dict(before='header (head)', sample='header (sample)', after='header (tail)')
+
+        # a. Sample multi-index columns
+        sampleSelCols = self.resultsHeadCols['sample']
+        sampMCols = [(DAnlr2ResChapName['sample'], col, 'Value') for col in sampleSelCols]
+        miSampCols = pd.MultiIndex.from_tuples(sampMCols)
+
+        # b. Full custom multi-index columns to append and prepend to raw analysis results
+        beforeCols = self.resultsHeadCols['before']
+        custMCols = [(DAnlr2ResChapName['before'], col, 'Value') for col in beforeCols]
+        custMCols += sampMCols
+        
+        afterCols = self.resultsHeadCols['after']
+        custMCols += [(DAnlr2ResChapName['after'], col, 'Value') for col in afterCols]
+
+        customCols = beforeCols + sampleSelCols + afterCols
+        miCustCols = pd.MultiIndex.from_tuples(custMCols)
+
+        # c. Translation for it (well, no translation actually ... only one language forced for all !)
+        dfCustColTrans = pd.DataFrame(index=miCustCols, data={lang: customCols for lang in ['fr', 'en']})
+
+        # d. The 3-columns index for the sample index column
+        sampIndMCol = (DAnlr2ResChapName[self.sampIndResHChap], self.sampleIndCol, 'Value')
+
+        # e. And finally, the result object (sorted at the end by the analysis or else sample index column)
+        if self.anlysIndCol or self.sampleIndCol:
+            sortCols = [next(mCol for mCol in custMCols if mCol[1] == self.anlysIndCol or self.sampleIndCol)]
+        else:
+            sortCols = []
+        sortAscend = [True for col in sortCols]
+
+        return miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend
 
     def setupResults(self):
     
         """Build an empty results objects.
         """
     
-        # Results object construction
-        # a. Sample multi-index columns
-        sampleSelCols = self.resultsHeadCols['sample']
-        sampMCols = [('header (sample)', col, 'Value') for col in sampleSelCols]
-        miSampCols = pd.MultiIndex.from_tuples(sampMCols)
-
-        # b. Full custom multi-index columns to prepend to raw analysis results
-        beforeCols = self.resultsHeadCols['before']
-        custMCols = [('header (head)', col, 'Value') for col in beforeCols]
-        custMCols += sampMCols
+        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend = \
+            self.prepareResultsColumns()
         
-        afterCols = self.resultsHeadCols['after']
-        custMCols += [('header (tail)', col, 'Value') for col in afterCols]
-
-        customCols = beforeCols + sampleSelCols + afterCols
-        miCustCols = pd.MultiIndex.from_tuples(custMCols)
-
-        # c. Translation for it (well, only one language forced for all ...)
-        dfCustColTrans = pd.DataFrame(index=miCustCols, data={ lang: customCols for lang in ['fr', 'en'] })
-
-        # d. And finally, the result object (sorted at the end by the analysis or else sample index column)
-        if self.anlysIndCol or self.sampleIndCol:
-            sortCols = [next(mCol for mCol in custMCols if mCol[1] == self.anlysIndCol or self.sampleIndCol)]
-        else:
-            sortCols = []
-        
-        return MCDSAnalysisResultsSet(miCustomCols=miCustCols, 
-                                      dfCustomColTrans=dfCustColTrans, miSampleCols=miSampCols,
-                                      sortCols=sortCols, sortAscend=[True for col in sortCols],
+        return MCDSAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
+                                      miSampleCols=miSampCols, sampleIndCol=sampIndMCol,
+                                      sortCols=sortCols, sortAscend=sortAscend,
                                       distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                       surveyType=self.surveyType, distanceType=self.distanceType,
                                       clustering=self.clustering)
