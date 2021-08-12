@@ -943,8 +943,8 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
             #       since ResultsSet.append was changed in order to preserve the type of these columns.
             if round_:
             
-                remTrailZeroesCols = ['ExCod', 'NObs', 'Left Trunc', 'Right Trunc', 
-                                      'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
+                remTrailZeroesCols = ['ExCod', 'NTot Obs', 'Max Dist', 'Min Dist', 'NObs',
+                                      'Left Trunc', 'Right Trunc', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
                                       'Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
                                       'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                       'Density', 'Min Density', 'Max Density',

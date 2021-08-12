@@ -151,6 +151,9 @@ class MCDSAnalysis(DSAnalysis):
         # Initialise base.
         super().__init__(engine, sampleDataSet, name, customData)
 
+        # Compute sample stats.
+        self.sSampleStats = self.engine.computeSampleStats(self.sampleDataSet)
+
         # Analysis run time-out implemented here if engine doesn't know how to do it
         # (but then, MCDS exe are not killed, only abandonned in "space")
         self.timeOut = engine.timeOut if engine.runMethod == 'os.system' else None
@@ -190,7 +193,7 @@ class MCDSAnalysis(DSAnalysis):
                                   + DSAnalysis.DRunRunColumnTrans['fr']))
     
      # Start running the analysis, and return immediately (the associated cofu.Future object) :
-    # this begins an async. run ; you'll need to call getResults to wait for the real end of execution.
+    # this starts an async. run ; you'll need to call getResults to wait for the real end of execution.
     def submit(self, realRun=True):
         
         # Ask the engine to start running the analysis
@@ -205,7 +208,7 @@ class MCDSAnalysis(DSAnalysis):
         return self.future
         
     # Wait for the real end of analysis execution, and return its results.
-    # This terminates an async. run when returning.
+    # This indicates the end of an async. run when returning.
     def _wait4Results(self):
         
         # Get analysis execution results, when the computation is finished (blocking)
@@ -220,28 +223,30 @@ class MCDSAnalysis(DSAnalysis):
                 self.engine.RCTimedOut, startTime, self.timeOut, None, None
         
     # Wait for the real end of analysis execution, and return its results.
-    # This terminates an async. run when returning.
+    # This indicates the end of an async. run when returning.
     def getResults(self, postCleanup=False):
         
         # Get analysis execution results, when the computation is finished (blocking)
         self._wait4Results()
         
-        # Append the analysis stats (if any usable) to the input parameters.
-        sParams = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
-                                  self.cvInterval, self.minDist, self.maxDist, self.fitDistCuts, self.discrDistCuts,
-                                  self.runStatus, self.startTime, self.elapsedTime, self.runDir],
-                            index=self.MIRunColumns)
+        # Build up run data (input parameters and run status) for output.
+        sRunData = pd.Series(data=[self.estimKeyFn, self.estimAdjustFn, self.estimCriterion,
+                                   self.cvInterval, self.minDist, self.maxDist, self.fitDistCuts, self.discrDistCuts,
+                                   self.runStatus, self.startTime, self.elapsedTime, self.runDir],
+                             index=self.MIRunColumns)
         
+        # Append the run results (if any usable) to the analysis sample stats and run data for output.
+        sSampStatsRunData = self.sSampleStats.append(sRunData)
         if self.engine.success(self.runStatus) or self.engine.warnings(self.runStatus):
-            self.sResults = sParams.append(self.sResults)
+            self.sResults = sSampStatsRunData.append(self.sResults)
         else:
-            self.sResults = sParams
+            self.sResults = sSampStatsRunData
             
         # Post cleanup if requested.
         if postCleanup:
             self.cleanup()
         
-        # Return a result, even if not run or MCDS crashed or ...
+        # Done: Return a result, even if not run or MCDS crashed or ...
         return self.sResults
         
     def cleanup(self):

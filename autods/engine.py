@@ -336,7 +336,7 @@ class MCDSEngine(DSEngine):
         
         logger.debug('MCDS : Loaded output stats specs.')
         
-    # Accessors to dynamic class variables.
+    # Accessors to class variables.
     @classmethod
     def statRowSpecs(cls):
         
@@ -376,7 +376,28 @@ class MCDSEngine(DSEngine):
             cls.loadStatSpecs()    
 
         return cls.DfStatModColsTrans
+
+    # Sample stats columns
+    _MIStatSampCols = pd.MultiIndex.from_tuples([('sample stats', 'total number of observations', 'Value'),
+                                                 ('sample stats', 'minimal observation distance', 'Value'),
+                                                 ('sample stats', 'maximal observation distance', 'Value')])
+
+    @classmethod
+    def statSampCols(cls):
         
+        return cls._MIStatSampCols
+    
+    # Sample stats columns translation
+    _DfStatSampColsTrans = \
+        pd.DataFrame(index=_MIStatSampCols,
+                     data=dict(en=['NTot Obs', 'Min Dist', 'Max Dist'], fr=['NTot Obs', 'Min Dist', 'Max Dist']))
+
+    @classmethod
+    def statSampColTrans(cls):
+
+        return cls._DfStatSampColsTrans
+
+
     def __init__(self, workDir='.', executor=None, runMethod='subprocess.run', timeOut=None,
                  distanceUnit='Meter', areaUnit='Hectare',
                  surveyType='Point', distanceType='Radial', clustering=False):
@@ -570,7 +591,7 @@ class MCDSEngine(DSEngine):
         return dfExport, extraFields
 
     # Build MCDS input data file from a sample data set.
-    # Note: Data order not changed, same as in input sampleDataSet !
+    # Note: Data = sighting order not changed, same as in input sampleDataSet !
     # * runDir : pl.Path where to create data file.
     # TODO: Add support for covariate columns (through extraFields)
     def buildDataFile(self, runDir, sampleDataSet):
@@ -859,12 +880,8 @@ class MCDSEngine(DSEngine):
 
         return dfData
 
-    # Associated Distance import fields.
-    DistanceFields = \
-        dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
-             SMP_LABEL='Point transect*Label', SMP_EFFORT='Point transect*Survey effort', DISTANCE='Observation*Radial distance')
-    
-    # Columns names for exporting to Distance import format with explicit columns headers.
+    # Columns names for exporting to Distance import format with explicit columns headers
+    # (or for explicitating their contents in a standard way).
     FirstDistanceExportFields = \
     { 'Point': dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
                     SMP_LABEL='Point transect*Label', SMP_EFFORT='Point transect*Survey effort',
@@ -878,6 +895,28 @@ class MCDSEngine(DSEngine):
     def distanceFields(self, dsFields):
         return [self.FirstDistanceExportFields[self.options.surveyType][name] for name in dsFields]
     
+    # Compute sample stats
+    def computeSampleStats(self, sampleDataSet):
+
+        # Match sampleDataSet table columns to MCDS expected fields from possible aliases
+        matchFields, _, _ = \
+            self.matchDataFields(sampleDataSet.dfData.columns, self.importFieldAliasREs)
+        
+        # Extract usefull columns and rename them tfor standard semantics.
+        dfSample = sampleDataSet.dfData[matchFields]
+        dfSample.columns = self.distanceFields(self.options.firstDataFields)
+
+        # Compute sample stats.
+        distCol = self.FirstDistanceExportFields[self.options.surveyType]['DISTANCE']
+        stats = [sum(dfSample[distCol].notnull()), dfSample[distCol].min(), dfSample[distCol].max()]
+
+        # Done
+        return pd.Series(data=stats, index=self._MIStatSampCols)
+
+    _MIStatSampCols = pd.MultiIndex.from_tuples([('sample stats', 'total number of observations', 'Value'),
+                                                 ('sample stats', 'minimal observation distance', 'Value'),
+                                                 ('sample stats', 'maximal observation distance', 'Value')])
+
     # Build Distance/MCDS input data file from a sample data set to given target folder and file name.
     def buildDistanceDataFile(self, sampleDataSet, tgtFilePathName, decimalPoint=',', withExtraFields=False):
                 
