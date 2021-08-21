@@ -21,9 +21,9 @@ import math
 import numpy as np
 import pandas as pd
 
-import autods.log as log
+import autods
 
-logger = log.logger('ads.anr')
+logger = autods.log.logger('ads.anr')
 
 from autods.data import MonoCategoryDataSet, ResultsSet
 from autods.executor import Executor
@@ -1865,7 +1865,7 @@ class MCDSAnalyser(DSAnalyser):
         self.results = self._getResults(dAnlyses)
 
         # Set results specs for traceability.
-        self.results.updateSpecs(analyser=self.flatSpecs(), analyses=dfExplParamSpecs)
+        self.results.updateSpecs(runtime=autods.runtime, analyser=self.flatSpecs(), analyses=dfExplParamSpecs)
         
         # Done.
         logger.info(f'Analyses completed ({len(self.results)} results).')
