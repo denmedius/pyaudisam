@@ -28,12 +28,13 @@ import pandas as pd
 import jinja2
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
-import seaborn as sb
+#import seaborn as sb
 
 import autods.log as log
 import autods.executor as exor
 import autods as ads
 
+ads.runtime.update({'matplotlib': sys.modules['matplotlib'].__version__})
 
 logger = log.logger('ads.rep')
 

@@ -28,8 +28,11 @@ import pandas as pd
 import zoopt
 
 import autods.log as log
-
 logger = log.logger('ads.opn')
+
+import autods
+import pkg_resources as pkgrsc  # zoopt has no standard __version__ !
+autods.runtime.update({'zoopt': pkgrsc.get_distribution('zoopt').version})
 
 from autods.executor import Executor
 from autods.engine import MCDSEngine

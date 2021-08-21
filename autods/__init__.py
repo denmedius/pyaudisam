@@ -20,6 +20,10 @@
 __version__ = 0.9
 
 
+# Infos about run-time (Python version, dependency library versions, ...)
+runtime = dict()  # Updated by sub-modules.
+
+
 # Sub-module exports
 from . import log
 from .log import logger, DEBUG, DEBUG0, DEBUG1, DEBUG2, DEBUG3, DEBUG4, \
@@ -44,4 +48,3 @@ from .optimiser import DSParamsOptimiser, MCDSTruncationOptimiser, MCDSZerothOrd
 from .optanalyser import MCDSTruncationOptanalyser, MCDSTruncOptanalysisResultsSet
 
 from .report import MCDSResultsPreReport, MCDSResultsFullReport
-

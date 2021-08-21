@@ -21,9 +21,14 @@ import pickle
 import numpy as np
 import pandas as pd
 
-import autods.log as log
+import autods
 
-logger = log.logger('ads.dat')
+autods.runtime.update({'platform': sys.platform, sys.implementation.name: sys.version,
+                       'numpy': np.__version__,
+                       'pandas': pd.__version__,
+                       'pickle': pickle.format_version})
+
+logger = autods.log.logger('ads.dat')
 
 
 class DataSet(object):
@@ -301,7 +306,7 @@ class DataSet(object):
 
         """
         Relative closeness of 2 numbers : -round(log10((actual - reference) / max(abs(actual), abs(reference))), 1)
-        = Compute the order of magnitude that separate the difference to the absolute max. of the two values.
+        = Compute the order of magnitude that separates the difference to the absolute max. of the two values.
         
         The greater it is, the lower the relative difference
            Ex: 3 = 10**3 ratio between max absolute difference of the two,
@@ -353,21 +358,30 @@ class DataSet(object):
         return hValue
     
     @classmethod
-    def compareDataFrames(cls, dfLeft, dfRight, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
+    def compareDataFrames(cls, dfLeft, dfRight, subsetCols=[], indexCols=[],
+                          dropCloser=np.inf, dropNans=True, dropCloserCols=False):
     
         """
         Compare 2 DataFrames.
+
+        The resulting diagnosis DataFrame will have the same columns and merged index,
+        with a "closeness" value for each cell (see _closeness method) ;
+        rows where all cells have closeness > dropCloser (or eventually NaN) are yet dropped.
+        and columns where all cells have closeness > dropCloser (or eventually NaN) can also be dropped.
         
         Parameters:
         :param dfLeft: Left DataFrame
         :param dfRight: Right DataFrame
         :param list subsetCols: on a subset of columns,
         :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
-        :param float dropCloser: with only rows with all cell closeness > dropCloser
+        :param float dropCloser: result will only include rows with all cell closeness > dropCloser
                                  (default: np.inf => all cols and rows kept).
-        :param bool dropNans: with only rows with all cell closeness > dropCloser or of NaN value ('cause NaN != Nan :-(.
-        :returns: a diagnostic DataFrame with same columns and merged index, with a "closeness" value
-                  for each cell (see _closeness method) ; rows with closeness > dropCloser are yet dropped.
+        :param bool dropNans: smoother condition for dropCloser : if True, NaN values are also considered > dropCloser
+                              ('cause NaN != NaN :-( ).
+        :param bool dropCloserCols: if True, also drop all "> dropCloser (or eventually NaN)"-all-cell columns,
+                                    just as rows
+
+        :returns: the diagnostic DataFrame.
         """
         
         # Make copies : we need to change the frames.
@@ -419,38 +433,51 @@ class DataSet(object):
             dfRelDiff.drop(columns=[KRightCol], inplace=True)
             
         if exception:
-            raise TypeError('Stopping: Some columns could not be compared')
+            raise TypeError('Stopping: Some columns could not be compared (see errors logged above)')
             
         # Complete comparison : rows with index not in both frames forced to all-0 closeness
         # (of course they should result so ... unless some NaNs here and there : fix this)
         dfRelDiff.loc[dfLeft[~dfLeft.index.isin(dfRight.index)].index, :] = 0
         dfRelDiff.loc[dfRight[~dfRight.index.isin(dfLeft.index)].index, :] = 0
         
-        # Drop rows and columns with closeness over the threshold (or of NaN value if authorized)
-        sbRows2Drop = dfRelDiff.applymap(lambda v: v > dropCloser or (dropNans and pd.isnull(v))).all(axis='columns')
-        dfRelDiff.drop(dfRelDiff[sbRows2Drop].index, axis='index', inplace=True)
-        
+        # Drop rows (and may be columns) with closeness over the threshold (or of NaN value if authorized)
+        dfCells2Drop = dfRelDiff.applymap(lambda v: v > dropCloser or (dropNans and pd.isnull(v)))
+        dfRelDiff.drop(dfRelDiff[dfCells2Drop.all(axis='columns')].index, inplace=True)
+        if dropCloserCols:
+            #dfRelDiff.drop(columns=dfRelDiff.T[dfCells2Drop.all(axis='index')].index, axis='index', inplace=True)
+            dfRelDiff.drop(columns=[col for col, drop in dfCells2Drop.all(axis='index').items() if drop],
+                           inplace=True) # 40% faster.
+            
         return dfRelDiff
 
-    def compare(self, dsOther, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
+    def compare(self, other, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True, dropCloserCols=False):
     
         """
         Compare 2 data sets.
         
+        The resulting diagnosis DataFrame will have the same columns and merged index,
+        with a "closeness" value for each cell (see _closeness method) ;
+        rows where all cells have closeness > dropCloser (or eventually NaN) are yet dropped.
+        and columns where all cells have closeness > dropCloser (or eventually NaN) can also be dropped.
+        
         Parameters:
-        :param dsOther: Right data set object to compare
+        :param other: Right data set or DataFrame object to compare
         :param list subsetCols: on a subset of columns,
         :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
-        :param float dropCloser: with only rows with all cell closeness > dropCloser
+        :param float dropCloser: result will only include rows with all cell closeness > dropCloser
                                  (default: np.inf => all cols and rows kept).
-        :param bool dropNans: with only rows with all cell closeness > dropCloser or of NaN value ('cause NaN != Nan :-(.
-        :returns: a diagnostic DataFrame with same columns and merged index, with a "closeness" value
-                  for each cell (see _closeness method) ; without rows with closeness > dropCloser.
+        :param bool dropNans: smoother condition for dropCloser : if True, NaN values are also considered > dropCloser
+                              ('cause NaN != NaN :-( ).
+        :param bool dropCloserCols: if True, also drop all "> dropCloser (or eventually NaN)" columns-all-cell,
+                                    just as rows
+
+        :returns: the diagnostic DataFrame.
         """
         
-        return self.compareDataFrames(dfLeft=self.dfData, dfRight=dsOther.dfData,
+        return self.compareDataFrames(dfLeft=self.dfData,
+                                      dfRight=other if isinstance(other, pd.DataFrame) else other.dfData,
                                       subsetCols=subsetCols, indexCols=indexCols,
-                                      dropCloser=dropCloser, dropNans=dropNans)
+                                      dropCloser=dropCloser, dropNans=dropNans, dropCloserCols=dropCloserCols)
         
 
 
@@ -958,7 +985,7 @@ class ResultsSet(object):
 
         # Update columns translation table also.
         dfNewColTrans = pd.DataFrame(index=newCols,
-                                     data={ lang: newColTrans for lang in self.dfColTrans.columns})
+                                     data={lang: newColTrans for lang in self.dfColTrans.columns})
         self.dfColTrans = self.dfColTrans.append(dfNewColTrans)
 
     def append(self, sdfResult, sCustomHead=None, acceptNewCols=False):
@@ -1095,12 +1122,17 @@ class ResultsSet(object):
         # Done.
         return self._dfData.copy()
 
-    def setData(self, dfData, postComputed=False):
+    def setData(self, dfData, postComputed=False, acceptNewCols=False):
         
         assert isinstance(dfData, pd.DataFrame), 'dfData must be a pd.DataFrame'
         
         self._dfData = dfData.copy()
         
+        # If specified, update results columns list (self.miCols) dynamically 
+        # as unexpected columns appear in results to append.
+        if acceptNewCols:
+            self._acceptNewColumns(dfData.columns)
+
         # Let's assume that columns order is dirty.
         self.rightColOrder = False
         
@@ -1496,25 +1528,34 @@ class ResultsSet(object):
         else:
             raise NotImplementedError(f'Unsupported ResultsSet input file format: {fileName}')
 
-    def compare(self, rsOther, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True):
+    def compare(self, other, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True, dropCloserCols=False):
     
         """
         Compare 2 results sets.
         
+        The resulting diagnosis DataFrame will have the same columns and merged index,
+        with a "closeness" value for each cell (see _closeness method) ;
+        rows where all cells have closeness > dropCloser (or eventually NaN) are yet dropped.
+        and columns where all cells have closeness > dropCloser (or eventually NaN) can also be dropped.
+        
         Parameters:
-        :param rsOther: Right results object to compare
+        :param other: Right results or DataFrame object to compare
         :param list subsetCols: on a subset of columns,
         :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
-        :param float dropCloser: with only rows with all cell closeness > dropCloser
+        :param float dropCloser: result will only include rows with all cell closeness > dropCloser
                                  (default: np.inf => all cols and rows kept).
-        :param bool dropNans: with only rows with all cell closeness > dropCloser or of NaN value ('cause NaN != Nan :-(.
-        :returns: a diagnostic DataFrame with same columns and merged index, with a "closeness" value
-                  for each cell (see _closeness method) ; rows with closeness > dropCloser are yet dropped.
+        :param bool dropNans: smoother condition for dropCloser : if True, NaN values are also considered > dropCloser
+                              ('cause NaN != NaN :-( ).
+        :param bool dropCloserCols: if True, also drop "> dropCloser (or eventually NaN)"-all-cell columns,
+                                    just as rows
+
+        :returns: the diagnostic DataFrame.
         """
         
-        return DataSet.compareDataFrames(dfLeft=self.dfData, dfRight=rsOther.dfData,
+        return DataSet.compareDataFrames(dfLeft=self.dfData,
+                                         dfRight=other if isinstance(other, pd.DataFrame) else other.dfData,
                                          subsetCols=subsetCols, indexCols=indexCols,
-                                         dropCloser=dropCloser, dropNans=dropNans)
+                                         dropCloser=dropCloser, dropNans=dropNans, dropCloserCols=dropCloserCols)
         
 
 if __name__ == '__main__':
