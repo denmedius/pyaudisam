@@ -361,7 +361,8 @@ class Analyser(object):
                 dfExplSpecs = dfExplSpecs.loc[np.repeat(dfExplSpecs.index, len(dfExplPartSpecs))]
                 dfExplSpecs.reset_index(drop=True, inplace=True)
 
-                dfExplPartSpecs = pd.DataFrame(data=np.tile(dfExplPartSpecs, [nInitSpecs, 1]), columns=dfExplPartSpecs.columns)
+                dfExplPartSpecs = pd.DataFrame(data=np.tile(dfExplPartSpecs, [nInitSpecs, 1]),
+                                               columns=dfExplPartSpecs.columns)
 
                 dfExplSpecs = pd.concat([dfExplSpecs, dfExplPartSpecs], axis='columns')
 
@@ -712,32 +713,66 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
     
-    # Usefull parameter columns labels
-    CLParTruncLeft  = ('parameters', 'left truncation distance', 'Value')
-    CLParTruncRight = ('parameters', 'right truncation distance', 'Value')
-
-    # Computed column labels
+    # Computed Column Labels
+    # a. Chi2 determined, Delta AIC, delta DCv
+    CLChi2     = ('detection probability', 'chi-square test probability determined', 'Value')
     CLDeltaAic = ('detection probability', 'Delta AIC', 'Value')
     CLDeltaDCv = ('density/abundance', 'density of animals', 'Delta Cv')
-    CLChi2     = ('detection probability', 'chi-square test probability determined', 'Value')
 
+    # b. Observation rate and combined quality indicators
+    CLSightRate  = ('encounter rate', 'observation rate', 'Value')
     CLCmbQuaBal1 = ('combined quality', 'balanced 1', 'Value')
     CLCmbQuaBal2 = ('combined quality', 'balanced 2', 'Value')
     CLCmbQuaBal3 = ('combined quality', 'balanced 3', 'Value')
     CLCmbQuaChi2 = ('combined quality', 'more Chi2', 'Value')
     CLCmbQuaKS   = ('combined quality', 'more KS', 'Value')
-    CLCmbQuaDCV  = ('combined quality', 'more DCV', 'Value')
+    CLCmbQuaDCv  = ('combined quality', 'more DCv', 'Value')
 
-    CLCAFilSor = 'auto filter sort'
-    CLTTruncGroup = 'Group'
-    CLAFilSorGrpTruncLeft  = (CLCAFilSor, 'left truncation distance', CLTTruncGroup)
-    CLAFilSorGrpTruncRight = (CLCAFilSor, 'right truncation distance', CLTTruncGroup)
+    # c. Automated filtering and grouping + sorting
+    CLCAutoFilSor = 'auto filter sort'  # Label "Chapter" (1st level)
+    CLTTruncGroup = 'Group'  # Label "Type" (3rd level)
+    CLTSortOrder = 'Order'  # Label "Type" (3rd level)
 
-    #CL = ('', '', 'Value')
+    #   i. close truncation group identification
+    CLGroupTruncLeft  = (CLCAutoFilSor, MCDSAnalysis.CLParTruncLeft[1], CLTTruncGroup)
+    CLGroupTruncRight = (CLCAutoFilSor, MCDSAnalysis.CLParTruncRight[1], CLTTruncGroup)
+
+    #   ii. Order inside groups with same = identical truncation parameters (distances and model cut points)
+    CLGrpOrdSmTrAic = (CLCAutoFilSor, 'AIC (same trunc)', CLTSortOrder)
+
+    #   iii. Order inside groups of close truncation distances
+    CLGrpOrdClTrChi2KSDCv = (CLCAutoFilSor, 'Chi2 KS DCv (close trunc)', CLTSortOrder)
+    #CLGrpOrdClTrChi2 = (CLCAutoFilSor, 'Chi2 (close trunc)', CLTSortOrder)
+    CLGrpOrdClTrDCv = (CLCAutoFilSor, 'DCv (close trunc)', CLTSortOrder)
+    
+    CLGrpOrdClTrQuaBal1 = (CLCAutoFilSor, 'Bal. quality 1 (close trunc)', CLTSortOrder)
+    CLGrpOrdClTrQuaBal2 = (CLCAutoFilSor, 'Bal. quality 2 (close trunc)', CLTSortOrder)
+    CLGrpOrdClTrQuaBal3 = (CLCAutoFilSor, 'Bal. quality 3 (close trunc)', CLTSortOrder)
+    CLGrpOrdClTrQuaChi2 = (CLCAutoFilSor, 'Bal. quality Chi2+ (close trunc)', CLTSortOrder)
+    CLGrpOrdClTrQuaKS   = (CLCAutoFilSor, 'Bal. quality KS+ (close trunc)', CLTSortOrder)
+    CLGrpOrdClTrQuaDCv  = (CLCAutoFilSor, 'Bal. quality DCv+ (close trunc)', CLTSortOrder)
+    
+    #   iv. Global order
+    CLGblOrdChi2KSDCv = (CLCAutoFilSor, 'Chi2 KS DCv (global)', CLTSortOrder)
+
+    CLGblOrdQuaBal1 = (CLCAutoFilSor, 'Bal. quality 1 (global)', CLTSortOrder)
+    CLGblOrdQuaBal2 = (CLCAutoFilSor, 'Bal. quality 2 (global)', CLTSortOrder)
+    CLGblOrdQuaBal3 = (CLCAutoFilSor, 'Bal. quality 3 (global)', CLTSortOrder)
+    CLGblOrdQuaChi2 = (CLCAutoFilSor, 'Bal. quality Chi2+ (global)', CLTSortOrder)
+    CLGblOrdQuaKS   = (CLCAutoFilSor, 'Bal. quality KS+ (global)', CLTSortOrder)
+    CLGblOrdQuaDCv  = (CLCAutoFilSor, 'Bal. quality DCv+ (global)', CLTSortOrder)
+
+    CLGblOrdDAicChi2KSDCv = (CLCAutoFilSor, 'DeltaAIC Chi2 KS DCv (global)', CLTSortOrder)
+
+    # Shortcut to real truncation params columns names.
+    DCLParTruncDist = dict(left=MCDSAnalysis.CLParTruncLeft, right=MCDSAnalysis.CLParTruncRight)
 
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
                        sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
-                       surveyType='Point', distanceType='Radial', clustering=False):
+                       surveyType='Point', distanceType='Radial', clustering=False,
+                       ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
+                                          dict(col='right', minDist=25.0, maxLen=25.0)],
+                       truncIntrvEpsilon=1e-6):
         
         """
         Parameters:
@@ -748,29 +783,62 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         assert sampleIndCol is not None
 
         # Computed columns specs (name translation + position).
-        firstResColInd = len(MCDSEngine.statSampCols()) + len(MCDSAnalysis.MIRunColumns)
+        _firstResColInd = len(MCDSEngine.statSampCols()) + len(MCDSAnalysis.MIRunColumns)
         cls = self
-        DComputedCols = {cls.CLDeltaAic: firstResColInd + 11, # Right before AIC
-                         cls.CLChi2: firstResColInd + 16, # Right before all Chi2 tests 
-                         cls.CLDeltaDCv: firstResColInd + 67, # Right before Density of animals / CV 
-                         cls.CLCmbQuaBal1: -1, # At the end ...
-                         cls.CLCmbQuaBal2: -1,
-                         cls.CLCmbQuaBal3: -1,
-                         cls.CLCmbQuaChi2: -1,
-                         cls.CLCmbQuaKS: -1,
-                         cls.CLCmbQuaDCV: -1,
-                         #cls.CL: ,
-                         #cls.CL: ,
-                        }    
+        DComputedCols = {cls.CLSightRate: _firstResColInd + 10, # After Encounter Rate / Left|Right Trunc. Dist.
+                         cls.CLDeltaAic: _firstResColInd + 12, # Before AIC
+                         cls.CLChi2: _firstResColInd + 14, # Before all Chi2 tests 
+                         cls.CLDeltaDCv: _firstResColInd + 72, # Before Density of animals / Cv 
+                         # And, at the end ...
+                         **{cl: -1 for cl in [cls.CLCmbQuaBal1, cls.CLCmbQuaBal2, cls.CLCmbQuaBal3,
+                                              cls.CLCmbQuaChi2, cls.CLCmbQuaKS, cls.CLCmbQuaDCv,
+                                              cls.CLGroupTruncLeft, cls.CLGroupTruncRight,
+                                              cls.CLGrpOrdSmTrAic,
+                                              cls.CLGrpOrdClTrChi2KSDCv,  # cls.CLGrpOrdClTrChi2,
+                                              cls.CLGrpOrdClTrDCv,
+                                              cls.CLGrpOrdClTrQuaBal1, cls.CLGrpOrdClTrQuaBal2, cls.CLGrpOrdClTrQuaBal3,
+                                              cls.CLGrpOrdClTrQuaChi2, cls.CLGrpOrdClTrQuaKS, cls.CLGrpOrdClTrQuaDCv,
+                                              cls.CLGblOrdChi2KSDCv,
+                                              cls.CLGblOrdQuaBal1, cls.CLGblOrdQuaBal2, cls.CLGblOrdQuaBal3,
+                                              cls.CLGblOrdQuaChi2, cls.CLGblOrdQuaKS, cls.CLGblOrdQuaDCv,
+                                              cls.CLGblOrdDAicChi2KSDCv]}}
+
         DfComputedColTrans = \
             pd.DataFrame(index=DComputedCols.keys(),
-                         data=dict(en=['Delta AIC', 'Chi2 P', 'Delta CoefVar Density',
-                                       'Qual Bal1', 'Qual Bal2', 'Qual Bal3',
-                                       'Qual Chi2+', 'Qual KS+', 'Qual DCV+'],
-                                   fr=['Delta AIC', 'Chi2 P', 'Delta CoefVar Densité',
-                                       'Qual Equi1', 'Qual Equi2', 'Qual Equi3',
-                                       'Qual Chi2+', 'Qual KS+', 'Qual DCV+']))
+                         data=dict(en=['Obs Rate', 'Delta AIC', 'Chi2 P', 'Delta CoefVar Density',
+                                       'Qual Bal 1', 'Qual Bal 2', 'Qual Bal 3',
+                                       'Qual Chi2+', 'Qual KS+', 'Qual DCv+',
+                                       'Group Left Trunc', 'Group Right Trunc',
+                                       'Order Same Trunc AIC',
+                                       'Order Close Trunc Chi2 KS DCv', #'Order Close Trunc Chi2',
+                                       'Order Close Trunc DCv', 'Order Close Trunc Bal 1 Qual',
+                                       'Order Close Trunc Bal 2 Qual', 'Order Close Trunc Bal 3 Qual',
+                                       'Order Close Trunc Bal Chi2+ Qual', 'Order Close Trunc Bal KS+ Qual',
+                                       'Order Close Trunc Bal DCv+ Qual',
+                                       'Order Global Chi2 KS DCv', 'Order Global Bal 1 Qual',
+                                       'Order Global Bal 2 Qual', 'Order Global Bal 3 Qual',
+                                       'Order Global Bal Chi2+ Qual', 'Order Global Bal KS+ Qual',
+                                       'Order Global Bal DCv+ Qual',
+                                       'Order Global DeltaAIC Chi2 KS DCv'],
+                                   fr=['Taux Obs', 'Delta AIC', 'Chi2 P', 'Delta CoefVar Densité',
+                                       'Qual Equi 1', 'Qual Equi 2', 'Qual Equi 3',
+                                       'Qual Chi2+', 'Qual KS+', 'Qual DCv+',
+                                       'Groupe Tronc Gche', 'Groupe Tronc Drte',
+                                       'Ordre Tronc Ident AIC',
+                                       'Ordre Tronc Proch Chi2 KS DCv', #'Ordre Tronc Proch Chi2',
+                                       'Ordre Tronc Proch DCv', 'Ordre Tronc Proch Qual Equi 1',
+                                       'Ordre Tronc Proch Qual Equi 2', 'Ordre Tronc Proch Qual Equi 3',
+                                       'Ordre Tronc Proch Qual Equi Chi2+', 'Ordre Tronc Proch Qual Equi KS+',
+                                       'Ordre Tronc Proch Qual Equi DCv+',
+                                       'Ordre Global Chi2 KS DCv', 'Ordre Global Qual Equi 1',
+                                       'Ordre Global Qual Equi 2', 'Ordre Global Qual Equi 3',
+                                       'Ordre Global Qual Equi Chi2+', 'Ordre Global Qual Equi KS+',
+                                       'Ordre Global Qual Equi DCv+',
+                                       'Ordre Global DeltaAIC Chi2 KS DCv']))
 
+        assert all(len(DfComputedColTrans[lang].dropna()) == len(DComputedCols) for lang in DfComputedColTrans.columns)
+
+        assert all(spec['col'] in self.DCLParTruncDist for spec in ldTruncIntrvSpecs)
 
         # Initialise base.
         super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
@@ -780,6 +848,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # Sample columns
         self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
         self.sampleIndCol = sampleIndCol
+
+        # Sample table (auto computed, see listSamples below)
+        self.dfSamples = None
     
         # Descriptive parameters, not used in computations actually.
         self.distanceUnit = distanceUnit
@@ -787,6 +858,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         self.surveyType = surveyType
         self.distanceType = distanceType
         self.clustering =clustering
+
+        # Parameters for truncation group intervals post-computations
+        self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
+        self.truncIntrvEpsilon = truncIntrvEpsilon
 
     def copy(self, withData=True):
     
@@ -798,7 +873,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                        sortCols=self.sortCols, sortAscend=self.sortAscend,
                                        distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                        surveyType=self.surveyType, distanceType=self.distanceType,
-                                       clustering=self.clustering)
+                                       clustering=self.clustering,
+                                       ldTruncIntrvSpecs=self.ldTruncIntrvSpecs,
+                                       truncIntrvEpsilon=self.truncIntrvEpsilon)
 
         # Copy data if needed.
         if withData:
@@ -808,6 +885,30 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         return clone
     
+    def dropRows(self, sbSelRows):
+    
+        super().dropRows(sbSelRows)
+
+        self.dfSamples = None
+        
+    def _acceptNewColumns(self, newCols):
+
+        super()._acceptNewColumns(newCols)
+
+        self.dfSamples = None
+
+    def append(self, sdfResult, sCustomHead=None, acceptNewCols=False):
+        
+        super().append(sdfResult, sCustomHead, acceptNewCols)
+
+        self.dfSamples = None
+
+    def setData(self, dfData, postComputed=False):
+        
+        super().setData(dfData, postComputed)
+
+        self.dfSamples = None
+
     # Get translate names of custom columns
     def transSampleColumns(self, lang):
         
@@ -834,7 +935,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         if chi2AllColLbls:
             self._dfData[self.CLChi2] = self._dfData[chi2AllColLbls].apply(self.determineChi2Value, axis='columns')
 
-    # Post-computations : Delta AIC/DCV per sampleCols + truncation param. cols group => AIC - min(group).
+    # Post-computations : Delta AIC/DCv per sampleCols + truncation param. cols group => AIC - min(group).
     CLAic = ('detection probability', 'AIC value', 'Value')
     CLDCv = ('density/abundance', 'density of animals', 'Cv')
     CLsTruncDist = [('encounter rate', 'left truncation distance', 'Value'),
@@ -842,7 +943,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     def _postComputeDeltaAicDcv(self):
         
-        logger.debug(f'Post-computing Delta AIC/DCV: {self.CLDeltaAic} / {self.CLDeltaDCv}')
+        logger.debug(f'Post-computing Delta AIC/DCv: {self.CLDeltaAic} / {self.CLDeltaDCv}')
         
         # a. Minimum AIC & DCv per group
         #    (drop all-NaN sample selection columns (sometimes, it happens) for a working groupby())
@@ -861,15 +962,16 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         self._dfData[self.CLDeltaAic] = self._dfData[self.CLAic] - self._dfData[self.CLDeltaAic]
         self._dfData[self.CLDeltaDCv] = self._dfData[self.CLDCv] - self._dfData[self.CLDeltaDCv]
 
-    # Post computations : Quality indicators.
+    # Post computations : Usefull columns for quality indicators.
     CLNObs = ('encounter rate', 'number of observations (n)', 'Value')
-    CLNTotObs = ('sample stats', 'total number of observations', 'Value')  # Must equal MCDSEngine._MIStatSampCols[0] !
+    CLNTotObs = MCDSEngine.MIStatSampCols[0]
     CLNTotPars = ('detection probability', 'total number of parameters (m)', 'Value')
     CLKS = ('detection probability', 'Kolmogorov-Smirnov test probability', 'Value')
     CLCvMUw = ('detection probability', 'Cramér-von Mises (uniform weighting) test probability', 'Value')
     CLCvMCw = ('detection probability', 'Cramér-von Mises (cosine weighting) test probability', 'Value')
     CLDCv = ('density/abundance', 'density of animals', 'Cv')
 
+    # Post computations : Quality indicators.
     @classmethod
     def _normNObs(cls, sRes):
         return sRes[cls.CLNObs] / sRes[cls.CLNTotObs]
@@ -916,7 +1018,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                 * cls._normCVDens(sRes, a=12)) ** (1.0/8)
 
     @classmethod
-    def _combinedQualityMoreDCV(cls, sRes):
+    def _combinedQualityMoreDCv(cls, sRes):
         return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
                 * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
                 * cls._normCVDens(sRes, a=12) ** 2) ** (1.0/8)
@@ -925,21 +1027,245 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         
         logger.debug('Post-computing Quality Indicators')
 
+        self._dfData[self.CLSightRate] = 100 * self._dfData.apply(self._normNObs, axis='columns') # [0,1] => %
+
+        logger.debug1('* Balanced quality 1')
         self._dfData[self.CLCmbQuaBal1] = self._dfData.apply(self._combinedQualityBalanced1, axis='columns')
+
+        logger.debug1('* Balanced quality 2')
         self._dfData[self.CLCmbQuaBal2] = self._dfData.apply(self._combinedQualityBalanced2, axis='columns')
+
+        logger.debug1('* Balanced quality 3')
         self._dfData[self.CLCmbQuaBal3] = self._dfData.apply(self._combinedQualityBalanced3, axis='columns')
+
+        logger.debug1('* Balanced quality Chi2+')
         self._dfData[self.CLCmbQuaChi2] = self._dfData.apply(self._combinedQualityMoreChi2, axis='columns')
+
+        logger.debug1('* Balanced quality KS+')
         self._dfData[self.CLCmbQuaKS]   = self._dfData.apply(self._combinedQualityMoreKS, axis='columns')
-        self._dfData[self.CLCmbQuaDCV]  = self._dfData.apply(self._combinedQualityMoreDCV, axis='columns')
+
+        logger.debug1('* Balanced quality DCv+')
+        self._dfData[self.CLCmbQuaDCv]  = self._dfData.apply(self._combinedQualityMoreDCv, axis='columns')
         
+    # List result samples
+    def listSamples(self, rebuild=False):
+
+        if rebuild or self.dfSamples is None:
+
+            self.dfSamples = self._dfData[pd.MultiIndex.from_tuples([self.sampleIndCol]).append(self.miSampleCols)]
+            self.dfSamples = self.dfSamples.drop_duplicates()
+            self.dfSamples.set_index(self.sampleIndCol, inplace=True)
+            assert len(self.dfSamples) == self.dfSamples.index.nunique()
+
+        return self.dfSamples
+
     # Post computations : Quality indicators.
     def _postComputeTruncationGroups(self):
         
-        logger.debug('Post-computing Truncation Groups')
+        logger.debug('Post-computing Truncation Groups (WARNING: not tested)')
 
-        # TODO: Simple solution = copy from MCDSTruncOptanalysisResultsSet and remove optimTrunc stuff
-        # TODO: After that, a more simple groupby should be faster and simpler ... but need for new testing !
+        # For each sample,
+        for lblSamp, sSamp in self.listSamples().iterrows():
+            
+            logger.debug1('#{} {} '.format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()])))
+
+            # Select sample results
+            dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp]
+
+            # For each truncation "method" (left or right)
+            for dTrunc in self.ldTruncIntrvSpecs:
+
+                truncCol = self.DCLParTruncDist[dTrunc['col']]
+                minIntrvDist = dTrunc['minDist']
+                maxIntrvLen = dTrunc['maxLen']
+
+                logger.debug3(f'  - {truncCol[1]}')
+
+                # For some reason, need for enforcing float dtype ... otherwise dtype='O' !?
+                sSelDist = dfSampRes[truncCol].dropna().astype(float).sort_values()
+
+                # List non-null differences between consecutive sorted distances
+                dfIntrv = pd.DataFrame(dict(dist=sSelDist.values))
+                if not dfIntrv.empty:
+
+                    try:
+                        dfIntrv['deltaDist'] = dfIntrv.dist.diff()
+                        dfIntrv.loc[dfIntrv.dist.idxmin(), 'deltaDist'] = np.inf
+                        dfIntrv.dropna(inplace=True)
+                        dfIntrv = dfIntrv[dfIntrv.deltaDist > 0].copy()
+                    except Exception:  # TODO: Remove this debugging try/except code
+                        logger.error(f'_postComputeTruncationGroups(dfIntrv1): dfIntrv.dtypes={dfIntrv.dtypes}')
+                        logger.error(f'_postComputeTruncationGroups(dfIntrv1): dfIntrv.dist.dtype={dfIntrv.dist.dtype}')
+                        dfIntrv.to_pickle('tmp/anlr-dfIntrv1.pickle')
+                        logger.error(f'_postComputeTruncationGroups(dfIntrv1): {dfIntrv:}')
+                        raise
+
+                    # Deduce start (min) and end (sup) for each such interval (left-closed, right-open)
+                    try:
+                        dfIntrv['dMin'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist']
+                        dfIntrv['dSup'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist'].shift(-1).dropna()
+                        dfIntrv.loc[dfIntrv['dMin'].idxmax(), 'dSup'] = np.inf
+                        dfIntrv.dropna(inplace=True)
+
+                        dfIntrv['dSup'] = \
+                            dfIntrv['dSup'].apply(lambda supV: sSelDist[sSelDist < supV].max() + self.truncIntrvEpsilon)
+                    except Exception:  # TODO: Remove this debugging try/except code
+                        logger.error(f'_postComputeTruncationGroups(dfIntrv2): dfIntrv.dtypes={dfIntrv.dtypes}')
+                        logger.error(f'_postComputeTruncationGroups(dfIntrv2): dfIntrv.dist.dtype={dfIntrv.dist.dtype}')
+                        dfIntrv.to_pickle('tmp/anlr-dfIntrv2.pickle')
+                        logger.error(f'_postComputeTruncationGroups(dfIntrv2): {dfIntrv:}')
+                        raise
+
+                    dfIntrv = dfIntrv[['dMin', 'dSup']].reset_index(drop=True)
+
+                    # If these intervals are two wide, cut them up in equal sub-intervals and make them new intervals
+                    lsNewIntrvs = list()
+                    for _, sIntrv in dfIntrv.iterrows():
+
+                        if sIntrv.dSup - sIntrv.dMin > maxIntrvLen:
+                            nSubIntrvs = (sIntrv.dSup - sIntrv.dMin) / maxIntrvLen
+                            nSubIntrvs = int(nSubIntrvs) if nSubIntrvs - int(nSubIntrvs) < 0.5 else int(nSubIntrvs) + 1
+                            subIntrvLen = (sIntrv.dSup - sIntrv.dMin) / nSubIntrvs
+                            lsNewIntrvs += [pd.Series(dict(dMin=sIntrv.dMin + nInd * subIntrvLen, 
+                                                           dSup=min(sIntrv.dMin + (nInd + 1) * subIntrvLen,
+                                                                    sIntrv.dSup)))
+                                            for nInd in range(nSubIntrvs)]
+                        else:
+                            lsNewIntrvs.append(sIntrv)
+
+                    dfIntrv = pd.DataFrame(lsNewIntrvs).reset_index(drop=True)
+                    dfIntrv.sort_values(by='dMin', inplace=True)
+
+                # Update result table : Assign positive interval = "truncation group" number
+                # to each truncation distance (special case when no truncation: num=0 if NaN truncation distance)
+                sb = (self._dfData[self.sampleIndCol] == lblSamp)
+                def truncationIntervalNumber(d):
+                    return 0 if pd.isnull(d) else 1 + dfIntrv[(dfIntrv.dMin <= d) & (dfIntrv.dSup > d)].index[0]
+                self._dfData.loc[sb, (self.CLCAutoFilSor, truncCol[1], self.CLTTruncGroup)] = \
+                    self._dfData.loc[sb, truncCol].apply(truncationIntervalNumber) 
+
+            logger.debug1(f'  => {len(dfSampRes)} rows')
         
+    # Post computations : filtering and sorting.
+    # a. Column Labels for computed group and sort orders
+    #    N.B. "close truncations" means "identical = same truncations" here (but see MCDSOptanalyserResultsSet)
+    # See above
+
+    # b. Schemes for computing filtering and sorting keys (see inherited _postComputeFilterSortKeys).
+    AutoFilSorKeySchemes = \
+    [  # Ordre dans groupe.
+       dict(key=CLGrpOrdSmTrAic,  # Meilleur AIC, à troncatures D et G identiques (avec variantes de nb tranches)
+            sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
+                  CLDeltaAic, CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
+            ascend=[True, True, True, False, False, True, False, True],
+            group=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts]),
+        
+#       dict(key=CLGrpOrdClTrChi2,  # Meilleur Chi2 par groupe de troncatures proches
+#            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+#                  CLChi2],
+#            ascend=[True, True, False],
+#            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+#       dict(key=CLGrpOrdClTrKS,  # Meilleur KS par groupe de troncatures proches
+#            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+#                  CLKS],
+#            ascend=[True, True, False],
+#            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+       dict(key=CLGrpOrdClTrDCv,  # Meilleur DCv par groupe de troncatures proches
+            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+                  CLDCv],
+            ascend=[True, True, True],
+            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+       dict(key=CLGrpOrdClTrChi2KSDCv,  # Meilleur Chi2 & KS & DCv par groupe de troncatures proches
+            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+                  CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
+            ascend=[True, True, False, False, True, False, True],
+            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+        
+       dict(key=CLGrpOrdClTrQuaBal1,  # Meilleur Qualité combinée équilibrée 1 par groupe de troncatures proches
+            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+                  CLCmbQuaBal1],
+            ascend=[True, True, False],
+            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+       dict(key=CLGrpOrdClTrQuaBal2,  # Meilleur Qualité combinée équilibrée 2 par groupe de troncatures proches
+            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+                  CLCmbQuaBal2],
+            ascend=[True, True, False],
+            group=[CLGroupTruncLeft, CLGroupTruncRight]),        
+       dict(key=CLGrpOrdClTrQuaBal3,  # Meilleur Qualité combinée équilibrée 3 par groupe de troncatures proches
+            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+                  CLCmbQuaBal3],
+            ascend=[True, True, False],
+            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+       dict(key=CLGrpOrdClTrQuaChi2,  # Meilleur Qualité combinée Chi2+ par groupe de troncatures proches
+            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+                  CLCmbQuaChi2],
+            ascend=[True, True, False],
+            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+       dict(key=CLGrpOrdClTrQuaKS,  # Meilleur Qualité combinée KS+ par groupe de troncatures proches
+            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+                  CLCmbQuaKS],
+            ascend=[True, True, False],
+            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+       dict(key=CLGrpOrdClTrQuaDCv,  # Meilleur Qualité combinée DCv+ par groupe de troncatures proches
+            sort=[CLGroupTruncLeft, CLGroupTruncRight,
+                  CLCmbQuaDCv],
+            ascend=[True, True, False],
+            group=[CLGroupTruncLeft, CLGroupTruncRight]),
+        
+       # Ordres globaux (sans groupage par troncatures id. ou proches)
+       dict(key=CLGblOrdChi2KSDCv,
+            sort=[CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
+            ascend=[False, False, True, False, True]),
+       dict(key=CLGblOrdQuaBal1,
+            sort=CLCmbQuaBal1, ascend=False),
+       dict(key=CLGblOrdQuaBal2,
+            sort=CLCmbQuaBal2, ascend=False),
+       dict(key=CLGblOrdQuaBal3,
+            sort=CLCmbQuaBal3, ascend=False),
+       dict(key=CLGblOrdQuaChi2,
+            sort=CLCmbQuaChi2, ascend=False),
+       dict(key=CLGblOrdQuaKS,
+            sort=CLCmbQuaKS, ascend=False),
+       dict(key=CLGblOrdQuaDCv,
+            sort=CLCmbQuaDCv, ascend=False),
+
+       dict(key=CLGblOrdDAicChi2KSDCv,
+            sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
+                  CLDeltaAic, CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
+            ascend=[True, True, True, True, False, False, True, False, True], napos='first'),
+    ]
+
+    # c. Computation of filter and sort keys
+    def _postComputeFilterSortKeys(self):
+        
+        """Ajout des colonnes permettant d'appliquer plus tard les schémas de filtrage / tri"""
+
+        cls = self
+
+        logger.debug('Post-computing Filter and Sort keys')
+
+        for lblSamp, sSamp in self.listSamples().iterrows():
+
+            # Select sample data
+            logger.debug1('#{} {} '.format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()])))
+            dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp].copy()
+
+            # Apply each filter and sort scheme
+            for scheme in cls.AutoFilSorKeySchemes:
+
+                # Sort results
+                dfSampRes.sort_values(by=scheme['sort'], ascending=scheme['ascend'], 
+                                      na_position=scheme.get('napos', 'last'), inplace=True)
+
+                # Compute order (target series is indexed like dfSampRes).
+                if 'group' in scheme:
+                    sSampOrder = dfSampRes.groupby(scheme['group'], dropna=False).cumcount()
+                else:
+                     sSampOrder = pd.Series(data=range(len(dfSampRes)), index=dfSampRes.index)
+
+                # Update result table sample rows (new order column)
+                self._dfData.loc[self._dfData[self.sampleIndCol] == lblSamp, scheme['key']] = sSampOrder
+    
     # Post-computations : All of them.
     def postComputeColumns(self):
         
@@ -947,6 +1273,289 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         self._postComputeDeltaAicDcv()
         self._postComputeQualityIndicators()
         self._postComputeTruncationGroups()
+        self._postComputeFilterSortKeys()
+
+    # Tools for actually filtering results
+    @classmethod
+    def _indexOfDuplicates(cls, dfRes, keep='first', subset=list(), round2decs=dict()):
+        
+        if round2decs:
+            #dfRes = dfRes.round(round2decs) # Buggy (pandas 1.0.x up to 1.1.2): forgets columns !?!?!?
+            dfRes = dfRes.copy()
+            for col, dec in round2decs.items():
+                if not subset or col in subset:
+                    dfRes[col] = dfRes[col].apply(lambda x: x if pd.isnull(x) else round(x, ndigits=dec))
+
+            # Don't use df.round ... because it does not work, at least with pandas 1.0.x up to 1.1.2 !?!?!?
+            #df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() \
+            #                                  if col in df.columns })
+            
+        return dfRes[dfRes.duplicated(keep=keep, subset=subset)].index
+
+    @classmethod
+    def _filterDichotScheme(cls, dfRes, sampleIds, sampleIdCol, critCol, ascendCrit=True,
+                            minCritStep=0.001, nMinRes=10, verbose=False):
+        
+        """Fonction générique de filtrage avec stratégie de contrôle du nombre de résultats conservés
+        via un schéma adaptatif dichotomique de seuillage sur 1 critère (fonction de son domaine réel de valeurs)
+        """
+        
+        # For each sample ...
+        i2Drop = []
+        for sampId in sampleIds:
+
+            # Extract results.
+            dfSampRes = dfRes[dfRes[sampleIdCol] == sampId]
+            if verbose: print('#{}: {} results'.format(sampId, len(dfSampRes)), end=' => ')
+
+            # Compute criteria threshold variation scheme from actual value domain
+            start = dfSampRes[critCol].max() if ascendCrit else dfSampRes[critCol].min()
+            stop = dfSampRes[critCol].min() if ascendCrit else dfSampRes[critCol].max()
+            if verbose: print(f'{critCol} [{start:.3f},{stop:.3f}]', end=': ')
+
+            # No need for tweeking criteria thresholds, we won't get more results.
+            if len(dfSampRes) <= nMinRes:
+                if verbose: print('t={:.3f}/k={}'.format(stop, len(dfSampRes)), end=', ')
+                if verbose: print('done, no more possible.')
+                continue
+            
+            # For each step of the scheme ...
+            i2DropSamp, thresh = [], start
+            while True:
+                
+                # Next try : middle of the interval to explore.
+                threshTry = (start + stop) / 2
+
+                # Try and apply the threshold step : number of dropped results if ...
+                if ascendCrit:
+                    i2DropSampTry = dfSampRes[dfSampRes[critCol] < threshTry].index
+                else:
+                    i2DropSampTry = dfSampRes[dfSampRes[critCol] > threshTry].index
+
+                if verbose: print('t={:.3f}/k={}'.format(threshTry, len(dfSampRes) - len(i2DropSampTry)), end=', ')
+
+                # Stop here if the min number expected of results would be reached
+                if len(dfSampRes) - len(i2DropSampTry) == nMinRes:
+                    i2DropSamp, thresh = i2DropSampTry, threshTry
+                    if verbose: print('done, target reached.')
+                    break
+                    
+                # Stop when no change in list to drop and above the min number expected of results.
+                elif len(i2DropSampTry) == len(i2DropSamp) and abs(start - stop) < minCritStep:
+                    if verbose: print('done, no more change.')
+                    break
+                                
+                # Update criteria interval to explore according to whether we would be
+                #  below or above the min number expected of results if ...
+                if len(dfSampRes) - len(i2DropSampTry) > nMinRes:
+                    if ascendCrit:
+                        stop = threshTry
+                    else:
+                        start = threshTry
+                else:
+                    if ascendCrit:
+                        start = threshTry
+                    else:
+                        stop = threshTry
+                        
+                # Or else, save current try, and go on.
+                i2DropSamp, thresh = i2DropSampTry, threshTry
+
+            # Append index to drop for sample to the final one
+            i2Drop = i2DropSamp if not len(i2Drop) else i2Drop.append(i2DropSamp)
+     
+        return i2Drop
+
+    CLEffort = ('encounter rate', 'effort (L or K or T)', 'Value')
+    CLPDetec = ('detection probability', 'probability of detection (Pw)', 'Value')
+    CLPDetecMin = ('detection probability', 'probability of detection (Pw)', 'Lcl')
+    CLPDetecMax = ('detection probability', 'probability of detection (Pw)', 'Ucl')
+    CLDensity = ('density/abundance', 'density of animals', 'Value')
+    CLDensityMin = ('density/abundance', 'density of animals', 'Lcl')
+    CLDensityMax = ('density/abundance', 'density of animals', 'Ucl')
+
+    MIDupSubsetDef = pd.MultiIndex.from_tuples([CLNObs, CLEffort, CLDeltaAic, CLChi2, CLKS, CLCvMUw, CLCvMCw, CLDCv, 
+                                                CLPDetec, CLPDetecMin, CLPDetecMax,
+                                                CLDensity, CLDensityMin, CLDensityMax])
+    DDupRoundsDef = {CLDeltaAic: 1, CLChi2: 2, CLKS: 2, CLCvMUw: 2, CLCvMCw: 2, CLDCv: 2, 
+                     CLPDetec: 3, CLPDetecMin: 3, CLPDetecMax: 3, CLDensity: 2, CLDensityMin: 2, CLDensityMax: 2}
+
+    @classmethod
+    def _logFilterSortStep(cls, filSorSteps, method, step, propName, propValue):
+
+        filSorSteps.append([method, step, propName, propValue])
+        logger.debug2(f'* {step}: {propName} = {propValue}')
+
+    def filterSortOnExecCode(self, dfRes, nPreSels=5, preSelCol='Qual Equi',
+                             dupSubset=MIDupSubsetDef, dDupRounds=DDupRoundsDef):
+
+        """Minimal filter (drop ExecCode >= 3) and truncation distances + balanced quality sorting
+
+        Parameters:
+        :param : 
+        :param : 
+        :param : 
+        :param : 
+        :param : 
+        :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates
+                          Warning: self.sampleIndCol is automatically prepended to this list if not already inside
+        :param : 
+        """
+
+        cls = self
+
+        method = 'execode'
+        logger.debug1(f'Method "{method}"')
+
+        filSorSteps = list()
+
+        dfFilSorRes = dfRes.copy()
+        cls._logFilterSortStep(filSorSteps, method, 'Before', 'Results', len(dfFilSorRes))
+
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index,
+                         inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1],
+                               'Max', 2)
+        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1],
+                               'Results', len(dfFilSorRes))
+
+        dfFilSorRes.sort_values(by=[self.sampleIndCol, MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
+                                    MCDSAnalysis.CLRunStatus],
+                                ascending=True, na_position='first', inplace=True)
+        if self.sampleIndCol not in dupSubset:
+            dupSubset = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(dupSubset)
+        dfFilSorRes.drop(cls._indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
+                         inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'Duplicates', 'Results', len(dfFilSorRes))
+
+        selPreSelCol = (preSelCol[0], 'Pre-selected ' + preSelCol[1], preSelCol[2])
+        groupCols = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(self.miSampleCols)
+        dfFilSorRes[selPreSelCol] = dfFilSorRes.groupby(groupCols)[preSelCol] \
+                                               .transform(lambda s: s.rank(ascending=False, method='dense'))
+        dfFilSorRes.loc[dfFilSorRes[selPreSelCol] > nPreSels, selPreSelCol] = np.nan
+
+        cls._logFilterSortStep(filSorSteps, method, 'Auto-preselection',
+                               'Nb of preselections', nPreSels)
+        cls._logFilterSortStep(filSorSteps, method, 'Auto-preselection',
+                               'Pre-selection column', preSelCol[1])
+
+        sortCols = [MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
+        dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols,
+                                ascending=True, na_position='first', inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'Sorting',
+                               'Columns', ', '.join(miCol[1] for col in sortCols))
+
+        return dfFilSorRes, ldFilSorSteps
+
+    def filterSortOnAicCKCvQua(self, dfRes, nPreSels=3, preSelCol='Qual Equi',
+                               sightRate=95, nBestAIC=2, nBestQua=1, nResults=10,
+                               dupSubset=MIDupSubsetDef, dDupRounds=DDupRoundsDef):
+
+        """Filtrage et tri proche de 1 mais moins méchant, pour action manuelles de filtrage a posteriori
+        1. Eliminer CodEx 3 et +,
+        2. Par groupe de troncatures Gche et Drte et nb tranches fitting identiques,
+           garder les <nBestAIC> meilleurs AIC & Chi2 & KS & DCv & NObs & CodEx,
+        3. Par groupe de troncatures Gche et Drte proches
+          (algo. de groupage à seuils, analyses optim / non optim séparées), garder :
+            * les <nBestQua> meilleur Chi2 & KS & DCv & NObs & CodEx,
+            * les <nBestQua> meilleur DCv & Chi2 & KS & NObs & CodEx,
+            * les <nBestQua> meilleur indicateurQualitéCombiné(Chi2, KS, DCv, NObs, CodEx),
+        4. Garder les Taux d'obs conservés >= <sightRate> %,
+        5. Garder les <nResults> meilleurs résultats selon indicateurQualitéCombiné(Chi2, KS, DCv, NObs, CodEx),
+        6. Trier par absence / simplicité des troncatures (sans < sans gche < sans drte < avec gche et dte)
+           et ce même indicateur.
+
+        Parameters:
+        :param : 
+        :param : 
+        :param : 
+        :param : 
+        :param : 
+        :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates
+                          Warning: self.sampleIndCol is automatically prepended to this list if not already inside
+        :param : 
+        """
+
+        cls = self
+
+        method = f'ckcvqual{int(sightRate*10)}d{nResults}'
+
+        logger.debug1(f'Method "{method}"')
+
+        filSorSteps = list()
+
+        dfFilSorRes = dfRes.copy()
+        cls._logFilterSortStep(filSorSteps, method, 'Before', 'Results', len(dfFilSorRes))
+
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index,
+                         inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1],
+                               'Max', 2)
+        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1],
+                               'Results', len(dfFilSorRes))
+
+        dfFilSorRes.sort_values(by=[self.sampleIndCol, MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
+                                    MCDSAnalysis.CLRunStatus],
+                                ascending=True, na_position='first', inplace=True)
+        if self.sampleIndCol not in dupSubset:
+            dupSubset = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(dupSubset)
+        dfFilSorRes.drop(cls._indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
+                         inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'Duplicates',
+                               'Results', len(dfFilSorRes))
+
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLGrpOrdSmTrAic] >= nBestAIC].index,
+                         inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, cls.CLGrpOrdSmTrAic[1], 'NbMeilleurs', nBestAIC)
+        cls._logFilterSortStep(filSorSteps, method, cls.CLGrpOrdSmTrAic[1], 'Results', len(dfFilSorRes))
+
+        # TODO: Make used list of indicators customisable
+        dfFilSorRes.drop(dfFilSorRes[(dfFilSorRes[cls.CLGrpOrdClTrChi2KSDCv] >= nBestQua)
+                                     & (dfFilSorRes[cls.CLGrpOrdClTrDCv] >= nBestQua)
+                                     & (dfFilSorRes[cls.CLGrpOrdClTrQuaBal1] >= nBestQua)
+                                     & (dfFilSorRes[cls.CLGrpOrdClTrQuaChi2] >= nBestQua)
+                                     & (dfFilSorRes[cls.CLGrpOrdClTrQuaKS] >= nBestQua)
+                                     & (dfFilSorRes[cls.CLGrpOrdClTrQuaDCv] >= nBestQua)].index,
+                                   # & (dfFilSorRes[cls.CLGrpOrdClTrChi2] > 0)].index,
+                         inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'Best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
+                               'Max (sup) number', nBestQua)
+        cls._logFilterSortStep(filSorSteps, method, 'Best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
+                               'Results', len(dfFilSorRes))
+
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLSightRate] < sightRate].index,
+                         inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'Non-outlier sightings',
+                               'Min %', sightRate)
+        cls._logFilterSortStep(filSorSteps, method, 'Non-outlier sightings',
+                               'Actual number', len(dfFilSorRes))
+
+        dfFilSorRes.drop(cls.filterDichotScheme(dfFilSorRes, critCol='Qual Equi', ascendCrit=True, nMinRes=nResults,
+                                                sampleIds=dfFilSorRes[self.sampleIndCol].unique(),
+                                                sampleIdCol=self.sampleIndCol),
+                         inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'Best Bal1 Quality results',
+                               'Target per sample', nResults)
+        cls._logFilterSortStep(filSorSteps, method, 'Best Bal1 Quality results',
+                               'Actual total number', len(dfFilSorRes))
+
+        selPreSelCol = (preSelCol[0], 'Pre-selected ' + preSelCol[1], preSelCol[2])
+        dfFilSorRes[selPreSelCol] = dfFilSorRes.groupby([self.sampleIndCol] + self.miSampleCols)[preSelCol] \
+                                               .transform(lambda s: s.rank(ascending=False, method='dense'))
+        dfFilSorRes.loc[dfFilSorRes[selPreSelCol] > nPreSels, selPreSelCol] = np.nan
+
+        cls._logFilterSortStep(filSorSteps, method, 'Auto-preselection',
+                               'Nb of preselections', nPreSels)
+        cls._logFilterSortStep(filSorSteps, method, 'Auto-preselection',
+                               'Pre-selection column', preSelCol[1])
+
+        sortCols = [MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
+        dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols,
+                                ascending=True, na_position='first', inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'Sorting',
+                               'Columns', ', '.join(miCol[1] for col in sortCols))
+
+        return dfFilSorRes, filSorSteps
 
 
 class MCDSAnalyser(DSAnalyser):
@@ -962,6 +1571,8 @@ class MCDSAnalyser(DSAnalyser):
                  surveyType='Point', distanceType='Radial', clustering=False,
                  resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
                                       sample=['Species', 'Pass', 'Adult', 'Duration']),
+                 ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
+                                    dict(col='right', minDist=25.0, maxLen=25.0)], truncIntrvEpsilon=1e-6,
                  abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
                  workDir='.', runMethod='subprocess.run', runTimeOut=300, logData=False, logProgressEvery=50,
                  defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
@@ -976,6 +1587,9 @@ class MCDSAnalyser(DSAnalyser):
         :param runTimeOut: time-out for every analysis run (s) (None => no limit)
         :param runMethod: for calling MCDS engine executable : 'os.system' or 'subprocess.run'
         :param timeOut: engine call time limit (s) ; None => no limit ;
+        :param ldTruncIntrvSpecs: separation and length specs for truncation group intervals computation
+                                  (postComputations for automated results filtering and sorting)
+        :param truncIntrvEpsilon: epsilon for truncation group intervals computation (idem)
         """
 
         assert distanceUnit == 'Meter', 'Not implemented: Only "Meter" distance unit supported for the moment'
@@ -1000,6 +1614,9 @@ class MCDSAnalyser(DSAnalyser):
         self.logData = logData
         self.logProgressEvery = logProgressEvery
 
+        self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
+        self.truncIntrvEpsilon = truncIntrvEpsilon
+        
         self.defEstimKeyFn = defEstimKeyFn
         self.defEstimAdjustFn = defEstimAdjustFn
         self.defEstimCriterion = defEstimCriterion
@@ -1071,22 +1688,22 @@ class MCDSAnalyser(DSAnalyser):
                 self.ParmFitDistCuts: sAnIntSpec.get(self.IntSpecFitDistCuts, self.defFitDistCuts),
                 self.ParmDiscrDistCuts: sAnIntSpec.get(self.IntSpecDiscrDistCuts, self.defDiscrDistCuts)}
 
+    DAnlr2ResChapName = dict(before='header (head)', sample='header (sample)', after='header (tail)')
+
     def prepareResultsColumns(self):
         
-        DAnlr2ResChapName = dict(before='header (head)', sample='header (sample)', after='header (tail)')
-
         # a. Sample multi-index columns
         sampleSelCols = self.resultsHeadCols['sample']
-        sampMCols = [(DAnlr2ResChapName['sample'], col, 'Value') for col in sampleSelCols]
+        sampMCols = [(self.DAnlr2ResChapName['sample'], col, 'Value') for col in sampleSelCols]
         miSampCols = pd.MultiIndex.from_tuples(sampMCols)
 
         # b. Full custom multi-index columns to append and prepend to raw analysis results
         beforeCols = self.resultsHeadCols['before']
-        custMCols = [(DAnlr2ResChapName['before'], col, 'Value') for col in beforeCols]
+        custMCols = [(self.DAnlr2ResChapName['before'], col, 'Value') for col in beforeCols]
         custMCols += sampMCols
         
         afterCols = self.resultsHeadCols['after']
-        custMCols += [(DAnlr2ResChapName['after'], col, 'Value') for col in afterCols]
+        custMCols += [(self.DAnlr2ResChapName['after'], col, 'Value') for col in afterCols]
 
         customCols = beforeCols + sampleSelCols + afterCols
         miCustCols = pd.MultiIndex.from_tuples(custMCols)
@@ -1095,7 +1712,7 @@ class MCDSAnalyser(DSAnalyser):
         dfCustColTrans = pd.DataFrame(index=miCustCols, data={lang: customCols for lang in ['fr', 'en']})
 
         # d. The 3-columns index for the sample index column
-        sampIndMCol = (DAnlr2ResChapName[self.sampIndResHChap], self.sampleIndCol, 'Value')
+        sampIndMCol = (self.DAnlr2ResChapName[self.sampIndResHChap], self.sampleIndCol, 'Value')
 
         # e. And finally, the result object (sorted at the end by the analysis or else sample index column)
         if self.anlysIndCol or self.sampleIndCol:
@@ -1119,7 +1736,9 @@ class MCDSAnalyser(DSAnalyser):
                                       sortCols=sortCols, sortAscend=sortAscend,
                                       distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                       surveyType=self.surveyType, distanceType=self.distanceType,
-                                      clustering=self.clustering)
+                                      clustering=self.clustering,
+                                      ldTruncIntrvSpecs=self.ldTruncIntrvSpecs,
+                                      truncIntrvEpsilon=self.truncIntrvEpsilon)
     
     def _getResults(self, dAnlyses):
     

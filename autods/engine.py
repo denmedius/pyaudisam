@@ -378,18 +378,18 @@ class MCDSEngine(DSEngine):
         return cls.DfStatModColsTrans
 
     # Sample stats columns
-    _MIStatSampCols = pd.MultiIndex.from_tuples([('sample stats', 'total number of observations', 'Value'),
-                                                 ('sample stats', 'minimal observation distance', 'Value'),
-                                                 ('sample stats', 'maximal observation distance', 'Value')])
+    MIStatSampCols = pd.MultiIndex.from_tuples([('sample stats', 'total number of observations', 'Value'),
+                                                ('sample stats', 'minimal observation distance', 'Value'),
+                                                ('sample stats', 'maximal observation distance', 'Value')])
 
     @classmethod
     def statSampCols(cls):
         
-        return cls._MIStatSampCols
+        return cls.MIStatSampCols
     
     # Sample stats columns translation
     _DfStatSampColsTrans = \
-        pd.DataFrame(index=_MIStatSampCols,
+        pd.DataFrame(index=MIStatSampCols,
                      data=dict(en=['NTot Obs', 'Min Dist', 'Max Dist'], fr=['NTot Obs', 'Min Dist', 'Max Dist']))
 
     @classmethod
@@ -911,11 +911,7 @@ class MCDSEngine(DSEngine):
         stats = [sum(dfSample[distCol].notnull()), dfSample[distCol].min(), dfSample[distCol].max()]
 
         # Done
-        return pd.Series(data=stats, index=self._MIStatSampCols)
-
-    _MIStatSampCols = pd.MultiIndex.from_tuples([('sample stats', 'total number of observations', 'Value'),
-                                                 ('sample stats', 'minimal observation distance', 'Value'),
-                                                 ('sample stats', 'maximal observation distance', 'Value')])
+        return pd.Series(data=stats, index=self.MIStatSampCols)
 
     # Build Distance/MCDS input data file from a sample data set to given target folder and file name.
     def buildDistanceDataFile(self, sampleDataSet, tgtFilePathName, decimalPoint=',', withExtraFields=False):

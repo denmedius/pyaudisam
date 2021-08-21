@@ -37,7 +37,9 @@ class DSAnalysis(object):
     EngineClass = DSEngine
     
     # Run columns for output : root engine output (3-level multi-index)
-    RunRunColumns = [('run output', 'run status', 'Value'),
+    CLRunStatus = ('run output', 'run status', 'Value')
+
+    RunRunColumns = [CLRunStatus,
                      ('run output', 'start time', 'Value'),
                      ('run output', 'elapsed time', 'Value'),
                      ('run output', 'run folder', 'Value')]
@@ -172,13 +174,15 @@ class MCDSAnalysis(DSAnalysis):
         self.discrDistCuts = discrDistCuts
     
     # Run columns for output : analysis params + root engine output (3-level multi-index)
+    CLParTruncLeft  = ('parameters', 'left truncation distance', 'Value')
+    CLParTruncRight = ('parameters', 'right truncation distance', 'Value')
+    CLParModFitDistCuts = ('parameters', 'model fitting distance cut points', 'Value')
+
     MIRunColumns = pd.MultiIndex.from_tuples([('parameters', 'estimator key function', 'Value'),
                                               ('parameters', 'estimator adjustment series', 'Value'),
                                               ('parameters', 'estimator selection criterion', 'Value'),
                                               ('parameters', 'CV interval', 'Value'),
-                                              ('parameters', 'left truncation distance', 'Value'),
-                                              ('parameters', 'right truncation distance', 'Value'),
-                                              ('parameters', 'model fitting distance cut points', 'Value'),
+                                              CLParTruncLeft, CLParTruncRight, CLParModFitDistCuts,
                                               ('parameters', 'distance discretisation cut points', 'Value')] \
                                              + DSAnalysis.RunRunColumns)
     

@@ -23,6 +23,7 @@ import autods.log as log
 logger = log.logger('ads.onr')
 
 from autods.engine import MCDSEngine
+from autods.analysis import MCDSAnalysis
 from autods.analyser import MCDSAnalyser, MCDSAnalysisResultsSet
 from autods.optimiser import MCDSTruncationOptimiser, MCDSZerothOrderTruncationOptimiser
 
@@ -31,12 +32,11 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
 
     """A specialized results set for MCDS optanalysers"""
 
-    # Shortcut to real truncation params columns names.
-    DCLParTruncDist = dict(left=MCDSAnalysisResultsSet.CLParTruncLeft, 
-                           right=MCDSAnalysisResultsSet.CLParTruncRight)
+    Super = MCDSAnalysisResultsSet
 
     # Name of the spec. column to hold the "is truncation stuff optimised" 0/1 flag.
     OptimTruncFlagCol = 'OptimTrunc'
+    CLOptimTruncFlag = ('header (tail)', OptimTruncFlagCol, 'Value')
     
     # Computed column labels
     #CL = ('', '', 'Value')
@@ -53,13 +53,11 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
         super().__init__(miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
                          miSampleCols=miSampleCols, sampleIndCol=sampleIndCol,
                          sortCols=sortCols, sortAscend=sortAscend, distanceUnit=distanceUnit, areaUnit=areaUnit,
-                         surveyType=surveyType, distanceType=distanceType, clustering=clustering)
+                         surveyType=surveyType, distanceType=distanceType, clustering=clustering,
+                         ldTruncIntrvSpecs=ldTruncIntrvSpecs,
+                         truncIntrvEpsilon=truncIntrvEpsilon)
 
-        self.optimTruncFlagMCol = next(mCol for mCol in self.miCustomCols if mCol[1] == self.OptimTruncFlagCol)
-
-        assert all(spec['col'] in self.DCLParTruncDist for spec in ldTruncIntrvSpecs)
-        self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
-        self.truncIntrvEpsilon = truncIntrvEpsilon
+        assert self.CLOptimTruncFlag in self.miCustomCols
 
     def copy(self, withData=True):
     
@@ -88,14 +86,8 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
         
         logger.debug('Post-computing Truncation Groups')
 
-        # List samples
-        dfSamples = self._dfData[pd.MultiIndex.from_tuples([self.sampleIndCol]).append(self.miSampleCols)]
-        dfSamples = dfSamples.drop_duplicates()
-        dfSamples.set_index(self.sampleIndCol, inplace=True)
-        assert len(dfSamples) == dfSamples.index.nunique()
-
         # For each sample,
-        for lblSamp, sSamp in dfSamples.iterrows():
+        for lblSamp, sSamp in self.listSamples().iterrows():
             
             logger.debug1('#{} {} '.format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()])))
 
@@ -103,12 +95,12 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
             dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp]
 
             # For each truncation type (optimised or not),
-            for isOpt in sorted(dfSampRes[self.optimTruncFlagMCol].unique()):
+            for isOpt in sorted(dfSampRes[self.CLOptimTruncFlag].unique()):
                 
-                logger.debug2('* {}optimised'.format('' if isOpt else 'non ').title())
+                logger.debug2('* {}optimised'.format('' if isOpt else 'un').title())
 
                 # Select results for this truncation type
-                dfSampResPerOpt = dfSampRes[dfSampRes[self.optimTruncFlagMCol] == isOpt]
+                dfSampResPerOpt = dfSampRes[dfSampRes[self.CLOptimTruncFlag] == isOpt]
 
                 # For each truncation "method" (left or right)
                 for dTrunc in self.ldTruncIntrvSpecs:
@@ -176,13 +168,98 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
 
                     # Update result table : Assign positive interval = "truncation group" number
                     # to each truncation distance (special case when no truncation: num=0 if NaN truncation distance)
-                    sb = (self._dfData[self.sampleIndCol] == lblSamp) & (self._dfData[self.optimTruncFlagMCol] == isOpt)
+                    sb = (self._dfData[self.sampleIndCol] == lblSamp) & (self._dfData[self.CLOptimTruncFlag] == isOpt)
                     def truncationIntervalNumber(d):
                         return 0 if pd.isnull(d) else 1 + dfIntrv[(dfIntrv.dMin <= d) & (dfIntrv.dSup > d)].index[0]
-                    self._dfData.loc[sb, (self.CLCAFilSor, truncCol[1], self.CLTTruncGroup)] = \
+                    self._dfData.loc[sb, (self.CLCAutoFilSor, truncCol[1], self.CLTTruncGroup)] = \
                         self._dfData.loc[sb, truncCol].apply(truncationIntervalNumber) 
 
                 logger.debug1(f'  => {len(dfSampResPerOpt)} rows')
+
+    # Post computations : Schemes for computing filtering and sorting keys (see inherited _postComputeFilterSortKeys).
+    AutoFilSorKeySchemes = \
+    [  # Ordre dans groupe.
+       dict(key=Super.CLGrpOrdSmTrAic,  # Meilleur AIC, à troncatures D et G identiques (avec variantes de nb tranches)
+            sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
+                  Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+            ascend=[True, True, True, False, False, True, False, True],
+            group=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts]),
+        
+#       dict(key=Super.CLGrpOrdClTrChi2,  # Meilleur Chi2 par groupe de troncatures proches
+#            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+#                  Super.CLChi2],
+#            ascend=[True, True, True, False],
+#            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+#       dict(key=Super.CLGrpOrdClTrKS,  # Meilleur KS par groupe de troncatures proches
+#            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+#                  Super.CLKS],
+#            ascend=[True, True, True, False],
+#            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+       dict(key=Super.CLGrpOrdClTrDCv,  # Meilleur DCv par groupe de troncatures proches
+            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                  Super.CLDCv],
+            ascend=[True, True, True, True],
+            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+       dict(key=Super.CLGrpOrdClTrChi2KSDCv,  # Meilleur Chi2 & KS & DCv par groupe de troncatures proches
+            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                  Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+            ascend=[True, True, True, False, False, True, False, True],
+            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+        
+       dict(key=Super.CLGrpOrdClTrQuaBal1,  # Meilleur Qualité combinée équilibrée 1 par groupe de troncatures proches
+            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                  Super.CLCmbQuaBal1],
+            ascend=[True, True, True, False],
+            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+       dict(key=Super.CLGrpOrdClTrQuaBal2,  # Meilleur Qualité combinée équilibrée 2 par groupe de troncatures proches
+            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                  Super.CLCmbQuaBal2],
+            ascend=[True, True, True, False],
+            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),        
+       dict(key=Super.CLGrpOrdClTrQuaBal3,  # Meilleur Qualité combinée équilibrée 3 par groupe de troncatures proches
+            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                  Super.CLCmbQuaBal3],
+            ascend=[True, True, True, False],
+            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+       dict(key=Super.CLGrpOrdClTrQuaChi2,  # Meilleur Qualité combinée Chi2+ par groupe de troncatures proches
+            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                  Super.CLCmbQuaChi2],
+            ascend=[True, True, True, False],
+            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+       dict(key=Super.CLGrpOrdClTrQuaKS,  # Meilleur Qualité combinée KS+ par groupe de troncatures proches
+            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                  Super.CLCmbQuaKS],
+            ascend=[True, True, True, False],
+            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+       dict(key=Super.CLGrpOrdClTrQuaDCv,  # Meilleur Qualité combinée DCv+ par groupe de troncatures proches
+            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                  Super.CLCmbQuaDCv],
+            ascend=[True, True, True, False],
+            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+        
+       # Ordres globaux (sans groupage par troncatures id. ou proches)
+       dict(key=Super.CLGblOrdChi2KSDCv,
+            sort=[Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+            ascend=[False, False, True, False, True]),
+       dict(key=Super.CLGblOrdQuaBal1,
+            sort=Super.CLCmbQuaBal1, ascend=False),
+       dict(key=Super.CLGblOrdQuaBal2,
+            sort=Super.CLCmbQuaBal2, ascend=False),
+       dict(key=Super.CLGblOrdQuaBal3,
+            sort=Super.CLCmbQuaBal3, ascend=False),
+       dict(key=Super.CLGblOrdQuaChi2,
+            sort=Super.CLCmbQuaChi2, ascend=False),
+       dict(key=Super.CLGblOrdQuaKS,
+            sort=Super.CLCmbQuaKS, ascend=False),
+       dict(key=Super.CLGblOrdQuaDCv,
+            sort=Super.CLCmbQuaDCv, ascend=False),
+
+       dict(key=Super.CLGblOrdDAicChi2KSDCv,
+            sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
+                  Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+            ascend=[True, True, True,
+                    True, False, False, True, False, True], napos='first'),
+    ]
 
 
 class MCDSTruncationOptanalyser(MCDSAnalyser):
@@ -193,29 +270,29 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
     OptimTruncFlagCol = MCDSTruncOptanalysisResultsSet.OptimTruncFlagCol
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
-                       abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
-                       distanceUnit='Meter', areaUnit='Hectare',
-                       surveyType='Point', distanceType='Radial', clustering=False,
-                       resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
-                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
-                                          dict(col='right', minDist=25.0, maxLen=25.0)], truncIntrvEpsilon=1e-6,
-                       workDir='.', runMethod='subprocess.run', runTimeOut=300, logData=False,
-                       logAnlysProgressEvery=50, logOptimProgressEvery=5, backupOptimEvery=50, autoClean=True,
-                       defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
-                       defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
-                       defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
-                       defFitDistCuts=MCDSEngine.DistFitCutsDef, defDiscrDistCuts=MCDSEngine.DistDiscrCutsDef,
-                       defExpr2Optimise='chi2', defMinimiseExpr=False,
-                       defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
-                       defFitDistCutsFctr=dict(min=2/3, max=3/2),
-                       defDiscrDistCutsFctr=dict(min=1/3, max=1),
-                       defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
-                       dDefOptimCoreParams=dict(core='zoopt', maxIters=100, termExprValue=None,
-                                                algorithm='racos', maxRetries=0)):
+                 transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                 sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
+                 sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
+                 abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
+                 distanceUnit='Meter', areaUnit='Hectare',
+                 surveyType='Point', distanceType='Radial', clustering=False,
+                 resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
+                                      sample=['Species', 'Pass', 'Adult', 'Duration']),
+                 ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
+                                    dict(col='right', minDist=25.0, maxLen=25.0)], truncIntrvEpsilon=1e-6,
+                 workDir='.', runMethod='subprocess.run', runTimeOut=300, logData=False,
+                 logAnlysProgressEvery=50, logOptimProgressEvery=5, backupOptimEvery=50, autoClean=True,
+                 defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
+                 defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
+                 defMinDist=MCDSEngine.DistMinDef, defMaxDist=MCDSEngine.DistMaxDef, 
+                 defFitDistCuts=MCDSEngine.DistFitCutsDef, defDiscrDistCuts=MCDSEngine.DistDiscrCutsDef,
+                 defExpr2Optimise='chi2', defMinimiseExpr=False,
+                 defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
+                 defFitDistCutsFctr=dict(min=2/3, max=3/2),
+                 defDiscrDistCutsFctr=dict(min=1/3, max=1),
+                 defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
+                 dDefOptimCoreParams=dict(core='zoopt', maxIters=100, termExprValue=None,
+                                          algorithm='racos', maxRetries=0)):
 
         """Ctor
         
@@ -247,6 +324,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                          anlysSpecCustCols=anlysSpecCustCols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          resultsHeadCols=resultsHeadCols,
+                         ldTruncIntrvSpecs=ldTruncIntrvSpecs, truncIntrvEpsilon=truncIntrvEpsilon,
                          workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut,
                          logData=logData, logProgressEvery=logAnlysProgressEvery,
                          defEstimKeyFn=defEstimKeyFn, defEstimAdjustFn=defEstimAdjustFn,
@@ -261,9 +339,6 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         self.backupOptimEvery = backupOptimEvery
         self.autoClean = autoClean
 
-        self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
-        self.truncIntrvEpsilon = truncIntrvEpsilon
-        
         # Default values for optimisation parameters.
         self.defExpr2Optimise = defExpr2Optimise
         self.defMinimiseExpr = defMinimiseExpr
