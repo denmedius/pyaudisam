@@ -286,22 +286,49 @@ def test_DataSet_dfSubData(sources_fxt):
     assert id(df) != id(ds.dfData), 'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "copy = True", \
     subset of DataFrame should be a copy of data, not a reference to the subset of source DataFrame.'
 
-    # subset = as list
-    df = ds.dfSubData(subset=['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT'])
+    # columns = as an empty list
+    df = ds.dfSubData(columns=[])
+    assert df.compare(ds.dfData).empty, 'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "columns=[]", \
+    df should be equal source DataSet.'
+
+    # columns = as list
+    df = ds.dfSubData(columns=['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT'])
     assert df.compare(ds.dfData.reindex(columns=['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT'])).empty, \
-        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "None", df should be a copy of source DataSet.'
+        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred with "columns=list(...)".'
 
-    # subset = as pandas.index
-    df = ds.dfSubData(subset=pd.Index(['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']))
-    assert df.compare(ds.dfSubData(subset=pd.Index(['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']))).empty, \
-        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "None", df should be a copy of source DataSet.'
+    # columns = as pandas.Index
+    df = ds.dfSubData(columns=pd.Index(['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']))
+    assert df.compare(ds.dfData.reindex(columns=['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT'])).empty, \
+        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred with "columns=Index(...)".'
 
-    # subset = as other (str)
+    # columns = as other (str)
     # Check Exception raising
     with pytest.raises(Exception) as e:
-        df = ds.dfSubData(subset='POINT')
+        df = ds.dfSubData(columns='POINT')
     logger.info0('PASS (test_DataSet_dfSubData) => EXCEPTION RAISED AS AWAITED with the \
     following Exception message:\n{}'.format(e))
+
+    # TODO: columns with MultiIndexed-columned dataset
+
+    # columns = as an empty list
+    df = ds.dfSubData(index=[])
+    assert df.empty, \
+        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred. With "index=[]", df should be empty.'
+
+    # index = as list
+    df = ds.dfSubData(index=[1, 4, 7, 9, 38])
+    assert df.compare(ds.dfData.loc[[1, 4, 7, 9, 38]]).empty, \
+        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred with "columns=list(...)".'
+
+    # index = as pandas.Index
+    df = ds.dfSubData(index=pd.Index([1, 4, 7, 9, 38]))
+    assert df.compare(ds.dfData.loc[[1, 4, 7, 9, 38]]).empty, \
+        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred with "columns=Index(...)".'
+
+    # index = as range
+    df = ds.dfSubData(index=range(1, 300, 3))
+    assert df.compare(ds.dfData.loc[range(1, 300, 3)]).empty, \
+        'Error: test_DataSet_dfSubData: dfSubData: Issue occurred with "columns=range(...)".'
 
     logger.info0('PASS (test_DataSet_dfSubData) => DATASET => method "dfSubData"')
 
@@ -356,7 +383,7 @@ def test_DataSet_dropRows(sources_fxt):
 
 # DATASET TESTS
 # test methods "toExcel", "toOpenDoc", "toPickle", "compareDataFrames"
-def test_toFiles(sources_fxt):
+def test_DataSet_toFiles(sources_fxt):
 
     ds = ads.DataSet(sources_fxt, importDecFields=['EFFORT', 'DISTANCE', 'NOMBRE'],
                      dRenameCols={'NOMBRE': 'INDIVIDUS'}, dComputeCols={'MALE': male2bool},
@@ -367,7 +394,7 @@ def test_toFiles(sources_fxt):
     closenessThreshold = 15  # => max relative delta = 1e-15
     subsetCols = ['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']
     filePathName = pl.Path('tmp') / 'dataset-uni.ods'
-    dfRef = ds.dfSubData(subsetCols).reset_index(drop=True)
+    dfRef = ds.dfSubData(columns=subsetCols).reset_index(drop=True)
 
     for fpn in [filePathName, filePathName.with_suffix('.xlsx'), filePathName.with_suffix('.xls'),
                 filePathName.with_suffix('.pickle'), filePathName.with_suffix('.pickle.xz')]:
@@ -379,7 +406,7 @@ def test_toFiles(sources_fxt):
             ds.toExcel(fpn, sheetName='utest', subset=subsetCols, index=False)
         elif fpn.suffix in ['.pickle', '.xz']:
             ds.toPickle(fpn, subset=subsetCols, index=False)
-        assert fpn.is_file(), 'Error: test_toFiles'
+        assert fpn.is_file(), 'Error: test_DataSet_toFiles'
 
         if fpn.suffix in ['.ods', '.xlsx', '.xls']:
             df = pd.read_excel(fpn, sheet_name='utest')
@@ -391,9 +418,10 @@ def test_toFiles(sources_fxt):
                                     indexCols=['index'], dropCloser=closenessThreshold, dropNans=True).empty
         print('1e-{} comparison OK (df.equals(dfRef) is {}, df.compare(dfRef) {}empty)'.
               format(closenessThreshold, df.equals(dfRef), '' if df.compare(dfRef).empty else 'not')), \
-            'Error: test_toFiles'
+            'Error: test_DataSet_toFiles'
 
-    logger.info0('PASS (test_toFiles) => DATASET => method "toExcel", "toOpenDoc", "toPickle", "compareDataFrames"')
+    logger.info0('PASS (test_DataSet_toFiles) => DATASET => method "toExcel",'
+                 ' "toOpenDoc", "toPickle", "compareDataFrames"')
 
 
 # Test of the base function for comparison (test from static hard-coded data, not from loaded DataSets)

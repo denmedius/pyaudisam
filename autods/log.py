@@ -93,7 +93,7 @@ class Logger(logging.Logger):
         # Configure root logger (assuming children have propagate=on).
         # Note: Setting handlers for multiple children rather than once and for all for root ...
         #        gives bad things on FileHandlers, with many missing / intermixed / unsorted lines ...
-        #        => unusable. Whereas it semms to work well with StreamHandlers
+        #        => unusable. Whereas it seems to work well with StreamHandlers
         root = logging.getLogger()
 
         if reset:

@@ -162,14 +162,19 @@ class DataSet(object):
         return len(self._dfData)
     
     @property
+    def empty(self):
+        
+        return self._dfData.empty
+
+    @property
     def columns(self):
         
         return self._dfData.columns
 
     @property
-    def empty(self):
+    def index(self):
         
-        return self._dfData.empty
+        return self._dfData.index
 
     @property
     def dfData(self):
@@ -181,26 +186,37 @@ class DataSet(object):
         
         raise NotImplementedError('No change allowed to data ; create a new dataset !')
 
-    def dfSubData(self, subset=None, copy=False):
+    def dfSubData(self, index=None, columns=None, copy=False):
     
-        """Get a subset of the table columns
-        :param subset: columns to select, as a list(string or tuple) or pd.Index (possibly Multi.),
-                       or None (all columns selected)
-        :param copy: if True, return a full copy of the data, not a "reference" to the internal table
+        """Get a subset of the all-results table rows and columns
+
+        Parameters:
+        :param index: rows to select, as an iterable of a subset of self.dfData.index values
+                      (anything suitable for pd.DataFrame.loc[...]) ; None = all rows.
+        :param columns: columns to select, as a list(string) or pd.Index when mono-indexed columns
+                       or as a list(tuple(string*)) or pd.MultiIndex when multi-indexed ; None = all columns.
+        :param copy: if True, return a full copy of the selected data, not a "reference" to the internal table
         """
         
-        assert subset is None or isinstance(subset, list) or isinstance(subset, pd.Index), \
-               'subset columns must be specified as None (all), or as a list, or as a pandas.Index'
+        assert columns is None or isinstance(columns, list) or isinstance(columns, (pd.Index, pd.MultiIndex)), \
+               'columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
 
         # Make a copy of / extract selected columns of dfData.
-        if subset is None:
+        if columns is None or len(columns) == 0:
             dfSbData = self.dfData
         else:
-            dfSbData = self.dfData.reindex(columns=subset)
+            if isinstance(self._dfData.columns, pd.MultiIndex) and isinstance(columns, list):
+                iColumns = pd.MultiIndex.from_tuples(columns)
+            else:
+                iColumns = columns
+            dfSbData = self.dfData.reindex(columns=iColumns)
         
+        if index is not None:
+            dfSbData = dfSbData.loc[index]
+
         if copy:
             dfSbData = dfSbData.copy()
-        
+            
         return dfSbData
 
     def dropColumns(self, cols):
@@ -257,7 +273,7 @@ class DataSet(object):
         
         start = pd.Timestamp.now()
 
-        dfOutData = self.dfSubData(subset=subset)
+        dfOutData = self.dfSubData(columns=subset)
         if not index:
             dfOutData = dfOutData.reset_index(drop=True)
 
@@ -282,7 +298,7 @@ class DataSet(object):
         :param engine: None => auto-selection from file extension ; otherwise, use xlrd, openpyxl or odf.
         """
 
-        dfOutData = self.dfSubData(subset=subset)
+        dfOutData = self.dfSubData(columns=subset)
         
         dfOutData.to_excel(fileName, sheet_name=sheetName or 'AllResults',
                            index=index, engine=engine)
@@ -930,6 +946,11 @@ class ResultsSet(object):
     
         return self.dfData.columns
         
+    @property
+    def index(self):
+        
+        return self._dfData.index
+
     def dropRows(self, sbSelRows):
     
         """Drop specific rows in-place, selected through boolean indexing on self.dfData
@@ -1176,39 +1197,55 @@ class ResultsSet(object):
         
         return self.dfCustomColTrans[lang].to_list()
     
-    def dfSubData(self, subset=None, copy=False):
+    def dfSubData(self, index=None, columns=None, copy=False):
     
-        """Get a subset of the all-results table columns
-        :param subset: columns to select, as a list(string) or pd.Index when mono-indexed columns
-                                       or as a list(tuple(string*)) or pd.MultiIndex wehn multi-indexed.
-        :param copy: if True, return a full copy of the data, not a "reference" to the internal table
+        """Get a subset of the all-results table rows and columns
+
+        Parameters:
+        :param index: rows to select, as an iterable of a subset of self.dfData.index values
+                      (anything suitable for pd.DataFrame.loc[...]) ; None = all rows.
+        :param columns: columns to select, as a list(string) or pd.Index when mono-indexed columns
+        :param copy: if True, return a full copy of the selected data, not a "reference" to the internal table
         """
         
-        assert subset is None or isinstance(subset, list) or isinstance(subset, (pd.Index, pd.MultiIndex)), \
-               'subset columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
+        assert columns is None or isinstance(columns, list) or isinstance(columns, (pd.Index, pd.MultiIndex)), \
+               'columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
 
         # Make a copy of / extract selected columns of dfData.
-        if subset is None:
+        if columns is None or len(columns) == 0:
             dfSbData = self.dfData
         else:
-            if self.isMultiIndexedCols and isinstance(subset, list):
-                iSubset = pd.MultiIndex.from_tuples(subset)
+            if self.isMultiIndexedCols and isinstance(columns, list):
+                iColumns = pd.MultiIndex.from_tuples(columns)
             else:
-                iSubset = subset
-            dfSbData = self.dfData.reindex(columns=iSubset)
+                iColumns = columns
+            dfSbData = self.dfData.reindex(columns=iColumns)
         
+        if index is not None:
+            dfSbData = dfSbData.loc[index]
+
         if copy:
             dfSbData = dfSbData.copy()
             
         return dfSbData
 
     # Access a mono-indexed translated columns version of the data table
-    def dfTransData(self, lang='en', subset=None):
+    def dfTransData(self, lang='en', index=None, columns=None, copy=True):
         
+        """Get a subset of the all-results table rows and columns with translated column names (mono-index)
+
+        Parameters:
+        :param lang: target language for translation ('en' or 'fr')
+        :param index: rows to select, as a list(int) or pd.Index (subset of self.dfData.index) ; None = all rows.
+        :param columns: columns to select, as a list(string) or pd.Index when mono-indexed columns
+                       or as a list(tuple(string*)) or pd.MultiIndex when multi-indexed ; None = all columns.
+        :param copy: if True, return a full copy of the selected data, not a "reference" to the internal table
+        """
+
         assert lang in ['en', 'fr'], 'No support for "{}" language'.format(lang)
         
-        # Extract and copy selected columns of dfData.
-        dfTrData = self.dfSubData(subset=subset, copy=True)
+        # Extract (and may be copy) selected rows and columns of dfData.
+        dfTrData = self.dfSubData(index=index, columns=columns, copy=copy)
         
         # Translate column names.
         dfTrData.columns = self.transColumns(dfTrData.columns, lang)
@@ -1296,8 +1333,8 @@ class ResultsSet(object):
 
         start = pd.Timestamp.now()
         
-        dfOutData = self.dfSubData(subset=subset) \
-                    if lang is None else self.dfTransData(subset=subset, lang=lang)
+        dfOutData = self.dfSubData(columns=subset) \
+                    if lang is None else self.dfTransData(columns=subset, lang=lang)
         
         with pd.ExcelWriter(fileName, engine=engine) as xlWrtr:
             dfOutData.to_excel(xlWrtr, sheet_name=sheetName or self.DefAllResultsSheetName, index=index)
