@@ -89,10 +89,10 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
         # For each sample,
         for lblSamp, sSamp in self.listSamples().iterrows():
             
-            logger.debug1('#{} {} '.format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()])))
-
             # Select sample results
             dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp]
+            logger.debug1('#{} {} : {} rows '
+                          .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
 
             # For each truncation type (optimised or not),
             for isOpt in sorted(dfSampRes[self.CLOptimTruncFlag].unique()):
@@ -242,17 +242,17 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
             sort=[Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
             ascend=[False, False, True, False, True]),
        dict(key=Super.CLGblOrdQuaBal1,
-            sort=Super.CLCmbQuaBal1, ascend=False),
+            sort=[Super.CLCmbQuaBal1], ascend=False),
        dict(key=Super.CLGblOrdQuaBal2,
-            sort=Super.CLCmbQuaBal2, ascend=False),
+            sort=[Super.CLCmbQuaBal2], ascend=False),
        dict(key=Super.CLGblOrdQuaBal3,
-            sort=Super.CLCmbQuaBal3, ascend=False),
+            sort=[Super.CLCmbQuaBal3], ascend=False),
        dict(key=Super.CLGblOrdQuaChi2,
-            sort=Super.CLCmbQuaChi2, ascend=False),
+            sort=[Super.CLCmbQuaChi2], ascend=False),
        dict(key=Super.CLGblOrdQuaKS,
-            sort=Super.CLCmbQuaKS, ascend=False),
+            sort=[Super.CLCmbQuaKS], ascend=False),
        dict(key=Super.CLGblOrdQuaDCv,
-            sort=Super.CLCmbQuaDCv, ascend=False),
+            sort=[Super.CLCmbQuaDCv], ascend=False),
 
        dict(key=Super.CLGblOrdDAicChi2KSDCv,
             sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
@@ -260,6 +260,21 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
             ascend=[True, True, True,
                     True, False, False, True, False, True], napos='first'),
     ]
+
+    # Enforce unicity of keys in filter and sort key specs.
+    assert len(AutoFilSorKeySchemes) == len(set(scheme['key'] for scheme in AutoFilSorKeySchemes)), \
+           'Duplicated scheme key in MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes'
+
+    # Enforce unicity of sort and group column in filter and sort key specs.
+    assert all(len(scheme['sort']) == len(set(scheme['sort'])) for scheme in AutoFilSorKeySchemes), \
+           'Duplicated sort column spec in some scheme of MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes'
+    assert all(len(scheme.get('group', [])) == len(set(scheme.get('group', []))) for scheme in AutoFilSorKeySchemes), \
+           'Duplicated group column spec in some scheme of MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes'
+
+    # Check sort vs ascend list lengths in filter and sort key specs.
+    assert all(isinstance(scheme['ascend'], bool) or len(scheme['ascend']) == len(scheme['sort'])
+               for scheme in AutoFilSorKeySchemes), \
+           'Unconsistent ascend vs sort specs in some scheme of MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes'
 
 
 class MCDSTruncationOptanalyser(MCDSAnalyser):
@@ -476,7 +491,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
             # c. Merge optimisation results into param. specs.
             # * Extract computed (= optimised) analysis params.
             dfOptimRes = \
-                optimResults.dfSubData(subset=[self.anlysIndCol] + optimResults.optimisationTargetColumns())
+                optimResults.dfSubData(columns=[self.anlysIndCol] + optimResults.optimisationTargetColumns())
             dfOptimRes.set_index(self.anlysIndCol, inplace=True)
             dfOptimRes.sort_index(inplace=True)
             

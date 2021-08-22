@@ -1052,7 +1052,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         if rebuild or self.dfSamples is None:
 
-            self.dfSamples = self._dfData[pd.MultiIndex.from_tuples([self.sampleIndCol]).append(self.miSampleCols)]
+            miSampleCols = self.miSampleCols
+            if self.sampleIndCol not in miSampleCols:
+                miSampleCols = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(miSampleCols)
+            self.dfSamples = self._dfData[miSampleCols]
             self.dfSamples = self.dfSamples.drop_duplicates()
             self.dfSamples.set_index(self.sampleIndCol, inplace=True)
             assert len(self.dfSamples) == self.dfSamples.index.nunique()
@@ -1067,10 +1070,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # For each sample,
         for lblSamp, sSamp in self.listSamples().iterrows():
             
-            logger.debug1('#{} {} '.format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()])))
-
             # Select sample results
             dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp]
+            logger.debug1('#{} {} : {} rows '
+                          .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
 
             # For each truncation "method" (left or right)
             for dTrunc in self.ldTruncIntrvSpecs:
@@ -1217,17 +1220,17 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             sort=[CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
             ascend=[False, False, True, False, True]),
        dict(key=CLGblOrdQuaBal1,
-            sort=CLCmbQuaBal1, ascend=False),
+            sort=[CLCmbQuaBal1], ascend=False),
        dict(key=CLGblOrdQuaBal2,
-            sort=CLCmbQuaBal2, ascend=False),
+            sort=[CLCmbQuaBal2], ascend=False),
        dict(key=CLGblOrdQuaBal3,
-            sort=CLCmbQuaBal3, ascend=False),
+            sort=[CLCmbQuaBal3], ascend=False),
        dict(key=CLGblOrdQuaChi2,
-            sort=CLCmbQuaChi2, ascend=False),
+            sort=[CLCmbQuaChi2], ascend=False),
        dict(key=CLGblOrdQuaKS,
-            sort=CLCmbQuaKS, ascend=False),
+            sort=[CLCmbQuaKS], ascend=False),
        dict(key=CLGblOrdQuaDCv,
-            sort=CLCmbQuaDCv, ascend=False),
+            sort=[CLCmbQuaDCv], ascend=False),
 
        dict(key=CLGblOrdDAicChi2KSDCv,
             sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
@@ -1235,10 +1238,60 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             ascend=[True, True, True, True, False, False, True, False, True], napos='first'),
     ]
 
+    # Enforce unicity of keys in filter and sort key specs.
+    assert len(AutoFilSorKeySchemes) == len(set(scheme['key'] for scheme in AutoFilSorKeySchemes)), \
+           'Duplicated scheme key in MCDSAnalysisResultsSet.AutoFilSorKeySchemes'
+
+    # Enforce unicity of sort and group column in filter and sort key specs.
+    assert all(len(scheme['sort']) == len(set(scheme['sort'])) for scheme in AutoFilSorKeySchemes), \
+           'Duplicated sort column spec in some scheme of MCDSAnalysisResultsSet.AutoFilSorKeySchemes'
+    assert all(len(scheme.get('group', [])) == len(set(scheme.get('group', []))) for scheme in AutoFilSorKeySchemes), \
+           'Duplicated group column spec in some scheme of MCDSAnalysisResultsSet.AutoFilSorKeySchemes'
+
+    # Check sort vs ascend list lengths in filter and sort key specs.
+    assert all(isinstance(scheme['ascend'], bool) or len(scheme['ascend']) == len(scheme['sort'])
+               for scheme in AutoFilSorKeySchemes), \
+           'Unconsistent ascend vs sort specs in some scheme of MCDSAnalysisResultsSet.AutoFilSorKeySchemes'
+
     # c. Computation of filter and sort keys
+
+    # Make results cell values hashable (needed for sorting in _postComputeFilterSortKeys)
+    @staticmethod
+    def _toSortable(value):
+
+        if isinstance(value, list):
+            return len(value)
+        elif isinstance(value, (int, float, str)) or pd.isnull(value):
+            return value
+        else:
+            raise NotImplementedError
+
+    DCLUnsortableCols = \
+        {MCDSAnalysis.CLParModFitDistCuts:
+            (MCDSAnalysis.CLParModFitDistCuts[0], MCDSAnalysis.CLParModFitDistCuts[1], 'Sortable'),
+         MCDSAnalysis.CLParModDiscrDistCuts:
+            (MCDSAnalysis.CLParModDiscrDistCuts[0], MCDSAnalysis.CLParModDiscrDistCuts[1], 'Sortable')}
+
+    # Make results cell values hashable (needed for grouping in _postComputeFilterSortKeys)
+    @staticmethod
+    def _toHashable(value):
+    
+        if isinstance(value, list):
+            return ','.join(str(v) for v in value)
+        elif isinstance(value, (int, float, str)) or pd.isnull(value):
+            return value
+        else:
+            return str(value)
+
+    DCLUnhashableCols = \
+        {MCDSAnalysis.CLParModFitDistCuts:
+            (MCDSAnalysis.CLParModFitDistCuts[0], MCDSAnalysis.CLParModFitDistCuts[1], 'Hashable'),
+         MCDSAnalysis.CLParModDiscrDistCuts:
+            (MCDSAnalysis.CLParModDiscrDistCuts[0], MCDSAnalysis.CLParModDiscrDistCuts[1], 'Hashable')}
+
     def _postComputeFilterSortKeys(self):
         
-        """Ajout des colonnes permettant d'appliquer plus tard les schémas de filtrage / tri"""
+        """Compute and add partial or global order columns for later filtering and sorting"""
 
         cls = self
 
@@ -1247,21 +1300,49 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         for lblSamp, sSamp in self.listSamples().iterrows():
 
             # Select sample data
-            logger.debug1('#{} {} '.format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()])))
             dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp].copy()
+            logger.debug1('#{} {} : {} rows '
+                          .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
 
             # Apply each filter and sort scheme
             for scheme in cls.AutoFilSorKeySchemes:
 
+                logger.debug3('* {}'.format(scheme))
+                dfSampRes.to_pickle('tmp/_.pickle')
+
+                # Workaround to-be-sorted problematic columns.
+                sortCols = list()
+                for col in scheme['sort']:
+                    if col in cls.DCLUnsortableCols:
+                        wkrndSortCol = cls.DCLUnsortableCols[col]
+                        logger.debug4('{} => {}'.format(col, wkrndSortCol))
+                        dfSampRes[wkrndSortCol] = dfSampRes[col].apply(cls._toSortable)
+                        col = wkrndSortCol  # Will rather sort with this one !
+                    sortCols.append(col)
+                #print(sortCols)
+
                 # Sort results
-                dfSampRes.sort_values(by=scheme['sort'], ascending=scheme['ascend'], 
+                dfSampRes.sort_values(by=sortCols, ascending=scheme['ascend'], 
                                       na_position=scheme.get('napos', 'last'), inplace=True)
 
                 # Compute order (target series is indexed like dfSampRes).
-                if 'group' in scheme:
-                    sSampOrder = dfSampRes.groupby(scheme['group'], dropna=False).cumcount()
-                else:
-                     sSampOrder = pd.Series(data=range(len(dfSampRes)), index=dfSampRes.index)
+                if 'group' in scheme:  # Partial = 'group' order.
+
+                    # Workaround to-be-grouped problematic columns.
+                    groupCols = list()
+                    for col in scheme['group']:
+                        if col in cls.DCLUnhashableCols:
+                            wkrndGroupCol = cls.DCLUnhashableCols[col]
+                            logger.debug4('{} => {}'.format(col, wkrndGroupCol))
+                            dfSampRes[wkrndGroupCol] = dfSampRes[col].apply(cls._toHashable)
+                            col = wkrndGroupCol  # Will rather group with this one !
+                        groupCols.append(col)
+                    #print(groupCols)
+
+                    sSampOrder = dfSampRes.groupby(groupCols, dropna=False).cumcount()
+
+                else:  # Global order.
+                    sSampOrder = pd.Series(data=range(len(dfSampRes)), index=dfSampRes.index)
 
                 # Update result table sample rows (new order column)
                 self._dfData.loc[self._dfData[self.sampleIndCol] == lblSamp, scheme['key']] = sSampOrder
@@ -1277,13 +1358,15 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     # Tools for actually filtering results
     @classmethod
-    def _indexOfDuplicates(cls, dfRes, keep='first', subset=list(), round2decs=dict()):
+    def indexOfDuplicates(cls, dfRes, keep='first', subset=list(), round2decs=dict()):
         
         if round2decs:
             #dfRes = dfRes.round(round2decs) # Buggy (pandas 1.0.x up to 1.1.2): forgets columns !?!?!?
+            if len(subset) > 0:
+                pass  # TODO: Optimise = only copy subset cols
             dfRes = dfRes.copy()
             for col, dec in round2decs.items():
-                if not subset or col in subset:
+                if len(subset) == 0 or col in subset:
                     dfRes[col] = dfRes[col].apply(lambda x: x if pd.isnull(x) else round(x, ndigits=dec))
 
             # Don't use df.round ... because it does not work, at least with pandas 1.0.x up to 1.1.2 !?!?!?
@@ -1293,7 +1376,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         return dfRes[dfRes.duplicated(keep=keep, subset=subset)].index
 
     @classmethod
-    def _filterDichotScheme(cls, dfRes, sampleIds, sampleIdCol, critCol, ascendCrit=True,
+    def filterDichotScheme(cls, dfRes, sampleIds, sampleIdCol, critCol=CLCmbQuaBal1, ascendCrit=True,
                             minCritStep=0.001, nMinRes=10, verbose=False):
         
         """Fonction générique de filtrage avec stratégie de contrôle du nombre de résultats conservés
@@ -1386,20 +1469,19 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         filSorSteps.append([method, step, propName, propValue])
         logger.debug2(f'* {step}: {propName} = {propValue}')
 
-    def filterSortOnExecCode(self, dfRes, nPreSels=5, preSelCol='Qual Equi',
-                             dupSubset=MIDupSubsetDef, dDupRounds=DDupRoundsDef):
+    def filterSortOnExecCode(self, dupSubset=MIDupSubsetDef, dDupRounds=DDupRoundsDef):
 
-        """Minimal filter (drop ExecCode >= 3) and truncation distances + balanced quality sorting
+        """Minimal filter (drop ExecCode >= 3) and truncation distances + balanced quality 1 sorting ;
+        doesn't actually modifies a single bit of the results set, but returns the resulting filtered and sorted index,
+        suitable for indexing on self.dfData / dfTransData ...
 
         Parameters:
-        :param : 
-        :param : 
-        :param : 
-        :param : 
-        :param : 
         :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates
                           Warning: self.sampleIndCol is automatically prepended to this list if not already inside
-        :param : 
+        :param dDupRounds: {col: nb decimals} => number of decimals to keep (after rounding)
+                           for a sub-set or all of dupSubset columns
+
+        :return: tuple(index of selected and sorted results, log of filter & sort steps accomplished)
         """
 
         cls = self
@@ -1409,49 +1491,39 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         filSorSteps = list()
 
-        dfFilSorRes = dfRes.copy()
-        cls._logFilterSortStep(filSorSteps, method, 'Before', 'Results', len(dfFilSorRes))
+        dfFilSorRes = self.dfData
+        cls._logFilterSortStep(filSorSteps, method, 'before', 'Results', len(dfFilSorRes))
 
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index,
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1],
-                               'Max', 2)
-        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1],
-                               'Results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1], 'max', 2)
+        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1], 'results', len(dfFilSorRes))
 
         dfFilSorRes.sort_values(by=[self.sampleIndCol, MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
                                     MCDSAnalysis.CLRunStatus],
                                 ascending=True, na_position='first', inplace=True)
         if self.sampleIndCol not in dupSubset:
             dupSubset = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(dupSubset)
-        dfFilSorRes.drop(cls._indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
+        dfFilSorRes.drop(cls.indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'Duplicates', 'Results', len(dfFilSorRes))
-
-        selPreSelCol = (preSelCol[0], 'Pre-selected ' + preSelCol[1], preSelCol[2])
-        groupCols = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(self.miSampleCols)
-        dfFilSorRes[selPreSelCol] = dfFilSorRes.groupby(groupCols)[preSelCol] \
-                                               .transform(lambda s: s.rank(ascending=False, method='dense'))
-        dfFilSorRes.loc[dfFilSorRes[selPreSelCol] > nPreSels, selPreSelCol] = np.nan
-
-        cls._logFilterSortStep(filSorSteps, method, 'Auto-preselection',
-                               'Nb of preselections', nPreSels)
-        cls._logFilterSortStep(filSorSteps, method, 'Auto-preselection',
-                               'Pre-selection column', preSelCol[1])
+        cls._logFilterSortStep(filSorSteps, method, 'duplicates', 'results', len(dfFilSorRes))
 
         sortCols = [MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
         dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols,
                                 ascending=True, na_position='first', inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'Sorting',
-                               'Columns', ', '.join(miCol[1] for col in sortCols))
+        cls._logFilterSortStep(filSorSteps, method, 'sorting', 'columns', ', '.join(miCol[1] for miCol in sortCols))
 
-        return dfFilSorRes, ldFilSorSteps
+        return dfFilSorRes.index, filSorSteps
 
-    def filterSortOnAicCKCvQua(self, dfRes, nPreSels=3, preSelCol='Qual Equi',
-                               sightRate=95, nBestAIC=2, nBestQua=1, nResults=10,
+    def filterSortOnAicCKCvQua(self, sightRate=95, nBestAIC=2, nBestQua=1, nResults=10,
                                dupSubset=MIDupSubsetDef, dDupRounds=DDupRoundsDef):
 
         """Filtrage et tri proche de 1 mais moins méchant, pour action manuelles de filtrage a posteriori
+        doesn't actually modifies a single bit of the results set, but returns the resulting filtered and sorted index,
+        suitable for indexing on self.dfData / dfTransData ...
+
+        TODO: translate + document parameters
+
         1. Eliminer CodEx 3 et +,
         2. Par groupe de troncatures Gche et Drte et nb tranches fitting identiques,
            garder les <nBestAIC> meilleurs AIC & Chi2 & KS & DCv & NObs & CodEx,
@@ -1466,14 +1538,16 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
            et ce même indicateur.
 
         Parameters:
-        :param : 
-        :param : 
-        :param : 
-        :param : 
-        :param : 
+        :param sightRate: 
+        :param nBestAIC: 
+        :param nBestQua: 
+        :param nResults: 
         :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates
                           Warning: self.sampleIndCol is automatically prepended to this list if not already inside
-        :param : 
+        :param dDupRounds: {col: nb decimals} => number of decimals to keep (after rounding)
+                           for a sub-set or all of dupSubset columns
+
+        :return: tuple(index of selected and sorted results, log of filter & sort steps accomplished)
         """
 
         cls = self
@@ -1484,30 +1558,26 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         filSorSteps = list()
 
-        dfFilSorRes = dfRes.copy()
-        cls._logFilterSortStep(filSorSteps, method, 'Before', 'Results', len(dfFilSorRes))
+        dfFilSorRes = self.dfData
+        cls._logFilterSortStep(filSorSteps, method, 'before', 'results', len(dfFilSorRes))
 
-        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index,
-                         inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1],
-                               'Max', 2)
-        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1],
-                               'Results', len(dfFilSorRes))
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index, inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1], 'max', 2)
+        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1], 'results', len(dfFilSorRes))
 
         dfFilSorRes.sort_values(by=[self.sampleIndCol, MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
                                     MCDSAnalysis.CLRunStatus],
                                 ascending=True, na_position='first', inplace=True)
         if self.sampleIndCol not in dupSubset:
             dupSubset = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(dupSubset)
-        dfFilSorRes.drop(cls._indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
+        dfFilSorRes.drop(cls.indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'Duplicates',
-                               'Results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, method, 'duplicates', 'results', len(dfFilSorRes))
 
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLGrpOrdSmTrAic] >= nBestAIC].index,
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, cls.CLGrpOrdSmTrAic[1], 'NbMeilleurs', nBestAIC)
-        cls._logFilterSortStep(filSorSteps, method, cls.CLGrpOrdSmTrAic[1], 'Results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, method, cls.CLGrpOrdSmTrAic[1], 'nb best', nBestAIC)
+        cls._logFilterSortStep(filSorSteps, method, cls.CLGrpOrdSmTrAic[1], 'results', len(dfFilSorRes))
 
         # TODO: Make used list of indicators customisable
         dfFilSorRes.drop(dfFilSorRes[(dfFilSorRes[cls.CLGrpOrdClTrChi2KSDCv] >= nBestQua)
@@ -1518,44 +1588,28 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                      & (dfFilSorRes[cls.CLGrpOrdClTrQuaDCv] >= nBestQua)].index,
                                    # & (dfFilSorRes[cls.CLGrpOrdClTrChi2] > 0)].index,
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'Best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
-                               'Max (sup) number', nBestQua)
-        cls._logFilterSortStep(filSorSteps, method, 'Best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
-                               'Results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, method, 'best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
+                               'max (sup) number', nBestQua)
+        cls._logFilterSortStep(filSorSteps, method, 'best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
+                               'results', len(dfFilSorRes))
 
-        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLSightRate] < sightRate].index,
-                         inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'Non-outlier sightings',
-                               'Min %', sightRate)
-        cls._logFilterSortStep(filSorSteps, method, 'Non-outlier sightings',
-                               'Actual number', len(dfFilSorRes))
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLSightRate] < sightRate].index, inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'non-outlier sightings', 'min %', sightRate)
+        cls._logFilterSortStep(filSorSteps, method, 'non-outlier sightings', 'actual number', len(dfFilSorRes))
 
-        dfFilSorRes.drop(cls.filterDichotScheme(dfFilSorRes, critCol='Qual Equi', ascendCrit=True, nMinRes=nResults,
+        dfFilSorRes.drop(cls.filterDichotScheme(dfFilSorRes, critCol=cls.CLCmbQuaBal1, ascendCrit=True, nMinRes=nResults,
                                                 sampleIds=dfFilSorRes[self.sampleIndCol].unique(),
                                                 sampleIdCol=self.sampleIndCol),
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'Best Bal1 Quality results',
-                               'Target per sample', nResults)
-        cls._logFilterSortStep(filSorSteps, method, 'Best Bal1 Quality results',
-                               'Actual total number', len(dfFilSorRes))
-
-        selPreSelCol = (preSelCol[0], 'Pre-selected ' + preSelCol[1], preSelCol[2])
-        dfFilSorRes[selPreSelCol] = dfFilSorRes.groupby([self.sampleIndCol] + self.miSampleCols)[preSelCol] \
-                                               .transform(lambda s: s.rank(ascending=False, method='dense'))
-        dfFilSorRes.loc[dfFilSorRes[selPreSelCol] > nPreSels, selPreSelCol] = np.nan
-
-        cls._logFilterSortStep(filSorSteps, method, 'Auto-preselection',
-                               'Nb of preselections', nPreSels)
-        cls._logFilterSortStep(filSorSteps, method, 'Auto-preselection',
-                               'Pre-selection column', preSelCol[1])
+        cls._logFilterSortStep(filSorSteps, method, 'best Bal1 Quality results', 'target per sample', nResults)
+        cls._logFilterSortStep(filSorSteps, method, 'best Bal1 Quality results',
+                               'actual total number', len(dfFilSorRes))
 
         sortCols = [MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
-        dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols,
-                                ascending=True, na_position='first', inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'Sorting',
-                               'Columns', ', '.join(miCol[1] for col in sortCols))
+        dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols, ascending=True, na_position='first', inplace=True)
+        cls._logFilterSortStep(filSorSteps, method, 'sorting', 'columns', ', '.join(miCol[1] for miCol in sortCols))
 
-        return dfFilSorRes, filSorSteps
+        return dfFilSorRes.index, filSorSteps
 
 
 class MCDSAnalyser(DSAnalyser):

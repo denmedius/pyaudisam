@@ -177,13 +177,14 @@ class MCDSAnalysis(DSAnalysis):
     CLParTruncLeft  = ('parameters', 'left truncation distance', 'Value')
     CLParTruncRight = ('parameters', 'right truncation distance', 'Value')
     CLParModFitDistCuts = ('parameters', 'model fitting distance cut points', 'Value')
+    CLParModDiscrDistCuts = ('parameters', 'distance discretisation cut points', 'Value')
 
     MIRunColumns = pd.MultiIndex.from_tuples([('parameters', 'estimator key function', 'Value'),
                                               ('parameters', 'estimator adjustment series', 'Value'),
                                               ('parameters', 'estimator selection criterion', 'Value'),
                                               ('parameters', 'CV interval', 'Value'),
-                                              CLParTruncLeft, CLParTruncRight, CLParModFitDistCuts,
-                                              ('parameters', 'distance discretisation cut points', 'Value')] \
+                                              CLParTruncLeft, CLParTruncRight,
+                                              CLParModFitDistCuts, CLParModDiscrDistCuts] \
                                              + DSAnalysis.RunRunColumns)
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
