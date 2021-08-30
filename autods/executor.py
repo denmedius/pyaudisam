@@ -8,7 +8,10 @@
 # Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
 # License: GPL 3
 
+import sys
+import os
 import concurrent.futures as cofu
+import warnings
 
 import autods.log as log
 
@@ -91,12 +94,12 @@ class Executor(object):
         """Ctor
         
         Parameters:
-        :param threads: Must be None or >= 0 ; 0 for auto-number (5 x nb of actual CPUs) ;
+        :param threads: Must be None or >= 0 ; 0 for auto-number (see expectedWorkers function) ;
                         None or 1 for no actual parallelism = sequential execution,
                         but 1 is slightly different, in that it means asynchronous call,
                         whereas None means pure sequential calling ;
                         if processes is not None, must be None (= unspecified)
-        :param processes: Must be None or >= 0 ; 0 for auto-number (nb of actual CPUs), ;
+        :param processes: Must be None or >= 0 ; 0 for auto-number (see expectedWorkers function), ;
                           None or 1 for no actual parallelism = sequential execution,
                           but 1 is slightly different, in that it means asynchronous call,
                           whereas None means pure sequential calling ;,
@@ -111,6 +114,11 @@ class Executor(object):
                or (processes is None and (threads is None or threads >= 0)), \
                'An Executor can\'t implement multi-threading _and_ multi-processing at the same time'
                
+        # Keep original parallelism (or not) specs for expectedWorkers().
+        self.threads = threads
+        self.processes = processes
+
+        # Create / Get the actual executor object.
         self.realExor = None
 
         if threads is not None:
@@ -132,6 +140,36 @@ class Executor(object):
                 self.TheSeqExor = SequentialExecutor()
             self.realExor = self.TheSeqExor
     
+    def expectedWorkers(self):
+
+        """Compute the theorically expected to be used number of thread/process workers
+        of an Executor instance, from the specified number of threads / processes
+
+        Warning: Fully reports what's in the actual implementation of concurrent.futures.ThreadPoolExecutor
+                 and concurrent.futures.ProcessPoolExecutor : figures are verified only for python versions
+                 from 3.0 to 3.10pre
+        
+        Parameters:
+        :param threads: Must be None or >= 0 ; if processes is not None, must be None (= unspecified)
+        :param processes: Must be None or >= 0 ; if threads is not None, must be None (= unspecified)
+        """
+
+        if sys.version_info.major < 3 or sys.version_info.minor < 5 or sys.version_info.minor > 10:
+            wanings.warn('Executor.expectedWorkers() may not report accurate figures as Python < 3.5 or > 3.10',
+                         RuntimeWarning)
+
+        if self.threads is None:
+            if self.processes is None:
+                return 1
+            elif self.processes == 0:
+                return os.cpu_count()
+            else:
+                return self.processes
+        elif self.threads == 0:
+            return 5 * os.cpu_count() if sys.version_info.minor < 8 else min(32, os.cpu_count() + 4)
+        else:
+            return self.threads
+
     def isParallel(self):
     
         return self.realExor is not self.TheSeqExor and self.realExor._max_workers > 1
