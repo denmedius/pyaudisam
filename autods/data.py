@@ -988,13 +988,13 @@ class ResultsSet(object):
 
         """Update results columns list (self.miCols) with new columns if not already present"""
 
-        logger.debug(f'_acceptNewColumns: {newCols=}')
-        logger.debug(f'{self.miCols=}')
-        logger.debug(f'{self.miCustomCols=}')
+        logger.debug1(f'_acceptNewColumns: {newCols=}')
+        logger.debug2(f'{self.miCols=}')
+        logger.debug2(f'{self.miCustomCols=}')
         
         # Select columns to really append.
         newCols = [col for col in newCols if col not in self.miCols and col not in self.miCustomCols]
-        logger.debug(f'{newCols=}')
+        logger.debug2(f'{newCols=}')
 
         if self.isMultiIndexedCols:
             self.miCols = self.miCols.append(newCols)
@@ -1002,7 +1002,7 @@ class ResultsSet(object):
         else:
             self.miCols += newCols
             newColTrans = newCols
-        logger.debug(f'{self.miCols=}')
+        logger.debug2(f'{self.miCols=}')
 
         # Update columns translation table also.
         dfNewColTrans = pd.DataFrame(index=newCols,
@@ -1094,8 +1094,7 @@ class ResultsSet(object):
 
         return self._dfData
         
-    @property
-    def dfData(self):
+    def getData(self, copy=True):
         
         # Do post-computation and sorting if not already done.
         if not(self._dfData.empty or self.postComputed):
@@ -1141,8 +1140,13 @@ class ResultsSet(object):
             self._dfData.drop(columns=cols2Drop, inplace=True)
 
         # Done.
-        return self._dfData.copy()
+        return self._dfData.copy() if copy else self._dfData
 
+    @property
+    def dfData(self):
+
+        return self.getData(copy=True)
+        
     def setData(self, dfData, postComputed=False, acceptNewCols=False):
         
         assert isinstance(dfData, pd.DataFrame), 'dfData must be a pd.DataFrame'
@@ -1162,7 +1166,7 @@ class ResultsSet(object):
             # ... but ignore those which are not there : backward compat. / tolerance ...
             self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
         
-        # Post-computation not yet done.
+        # Post-computation not yet done (unless told it _is_: accept blindly).
         self.postComputed = postComputed
     
     @dfData.setter
@@ -1178,6 +1182,12 @@ class ResultsSet(object):
         self.sortCols = by
         self.sortAscend = ascending
     
+    # Add columns translations (update if already there)
+    def addColumnsTrans(self, dColsTrans=dict()):
+
+        for col, dTrans in dColsTrans.items():
+            self.dfColTrans.loc[col] = dTrans
+
     # Build translation table for lang (from custom and other columns)
     def transTable(self):
         
@@ -1197,6 +1207,12 @@ class ResultsSet(object):
         
         return self.dfCustomColTrans[lang].to_list()
     
+    # Get translated names of some specific column (custom or not)
+    def transColumn(self, column, lang):
+        
+        return self.dfColTrans.loc[column, lang] if column in self.dfColTrans.index \
+               else self.dfCustomColTrans.loc[column, lang]
+    
     def dfSubData(self, index=None, columns=None, copy=False):
     
         """Get a subset of the all-results table rows and columns
@@ -1209,17 +1225,17 @@ class ResultsSet(object):
         """
         
         assert columns is None or isinstance(columns, list) or isinstance(columns, (pd.Index, pd.MultiIndex)), \
-               'columns must be specified as None (all), or as a list of tuples, or as a pandas.MultiIndex'
+               'columns must be specified as None/[] (all), or as a list of tuples, or as a pandas.[Multi]Index'
 
         # Make a copy of / extract selected columns of dfData.
         if columns is None or len(columns) == 0:
-            dfSbData = self.dfData
+            dfSbData = self.getData(copy=False)
         else:
             if self.isMultiIndexedCols and isinstance(columns, list):
                 iColumns = pd.MultiIndex.from_tuples(columns)
             else:
                 iColumns = columns
-            dfSbData = self.dfData.reindex(columns=iColumns)
+            dfSbData = self.getData(copy=False).reindex(columns=iColumns)
         
         if index is not None:
             dfSbData = dfSbData.loc[index]
@@ -1230,22 +1246,24 @@ class ResultsSet(object):
         return dfSbData
 
     # Access a mono-indexed translated columns version of the data table
-    def dfTransData(self, lang='en', index=None, columns=None, copy=True):
+    def dfTransData(self, lang='en', index=None, columns=None):
         
         """Get a subset of the all-results table rows and columns with translated column names (mono-index)
+
+        Note: The resulting table holds a copy (of part) of the internal table ; this is needed because
+              of the translation of the column names ; hence the absence of the expected "copy" parameter !
 
         Parameters:
         :param lang: target language for translation ('en' or 'fr')
         :param index: rows to select, as a list(int) or pd.Index (subset of self.dfData.index) ; None = all rows.
         :param columns: columns to select, as a list(string) or pd.Index when mono-indexed columns
                        or as a list(tuple(string*)) or pd.MultiIndex when multi-indexed ; None = all columns.
-        :param copy: if True, return a full copy of the selected data, not a "reference" to the internal table
         """
 
         assert lang in ['en', 'fr'], 'No support for "{}" language'.format(lang)
         
         # Extract (and may be copy) selected rows and columns of dfData.
-        dfTrData = self.dfSubData(index=index, columns=columns, copy=copy)
+        dfTrData = self.dfSubData(index=index, columns=columns, copy=True)
         
         # Translate column names.
         dfTrData.columns = self.transColumns(dfTrData.columns, lang)
@@ -1300,6 +1318,25 @@ class ResultsSet(object):
                             len(self.specs) if specs else 'no', fileName,
                             (pd.Timestamp.now() - start).total_seconds()))
 
+    def specs2Tables(self):
+
+        """Transform specs to tables
+
+        :return: dict(name=DataFrame)
+        """
+        ddfSpecs = dict()
+
+        for spName, spData in self.specs.items():
+            if isinstance(spData, (dict, list, pd.Series)):
+                if not isinstance(spData, pd.Series):
+                    spData = pd.Series(spData, name='Value')
+                spData = spData.to_frame()
+            elif not isinstance(spData, pd.DataFrame):
+                raise NotImplementedError
+            ddfSpecs[spName] = spData
+
+        return ddfSpecs
+
     DefAllResultsSheetName = 'all-results'
 
     def toExcel(self, fileName, sheetName=None, lang=None, subset=None, index=True,
@@ -1338,13 +1375,8 @@ class ResultsSet(object):
         
         with pd.ExcelWriter(fileName, engine=engine) as xlWrtr:
             dfOutData.to_excel(xlWrtr, sheet_name=sheetName or self.DefAllResultsSheetName, index=index)
-            if specs:
-                for spName, spData in self.specs.items():
-                    if isinstance(spData, (dict, list, pd.Series)):
-                        if not isinstance(spData, pd.Series):
-                            spData = pd.Series(spData)
-                        spData = spData.to_frame()
-                    spData.to_excel(xlWrtr, sheet_name=specSheetsPrfx + spName, index=True)
+            for spName, dfSpData in self.specs2Tables().items():
+                dfSpData.to_excel(xlWrtr, sheet_name=specSheetsPrfx + spName, index=True)
 
         logger.info('{}x{} results rows x columns and {} specs saved to {} in {:.3f}s'
                     .format(len(dfOutData), len(dfOutData.columns),
