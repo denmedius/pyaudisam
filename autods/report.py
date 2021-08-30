@@ -66,6 +66,22 @@ class ResultsReport(object):
     def __init__(self, resultsSet, title, subTitle, description, keywords,
                  dCustomTrans=None, lang='en', pySources=[], tgtFolder='.', tgtPrefix='results'):
     
+        """Ctor
+        
+        Parameters:
+        :param resultsSet: source results
+        :param title: main page title (and <title> tag in HTML header)
+        :param subTitle: main page sub-title (under the title, lower font size)
+        :param description: main page description text (under the sub-title, lower font size)
+        :param keywords: for HTML header <meta name="keywords" ...>
+        :param dCustomTrans: custom translations to complete the report standard ones,
+                             as a dict(fr=dict(src: fr-trans), en=dict(src: en-trans))
+        :param lang: Target language for translation
+        :param pySources: path-name of source files to copy in report folder and link in report
+        :param tgtFolder: target folder for the report (for _all_ generated files)
+        :param tgtPrefix: default target file name for the report
+        """
+
         assert len(resultsSet) > 0, 'Can\'t build reports with nothing inside'
         assert os.path.isdir(tgtFolder), 'Target folder {} doesn\'t seem to exist ...'.format(tgtFolder)
         
@@ -146,6 +162,62 @@ class ResultsReport(object):
 
         return self.tmplEnv
     
+    def asWorkbook(self, subset=None, rebuild=False):
+
+        """Format as a "generic" workbook format, i.e. as a dict(name=(DataFrame, useIndex))
+        where each item is a named worksheet
+
+        Parameters:
+        :param subset: Selected list of data categories to include ; None = [] = all
+                       (categories in {'specs'})
+        :param rebuild: if True force rebuild of report = prevent use of / reset any cache
+                        (not used here)
+        """
+        
+        ddfWbk = dict()
+
+        # Specs (no need to check if 'specs' in subset: we have nothing else than results specs here.
+        for spName, dfSpData in self.resultsSet.specs2Tables().items():
+            logger.debug(f'* {spName}')
+            ddfWbk[self.tr(spName)] = (dfSpData, True)
+
+        # Done
+        return ddfWbk
+ 
+    def toExcel(self, fileName=None, engine='openpyxl', ext='.xlsx', rebuild=False):
+
+        """Export to a workbook file format (Excel, ODF, ...)
+
+        Parameters:
+        :param fileName: target file path name ; None => self.tgtFolder/self.tgtPrefix + ext
+        :param engine: Python module to use for exporting (openpyxl=default, or odf)
+        :param ext: extension of target file, if not specified in filename
+        :param rebuild: if True force rebuild of report = prevent use of / reset any cache
+        """
+        
+        fileName = fileName or os.path.join(self.tgtFolder, self.tgtPrefix + ext)
+        
+        with pd.ExcelWriter(fileName) as xlsxWriter:
+            for wstName, (dfWstData, wstIndex) in self.asWorkbook(rebuild=rebuild).items():
+                dfWstData.to_excel(xlsxWriter, sheet_name=wstName, index=wstIndex)            
+
+        return fileName
+
+    def toOpenDoc(self, fileName=None, rebuild=False):
+
+        """Export report to Open Doc worksheet format
+
+        Parameters:
+        :param fileName: target file path name ; None => self.tgtFolder/self.tgtPrefix + ext
+        :param rebuild: if True force rebuild of report = prevent use of / reset any cache
+        """
+    
+        assert pkgver.parse(pd.__version__).release >= (1, 1), \
+               'Don\'t know how to write to OpenDoc format before Pandas 1.1'
+        
+        return self.toExcel(fileName, engine='odf', ext='.ods', rebuild=rebuild)
+
+
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
     # in the "one analysis at a time" case.
     # (sort, convert units, round values, and style).
@@ -167,12 +239,13 @@ class ResultsReport(object):
         return dfTrData.style # Nothing done here, specialize in derived class if needed.
 
     
-# DS results reports class (Excel and HTML, targeting similar layout as in Distance 6+)
+# DS results reports class (Excel and HTML, targetting similar layout as in Distance 6+)
 class DSResultsDistanceReport(ResultsReport):
 
     # Translation table.
     DTrans = _mergeTransTables(base=ResultsReport.DTrans,
-      update=dict(en={'RunFolder': 'Analysis', 'Synthesis': 'Synthesis', 'Details': 'Details',
+      update=dict(en={'RunFolder': 'Analysis', 'Synthesis': 'Synthesis',
+                      'Details': 'Details', 'Traceability': 'Traceability',
                       'Table of contents': 'Table of contents',
                       'Click on analysis # for details': 'Click on analysis number to get to detailed report',
                       'Main results': 'Results: main figures',
@@ -198,8 +271,11 @@ class DSResultsDistanceReport(ResultsReport):
                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
                       'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
                       'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
-                      'Sq. Nautical mile': 'Sq. Nautical mile' },
-                  fr={'DossierExec': 'Analyse', 'Synthesis': 'Synthèse', 'Details': 'Détails',
+                      'Sq. Nautical mile': 'Sq. Nautical mile',
+                      'Traceability tech. details':
+                        'Traceability data (more technical details on how this report was produced)' },
+                  fr={'DossierExec': 'Analyse', 'Synthesis': 'Synthèse',
+                      'Details': 'Détails', 'Traceability': 'Traçabilité',
                       'Table of contents': 'Table des matières',
                       'Click on analysis # for details': 'Cliquer sur le numéro de l\'analyse pour accéder au rapport détaillé',
                       'Main results': 'Résultats : indicateurs principaux',
@@ -225,7 +301,9 @@ class DSResultsDistanceReport(ResultsReport):
                       'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
                       'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
                       'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
-                      'Sq. Nautical mile': 'Mille marin carré' }))
+                      'Sq. Nautical mile': 'Mille marin carré',
+                      'Traceability tech. details':
+                        'Données de traçabilité (autres détails techniques sur comment ce rapport a été produit)' }))
 
     @staticmethod
     def noDupColumns(cols, log=True, head='Results cols'):
@@ -258,12 +336,27 @@ class DSResultsDistanceReport(ResultsReport):
         """Ctor
         
         Parameters:
+        :param resultsSet: source results
+        :param title: main page title (and <title> tag in HTML header)
+        :param subTitle: main page sub-title (under the title, lower font size)
+        :param description: main page description text (under the sub-title, lower font size)
+        :param anlysSubTitle: analysis pages title
+        :param keywords: for HTML header <meta name="keywords" ...>
+        :param synthCols: for synthesis table (Excel format only, "Synthesis" tab)
+        :param sortCols: sorting columns for report tables
+        :param sortAscend: sorting order for report tables, as a bool or list of bools, of len(synthCols)
+        :param dCustomTrans: custom translations to complete the report standard ones,
+                             as a dict(fr=dict(src: fr-trans), en=dict(src: en-trans))
+        :param lang: Target language for translation
         :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
         :param plotImgSize: size of the image generated for each plot = (width, height) in pixels
         :param plotImgQuality: JPEG format quality (%) ; ignored if plotImgFormat not in ('jpg', 'jpeg')
         :param plotLineWidth: width (unit: pixel) of drawn lines (observation histograms, fitted curves)
         :param plotDotWidth: width (unit: pixel) of drawn dots / points (observation distances)
         :param plotFontSizes: font sizes (unit: point) for plots (dict with keys from title, axes, ticks, legend)
+        :param pySources: path-name of source files to copy in report folder and link in report
+        :param tgtFolder: target folder for the report (for _all_ generated files)
+        :param tgtPrefix: default target file name for the report
         :param logProgressEvery: every such nb of details pages, log some elapsed time stats
                                  and end of generation forecast
         """
@@ -310,7 +403,7 @@ class DSResultsDistanceReport(ResultsReport):
     RefDistHistBinWidths = [10, 20, 40]  # unit = Distance unit
     HistBinWithRefDist = 600  # unit = Distance unit
     
-    def generatePlots(self, plotsData, tgtFolder, sDistances=None, lang='en',
+    def generatePlots(self, plotsData, tgtFolder, rebuild=True, sDistances=None, lang='en',
                       imgFormat='png', imgSize=(640, 400), imgQuality=90, grid=True, transparent=False,
                       colors=dict(background='#f9fbf3', histograms='blue',
                                   multihistograms=['blue', 'green', 'red'], curves='red', dots='green'),
@@ -321,17 +414,34 @@ class DSResultsDistanceReport(ResultsReport):
         # For each plot from extracted plotsData, 
         for title, pld in plotsData.items():
             
-            # a. Create the target figure and one-only subplot (note: QQ plots with forced height square shape).
+            # a. Determine target image file name, and if rebuild not forced, don't regenerate it if already there
+            if 'Qq-plot' in title:
+                tgtFileName = self.PlotImgPrfxQqPlot
+            elif 'Detection Probability' in title:
+                sufx = title.split(' ')[-1] # Assume last "word" is the plot number
+                sufx = sufx if sufx.isnumeric() else '' # But when only 1, there's no number.
+                tgtFileName = self.PlotImgPrfxDetProb + sufx
+            elif 'Pdf' in title:
+                sufx = title.split(' ')[-1] # Assume last "word" is the plot number
+                sufx = sufx if sufx.isnumeric() else '' # But when only 1, there's no number.
+                tgtFileName = self.PlotImgPrfxProbDens + sufx
+            tgtFileName = tgtFileName + '.' + imgFormat.lower()
+
+            dPlots[title] = tgtFileName # Save image URL
+
+            tgtFilePathName = os.path.join(tgtFolder, tgtFileName)                
+            if not rebuild and os.path.isfile(tgtFilePathName):
+                continue  # Already done, and not to be done again.
+
+            # b. Create the target figure and one-only subplot (note: QQ plots with forced height square shape).
             figHeight = imgSize[1] / plt.rcParams['figure.dpi']
             figWidth = figHeight if 'Qq-plot' in title else imgSize[0] / plt.rcParams['figure.dpi']
 
             fig = plt.figure(figsize=(figWidth, figHeight))
             axes = fig.subplots()
             
-            # b. Plot a figure from the plot data (3 possible types, from title).
+            # c. Plot a figure from the plot data (3 possible types, from title).
             if 'Qq-plot' in title:
-                
-                tgtFileName = self.PlotImgPrfxQqPlot
                 
                 n = len(pld['dataRows'])
                 df2Plot = pd.DataFrame(data=pld['dataRows'],
@@ -343,10 +453,6 @@ class DSResultsDistanceReport(ResultsReport):
                              xlim=(pld['xMin'], pld['xMax']), ylim=(pld['yMin'], pld['yMax']))
 
             elif 'Detection Probability' in title:
-                
-                sufx = title.split(' ')[-1] # Assume last "word" is the plot number
-                sufx = sufx if sufx.isnumeric() else '' # But when only 1, there's no number.
-                tgtFileName = self.PlotImgPrfxDetProb + sufx
                 
                 #if sDistances is not None:
                 #    axes2 = axes.twinx()
@@ -370,10 +476,6 @@ class DSResultsDistanceReport(ResultsReport):
 
             elif 'Pdf' in title:
                 
-                sufx = title.split(' ')[-1] # Assume last "word" is the plot number
-                sufx = sufx if sufx.isnumeric() else '' # But when only 1, there's no number.
-                tgtFileName = self.PlotImgPrfxProbDens + sufx
-                
                 #if sDistances is not None:
                 #    axes2 = axes.twinx()
                 #    sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
@@ -393,7 +495,7 @@ class DSResultsDistanceReport(ResultsReport):
                 axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
                 axes.grid(True, which='minor', zorder=0)
                 
-            # c. Finish plotting.
+            # d. Finish plotting.
             axes.legend(df2Plot.columns, fontsize=fontSizes['legend'])
             axes.set_title(label=pld['title'] + ' : ' + pld['subTitle'],
                            fontdict=dict(fontsize=fontSizes['title']), pad=10)
@@ -405,95 +507,94 @@ class DSResultsDistanceReport(ResultsReport):
                 axes.set_facecolor(colors['background'])
                 fig.patch.set_facecolor(colors['background'])
                 
-            # d. Generate an image file for the plot figure (forcing the specified patch background color).
-            tgtFileName = tgtFileName + '.' + imgFormat.lower()
+            # e. Generate an image file for the plot figure (forcing the specified patch background color).
             fig.tight_layout()
             pilArgs = dict(quality=imgQuality) if imgFormat == 'jpg' else dict()
-            fig.savefig(os.path.join(tgtFolder, tgtFileName), bbox_inches='tight', transparent=transparent,
+            fig.savefig(tgtFilePathName, bbox_inches='tight', transparent=transparent,
                         facecolor=axes.figure.get_facecolor(), edgecolor='none', pil_kwargs=pilArgs)
 
-            # e. Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
+            # g. Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
             axes.clear()
             fig.clear()
             plt.close(fig)
 
-            # f. Save image URL.
-            dPlots[title] = tgtFileName
-                
         # Standard fixed-bin-width super-imposed histograms (multiple bin width, scaled with distMax)
         if sDistances is not None:
 
+            # a. Determine target image file name, and if rebuild not forced, don't regenerate it if already there
             title = 'Standard Distance Histograms'
             tgtFileName = self.PlotImgPrfxDistHist
-
-            # a. Create the target figure and one-only subplot
-            figHeight = imgSize[1] / plt.rcParams['figure.dpi']
-            figWidth = imgSize[0] / plt.rcParams['figure.dpi']
-
-            fig = plt.figure(figsize=(figWidth, figHeight))
-            axes = fig.subplots()
-                
-            # b. Plot the figure from the distance data
-            #axes2 = axes.twinx()
-            #sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
-            #             alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
-
-            distMax = sDistances.max()
-
-            distHistBinWidths = np.array(self.RefDistHistBinWidths, dtype=float)
-            distHistBinWidths *= 2 ** int(distMax / self.HistBinWithRefDist)
-
-            for binWidthInd, binWidth in enumerate(distHistBinWidths):
-            
-                aDistBins = np.linspace(start=0, stop=binWidth * int(distMax / binWidth),
-                                        num=1 + int(distMax / binWidth)).tolist()
-                if aDistBins[-1] < distMax:
-                    aDistBins.append(distMax)
-
-                binWidthRInd = len(distHistBinWidths) - binWidthInd - 1
-                sDistances.plot.hist(ax=axes, bins=aDistBins, fill=None, linewidth=1,
-                                     zorder=10*(1+binWidthRInd), rwidth=1-0.15*binWidthRInd,
-                                     edgecolor=colors['multihistograms'][binWidthInd])
-
-            axes.set_xlim((0, distMax))
-            axes.grid(True, which='minor', zorder=0)
-            aMTicks = axes.get_xticks()
-            axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
-            axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
-            axes.yaxis.set_major_locator(pltt.MaxNLocator(integer=True))
-
-            # c. Finish plotting.
-            axes.legend([self.tr('Real observations') + ' ' + str(int(binWidth))
-                         for binWidth in distHistBinWidths], fontsize=fontSizes['legend'])
-            axes.set_title(label=self.tr('Fixed bin distance histograms'),
-                           fontdict=dict(fontsize=fontSizes['title']), pad=10)
-            axes.set_xlabel(self.tr('Distance'), fontsize=fontSizes['axes'])
-            axes.set_ylabel(self.tr('Number of observations'), fontsize=fontSizes['axes'])
-            axes.tick_params(axis='both', labelsize=fontSizes['ticks'])
-            axes.grid(True, which='major', zorder=0)
-            if not transparent:
-                axes.set_facecolor(colors['background'])
-                fig.patch.set_facecolor(colors['background'])
-                
-            # d. Generate an image file for the plot figure (forcing the specified patch background color).
             tgtFileName = tgtFileName + '.' + imgFormat.lower()
-            fig.tight_layout()
-            pilArgs = dict(quality=imgQuality) if imgFormat == 'jpg' else dict()
-            fig.savefig(os.path.join(tgtFolder, tgtFileName), bbox_inches='tight', transparent=transparent,
-                        facecolor=axes.figure.get_facecolor(), edgecolor='none', pil_kwargs=pilArgs)
 
-            # e. Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
-            axes.clear()
-            fig.clear()
-            plt.close(fig)
+            dPlots[title] = tgtFileName # Save image URL
 
-            # f. Save image URL.
-            dPlots[title] = tgtFileName
+            tgtFilePathName = os.path.join(tgtFolder, tgtFileName)                
+            if rebuild or not os.path.isfile(tgtFilePathName): # Do it only if forced to do or not already done.
+
+                # b. Create the target figure and one-only subplot
+                figHeight = imgSize[1] / plt.rcParams['figure.dpi']
+                figWidth = imgSize[0] / plt.rcParams['figure.dpi']
+
+                fig = plt.figure(figsize=(figWidth, figHeight))
+                axes = fig.subplots()
+                    
+                # c. Plot the figure from the distance data
+                #axes2 = axes.twinx()
+                #sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
+                #             alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
+
+                distMax = sDistances.max()
+
+                distHistBinWidths = np.array(self.RefDistHistBinWidths, dtype=float)
+                distHistBinWidths *= 2 ** int(distMax / self.HistBinWithRefDist)
+
+                for binWidthInd, binWidth in enumerate(distHistBinWidths):
+                
+                    aDistBins = np.linspace(start=0, stop=binWidth * int(distMax / binWidth),
+                                            num=1 + int(distMax / binWidth)).tolist()
+                    if aDistBins[-1] < distMax:
+                        aDistBins.append(distMax)
+
+                    binWidthRInd = len(distHistBinWidths) - binWidthInd - 1
+                    sDistances.plot.hist(ax=axes, bins=aDistBins, fill=None, linewidth=1,
+                                         zorder=10*(1+binWidthRInd), rwidth=1-0.15*binWidthRInd,
+                                         edgecolor=colors['multihistograms'][binWidthInd])
+
+                axes.set_xlim((0, distMax))
+                axes.grid(True, which='minor', zorder=0)
+                aMTicks = axes.get_xticks()
+                axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
+                axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
+                axes.yaxis.set_major_locator(pltt.MaxNLocator(integer=True))
+
+                # d. Finish plotting.
+                axes.legend([self.tr('Real observations') + ' ' + str(int(binWidth))
+                             for binWidth in distHistBinWidths], fontsize=fontSizes['legend'])
+                axes.set_title(label=self.tr('Fixed bin distance histograms'),
+                               fontdict=dict(fontsize=fontSizes['title']), pad=10)
+                axes.set_xlabel(self.tr('Distance'), fontsize=fontSizes['axes'])
+                axes.set_ylabel(self.tr('Number of observations'), fontsize=fontSizes['axes'])
+                axes.tick_params(axis='both', labelsize=fontSizes['ticks'])
+                axes.grid(True, which='major', zorder=0)
+                if not transparent:
+                    axes.set_facecolor(colors['background'])
+                    fig.patch.set_facecolor(colors['background'])
+                    
+                # e. Generate an image file for the plot figure (forcing the specified patch background color).
+                fig.tight_layout()
+                pilArgs = dict(quality=imgQuality) if imgFormat == 'jpg' else dict()
+                fig.savefig(tgtFilePathName, bbox_inches='tight', transparent=transparent,
+                            facecolor=axes.figure.get_facecolor(), edgecolor='none', pil_kwargs=pilArgs)
+
+                # f. Memory cleanup (does not work in interactive mode ... but OK thanks to plt.ioff above)
+                axes.clear()
+                fig.clear()
+                plt.close(fig)
 
         return dPlots
     
     # Top page
-    def toHtmlAllAnalyses(self):
+    def toHtmlAllAnalyses(self, rebuild=False):
         
         logger.info('Top page ...')
         
@@ -502,9 +603,9 @@ class DSResultsDistanceReport(ResultsReport):
         synCols = self.synthCols
         if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
             synCols += [self.resultsSet.analysisClass.RunFolderColumn]
-        dfSyn = self.resultsSet.dfTransData(self.lang, subset=synCols)
+        dfSyn = self.resultsSet.dfTransData(self.lang, columns=synCols)
         
-        # b. Links to each analysis detailled report.
+        # b. Links to each analysis detailed report.
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
         def numNavLink(sAnlys):
@@ -527,8 +628,8 @@ class DSResultsDistanceReport(ResultsReport):
         dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=numNavLink,
                                                  convert=False, round_=False, style=True)
 
-        # 3. Generate techs infos parts.
-        # TODO
+        # 3. Generate traceability infos parts (results specs).
+        ddfTrc = self.asWorkbook(subset=['specs'])
 
         # 4.Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -536,6 +637,8 @@ class DSResultsDistanceReport(ResultsReport):
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=False),
                            details=dfsDet.render(), #escape=False, index=False),
+                           traceability={trcName: dfTrcTable.to_html(escape=False)
+                                         for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang], 
@@ -555,17 +658,50 @@ class DSResultsDistanceReport(ResultsReport):
 
         return htmlPathName
     
-    # Analyses pages.
-    def toHtmlEachAnalysis(self, generators=1):
-        
-        # Generate translated synthesis and detailed tables.
-        dfSynthRes = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
+    def getRawTransData(self, **kwargs):
 
+        """Retrieve input translated raw data for HTML pages specific to each analysis
+
+        Parameters:
+        :param **kwargs: Args relevant to derived classes (none here).
+
+        :return: 2 dataFrames, for synthesis (synthCols) and detailed (all) column sets,
+                 + None (other implementations may use this place for something relevant)
+        """
+
+        # Generate translated synthesis table.
+        synCols = self.synthCols
+        if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
+            synCols += [self.resultsSet.analysisClass.RunFolderColumn]
+        dfSynthRes = self.resultsSet.dfTransData(self.lang, columns=synthCols)
+
+        # Generate translated detailed table.
         dfDetRes = self.resultsSet.dfTransData(self.lang)
 
+        return dfSynthRes, dfDetRes, None
+
+    def toHtmlEachAnalysis(self, rebuild=False, generators=0, **kwargs):
+        
+        """Generate HTML page specific to each analysis
+
+        Parameters:
+        :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
+                        otherwise, use any cached data or existing plot image file
+        :param generators: Number of parallel (process) generators to use :
+                           - 0 => auto-number, based on the actual number of CPUs onboard,
+                           - > 0 => the actual number to use
+        :param **kwargs: Other args relevant to derived classes.
+        """
+
+        # Get source translated raw data to format
+        dfSynthRes, dfDetRes, _ = self.getRawTransData(rebuild=rebuild, **kwargs)
+
+        # Generate translated synthesis and detailed tables.
         logger.info(f'Analyses pages ({len(dfSynthRes)}) ...')
-        if generators > 1:
-            logger.info(f'... through {generators} parallel generators ...')
+        executor = exor.Executor(processes=generators)
+        nExpWorkers = executor.expectedWorkers()
+        if nExpWorkers > 1:
+            logger.info(f'... through {nExpWorkers} parallel generators ...')
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons) with the sorted order if any
         dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, sort=True, indexer=True,
@@ -575,7 +711,7 @@ class DSResultsDistanceReport(ResultsReport):
         sCurrUrl = sCurrUrl.apply(lambda path: os.path.relpath(path, self.tgtFolder).replace(os.sep, '/'))
         dfAnlysUrls = pd.DataFrame(dict(current=sCurrUrl, previous=np.roll(sCurrUrl, 1), next=np.roll(sCurrUrl, -1)))
 
-        # And don't forget to sort & index detailled results the same way as synthesis ones.
+        # And don't forget to sort & index detailed results the same way as synthesis ones.
         dfDetRes = self.finalformatEachAnalysisData(dfDetRes, sort=True, indexer=True,
                                                     convert=False, round_=False, style=False).data
 
@@ -591,7 +727,6 @@ class DSResultsDistanceReport(ResultsReport):
         
         # i. Start generation of all pages in parallel (unless specified not)
         genStart = pd.Timestamp.now()  # Start of elapsed time measurement.
-        executor = exor.Executor(processes=generators if generators > 1 else None)
         pages = dict()
         for lblRes in dfSynthRes.index:
             
@@ -600,11 +735,11 @@ class DSResultsDistanceReport(ResultsReport):
 
             pgFut = executor.submit(self._toHtmlAnalysis, lblRes, dfSynthRes.loc[lblRes],
                                     dfDetRes.loc[lblRes], dfAnlysUrls.loc[lblRes],
-                                    topHtmlPathName, trCustCols)
+                                    topHtmlPathName, trCustCols, rebuild=rebuild)
                                     
             pages[pgFut] = lblRes
         
-        if generators > 1:
+        if executor.isParallel():
             logger.info1(f'Waiting for generators results ...')
         
         # ii. Wait for end of generation of each page, as it comes first.
@@ -615,7 +750,7 @@ class DSResultsDistanceReport(ResultsReport):
             exc = pgFut.exception()
             if exc:
                 logger.error(f'#{pages[pgFut]}: Exception: {exc}')
-            elif generators > 1:
+            elif executor.isParallel():
                 logger.info1(f'#{pages[pgFut]}: Done.')
 
             # Report elapsed time and number of pages completed until now (once per self.logProgressEvery pages).
@@ -639,7 +774,7 @@ class DSResultsDistanceReport(ResultsReport):
         if wasInter:
             plt.ion()
 
-    def _toHtmlAnalysis(self, lblRes, sSynthRes, sDetRes, sResNav, topHtmlPathName, trCustCols):
+    def _toHtmlAnalysis(self, lblRes, sSynthRes, sDetRes, sResNav, topHtmlPathName, trCustCols, rebuild=True):
 
         # Postprocess synthesis table :
         dfSyn = pd.DataFrame([sSynthRes])
@@ -675,7 +810,8 @@ class DSResultsDistanceReport(ResultsReport):
                                                     colors=dict(background='#f9fbf3', histograms='blue',
                                                                 multihistograms=['blue', 'green', 'red'],
                                                                 curves='red', dots='green'),
-                                                    fontSizes=self.plotFontSizes),
+                                                    fontSizes=self.plotFontSizes,
+                                                    rebuild=rebuild),
                            title=self.title, subtitle=subTitle, keywords=self.keywords,
                            navUrls=dict(prevAnlys='../' + sResNav.previous,
                                         nextAnlys='../' + sResNav.next,
@@ -694,74 +830,87 @@ class DSResultsDistanceReport(ResultsReport):
         with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
             tgtFile.write(html)
 
-    # HTML report generation.
-    def toHtml(self):
+    def toHtml(self, rebuild=False):
     
-        # For some obscure reason, parallelism does not work here (while it does for MCDSResultsPre/FullReport !).
-        generators = 1
-        
+        """HTML report generation.
+
+        Parameters:
+        :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
+                        otherwise, use any cached data or existing plot image file
+        :param generators: Number of parallel (process) generators to use :
+                           - 0 => auto-number, based on the actual number of CPUs onboard,
+                           - > 0 => the actual number to use
+        """
+
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
             
         # Generate synthesis report page (all analyses in one page).
-        topHtmlPathName = self.toHtmlAllAnalyses()
+        topHtmlPathName = self.toHtmlAllAnalyses(rebuild=rebuild)
 
         # Generate detailed report pages (one page for each analysis)
-        # Note: For some obscure reason, parallelism does not work here (while it does for MCDSResultsPreReport !).
-        self.toHtmlEachAnalysis(generators=generators)
+        # Note: For some obscure reason, parallelism does not work here (while it does for derived classes !).
+        generators = 1
+        self.toHtmlEachAnalysis(rebuild=rebuild, generators=generators)
 
         logger.info('... done.')
         
         return topHtmlPathName
 
-    # Génération du rapport Excel.
-    def toExcel(self, fileName=None, engine='openpyxl'):
-        
-        fileName = fileName or os.path.join(self.tgtFolder, self.tgtPrefix + '.xlsx')
-        
-        with pd.ExcelWriter(fileName) as xlsxWriter:
-            
-            # Synthesis
-            dfSyn = self.resultsSet.dfTransData(self.lang, subset=self.synthCols)
+    def asWorkbook(self, subset=None, rebuild=False):
 
+        """Format as a "generic" workbook format, i.e. as a dict(name=(DataFrame, useIndex))
+        where each item is a named worksheet
+
+        Parameters:
+        :param subset: Selected list of data categories to include ; None = [] = all
+                       (categories in {'specs'})
+        :param rebuild: if True force rebuild of report = prevent use of / reset any cache
+                        (not used here)
+        """
+        
+        ddfWbk = dict()
+
+        # Build results worksheets if specified in subset
+        if not subset or 'results' in subset:
+
+            # Synthesis
+            synCols = self.synthCols
+            if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
+                synCols += [self.resultsSet.analysisClass.RunFolderColumn]
+            dfSyn = self.resultsSet.dfTransData(self.lang, columns=synCols)
             dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             
-            # ... Convert run folder columns to hyperlink if present
+            # ... Convert run folder columns to hyperlink
             def toHyperlink(path):
                 return '=HYPERLINK("file:///{path}", "{path}")'.format(path=path)
-            if self.resultsSet.analysisClass.RunFolderColumn in self.synthCols:                
-                dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(toHyperlink)
+            dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(toHyperlink)
             
-            dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=True, convert=True, round_=True, style=True)
-            
-            dfsSyn.to_excel(xlsxWriter, sheet_name=self.tr('Synthesis'), index=True)
-            
+            dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True,
+                                                     indexer=True, convert=True, round_=True, style=True)
+
+            logger.debug('* synthesis')
+            ddfWbk[self.tr('Synthesis')] = (dfsSyn, True)
+
             # Details
             dfDet = self.resultsSet.dfTransData(self.lang)
-            
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
             
-            dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True, convert=False, round_=False, style=True)
-            
-            dfsDet.to_excel(xlsxWriter, sheet_name=self.tr('Details'), index=True)
+            dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True,
+                                                     convert=False, round_=False, style=True)
 
-            dfTechs = pd.DataFrame(data=[''], index=['TODO'])
-            dfTechs.to_excel(xlsxWriter, sheet_name=self.tr('Techs'), index=True)
+            logger.debug('* details')
+            ddfWbk[self.tr('Details')] = (dfsDet, True)
 
-        return fileName
+        # Append inherited worksheets.
+        ddfWbk.update(super().asWorkbook(subset=subset, rebuild=rebuild))
 
-    # Génération du rapport OpenDoc.
-    def toOpenDoc(self, fileName=None):
-    
-        fileName = fileName or os.path.join(self.tgtFolder, self.tgtPrefix + '.ods')
+        # Done
+        return ddfWbk
+ 
 
-        assert pkgver.parse(pd.__version__).release >= (1, 1), \
-               'Don\'t know how to write to OpenDoc format before Pandas 1.1'
-        
-        return self.toExcel(fileName, engine='odf')
-        
-# A specialized report for MCDS analyses, targeting similar layout as in Distance 6+, with actual output formating.
+# A specialized report for MCDS analyses, targetting similar layout as in Distance 6+, with actual output formating.
 class MCDSResultsDistanceReport(DSResultsDistanceReport):
 
     DTrans = _mergeTransTables(base=DSResultsDistanceReport.DTrans,
@@ -774,7 +923,9 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
                          " but 'CoefVar Density' have been further modified : converted to %",
                       'Note: All figures untouched, as output by MCDS': 
                          "<strong>Note</strong>: All values have been left untouched,"
-                         " as outuput by MCDS (no rounding, no conversion)" },
+                         " as outuput by MCDS (no rounding, no conversion)",
+                      'samples': 'Samples', 'analyses': 'Analyses', 'models': 'Models',
+                      'analyser': 'Analyser', 'runtime': 'Computing platform'},
                   fr={'Study type:': "<strong>Type d'étude</strong>:",
                       'Units used:': "<strong>Unités utilisées</strong>:",
                       'for distances': 'pour les distances',
@@ -784,7 +935,9 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
                          " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
                       'Note: All figures untouched, as output by MCDS':
                          "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                         " elles sont toutes telles que produites par MCDS" }))
+                         " elles sont toutes telles que produites par MCDS",
+                      'samples': 'Echantillons', 'analyses': 'Analyses', 'models': 'Modèles',
+                      'analyser': 'Analyseur', 'runtime': 'Plateforme de calcul'}))
     
     RightTruncCol = ('encounter rate', 'right truncation distance (w)', 'Value')
 
@@ -793,7 +946,34 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
                  plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
                  plotLineWidth=2, plotDotWidth=5, plotFontSizes=dict(title=12, axes=10, ticks=9, legend=10),
                  pySources=[], tgtFolder='.', tgtPrefix='results'):
+
+        """
+        Parameters:
+        :param resultsSet: source results
+        :param title: main page title (and <title> tag in HTML header)
+        :param subTitle: main page sub-title (under the title, lower font size)
+        :param description: main page description text (under the sub-title, lower font size)
+        :param anlysSubTitle: analysis pages title
+        :param keywords: for HTML header <meta name="keywords" ...>
+        :param synthCols: for synthesis table (Excel format only, "Synthesis" tab)
+        :param sortCols: sorting columns for report tables
+        :param sortAscend: sorting order for report tables, as a bool or list of bools, of len(synthCols)
+        :param dCustomTrans: custom translations to complete the report standard ones,
+                             as a dict(fr=dict(src: fr-trans), en=dict(src: en-trans))
+        :param lang: Target language for translation
+        :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
+        :param plotImgSize: size of the image generated for each plot = (width, height) in pixels
+        :param plotImgQuality: JPEG format quality (%) ; ignored if plotImgFormat not in ('jpg', 'jpeg')
+        :param plotLineWidth: width (unit: pixel) of drawn lines (observation histograms, fitted curves)
+        :param plotDotWidth: width (unit: pixel) of drawn dots / points (observation distances)
+        :param plotFontSizes: font sizes (unit: point) for plots (dict with keys from title, axes, ticks, legend)
+        :param pySources: path-name of source files to copy in report folder and link in report
+        :param tgtFolder: target folder for the report (for _all_ generated files)
+        :param tgtPrefix: default target file name for the report
+         """
     
+        assert isinstance(resultsSet, ads.MCDSAnalysisResultsSet), 'resultsSet must be a MCDSAnalysisResultsSet'
+
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend,
                          dCustomTrans=dCustomTrans, lang=lang,
@@ -1041,14 +1221,88 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
         
         return f'No {plotImgPrfx} plot produced'
         
+    def asWorkbook(self, subset=None, rebuild=False):
 
-# A specialized pre-report for MCDS analyses, with actual output formating
-# (HTML mode gives a specialized main page layout, with a plots + super-synthesis table,
-#  in place of the synthesis table of MCDSResultsDistanceReport ;
-#  detailled pages unchanged from MCDSResultsDistanceReport ;
-# For fully automatic pre-analyses, in order to give the user hints about what analyses are to be done,
-# and with what parameter values.
+        """Format as a "generic" workbook format, i.e. as a dict(name=(DataFrame, useIndex))
+        where each item is a named worksheet
+
+        Parameters:
+        :param subset: Selected list of data categories to include ; None = [] = all
+                       (categories in {'specs'})
+        :param rebuild: if True force rebuild of report = prevent use of / reset any cache
+                        (not used here)
+        """
+        
+        ddfWbk = dict()
+
+        baseWbk = super().asWorkbook(subset=subset, rebuild=rebuild)
+
+        # Build results worksheets if specified in subset
+        if not subset or 'samples' in subset:
+
+            # Format sample list if not already there.
+            if self.tr('samples') not in baseWbk:
+
+                logger.debug('* samples')
+
+                # But first, relocate synthesis and details sheets before the future 'samples' sheet
+                ddfWbk[self.tr('Synthesis')] = baseWbk.pop(self.tr('Synthesis'))
+                ddfWbk[self.tr('Details')] = baseWbk.pop(self.tr('Details'))
+
+                # Build this 'samples' sheet.
+                dfSamples = self.resultsSet.listSamples().copy()
+                dfSamples.reset_index(inplace=True)
+                dfSamples.columns = self.resultsSet.transColumns(dfSamples.columns, self.lang)
+                dfSamples.set_index(self.resultsSet.transColumn(self.resultsSet.sampleIndCol, self.lang),
+                                    inplace=True)
+
+                # Add it at the end of the workbook
+                ddfWbk[self.tr('samples')] = (dfSamples, True)
+
+        # Append inherited worksheets at the end.
+        ddfWbk.update(baseWbk)
+
+        # Done
+        return ddfWbk
+
+    def toHtml(self, rebuild=False, generators=None):
+        
+        """HTML report generation.
+
+        Parameters:
+        :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
+                        otherwise, use any cached data or existing plot image file
+        :param generators: Number of parallel (process) generators to use :
+                           - 0 => auto-number, based on the actual number of CPUs onboard,
+                           - > 0 => the actual number to use
+        """
+
+        # Install needed attached files.
+        self.installAttFiles(self.AttachedFiles)
+            
+        # Generate full report detailed pages (one for each analysis)
+        # (done first to have plot image files generated for top report page generation right below).
+        self.toHtmlEachAnalysis(rebuild=rebuild, generators=generators)
+        
+        # Generate top = main report page (one for all analyses).
+        topHtmlPathName = self.toHtmlAllAnalyses(rebuild=rebuild)
+
+        logger.info('... done.')
+                
+        return topHtmlPathName
+
+
 class MCDSResultsPreReport(MCDSResultsDistanceReport):
+
+    """A specialized pre-report for MCDS analyses, with actual output formating.
+
+    HTML mode gives a specialized main page layout, with a super-synthesis table (with plots)
+    in place of the synthesis and detailed tables of MCDSResultsDistanceReport ;
+    detailed (linked) pages unchanged from MCDSResultsDistanceReport.
+
+    Designed for showing results of fully automatic pre-analyses, in order to give the user
+    hints about which actual analyses are to be done, and with what parameter values.
+    """
 
     # Translation table.
     DTrans = _mergeTransTables(base=MCDSResultsDistanceReport.DTrans,
@@ -1076,11 +1330,29 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         """Ctor
         
         Parameters:
+        :param resultsSet: source results
+        :param title: main page title (and <title> tag in HTML header)
+        :param subTitle: main page sub-title (under the title, lower font size)
+        :param description: main page description text (under the sub-title, lower font size)
+        :param anlysSubTitle: analysis pages title
+        :param keywords: for HTML header <meta name="keywords" ...>
         :param sampleCols: for main page table, 1st column (top)
         :param paramCols: for main page table, 1st column (bottom)
         :param resultCols: for main page table, 2nd and 3rd columns
         :param synthCols: for synthesis table (Excel format only, "Synthesis" tab)
-        :param superSynthPlotsHeight: Display height (in pixels) of the synthesis page plots
+        :param dCustomTrans: custom translations to complete the report standard ones,
+                             as a dict(fr=dict(src: fr-trans), en=dict(src: en-trans))
+        :param lang: Target language for translation
+        :param superSynthPlotsHeight: Display height (in pixels) of the super-synthesis table plots
+        :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
+        :param plotImgSize: size of the image generated for each plot = (width, height) in pixels
+        :param plotImgQuality: JPEG format quality (%) ; ignored if plotImgFormat not in ('jpg', 'jpeg')
+        :param plotLineWidth: width (unit: pixel) of drawn lines (observation histograms, fitted curves)
+        :param plotDotWidth: width (unit: pixel) of drawn dots / points (observation distances)
+        :param plotFontSizes: font sizes (unit: point) for plots (dict with keys from title, axes, ticks, legend)
+        :param pySources: path-name of source files to copy in report folder and link in report
+        :param tgtFolder: target folder for the report (for _all_ generated files)
+        :param tgtPrefix: default target file name for the report
         """
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
@@ -1123,11 +1395,11 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         # Reducing float precision
         if round_:
             
-            dColDecimals = { **{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
-                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
-                             **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                                    'Density', 'Min Density', 'Max Density', 'CoefVar Density'] },
-                             **{ col: 0 for col in ['Right Trunc'] } }
+            dColDecimals = {**{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
+                            **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
+                            **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
+                                                   'Density', 'Min Density', 'Max Density', 'CoefVar Density']},
+                            **{ col: 0 for col in ['Right Trunc'] } }
             
             # Use built-in round for more accurate rounding than np.round
             for col, dec in self.trEnColNames(dColDecimals).items():
@@ -1135,13 +1407,14 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
                     df[col] = df[col].apply(round, ndigits=dec)
             
             # Don't use df.round ... because it does nothing, at least with pandas to 1.1.2 !?!?!?
-            #df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() if col in df.columns })
+            #df = df.round(decimals={col: dec for col, dec in self.trEnColNames(dColDecimals).items()
+            #                        if col in df.columns})
 
         # Styling
         return self.styleAllAnalysesData(df, convert=convert, round_=round_, style=style)
 
     # Top page
-    def toHtmlAllAnalyses(self):
+    def toHtmlAllAnalyses(self, rebuild=False):
         
         logger.info('Top page ...')
         
@@ -1151,7 +1424,8 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         dfDet = self.resultsSet.dfTransData(self.lang)
         
         # Styling not used later, so don't do it.
-        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True, convert=True, round_=True, style=False)
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True,
+                                                 convert=True, round_=True, style=False)
         dfDet = dfsDet.data
 
         # 2. Translate sample, parameter and result columns
@@ -1161,7 +1435,8 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         result1TrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
 
         if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
-            rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol, str(self.RightTruncCol)))
+            rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol,
+                                                                               str(self.RightTruncCol)))
             dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
             result1TrCols[rightTruncColInd] = self.tr('Max Distance')
 
@@ -1170,36 +1445,39 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         result1TrCols = result1TrCols[:midResInd]
         
         # 3. Fill target table index and columns
-        dfSyn = pd.DataFrame(dict(SampleParams=dfDet[sampleTrCols + paramTrCols].apply(self.series2VertTable, axis='columns'),
-                                  Results1=dfDet[result1TrCols].apply(self.series2VertTable, axis='columns'),
-                                  Results2=dfDet[result2TrCols].apply(self.series2VertTable, axis='columns'),
-                                  DistHist=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
-                                                                            plotImgPrfx=self.PlotImgPrfxDistHist,
-                                                                            plotHeight=self.superSynthPlotsHeight),
-                                  ProbDens=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
-                                                                            plotImgPrfx=self.PlotImgPrfxProbDens,
-                                                                            plotHeight=self.superSynthPlotsHeight),
-                                  DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
-                                                                           plotImgPrfx=self.PlotImgPrfxDetProb,
-                                                                           plotHeight=self.superSynthPlotsHeight)))
+        dfSupSyn = pd.DataFrame(dict(SampleParams=dfDet[sampleTrCols + paramTrCols].apply(self.series2VertTable,
+                                                                                          axis='columns'),
+                                     Results1=dfDet[result1TrCols].apply(self.series2VertTable, axis='columns'),
+                                     Results2=dfDet[result2TrCols].apply(self.series2VertTable, axis='columns'),
+                                     DistHist=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                               plotImgPrfx=self.PlotImgPrfxDistHist,
+                                                                               plotHeight=self.superSynthPlotsHeight),
+                                     ProbDens=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                               plotImgPrfx=self.PlotImgPrfxProbDens,
+                                                                               plotHeight=self.superSynthPlotsHeight),
+                                     DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                              plotImgPrfx=self.PlotImgPrfxDetProb,
+                                                                              plotHeight=self.superSynthPlotsHeight)))
         
-        idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
+        idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSupSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
         def numNavLink(sAnlys):
             return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
-        dfSyn.index = dfDet.apply(numNavLink, axis='columns')
+        dfSupSyn.index = dfDet.apply(numNavLink, axis='columns')
         
         # 4. Translate table columns.
-        dfSyn.columns = [self.tr(col) for col in dfSyn.columns]
+        dfSupSyn.columns = [self.tr(col) for col in dfSupSyn.columns]
 
-        # 5. Generate techs infos parts.
-        # TODO
+        # 5. Generate traceability infos parts (results specs).
+        ddfTrc = self.asWorkbook(subset=['specs'])
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         tmpl = self.getTemplateEnv().get_template('mcds/pretop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
-        html = tmpl.render(supersynthesis=dfSyn.to_html(escape=False),
+        html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
+                           traceability={trcName: dfTrcTable.to_html(escape=False)
+                                         for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
@@ -1219,28 +1497,15 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
 
         return htmlPathName
     
-    # HTML report generation.
-    def toHtml(self, generators=1):
-        
-        # Install needed attached files.
-        self.installAttFiles(self.AttachedFiles)
-            
-        # Generate full report detailed pages (one for each analysis)
-        # (done first to have plot image files generated for top report page generation right below).
-        self.toHtmlEachAnalysis(generators=generators)
-        
-        # Generate top = synthesis report page (one for all analyses).
-        topHtmlPathName = self.toHtmlAllAnalyses()
-
-        logger.info('... done.')
-                
-        return topHtmlPathName
-
-# A specialized full report for MCDS analyses, with actual output formating
-# (HTML mode gives a mix of Distance and PreReport main page layout,
-#  with a plots + super-synthesis table, a synthesis table, and a detailled table ;
-#  detailled pages unchanged from MCDSResultsDistanceReport).
 class MCDSResultsFullReport(MCDSResultsDistanceReport):
+
+    """A specialized full report for MCDS analyses, with actual output formating.
+
+    HTML mode gives a mix of Distance and PreReport main page layout,
+    with a super-synthesis table (with plots), a synthesis table, and a detailed table ;
+    detailed table unchanged from MCDSResultsDistanceReport
+    detailed (linked) pages unchanged from MCDSResultsDistanceReport.
+    """
 
     # Translation table.
     DTrans = _mergeTransTables(base=MCDSResultsDistanceReport.DTrans,
@@ -1269,11 +1534,31 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         """Ctor
         
         Parameters:
+        :param resultsSet: source results
+        :param title: main page title (and <title> tag in HTML header)
+        :param subTitle: main page sub-title (under the title, lower font size)
+        :param description: main page description text (under the sub-title, lower font size)
+        :param anlysSubTitle: analysis pages title
+        :param keywords: for HTML header <meta name="keywords" ...>
         :param sampleCols: for main page table, 1st column (top)
         :param paramCols: for main page table, 1st column (bottom)
         :param resultCols: for main page table, 2nd and 3rd columns
         :param synthCols: for synthesis table (Excel format only, "Synthesis" tab)
-        :param superSynthPlotsHeight: Display height (in pixels) of the synthesis page plots
+        :param sortCols: sorting columns for report tables
+        :param sortAscend: sorting order for report tables, as a bool or list of bools, of len(synthCols)
+        :param dCustomTrans: custom translations to complete the report standard ones,
+                             as a dict(fr=dict(src: fr-trans), en=dict(src: en-trans))
+        :param lang: Target language for translation
+        :param superSynthPlotsHeight: Display height (in pixels) of the super-synthesis table plots
+        :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
+        :param plotImgSize: size of the image generated for each plot = (width, height) in pixels
+        :param plotImgQuality: JPEG format quality (%) ; ignored if plotImgFormat not in ('jpg', 'jpeg')
+        :param plotLineWidth: width (unit: pixel) of drawn lines (observation histograms, fitted curves)
+        :param plotDotWidth: width (unit: pixel) of drawn dots / points (observation distances)
+        :param plotFontSizes: font sizes (unit: point) for plots (dict with keys from title, axes, ticks, legend)
+        :param pySources: path-name of source files to copy in report folder and link in report
+        :param tgtFolder: target folder for the report (for _all_ generated files)
+        :param tgtPrefix: default target file name for the report
         """
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
@@ -1288,15 +1573,19 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         self.resultCols = self.noDupColumns(resultCols, head='Result columns')
         self.superSynthPlotsHeight = superSynthPlotsHeight
 
-    # Top page
-    def toHtmlAllAnalyses(self):
+    # Top page (based on results.dfTransData).
+    def toHtmlAllAnalyses(self, rebuild=False):
         
         logger.info('Top page ...')
         
+        # 0. Get source translated raw data to format
+        dfSynRes, dfDetRes, _ = self.getRawTransData(rebuild=rebuild)
+
         # 1. Super-synthesis: Generate post-processed and translated table.
         #    (index + 5 columns : sample + params, results, Qq plot, ProbDens plot, DetProb plot)
         # a. Get translated and post-formated detailed results
-        dfDet = self.resultsSet.dfTransData(self.lang)
+        #dfDet = self.resultsSet.dfTransData(self.lang)
+        dfDet = dfDetRes.copy()  # Also needed as is below.
         
         # b. Styling not used for super-synthesis, so don't do it.
         dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True, convert=True, round_=True, style=False)
@@ -1342,13 +1631,14 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
 
         # 2. Synthesis: Generate post-processed and translated table.
         # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
-        synCols = self.synthCols
-        if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
-            synCols += [self.resultsSet.analysisClass.RunFolderColumn]
-        dfSyn = self.resultsSet.dfTransData(self.lang, subset=synCols)
+        #synCols = self.synthCols
+        #if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
+        #    synCols += [self.resultsSet.analysisClass.RunFolderColumn]
+        #dfSyn = self.resultsSet.dfTransData(self.lang, columns=synCols)
+        dfSyn = dfSynRes
         dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         
-        # b. Links to each analysis detailled report.
+        # b. Links to each analysis detailed report.
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
         def numNavLink(sAnlys):
@@ -1359,7 +1649,8 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
                                                  convert=True, round_=True, style=True)
 
         # 3. Details: Generate post-processed and translated table.
-        dfDet = self.resultsSet.dfTransData(self.lang)  # Again, but clean for sure ...
+        #dfDet = self.resultsSet.dfTransData(self.lang)  # Again, but clean for sure ...
+        dfDet = dfDetRes
 
         # a. Add run folder column if not there (will serve to generate the link to the analysis detailed report)
         detTrCols = list(dfDet.columns)
@@ -1372,8 +1663,8 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=numNavLink,
                                                  convert=False, round_=False, style=True)
 
-        # 5. Generate techs infos parts.
-        # TODO
+        # 5. Generate traceability infos parts (results specs).
+        ddfTrc = self.asWorkbook(subset=['specs'])
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -1382,8 +1673,337 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
                            synthesis=dfsSyn.render(), #escape=False, index=False),
                            details=dfsDet.render(), #escape=False, index=False),
+                           traceability={trcName: dfTrcTable.to_html(escape=False)
+                                         for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
+                           xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
+                           pySources=[pl.Path(fpn).name for fpn in self.pySources],
+                           genDateTime=genDateTime, autodsVersion=ads.__version__,
+                           distanceUnit=self.tr(self.resultsSet.distanceUnit),
+                           areaUnit=self.tr(self.resultsSet.areaUnit),
+                           surveyType=self.tr(self.resultsSet.surveyType),
+                           distanceType=self.tr(self.resultsSet.distanceType),
+                           clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
+
+        # Write top HTML to file.
+        htmlPathName = self.targetFilePathName(suffix='.html')
+        with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
+            tgtFile.write(html)
+
+        return htmlPathName
+
+
+# A specialized filtered and sorted report for MCDS analyses, with actual output formating
+# and above all auto-filtered and sorted results aiming at showing the few best results to the user
+# among which to (manually) select THE best (for each sample)
+# TODO ...
+# (HTML mode gives a mix of Distance and PreReport main page layout,
+#  with a plots + super-synthesis table, a synthesis table, and a detailed table ;
+#  detailed pages unchanged from MCDSResultsDistanceReport).
+class MCDSResultsFilterSortReport(MCDSResultsFullReport):
+
+    """A specialized filtered and sorted full report for MCDS analyses, with actual output formating
+    and above all auto-filtered and sorted results aiming at showing the few best results to the user
+    among which to (manually) select THE best (for each sample).
+
+    Just like MCDSResultsFullReport, but for filtered and sorted results for 1-only scheme.
+    """
+
+    # Translation table.
+    DTrans = _mergeTransTables(base=MCDSResultsFullReport.DTrans,
+      update=dict(en={'Scheme': 'Scheme', 'Step': 'Step',
+                      'Property': 'Property', 'Value': 'Value',
+                      'AFS': 'AFS', 'Steps': 'Steps',
+                      'Filter & Sort steps': 'Filter and sort steps'},
+                  fr={'Scheme': 'Méthode', 'Step': 'Etape',
+                      'Property': 'Propriété', 'Value': 'Valeur',
+                      'AFS': 'FTA', 'Steps': 'Etapes',
+                      'Filter & Sort steps': 'Etapes de filtrage et tri'}))
+
+    ResClass = ads.MCDSAnalysisResultsSet
+
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
+                 sampleCols, paramCols, resultCols, synthCols=None, sortCols=None, sortAscend=None,
+                 dCustomTrans=None, lang='en',
+                 filSorSchemes=[dict(idFmt='ExecCodeX', method=ResClass.filterSortOnExecCode)], 
+                 superSynthPlotsHeight=288, plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
+                 plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
+                 pySources=[], tgtFolder='.', tgtPrefix='results'):
+
+        """Ctor
+        
+        Parameters:
+        :param resultsSet: source results (an instance of MCDSAnalysisResultsSet, or subclass,
+                                           named ResClass or R below)
+        :param title: main page title (and <title> tag in HTML header) for the HTML report (1 scheme only)
+        :param subTitle: main page sub-title (under the title, lower font size) for the HTML report (1 scheme only) ;
+                         any {fsMeth} placeholder will get replaced by the method name of the used filter sort scheme 
+        :param description: main page description text (under the sub-title, lower font size)
+                            for the HTML report (1 scheme only) ; any {fsMeth} placeholder formatted as in subTitle
+        :param anlysSubTitle: analysis pages title
+        :param keywords: for HTML header <meta name="keywords" ...>
+        :param sampleCols: for main page table, 1st column (top)
+        :param paramCols: for main page table, 1st column (bottom)
+        :param resultCols: for main page table, 2nd and 3rd columns
+        :param synthCols: Subset and order of columns to keep at the end (before translation)
+                          as the synthesis table of each filter-sort sub-report (None = [] = all)
+                          Warning: No need to specify here pre-selection and final selection columns,
+                                   as they'll be added automatically, and relocated at a non-customisable place.
+        :param sortCols: sorting columns for report tables ??? which ones ???
+        :param sortAscend: sorting order for report tables, as a bool or list of bools, of len(synthCols) ??? which ones ???
+        :param dCustomTrans: custom translations to complete the report standard ones,
+                             as a dict(fr=dict(src: fr-trans), en=dict(src: en-trans))
+        :param lang: Target language for translation
+        :param filSorSchemes: filter and sort schemes to apply in order to generate each sub-report
+                 as a list of dict(idFmt= format string for generating the Id of the report
+                                   method= ResClass.filterSortOnXXX method to use,
+                                   deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
+                                       (if not or partially given, see RCLS.filterSortOnXXX defaults)
+                                   filterSort= dict of other <method> params,
+                                   preselCols= target columns for generating auto-preselection ones,
+                                               containing [1, preselNum] ranks ; default: []
+                                   preselAscs= Rank direction to use for each column (list),
+                                               or all (single bool) ; default: True
+                                   preselNum= number of (best) preselections to keep for each sample) ;
+                                              default: 5
+                 example: [dict(idFmt='ExecCode', => format string to generate the name of the report
+                                method=ResClass.filterSortOnExecCode,
+                                preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False, preselNum=5),
+                           dict(idFmt='AicCKCvQua-r{sightRate:.1f}d{nResults}', 
+                                method=ResClass.filterSortOnAicCKCvQua,
+                                deduplicate=dict(dupSubset=[R.CLNObs, R.CLEffort, R.CLDeltaAic, R.CLChi2,
+                                                            R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv]),
+                                                 dDupRounds={R.CLDeltaAic: 1, R.CLChi2: 2, R.CLKS: 2,
+                                                             R.CLCvMUw: 2, R.CLCvMCw: 2, R.CLDCv: 2})
+                                filterSort=dict(sightRate=92.5, nBestAIC=3, nBestQua=1, nResults=12),
+                                preselCols=[R.CLCmbQuaBal1, R.R.CLDCv], preselAscs=[False, True], preselNum=3)]        
+        :param superSynthPlotsHeight: Display height (in pixels) of the super-synthesis table plots
+        :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
+        :param plotImgSize: size of the image generated for each plot = (width, height) in pixels
+        :param plotImgQuality: JPEG format quality (%) ; ignored if plotImgFormat not in ('jpg', 'jpeg')
+        :param plotLineWidth: width (unit: pixel) of drawn lines (observation histograms, fitted curves)
+        :param plotDotWidth: width (unit: pixel) of drawn dots / points (observation distances)
+        :param plotFontSizes: font sizes (unit: point) for plots (dict with keys from title, axes, ticks, legend)
+        :param pySources: path-name of source files to copy in report folder and link in report
+        :param tgtFolder: target folder for the report (for _all_ generated files)
+        :param tgtPrefix: default target file name for the report
+        """
+
+        super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
+                         sampleCols=sampleCols, paramCols=paramCols, resultCols=resultCols, synthCols=synthCols,
+                         sortCols=sortCols, sortAscend=sortAscend, dCustomTrans=dCustomTrans, lang=lang,
+                         superSynthPlotsHeight=superSynthPlotsHeight,
+                         plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
+                         plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
+                         pySources=pySources, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
+        
+        self.filSorSchemes = filSorSchemes
+
+    def asWorkbook(self, subset=None, rebuild=False):
+
+        """Format as a "generic" workbook format, i.e. as a dict(name=(DataFrame, useIndex))
+        where each item is a named worksheet
+
+        Parameters:
+        :param subset: Selected list of data categories to include ; None = [] = all
+                       (categories in {'specs', 'samples', results'})
+        :param rebuild: If True, force rebuild of filtered and sorted sub-report
+                        => prevent use of / reset results set filter & sort cache
+        """
+        
+        ddfWbk = dict()
+
+        logger.info('Formatting FilterSort sub-reports as a workbook ...')
+
+        # Build results worksheets if specified in subset
+        if not subset or 'results' in subset:
+
+            # TODO: Add better formatting (color, ... etc)
+
+            # For each filter and sort scheme:
+            repLog = list()
+            for scheme in self.filSorSchemes:
+
+                # Apply it
+                filSorSchId, dfFilSorRes, filSorSteps = \
+                    self.resultsSet.dfFilSorData(scheme=scheme, rebuild=rebuild,
+                                                 columns=self.synthCols, lang=self.lang)
+
+                logger.debug(f'* filter & sort {filSorSchId}')
+
+                # Store results in workbook
+                ddfWbk['-'.join([self.tr('AFS'), filSorSchId])] = (dfFilSorRes, True)
+
+                # Update all-scheme log
+                repLog += filSorSteps
+
+            # Log of opérations, for traceability.
+            indexCols = [self.tr(col) for col in ['Scheme', 'Step']]
+            dataCols = [self.tr(col) for col in ['Property', 'Value']]
+            dfFilSorHist = pd.DataFrame(repLog, columns=indexCols + dataCols)
+            dfFilSorHist.set_index(indexCols, inplace=True)
+
+            logger.debug('* filter & sort steps')
+            ddfWbk['-'.join([self.tr('AFS'), self.tr('Steps')])] = (dfFilSorHist, True)
+
+        # Append inherited worksheets.
+        ddfWbk.update(super().asWorkbook(subset=subset, rebuild=rebuild))
+
+        # Done
+        logger.info('... done.')
+
+        return ddfWbk
+
+    def getRawTransData(self, filSorScheme=dict(idFmt='ExecCodeX', method=ResClass.filterSortOnExecCode),
+                        rebuild=False):
+
+        """Retrieve input translated raw data to be formatted
+
+        :return: 2 dataFrames, for synthesis (synCols) and detailed (all) column sets,
+                 + the id of the applied scheme and the log of its application. 
+        """
+
+        # Generate translated synthesis table.
+        synCols = self.synthCols
+        if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
+            synCols += [self.resultsSet.analysisClass.RunFolderColumn]
+        filSorSchId, dfFilSorSynRes, filSorSteps = \
+            self.resultsSet.dfFilSorData(scheme=filSorScheme, rebuild=rebuild, columns=synCols, lang=self.lang)
+
+        # Generate translated detailed table.
+        _, dfFilSorDetRes, _ = \
+            self.resultsSet.dfFilSorData(scheme=filSorScheme, rebuild=rebuild, lang=self.lang)
+
+        return dfFilSorSynRes, dfFilSorDetRes, (filSorSchId, filSorSteps)
+
+    def toHtmlAllAnalyses(self, filSorScheme=dict(idFmt='ExecCodeX', method=ResClass.filterSortOnExecCode),
+                          rebuild=False):
+
+        """Top page for a given scheme.
+        """
+
+        logger.info('Top page ...')
+        
+        # 0. Get source translated raw data to format
+        dfSynRes, dfDetRes, (filSorSchId, filSorSteps) = \
+            self.getRawTransData(filSorScheme=filSorScheme, rebuild=rebuild)
+
+        # 1. Super-synthesis: Generate post-processed and translated table.
+        #    (index + 5 columns : sample + params, results, Qq plot, ProbDens plot, DetProb plot)
+        # a. Apply filter and sort scheme and get translated and post-formated detailed results
+        #dfDet = self.resultsSet.dfTransData(self.lang)
+        #filSorSchId, dfFilSorRes, filSorSteps = \
+        #    self.resultsSet.dfFilSorData(scheme=scheme, rebuild=rebuild, lang=self.lang)
+        #dfDet = dfFilSorRes
+        dfDet = dfDetRes.copy()
+
+        # b. Styling not used for super-synthesis, so don't do it.
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True, convert=True, round_=True, style=False)
+        dfDet = dfsDet.data
+
+        # c. Translate sample, parameter and result columns
+        dTransResCol = self.resultsSet.transTable()
+        sampleTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.sampleCols]
+        paramTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.paramCols]
+        result1TrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
+
+        if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
+            rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol, str(self.RightTruncCol)))
+            dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
+            result1TrCols[rightTruncColInd] = self.tr('Max Distance')
+
+        midResInd = len(result1TrCols) // 2 + len(result1TrCols) % 2
+        result2TrCols = result1TrCols[midResInd:]
+        result1TrCols = result1TrCols[:midResInd]
+        
+        # d. Fill target table index and columns
+        dfSupSyn = pd.DataFrame(dict(SampleParams=dfDet[sampleTrCols + paramTrCols].apply(self.series2VertTable, axis='columns'),
+                                     Results1=dfDet[result1TrCols].apply(self.series2VertTable, axis='columns'),
+                                     Results2=dfDet[result2TrCols].apply(self.series2VertTable, axis='columns'),
+                                     QqPlot=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                             plotImgPrfx=self.PlotImgPrfxQqPlot,
+                                                                             plotHeight=self.superSynthPlotsHeight),
+                                     ProbDens=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                               plotImgPrfx=self.PlotImgPrfxProbDens,
+                                                                               plotHeight=self.superSynthPlotsHeight),
+                                     DetProb=dfDet[self.trRunFolderCol].apply(self.plotImageHtmlElement,
+                                                                              plotImgPrfx=self.PlotImgPrfxDetProb,
+                                                                              plotHeight=self.superSynthPlotsHeight)))
+        
+        idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSupSyn))), 1))
+        numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+        def numNavLink(sAnlys):
+            return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
+        dfSupSyn.index = dfDet.apply(numNavLink, axis='columns')
+        
+        # e. Translate table columns.
+        dfSupSyn.columns = [self.tr(col) for col in dfSupSyn.columns]
+
+        # 2. Synthesis: Apply filter and sort scheme and generate post-processed and translated table.
+        # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
+        #synCols = self.synthCols
+        #if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
+        #    synCols += [self.resultsSet.analysisClass.RunFolderColumn]
+        #dfSyn = self.resultsSet.dfTransData(self.lang, columns=synCols)
+        #filSorSchId, dfFilSorRes, filSorSteps = \
+        #    self.resultsSet.dfFilSorData(scheme=scheme, rebuild=rebuild, columns=synCols, lang=self.lang)
+        #dfSyn = dfFilSorRes
+        dfSyn = dfSynRes
+        dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
+        
+        # b. Links to each analysis detailed report.
+        idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
+        numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+        def numNavLink(sAnlys):
+            return numNavLinkFmt.format(p=sAnlys[self.trRunFolderCol], n=sAnlys.name)
+       
+        # c. Post-format as specified in actual class.
+        dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=numNavLink,
+                                                 convert=True, round_=True, style=True)
+
+        # 3. Details: Generate post-processed and translated table.
+        #dfDet = self.resultsSet.dfTransData(self.lang)  # Again, but clean for sure ...
+        #filSorSchId, dfFilSorRes, filSorSteps = \
+        #    self.resultsSet.dfFilSorData(scheme=scheme, rebuild=rebuild, lang=self.lang)
+        #dfDet = dfFilSorRes
+        dfDet = dfDetRes
+
+        # a. Add run folder column if not there (will serve to generate the link to the analysis detailed report)
+        detTrCols = list(dfDet.columns)
+        if self.trRunFolderCol not in detTrCols:
+            detTrCols += [self.trRunFolderCol]
+        dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
+        dfDet = dfDet.reindex(columns=detTrCols)
+       
+        # b. Links to each analysis detailed report.
+        dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=numNavLink,
+                                                 convert=False, round_=False, style=True)
+
+        # 4. Generate traceability infos parts.
+        # a. Log of opérations.
+        indexCols = [self.tr(col) for col in ['Scheme', 'Step']]
+        dataCols = [self.tr(col) for col in ['Property', 'Value']]
+        dfFilSorHist = pd.DataFrame(filSorSteps, columns=indexCols + dataCols)
+        dfFilSorHist.set_index(indexCols, inplace=True)
+        ddfTrc = {self.tr('Filter & Sort steps'): (dfFilSorHist, True)}
+
+        # b. Results specs
+        ddfTrc.update(self.asWorkbook(subset=['specs']))
+
+        # 6. Generate top report page.
+        genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        tmpl = self.getTemplateEnv().get_template('mcds/fulltop.htpl')
+        xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
+        html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
+                           synthesis=dfsSyn.render(), #escape=False, index=False),
+                           details=dfsDet.render(), #escape=False, index=False),
+                           traceability={trcName: dfTrcTable.to_html(escape=False)
+                                         for trcName, (dfTrcTable, _) in ddfTrc.items()},
+                           title=self.title, keywords=self.keywords,
+                           subtitle=self.subTitle.format(fsId=filSorSchId.split('@')[0]),
+                           description=self.description.format(fsId=filSorSchId.split('@')[0]),
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
                            genDateTime=genDateTime, autodsVersion=ads.__version__, 
@@ -1400,19 +2020,30 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
             tgtFile.write(html)
 
         return htmlPathName
-    
-    # HTML report generation (based on results.dfTransData).
-    def toHtml(self, generators=1):
+
+    def toHtml(self, filSorScheme=dict(idFmt='ExecCodeX', method=ResClass.filterSortOnExecCode),
+               rebuild=False, generators=None):
+
+        """HTML report generation for a given scheme.
+
+        Parameters:
+        :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
+                        otherwise, use any cached data or existing plot image file
+        :param generators: Number of parallel (process) generators to use :
+                           - 0 => auto-number, based on the actual number of CPUs onboard,
+                           - > 0 => the actual number to use
+        """
+
         
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
             
         # Generate full report detailed pages (one for each analysis)
         # (done first to have plot image files generated for top report page generation right below).
-        self.toHtmlEachAnalysis(generators=generators)
+        self.toHtmlEachAnalysis(filSorScheme=filSorScheme, rebuild=rebuild, generators=generators)
         
-        # Generate top = synthesis report page (one for all analyses).
-        topHtmlPathName = self.toHtmlAllAnalyses()
+        # Generate top = main report page (one for all analyses).
+        topHtmlPathName = self.toHtmlAllAnalyses(filSorScheme=filSorScheme, rebuild=rebuild)
 
         logger.info('... done.')
                 

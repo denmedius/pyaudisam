@@ -47,4 +47,4 @@ from .optimiser import DSParamsOptimiser, MCDSTruncationOptimiser, MCDSZerothOrd
 
 from .optanalyser import MCDSTruncationOptanalyser, MCDSTruncOptanalysisResultsSet
 
-from .report import MCDSResultsPreReport, MCDSResultsFullReport
+from .report import MCDSResultsPreReport, MCDSResultsFullReport, MCDSResultsFilterSortReport

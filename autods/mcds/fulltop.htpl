@@ -59,6 +59,7 @@
         <li><a href="#super-synthesis">{{tr['Quick-view results']}}</a></li>
         <li><a href="#synthesis">{{tr['Main results']}}</a></li>
         <li><a href="#details">{{tr['Detailed results']}}</a></li>
+        <li><a href="#traceability">{{tr['Traceability']}}</a></li>
       </ul>
       
     </div>
@@ -97,7 +98,7 @@
       <p>{{tr['Note: Some figures rounded, but not converted']}}</p>
       <p style='font-size: 80%'>{{tr['Click on analysis # for details']}}</p>
       
-    {{synthesis}}
+      {{synthesis}}
 
     </div>
     
@@ -120,7 +121,26 @@
       <p>{{tr['Note: All figures untouched, as output by MCDS']}}</p>
       <p style='font-size: 80%'>{{tr['Click on analysis # for details']}}</p>
       
-    {{details}}
+      {{details}}
+      
+    </div>
+    
+    <img class="center" height="32" style="margin-top: 30px"
+         src="./fa-feather-alt.svg" alt="---" />
+
+    <h2 id="traceability">
+      {{tr['Traceability']}}
+    </h2>
+    <div class="chapter" style="margin-left: 10px">
+
+      <p>{{tr['Traceability tech details']}}</p>
+
+      {% for name, table in traceability.items() %}
+        <div style="margin-left: 10px">
+          <h3>{{name}}</h3>
+          {{table}}
+        </div>
+      {% endfor %}
       
     </div>
     

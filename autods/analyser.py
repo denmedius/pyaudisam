@@ -126,7 +126,7 @@ class Analyser(object):
                 dFlatSpecs[name] = value
 
         # Done.
-        return dFlatSpecs
+        return pd.Series(dFlatSpecs, name='Value')
 
     # Generation of a table of implicit "partial variant" specification,
     # from a list of possible data selection criteria for each variable.
@@ -732,6 +732,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLCAutoFilSor = 'auto filter sort'  # Label "Chapter" (1st level)
     CLTTruncGroup = 'Group'  # Label "Type" (3rd level)
     CLTSortOrder = 'Order'  # Label "Type" (3rd level)
+    CLTPreSelection = 'Pre-selection'  # Label "Type" (3rd level)
 
     #   i. close truncation group identification
     CLGroupTruncLeft  = (CLCAutoFilSor, MCDSAnalysis.CLParTruncLeft[1], CLTTruncGroup)
@@ -764,6 +765,63 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     CLGblOrdDAicChi2KSDCv = (CLCAutoFilSor, 'DeltaAIC Chi2 KS DCv (global)', CLTSortOrder)
 
+    # Computed columns specs (name translation + position).
+    _firstResColInd = len(MCDSEngine.statSampCols()) + len(MCDSAnalysis.MIRunColumns)
+    DComputedCols = {CLSightRate: _firstResColInd + 10, # After Encounter Rate / Left|Right Trunc. Dist.
+                     CLDeltaAic: _firstResColInd + 12, # Before AIC
+                     CLChi2: _firstResColInd + 14, # Before all Chi2 tests 
+                     CLDeltaDCv: _firstResColInd + 72, # Before Density of animals / Cv 
+                     # And, at the end ...
+                     **{cl: -1 for cl in [CLCmbQuaBal1, CLCmbQuaBal2, CLCmbQuaBal3,
+                                          CLCmbQuaChi2, CLCmbQuaKS, CLCmbQuaDCv,
+                                          CLGroupTruncLeft, CLGroupTruncRight,
+                                          CLGrpOrdSmTrAic,
+                                          CLGrpOrdClTrChi2KSDCv,  # CLGrpOrdClTrChi2,
+                                          CLGrpOrdClTrDCv,
+                                          CLGrpOrdClTrQuaBal1, CLGrpOrdClTrQuaBal2, CLGrpOrdClTrQuaBal3,
+                                          CLGrpOrdClTrQuaChi2, CLGrpOrdClTrQuaKS, CLGrpOrdClTrQuaDCv,
+                                          CLGblOrdChi2KSDCv,
+                                          CLGblOrdQuaBal1, CLGblOrdQuaBal2, CLGblOrdQuaBal3,
+                                          CLGblOrdQuaChi2, CLGblOrdQuaKS, CLGblOrdQuaDCv,
+                                          CLGblOrdDAicChi2KSDCv]}}
+
+    DfComputedColTrans = \
+        pd.DataFrame(index=DComputedCols.keys(),
+                     data=dict(en=['Obs Rate', 'Delta AIC', 'Chi2 P', 'Delta CoefVar Density',
+                                   'Qual Bal 1', 'Qual Bal 2', 'Qual Bal 3',
+                                   'Qual Chi2+', 'Qual KS+', 'Qual DCv+',
+                                   'Group Left Trunc', 'Group Right Trunc',
+                                   'Order Same Trunc AIC',
+                                   'Order Close Trunc Chi2 KS DCv', #'Order Close Trunc Chi2',
+                                   'Order Close Trunc DCv', 'Order Close Trunc Bal 1 Qual',
+                                   'Order Close Trunc Bal 2 Qual', 'Order Close Trunc Bal 3 Qual',
+                                   'Order Close Trunc Bal Chi2+ Qual', 'Order Close Trunc Bal KS+ Qual',
+                                   'Order Close Trunc Bal DCv+ Qual',
+                                   'Order Global Chi2 KS DCv', 'Order Global Bal 1 Qual',
+                                   'Order Global Bal 2 Qual', 'Order Global Bal 3 Qual',
+                                   'Order Global Bal Chi2+ Qual', 'Order Global Bal KS+ Qual',
+                                   'Order Global Bal DCv+ Qual',
+                                   'Order Global DeltaAIC Chi2 KS DCv'],
+                               fr=['Taux Obs', 'Delta AIC', 'Chi2 P', 'Delta CoefVar Densité',
+                                   'Qual Equi 1', 'Qual Equi 2', 'Qual Equi 3',
+                                   'Qual Chi2+', 'Qual KS+', 'Qual DCv+',
+                                   'Groupe Tronc Gche', 'Groupe Tronc Drte',
+                                   'Ordre Tronc Ident AIC',
+                                   'Ordre Tronc Proch Chi2 KS DCv', #'Ordre Tronc Proch Chi2',
+                                   'Ordre Tronc Proch DCv', 'Ordre Tronc Proch Qual Equi 1',
+                                   'Ordre Tronc Proch Qual Equi 2', 'Ordre Tronc Proch Qual Equi 3',
+                                   'Ordre Tronc Proch Qual Equi Chi2+', 'Ordre Tronc Proch Qual Equi KS+',
+                                   'Ordre Tronc Proch Qual Equi DCv+',
+                                   'Ordre Global Chi2 KS DCv', 'Ordre Global Qual Equi 1',
+                                   'Ordre Global Qual Equi 2', 'Ordre Global Qual Equi 3',
+                                   'Ordre Global Qual Equi Chi2+', 'Ordre Global Qual Equi KS+',
+                                   'Ordre Global Qual Equi DCv+',
+                                   'Ordre Global DeltaAIC Chi2 KS DCv']))
+
+    # Final-selection column label (empty, for user decision)
+    CLFinalSelection = (CLCAutoFilSor, 'Final selection', 'Value')
+    DFinalSelColTrans = dict(fr='Sélection finale', en='Final selection')
+
     # Shortcut to real truncation params columns names.
     DCLParTruncDist = dict(left=MCDSAnalysis.CLParTruncLeft, right=MCDSAnalysis.CLParTruncRight)
 
@@ -780,71 +838,20 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         :param sampleIndCol: multi-column index for the sample Id column ; no default, must be there !
         """
 
+        assert all(len(self.DfComputedColTrans[lang].dropna()) == len(self.DComputedCols)
+                   for lang in self.DfComputedColTrans.columns)
+
         assert sampleIndCol is not None
-
-        # Computed columns specs (name translation + position).
-        _firstResColInd = len(MCDSEngine.statSampCols()) + len(MCDSAnalysis.MIRunColumns)
-        cls = self
-        DComputedCols = {cls.CLSightRate: _firstResColInd + 10, # After Encounter Rate / Left|Right Trunc. Dist.
-                         cls.CLDeltaAic: _firstResColInd + 12, # Before AIC
-                         cls.CLChi2: _firstResColInd + 14, # Before all Chi2 tests 
-                         cls.CLDeltaDCv: _firstResColInd + 72, # Before Density of animals / Cv 
-                         # And, at the end ...
-                         **{cl: -1 for cl in [cls.CLCmbQuaBal1, cls.CLCmbQuaBal2, cls.CLCmbQuaBal3,
-                                              cls.CLCmbQuaChi2, cls.CLCmbQuaKS, cls.CLCmbQuaDCv,
-                                              cls.CLGroupTruncLeft, cls.CLGroupTruncRight,
-                                              cls.CLGrpOrdSmTrAic,
-                                              cls.CLGrpOrdClTrChi2KSDCv,  # cls.CLGrpOrdClTrChi2,
-                                              cls.CLGrpOrdClTrDCv,
-                                              cls.CLGrpOrdClTrQuaBal1, cls.CLGrpOrdClTrQuaBal2, cls.CLGrpOrdClTrQuaBal3,
-                                              cls.CLGrpOrdClTrQuaChi2, cls.CLGrpOrdClTrQuaKS, cls.CLGrpOrdClTrQuaDCv,
-                                              cls.CLGblOrdChi2KSDCv,
-                                              cls.CLGblOrdQuaBal1, cls.CLGblOrdQuaBal2, cls.CLGblOrdQuaBal3,
-                                              cls.CLGblOrdQuaChi2, cls.CLGblOrdQuaKS, cls.CLGblOrdQuaDCv,
-                                              cls.CLGblOrdDAicChi2KSDCv]}}
-
-        DfComputedColTrans = \
-            pd.DataFrame(index=DComputedCols.keys(),
-                         data=dict(en=['Obs Rate', 'Delta AIC', 'Chi2 P', 'Delta CoefVar Density',
-                                       'Qual Bal 1', 'Qual Bal 2', 'Qual Bal 3',
-                                       'Qual Chi2+', 'Qual KS+', 'Qual DCv+',
-                                       'Group Left Trunc', 'Group Right Trunc',
-                                       'Order Same Trunc AIC',
-                                       'Order Close Trunc Chi2 KS DCv', #'Order Close Trunc Chi2',
-                                       'Order Close Trunc DCv', 'Order Close Trunc Bal 1 Qual',
-                                       'Order Close Trunc Bal 2 Qual', 'Order Close Trunc Bal 3 Qual',
-                                       'Order Close Trunc Bal Chi2+ Qual', 'Order Close Trunc Bal KS+ Qual',
-                                       'Order Close Trunc Bal DCv+ Qual',
-                                       'Order Global Chi2 KS DCv', 'Order Global Bal 1 Qual',
-                                       'Order Global Bal 2 Qual', 'Order Global Bal 3 Qual',
-                                       'Order Global Bal Chi2+ Qual', 'Order Global Bal KS+ Qual',
-                                       'Order Global Bal DCv+ Qual',
-                                       'Order Global DeltaAIC Chi2 KS DCv'],
-                                   fr=['Taux Obs', 'Delta AIC', 'Chi2 P', 'Delta CoefVar Densité',
-                                       'Qual Equi 1', 'Qual Equi 2', 'Qual Equi 3',
-                                       'Qual Chi2+', 'Qual KS+', 'Qual DCv+',
-                                       'Groupe Tronc Gche', 'Groupe Tronc Drte',
-                                       'Ordre Tronc Ident AIC',
-                                       'Ordre Tronc Proch Chi2 KS DCv', #'Ordre Tronc Proch Chi2',
-                                       'Ordre Tronc Proch DCv', 'Ordre Tronc Proch Qual Equi 1',
-                                       'Ordre Tronc Proch Qual Equi 2', 'Ordre Tronc Proch Qual Equi 3',
-                                       'Ordre Tronc Proch Qual Equi Chi2+', 'Ordre Tronc Proch Qual Equi KS+',
-                                       'Ordre Tronc Proch Qual Equi DCv+',
-                                       'Ordre Global Chi2 KS DCv', 'Ordre Global Qual Equi 1',
-                                       'Ordre Global Qual Equi 2', 'Ordre Global Qual Equi 3',
-                                       'Ordre Global Qual Equi Chi2+', 'Ordre Global Qual Equi KS+',
-                                       'Ordre Global Qual Equi DCv+',
-                                       'Ordre Global DeltaAIC Chi2 KS DCv']))
-
-        assert all(len(DfComputedColTrans[lang].dropna()) == len(DComputedCols) for lang in DfComputedColTrans.columns)
 
         assert all(spec['col'] in self.DCLParTruncDist for spec in ldTruncIntrvSpecs)
 
         # Initialise base.
         super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
-                                       dComputedCols=DComputedCols, dfComputedColTrans=DfComputedColTrans,
+                                       dComputedCols=self.DComputedCols, dfComputedColTrans=self.DfComputedColTrans,
                                        sortCols=sortCols, sortAscend=sortAscend)
         
+        self.addColumnsTrans({self.CLFinalSelection: self.DFinalSelColTrans})
+
         # Sample columns
         self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
         self.sampleIndCol = sampleIndCol
@@ -857,11 +864,14 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         self.areaUnit = areaUnit
         self.surveyType = surveyType
         self.distanceType = distanceType
-        self.clustering =clustering
+        self.clustering = clustering
 
         # Parameters for truncation group intervals post-computations
         self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
         self.truncIntrvEpsilon = truncIntrvEpsilon
+
+        # Cache for filter and sort applied schemes
+        self.dFilSorViews = dict()  # Filter and sort scheme name => index of selected rows, scheme steps
 
     def copy(self, withData=True):
     
@@ -882,32 +892,30 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             clone._dfData = self._dfData.copy()
             clone.rightColOrder = self.rightColOrder
             clone.postComputed = self.postComputed
+            clone.dfSamples = None if dfSample is None else self.dfSamples.copy()
+            clone.dFilSorViews = copy.deepcopy(self.dFilSorViews)
 
         return clone
     
+    def onDataChanged(self):
+
+        """React to results data (_dfData) changes that invalidate calculated data,
+        but only when the calculus is coded in this class ; other calculi impacts taken care in base classes"""
+
+        self.dfSamples = None
+        self.dFilSorViews = dict()
+
     def dropRows(self, sbSelRows):
     
         super().dropRows(sbSelRows)
 
-        self.dfSamples = None
+        self.onDataChanged()
         
-    def _acceptNewColumns(self, newCols):
-
-        super()._acceptNewColumns(newCols)
-
-        self.dfSamples = None
-
-    def append(self, sdfResult, sCustomHead=None, acceptNewCols=False):
-        
-        super().append(sdfResult, sCustomHead, acceptNewCols)
-
-        self.dfSamples = None
-
     def setData(self, dfData, postComputed=False):
         
-        super().setData(dfData, postComputed)
+        super().setData(dfData, postComputed=postComputed)
 
-        self.dfSamples = None
+        self.onDataChanged()
 
     # Get translate names of custom columns
     def transSampleColumns(self, lang):
@@ -919,6 +927,12 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLsChi2All = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value') \
                   for i in range(MaxChi2Tests, 0, -1)]
     
+    # Pre-selection column label (from source column) and translation
+    def preselectionColumn(self, srcCol):
+        return ((srcCol[0], srcCol[1], self.CLTPreSelection),
+                dict(fr='Pré-sélection ' + self.transColumn(srcCol, 'fr'),
+                     en='Pre-selection ' + self.transColumn(srcCol, 'en')))
+
     @staticmethod
     def determineChi2Value(sChi2AllDists):
         for chi2 in sChi2AllDists:
@@ -1025,27 +1039,44 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     def _postComputeQualityIndicators(self):
         
+        cls = self
+
         logger.debug('Post-computing Quality Indicators')
 
-        self._dfData[self.CLSightRate] = 100 * self._dfData.apply(self._normNObs, axis='columns') # [0,1] => %
+        self._dfData[self.CLSightRate] = 100 * self._dfData.apply(cls._normNObs, axis='columns') # [0,1] => %
+
+        # Prepare data for computations
+        logger.debug1('* Pre-processing source data')
+
+        # a. extract the useful columns
+        miCompCols = [cls.CLNObs, cls.CLNTotObs, cls.CLNTotPars, 
+                      cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw, cls.CLDCv]
+        dfCompData = self._dfData[miCompCols].copy()
+
+        # b. NaN should kill down these indicators => we have to enforce this !
+        # TODO: Activate !
+        #dfCompData[[cls.CLNObs, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].fillna(0, inplace=True)
+        #dfCompData[cls.CLDCv].fillna(1e5, inplace=True)  # Usually considered good under 0.3 ...
+        #dfCompData[cls.CLNTotObs].fillna(1e9, inplace=True)  # Should slap down normObs whatever NObs ...
+        #dfCompData[cls.CLNTotPars].fillna(1e3, inplace=True)  # Should slap down normNTotPars whatever NObs ...
 
         logger.debug1('* Balanced quality 1')
-        self._dfData[self.CLCmbQuaBal1] = self._dfData.apply(self._combinedQualityBalanced1, axis='columns')
+        self._dfData[cls.CLCmbQuaBal1] = dfCompData.apply(cls._combinedQualityBalanced1, axis='columns')
 
         logger.debug1('* Balanced quality 2')
-        self._dfData[self.CLCmbQuaBal2] = self._dfData.apply(self._combinedQualityBalanced2, axis='columns')
+        self._dfData[cls.CLCmbQuaBal2] = dfCompData.apply(cls._combinedQualityBalanced2, axis='columns')
 
         logger.debug1('* Balanced quality 3')
-        self._dfData[self.CLCmbQuaBal3] = self._dfData.apply(self._combinedQualityBalanced3, axis='columns')
+        self._dfData[cls.CLCmbQuaBal3] = dfCompData.apply(cls._combinedQualityBalanced3, axis='columns')
 
         logger.debug1('* Balanced quality Chi2+')
-        self._dfData[self.CLCmbQuaChi2] = self._dfData.apply(self._combinedQualityMoreChi2, axis='columns')
+        self._dfData[cls.CLCmbQuaChi2] = dfCompData.apply(cls._combinedQualityMoreChi2, axis='columns')
 
         logger.debug1('* Balanced quality KS+')
-        self._dfData[self.CLCmbQuaKS]   = self._dfData.apply(self._combinedQualityMoreKS, axis='columns')
+        self._dfData[cls.CLCmbQuaKS]   = dfCompData.apply(cls._combinedQualityMoreKS, axis='columns')
 
         logger.debug1('* Balanced quality DCv+')
-        self._dfData[self.CLCmbQuaDCv]  = self._dfData.apply(self._combinedQualityMoreDCv, axis='columns')
+        self._dfData[cls.CLCmbQuaDCv]  = dfCompData.apply(cls._combinedQualityMoreDCv, axis='columns')
         
     # List result samples
     def listSamples(self, rebuild=False):
@@ -1457,26 +1488,35 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLDensityMin = ('density/abundance', 'density of animals', 'Lcl')
     CLDensityMax = ('density/abundance', 'density of animals', 'Ucl')
 
-    MIDupSubsetDef = pd.MultiIndex.from_tuples([CLNObs, CLEffort, CLDeltaAic, CLChi2, CLKS, CLCvMUw, CLCvMCw, CLDCv, 
-                                                CLPDetec, CLPDetecMin, CLPDetecMax,
-                                                CLDensity, CLDensityMin, CLDensityMax])
+    LDupSubsetDef = [CLNObs, CLEffort, CLDeltaAic, CLChi2, CLKS, CLCvMUw, CLCvMCw, CLDCv, 
+                     CLPDetec, CLPDetecMin, CLPDetecMax, CLDensity, CLDensityMin, CLDensityMax]
     DDupRoundsDef = {CLDeltaAic: 1, CLChi2: 2, CLKS: 2, CLCvMUw: 2, CLCvMCw: 2, CLDCv: 2, 
                      CLPDetec: 3, CLPDetecMin: 3, CLPDetecMax: 3, CLDensity: 2, CLDensityMin: 2, CLDensityMax: 2}
 
     @classmethod
-    def _logFilterSortStep(cls, filSorSteps, method, step, propName, propValue):
+    def _logFilterSortStep(cls, filSorSteps, scheme, step, propName, propValue):
 
-        filSorSteps.append([method, step, propName, propValue])
+        filSorSteps.append([scheme, step, propName, propValue])
         logger.debug2(f'* {step}: {propName} = {propValue}')
 
-    def filterSortOnExecCode(self, dupSubset=MIDupSubsetDef, dDupRounds=DDupRoundsDef):
+    @staticmethod
+    def filterSortSchemeId(scheme=None, idFmt=None, **filterSort):
+        """Unique (in memory) identification of a filter and sort scheme, with a human readable part :-)"""
+        if scheme:
+            name = scheme['idFmt'].format_map(scheme.get('filterSort', {})).replace('.', '')
+        else:
+            name = idFmt.format_map(filterSort).replace('.', '')
+        return name + '@' + np.base_repr(id(scheme), 36).lower()
+
+    def filterSortOnExecCode(self, schemeId, dupSubset=LDupSubsetDef, dDupRounds=DDupRoundsDef):
 
         """Minimal filter (drop ExecCode >= 3) and truncation distances + balanced quality 1 sorting ;
         doesn't actually modifies a single bit of the results set, but returns the resulting filtered and sorted index,
         suitable for indexing on self.dfData / dfTransData ...
 
         Parameters:
-        :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates
+        :param schemeId: Scheme identification, for traceability
+        :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates (as a list of tuples)
                           Warning: self.sampleIndCol is automatically prepended to this list if not already inside
         :param dDupRounds: {col: nb decimals} => number of decimals to keep (after rounding)
                            for a sub-set or all of dupSubset columns
@@ -1486,37 +1526,36 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         cls = self
 
-        method = 'execode'
-        logger.debug1(f'Method "{method}"')
+        logger.debug(f'Filter and sort scheme "{schemeId}": Applying.')
 
         filSorSteps = list()
 
-        dfFilSorRes = self.dfData
-        cls._logFilterSortStep(filSorSteps, method, 'before', 'Results', len(dfFilSorRes))
+        dfFilSorRes = self.getData(copy=True)
+        cls._logFilterSortStep(filSorSteps, schemeId, 'before', 'results', len(dfFilSorRes))
 
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index,
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1], 'max', 2)
-        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1], 'results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, schemeId, MCDSAnalysis.CLRunStatus[1], 'max', 2)
+        cls._logFilterSortStep(filSorSteps, schemeId, MCDSAnalysis.CLRunStatus[1], 'results', len(dfFilSorRes))
 
         dfFilSorRes.sort_values(by=[self.sampleIndCol, MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
                                     MCDSAnalysis.CLRunStatus],
                                 ascending=True, na_position='first', inplace=True)
         if self.sampleIndCol not in dupSubset:
-            dupSubset = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(dupSubset)
+            dupSubset = [self.sampleIndCol] + dupSubset
         dfFilSorRes.drop(cls.indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'duplicates', 'results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, schemeId, 'duplicates', 'results', len(dfFilSorRes))
 
         sortCols = [MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
         dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols,
                                 ascending=True, na_position='first', inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'sorting', 'columns', ', '.join(miCol[1] for miCol in sortCols))
+        cls._logFilterSortStep(filSorSteps, schemeId, 'sorting', 'columns', ', '.join(miCol[1] for miCol in sortCols))
 
         return dfFilSorRes.index, filSorSteps
 
-    def filterSortOnAicCKCvQua(self, sightRate=95, nBestAIC=2, nBestQua=1, nResults=10,
-                               dupSubset=MIDupSubsetDef, dDupRounds=DDupRoundsDef):
+    def filterSortOnAicCKCvQua(self, schemeId, sightRate=95, nBestAIC=2, nBestQua=1, nResults=10,
+                               dupSubset=LDupSubsetDef, dDupRounds=DDupRoundsDef):
 
         """Filtrage et tri proche de 1 mais moins méchant, pour action manuelles de filtrage a posteriori
         doesn't actually modifies a single bit of the results set, but returns the resulting filtered and sorted index,
@@ -1538,11 +1577,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
            et ce même indicateur.
 
         Parameters:
-        :param sightRate: 
-        :param nBestAIC: 
-        :param nBestQua: 
-        :param nResults: 
-        :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates
+        :param schemeId: Scheme identification, for traceability
+        :param sightRate: Minimal observation rate (ratio of NTot Obs / NObs, not 1 because of dist. truncations)
+        :param nBestAIC: Nb of best AIC results to keep per sample and group of close truncations
+        :param nBestQua: Nb of best quality to keep per sample and group of close truncations
+                         (quality: see above ???)
+        :param nResults: Nb of best Bal Qua1 results to keep per sample
+        :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates (as a list of tuples)
                           Warning: self.sampleIndCol is automatically prepended to this list if not already inside
         :param dDupRounds: {col: nb decimals} => number of decimals to keep (after rounding)
                            for a sub-set or all of dupSubset columns
@@ -1552,32 +1593,30 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         cls = self
 
-        method = f'ckcvqual{int(sightRate*10)}d{nResults}'
-
-        logger.debug1(f'Method "{method}"')
+        logger.debug(f'Filter and sort scheme "{schemeId}": Applying.')
 
         filSorSteps = list()
 
-        dfFilSorRes = self.dfData
-        cls._logFilterSortStep(filSorSteps, method, 'before', 'results', len(dfFilSorRes))
+        dfFilSorRes = self.getData(copy=True)
+        cls._logFilterSortStep(filSorSteps, schemeId, 'before', 'results', len(dfFilSorRes))
 
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index, inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1], 'max', 2)
-        cls._logFilterSortStep(filSorSteps, method, MCDSAnalysis.CLRunStatus[1], 'results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, schemeId, MCDSAnalysis.CLRunStatus[1], 'max', 2)
+        cls._logFilterSortStep(filSorSteps, schemeId, MCDSAnalysis.CLRunStatus[1], 'results', len(dfFilSorRes))
 
         dfFilSorRes.sort_values(by=[self.sampleIndCol, MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
                                     MCDSAnalysis.CLRunStatus],
                                 ascending=True, na_position='first', inplace=True)
         if self.sampleIndCol not in dupSubset:
-            dupSubset = pd.MultiIndex.from_tuples([self.sampleIndCol]).append(dupSubset)
+            dupSubset = [self.sampleIndCol] + dupSubset
         dfFilSorRes.drop(cls.indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'duplicates', 'results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, schemeId, 'duplicates', 'results', len(dfFilSorRes))
 
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLGrpOrdSmTrAic] >= nBestAIC].index,
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, cls.CLGrpOrdSmTrAic[1], 'nb best', nBestAIC)
-        cls._logFilterSortStep(filSorSteps, method, cls.CLGrpOrdSmTrAic[1], 'results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, schemeId, cls.CLGrpOrdSmTrAic[1], 'nb best', nBestAIC)
+        cls._logFilterSortStep(filSorSteps, schemeId, cls.CLGrpOrdSmTrAic[1], 'results', len(dfFilSorRes))
 
         # TODO: Make used list of indicators customisable
         dfFilSorRes.drop(dfFilSorRes[(dfFilSorRes[cls.CLGrpOrdClTrChi2KSDCv] >= nBestQua)
@@ -1588,29 +1627,151 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                      & (dfFilSorRes[cls.CLGrpOrdClTrQuaDCv] >= nBestQua)].index,
                                    # & (dfFilSorRes[cls.CLGrpOrdClTrChi2] > 0)].index,
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
+        cls._logFilterSortStep(filSorSteps, schemeId, 'best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
                                'max (sup) number', nBestQua)
-        cls._logFilterSortStep(filSorSteps, method, 'best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
+        cls._logFilterSortStep(filSorSteps, schemeId, 'best CKCv+CVDens+QualEqui+Chi2+KS+DCv (close trunc)',
                                'results', len(dfFilSorRes))
 
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLSightRate] < sightRate].index, inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'non-outlier sightings', 'min %', sightRate)
-        cls._logFilterSortStep(filSorSteps, method, 'non-outlier sightings', 'actual number', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, schemeId, 'non-outlier sightings', 'min %', sightRate)
+        cls._logFilterSortStep(filSorSteps, schemeId, 'non-outlier sightings', 'actual number', len(dfFilSorRes))
 
         dfFilSorRes.drop(cls.filterDichotScheme(dfFilSorRes, critCol=cls.CLCmbQuaBal1, ascendCrit=True, nMinRes=nResults,
                                                 sampleIds=dfFilSorRes[self.sampleIndCol].unique(),
                                                 sampleIdCol=self.sampleIndCol),
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'best Bal1 Quality results', 'target per sample', nResults)
-        cls._logFilterSortStep(filSorSteps, method, 'best Bal1 Quality results',
+        cls._logFilterSortStep(filSorSteps, schemeId, 'best Bal1 Quality results', 'target per sample', nResults)
+        cls._logFilterSortStep(filSorSteps, schemeId, 'best Bal1 Quality results',
                                'actual total number', len(dfFilSorRes))
 
         sortCols = [MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
         dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols, ascending=True, na_position='first', inplace=True)
-        cls._logFilterSortStep(filSorSteps, method, 'sorting', 'columns', ', '.join(miCol[1] for miCol in sortCols))
+        cls._logFilterSortStep(filSorSteps, schemeId, 'sorting', 'columns', ', '.join(miCol[1] for miCol in sortCols))
 
         return dfFilSorRes.index, filSorSteps
 
+    def _addPreselColumns(self, dfFilSorRes, filSorSteps, filSorSchId,
+                          preselCols=[CLCmbQuaBal1], preselAscend=True, nSamplePreSels=5):
+
+        """Add (in-place) a pre-selection column to a filtered and sorted translated results table
+
+        Parameters:
+        :param dfFilSorRes: the filtered and sorted table to update
+        :param filSorSteps: the filtered and sorted step log to update
+        :param filSorSchId: the filter and sort scheme Id (step-logging only)
+        :param nSamplePreSels: Number of generated pre-selections per sample
+        :param preselCols: Results columns to use for generating auto-preselection indices (in [1, nSamplePreSels])
+        :param preselAscend: Order to use for each column (list), or all (single bool)
+        """
+
+        if isinstance(preselAscend, bool):
+            preselAscend = [preselAscend for i in range(len(preselCols))]
+        assert len(preselCols) == len(preselAscend), \
+               'preselAscend must be a single bool or a list(bool) with len(preselCols)'
+
+        self._logFilterSortStep(filSorSteps, filSorSchId, 'Auto-preselection',
+                                'Nb of preselections', nSamplePreSels)
+
+        # Create each pre-selection column: rank per sample in preselCol/ascending (or not) order
+        # up to nSamplePreSels.
+        for srcCol, srcColAscend in zip(preselCols, preselAscend):
+
+            # Determine label and translation.
+            tgtPreSelCol, dTgtPreSelColTrans = self.preselectionColumn(srcCol)
+            self.addColumnsTrans({tgtPreSelCol: dTgtPreSelColTrans})
+
+            # Compute contents and add to table
+            dfFilSorRes.insert(dfFilSorRes.columns.get_loc(srcCol), tgtPreSelCol,
+                               dfFilSorRes.groupby(self.miSampleCols.to_list())[[srcCol]] \
+                                          .transform(lambda s: s.rank(ascending=srcColAscend,
+                                                                      method='dense', na_option='keep'))[srcCol])
+            dfFilSorRes.loc[dfFilSorRes[tgtPreSelCol] > nSamplePreSels, tgtPreSelCol] = np.nan
+
+            self._logFilterSortStep(filSorSteps, filSorSchId, 'Auto-preselection',
+                                    'Pre-selection column', srcCol)
+
+        # Create final empty selection column (for the user to self-decide at the end)
+        # (right before the first added pre-selection column, no choice)
+        if len(preselCols) > 0:
+            dfFilSorRes.insert(dfFilSorRes.columns.get_loc(preselCols[0]) - 1, self.CLFinalSelection, np.nan)
+
+        return dfFilSorRes
+
+    def dfFilSorData(self, scheme=[dict(idFmt='ExecCode', method=filterSortOnExecCode,
+                                        preselCols=[CLCmbQuaBal1], preselAscs=False, preselNum=5)],
+                     columns=None, lang=None, rebuild=False):
+
+        """Extract filtered and sorted data following the given scheme
+
+        Note: Let R be MCDSAnalysisResultsSet, or a subclass (needed below).
+        
+        Parameters:
+        :param filSorSchemes: filter and sort scheme to apply
+                 as a list of dict(idFmt= format string for generating the Id of the report
+                                   method= ResClass.filterSortOnXXX method to use,
+                                   deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
+                                       (if not or partially given, see RCLS.filterSortOnXXX defaults)
+                                   filterSort= dict of other <method> params,
+                                   preselCols= target columns for generating auto-preselection ones,
+                                               containing [1, preselNum] ranks ; default: []
+                                   preselAscs= Rank direction to use for each column (list),
+                                                  or all (single bool) ; default: True
+                                   preselNum= number of (best) preselections to keep for each sample) ;
+                                              default: 5
+                 examples: dict(idFmt='ExecCode', => format string to generate the name of the report
+                                method=R.filterSortOnExecCode,
+                                preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False, preselNum=5),
+                           dict(idFmt='AicCKCvQua-r{sightRate:.1f}d{nResults}', 
+                                method=R.filterSortOnAicCKCvQua,
+                                deduplicate=dict(dupSubset=[R.CLNObs, R.CLEffort, R.CLDeltaAic, R.CLChi2,
+                                                            R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv]),
+                                                 dDupRounds={R.CLDeltaAic: 1, R.CLChi2: 2, R.CLKS: 2,
+                                                             R.CLCvMUw: 2, R.CLCvMCw: 2, R.CLDCv: 2})
+                                filterSort=dict(sightRate=92.5, nBestAIC=3, nBestQua=1, nResults=12),
+                                preselCols=[R.CLCmbQuaBal1, R.R.CLDCv], preselAscs=[False, True], preselNum=3)
+        :param columns: Subset and order of columns to keep at the end (before translation) (None = [] = all)
+                       Warning: No need to specify here pre-selection and final selection columns,
+                                as they'll be added automatically, and relocated at a non-customisable place.
+        :param lang: Target language for column name translation (if None, no translation => keep original names)
+        :param rebuild: If True, rebuild filtered and sorted table ; otherwise, simply reuse cached data
+               if the results set didn't change enough meanwhile.
+
+        :return: scheme id, result table, log of completed filter and sort steps 
+        """
+
+        # Apply filter and sort scheme if not already done or needed or user-required
+        # => index of filtered and sorted rows.
+        filSorSchId = self.filterSortSchemeId(scheme)
+        if rebuild or not self.postComputed or filSorSchId not in self.dFilSorViews:
+        
+            # Apply scheme method => index of filtered and sorted results + log of steps
+            iFilSor, filSorSteps = \
+                scheme['method'](self, schemeId=filSorSchId,
+                                 **scheme.get('filterSort', {}), **scheme.get('deduplicate', {}))
+            self.dFilSorViews[filSorSchId] = iFilSor, filSorSteps
+
+        else:
+
+            # Get from cache.
+            iFilSor, filSorSteps = self.dFilSorViews[filSorSchId]
+
+            logger.debug(f'Filter and sort scheme "{filSorSchId}": Re-using cached results.')
+
+        # Actually extract filtered and sorted rows and selected columns.
+        dfFilSorRes = self.dfSubData(index=iFilSor, columns=columns, copy=True)
+
+        # Add the preselection column (and update filter and sort log)
+        dfFilSorRes = self._addPreselColumns(dfFilSorRes, filSorSteps, filSorSchId,
+                                             nSamplePreSels=scheme.get('preselNum', 5),
+                                             preselCols=scheme.get('preselCols', []), 
+                                             preselAscend=scheme.get('preselAscs', True))
+
+        # Final translation if specified.
+        if lang:
+            dfFilSorRes.columns = self.transColumns(dfFilSorRes.columns, lang)
+
+        # Done.
+        return filSorSchId, dfFilSorRes, filSorSteps
 
 class MCDSAnalyser(DSAnalyser):
 
@@ -1919,7 +2080,8 @@ class MCDSAnalyser(DSAnalyser):
         self.results = self._getResults(dAnlyses)
 
         # Set results specs for traceability.
-        self.results.updateSpecs(runtime=autods.runtime, analyser=self.flatSpecs(), analyses=dfExplParamSpecs)
+        self.results.updateSpecs(analyses=dfExplParamSpecs, analyser=self.flatSpecs(),
+                                 runtime=pd.Series(autods.runtime, name='Version'))
         
         # Done.
         logger.info(f'Analyses completed ({len(self.results)} results).')
@@ -2048,8 +2210,8 @@ class MCDSPreAnalyser(MCDSAnalyser):
         self.results = self._getResults(dAnlyses)
 
         # Set results specs for traceability.
-        self.results.updateSpecs(analyser=self.flatSpecs(), samples=dfExplSampleSpecs,
-                                 models=pd.DataFrame(dModelStrategy))
+        self.results.updateSpecs(samples=dfExplSampleSpecs, models=pd.DataFrame(dModelStrategy),
+                                 analyser=self.flatSpecs(), runtime=pd.Series(autods.runtime, name='Version'))
         
         # Done.
         logger.info('Analyses completed.')
@@ -2102,6 +2264,8 @@ class MCDSPreAnalyser(MCDSAnalyser):
             logger.info('#{}/{} => {}'.format(sampInd+1, len(dfExplSampleSpecs), fpn.name))
 
         # Done.
+        self._engine.shutdown()
+
         logger.info(f'Done exporting.')
 
 if __name__ == '__main__':
