@@ -850,7 +850,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                        dComputedCols=self.DComputedCols, dfComputedColTrans=self.DfComputedColTrans,
                                        sortCols=sortCols, sortAscend=sortAscend)
         
-        self.addColumnsTrans({self.CLFinalSelection: self.DFinalSelColTrans})
+        if self.CLFinalSelection:
+            self.addColumnsTrans({self.CLFinalSelection: self.DFinalSelColTrans})
 
         # Sample columns
         self.miSampleCols = miSampleCols if miSampleCols is not None else self.miCustomCols
@@ -1089,6 +1090,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             self.dfSamples = self._dfData[miSampleCols]
             self.dfSamples = self.dfSamples.drop_duplicates()
             self.dfSamples.set_index(self.sampleIndCol, inplace=True)
+            self.dfSamples.sort_index(inplace=True)
             assert len(self.dfSamples) == self.dfSamples.index.nunique()
 
         return self.dfSamples
@@ -2089,7 +2091,60 @@ class MCDSAnalyser(DSAnalyser):
         return self.results
 
 
-# Default strategy for model choice sequence (if one fails, take next in order, and so on)
+class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
+
+    """A specialized results set for MCDS pre-analyses
+    (simpler post-computations that base class MCDSAnalysisResultsSet)"""
+    
+    # Computed columns specs (name translation + position).
+    Super = MCDSAnalysisResultsSet
+    _firstResColInd = len(MCDSEngine.statSampCols()) + len(MCDSAnalysis.MIRunColumns)
+    DComputedCols = {Super.CLSightRate: _firstResColInd + 10, # After Encounter Rate / Left|Right Trunc. Dist.
+                     Super.CLDeltaAic: _firstResColInd + 12, # Before AIC
+                     Super.CLChi2: _firstResColInd + 14, # Before all Chi2 tests 
+                     Super.CLDeltaDCv: _firstResColInd + 72, # Before Density of animals / Cv 
+                     # And, at the end ...
+                     **{cl: -1 for cl in [Super.CLCmbQuaBal1, Super.CLCmbQuaBal2, Super.CLCmbQuaBal3,
+                                          Super.CLCmbQuaChi2, Super.CLCmbQuaKS, Super.CLCmbQuaDCv]}}
+
+    DfComputedColTrans = \
+        pd.DataFrame(index=DComputedCols.keys(),
+                     data=dict(en=['Obs Rate', 'Delta AIC', 'Chi2 P', 'Delta CoefVar Density',
+                                   'Qual Bal 1', 'Qual Bal 2', 'Qual Bal 3',
+                                   'Qual Chi2+', 'Qual KS+', 'Qual DCv+'],
+                               fr=['Taux Obs', 'Delta AIC', 'Chi2 P', 'Delta CoefVar Densité',
+                                   'Qual Equi 1', 'Qual Equi 2', 'Qual Equi 3',
+                                   'Qual Chi2+', 'Qual KS+', 'Qual DCv+']))
+
+    # Needed presence in base class, but use inhibited.
+    CLFinalSelection = None
+
+    def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
+                       sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
+                       surveyType='Point', distanceType='Radial', clustering=False):
+        
+        """
+        Parameters:
+        :param miSampleCols: columns to use for grouping by sample ; defaults to miCustomCols if None
+        :param sampleIndCol: multi-column index for the sample Id column ; no default, must be there !
+        """
+
+        # Initialise base.
+        super().__init__(miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
+                         miSampleCols=miSampleCols, sampleIndCol=sampleIndCol,
+                         sortCols=sortCols, sortAscend=sortAscend,
+                         distanceUnit=distanceUnit, areaUnit=areaUnit,
+                         surveyType=surveyType, distanceType=distanceType, clustering=clustering)
+
+    # Post-computations.
+    def postComputeColumns(self):
+        
+        self._postComputeChi2()
+        self._postComputeDeltaAicDcv()
+        self._postComputeQualityIndicators()
+
+
+# Default strategy for pre-analyses model choice sequence (if one fails, take next in order, and so on)
 ModelEstimCritDef = 'AIC'
 ModelCVIntervalDef = 95
 ModelStrategyDef = [dict(keyFn=kf, adjSr='COSINE', estCrit=ModelEstimCritDef, cvInt=ModelCVIntervalDef) \
@@ -2137,6 +2192,21 @@ class MCDSPreAnalyser(MCDSAnalyser):
         assert runTimeOut is None or runMethod != 'os.system', \
                f"Can't care about {runTimeOut}s execution time limit with os.system run method (not implemented)"
 
+    def setupResults(self):
+    
+        """Build an empty results objects.
+        """
+    
+        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend = \
+            self.prepareResultsColumns()
+        
+        return MCDSPreAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
+                                         miSampleCols=miSampCols, sampleIndCol=sampIndMCol,
+                                         sortCols=sortCols, sortAscend=sortAscend,
+                                         distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                         surveyType=self.surveyType, distanceType=self.distanceType,
+                                         clustering=self.clustering)
+    
     def run(self, dfExplSampleSpecs=None, implSampleSpecs=None, dModelStrategy=ModelStrategyDef, threads=None):
     
         """Run specified analyses

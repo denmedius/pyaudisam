@@ -670,9 +670,9 @@ class DSResultsDistanceReport(ResultsReport):
         """
 
         # Generate translated synthesis table.
-        synCols = self.synthCols
-        if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
-            synCols += [self.resultsSet.analysisClass.RunFolderColumn]
+        synthCols = self.synthCols
+        if self.resultsSet.analysisClass.RunFolderColumn not in synthCols:
+            synthCols += [self.resultsSet.analysisClass.RunFolderColumn]
         dfSynthRes = self.resultsSet.dfTransData(self.lang, columns=synthCols)
 
         # Generate translated detailed table.
@@ -701,7 +701,7 @@ class DSResultsDistanceReport(ResultsReport):
         executor = exor.Executor(processes=generators)
         nExpWorkers = executor.expectedWorkers()
         if nExpWorkers > 1:
-            logger.info(f'... through {nExpWorkers} parallel generators ...')
+            logger.info(f'... through at most {nExpWorkers} parallel generators ...')
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons) with the sorted order if any
         dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, sort=True, indexer=True,
@@ -837,9 +837,8 @@ class DSResultsDistanceReport(ResultsReport):
         Parameters:
         :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
                         otherwise, use any cached data or existing plot image file
-        :param generators: Number of parallel (process) generators to use :
-                           - 0 => auto-number, based on the actual number of CPUs onboard,
-                           - > 0 => the actual number to use
+
+        Note: Parallelism does not work for this class, hence the absence of the generators parameter.
         """
 
         # Install needed attached files.
@@ -1094,10 +1093,12 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
             
             dColDecimals = { **{ col: 4 for col in ['Delta CoefVar Density'] },
                              **{ col: 3 for col in ['Effort', 'PDetec', 'Min PDetec', 'Max PDetec'] },
-                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P'] },
+                             **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
+                                                    'Qual Bal 1', 'Qual Bal 2', 'Qual Bal 3',
+                                                    'Qual Chi2+', 'Qual KS+', 'Qual DCv+'] },
                              **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                                     'Density', 'Min Density',
-                                                    'Max Density', 'CoefVar Density'] },
+                                                    'Max Density', 'CoefVar Density', 'Obs Rate'] },
                              **{ col: 0 for col in ['Left Trunc Dist', 'Right Trunc Dist',
                                                     'Left Trunc', 'Right Trunc'] } }
                                                      
@@ -1124,9 +1125,11 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
             #       since ResultsSet.append was changed in order to preserve the type of these columns.
             if round_:
             
-                remTrailZeroesCols = ['ExCod', 'NTot Obs', 'Max Dist', 'Min Dist', 'NObs',
+                remTrailZeroesCols = ['ExCod', 'NTot Obs', 'Max Dist', 'Min Dist', 'NObs', 'Obs Rate',
                                       'Left Trunc', 'Right Trunc', 'Effort', 'PDetec', 'Min PDetec', 'Max PDetec',
                                       'Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
+                                      'Qual Bal 1', 'Qual Bal 2', 'Qual Bal 3',
+                                      'Qual Chi2+', 'Qual KS+', 'Qual DCv+',
                                       'AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
                                       'Density', 'Min Density', 'Max Density',
                                       'CoefVar Density', 'Delta CoefVar Density',
@@ -1185,7 +1188,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
         return dfs
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
-    # in the "one analysis at a time" case.
+    # in the "all analyses at once" case.
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
@@ -1245,11 +1248,16 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
 
                 logger.debug('* samples')
 
-                # But first, relocate synthesis and details sheets before the future 'samples' sheet
-                ddfWbk[self.tr('Synthesis')] = baseWbk.pop(self.tr('Synthesis'))
-                ddfWbk[self.tr('Details')] = baseWbk.pop(self.tr('Details'))
+                # But first, relocate synthesis and details sheets before the future 'samples' sheet if present.
+                synthShName = self.tr('Synthesis')
+                if synthShName in baseWbk:
+                    ddfWbk[synthShName] = baseWbk.pop(synthShName)
 
-                # Build this 'samples' sheet.
+                detShName = self.tr('Details')
+                if detShName in baseWbk:
+                    ddfWbk[detShName] = baseWbk.pop(detShName)
+
+                # Build this missing 'samples' sheet.
                 dfSamples = self.resultsSet.listSamples().copy()
                 dfSamples.reset_index(inplace=True)
                 dfSamples.columns = self.resultsSet.transColumns(dfSamples.columns, self.lang)
@@ -1265,7 +1273,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
         # Done
         return ddfWbk
 
-    def toHtml(self, rebuild=False, generators=None):
+    def toHtml(self, rebuild=False, generators=0):
         
         """HTML report generation.
 
@@ -1275,6 +1283,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
         :param generators: Number of parallel (process) generators to use :
                            - 0 => auto-number, based on the actual number of CPUs onboard,
                            - > 0 => the actual number to use
+                           Note: Parallelism works well for this class, hence the default 0.
         """
 
         # Install needed attached files.
@@ -1311,18 +1320,19 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
                       'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
                       'DistHist': 'Standard distance histogram',
                       'ProbDens': 'Detection probability density (PDF)',
-                      'DetProb': 'Detection probability',
-                      'Max Distance': 'Max Distance'},
+                      'DetProb': 'Detection probability'},
+                      #'Max Distance': 'Max Distance'},
                   fr={'Quick-view results': 'Résultats : l\'essentiel', 
                       'SampleParams': 'Echantillon & Modèle',
                       'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
                       'DistHist': 'Histogramme standard des distances',
                       'ProbDens': 'Densité de probabilité de détection (DdP)',
-                      'DetProb': 'Probabilité de détection',
-                      'Max Distance': 'Max Distance'}))
+                      'DetProb': 'Probabilité de détection'}))
+                      #'Max Distance': 'Max Distance'}))
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
-                 sampleCols, paramCols, resultCols, synthCols=None, dCustomTrans=None, lang='en',
+                 sampleCols, paramCols, resultCols, synthCols=None,
+                 sortCols=None, sortAscend=None, dCustomTrans=None, lang='en',
                  superSynthPlotsHeight=288, plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
                  plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
                  pySources=[], tgtFolder='.', tgtPrefix='results'):
@@ -1356,7 +1366,8 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         """
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
-                         synthCols=synthCols, dCustomTrans=dCustomTrans, lang=lang,
+                         synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend,
+                         dCustomTrans=dCustomTrans, lang=lang,
                          plotImgFormat=plotImgFormat, plotImgSize=plotImgSize, plotImgQuality=plotImgQuality,
                          plotLineWidth=plotLineWidth, plotDotWidth=plotDotWidth, plotFontSizes=plotFontSizes,
                          pySources=pySources, tgtFolder=tgtFolder, tgtPrefix=tgtPrefix)
@@ -1367,17 +1378,49 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         self.superSynthPlotsHeight = superSynthPlotsHeight
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
-    # in the "one analysis at a time" case.
+    # in the "all analyses at once" case.
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
     def finalFormatAllAnalysesData(self, dfTrData, sort=True, indexer=None, convert=True, round_=True, style=True):
         
-        # Sorting
         df = dfTrData
+
+        # Sorting
         if sort:
             
-            pass # No sorting to be done here
+            # If no sorting order was specified, generate one simple one, through a temporarily sample num. column
+            # (assuming analyses have been run as grouped by sample)
+            if not self.sortCols:
+            
+                # Note: Ignoring all-NaN sample id columns, for a working groupby
+                sampleIdCols = [col for col in self.resultsSet.transSampleColumns(self.lang)
+                                if col in df.columns and not df[col].isna().all()]
+                df.insert(0, column='#Sample#', value=df.groupby(sampleIdCols, sort=False).ngroup())
+
+                sortCols = ['#Sample#']
+                sortAscend = True
+                
+            # Otherwise, use the one specified.
+            else:
+            
+                # ... after some cleaning up in case some sort columns are not present.
+                sortCols = list()
+                sortAscend = list() if isinstance(self.sortAscend, list) else self.sortAscend
+                for ind, col in enumerate(self.resultsSet.transColumns(self.sortCols, self.lang)):
+                    if col in df.columns:
+                        sortCols.append(col)
+                        if isinstance(self.sortAscend, list):
+                            sortAscend.append(self.sortAscend[ind])
+                assert not isinstance(sortAscend, list) or len(sortCols) == len(sortAscend)
+                assert len(sortCols) > 0
+
+            # Sort
+            df.sort_values(by=sortCols, ascending=sortAscend, inplace=True)
+            
+            # Remove temporary sample num. column if no sorting order was specified
+            if not self.sortCols:
+                df.drop(columns=['#Sample#'], inplace=True)
         
         # Standard 1 to N index for synthesis <=> details navigation.
         if indexer:
@@ -1396,10 +1439,13 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         if round_:
             
             dColDecimals = {**{ col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec'] },
-                            **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P'] },
+                            **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
+                                                   'Qual Bal 1', 'Qual Bal 2', 'Qual Bal 3',
+                                                   'Qual Chi2+', 'Qual KS+', 'Qual DCv+'] },
                             **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                                   'Density', 'Min Density', 'Max Density', 'CoefVar Density']},
-                            **{ col: 0 for col in ['Right Trunc'] } }
+                                                   'Density', 'Min Density', 'Max Density',
+                                                   'CoefVar Density', 'Obs Rate']},
+                            **{ col: 0 for col in ['Left Trunc', 'Right Trunc'] } }
             
             # Use built-in round for more accurate rounding than np.round
             for col, dec in self.trEnColNames(dColDecimals).items():
@@ -1429,16 +1475,19 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         dfDet = dfsDet.data
 
         # 2. Translate sample, parameter and result columns
+        # TODO: Check that all specified columns - sampleCols, paramCols, resultCols -
+        #       are in dfDet.columns, and clearly explain which are not if any
+        #       rather than crashing later with an obscure exception ...
         dTransResCol = self.resultsSet.transTable()
         sampleTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.sampleCols]
         paramTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.paramCols]
         result1TrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
 
-        if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
-            rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol,
-                                                                               str(self.RightTruncCol)))
-            dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
-            result1TrCols[rightTruncColInd] = self.tr('Max Distance')
+        #if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
+        #    rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol,
+        #                                                                       str(self.RightTruncCol)))
+        #    dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
+        #    result1TrCols[rightTruncColInd] = self.tr('Max Distance')
 
         midResInd = len(result1TrCols) // 2 + len(result1TrCols) % 2
         result2TrCols = result1TrCols[midResInd:]
@@ -1469,7 +1518,7 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         dfSupSyn.columns = [self.tr(col) for col in dfSupSyn.columns]
 
         # 5. Generate traceability infos parts (results specs).
-        ddfTrc = self.asWorkbook(subset=['specs'])
+        ddfTrc = self.asWorkbook(subset=['specs', 'samples'])
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -1514,15 +1563,15 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
                       'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
                       'QqPlot': 'Quantile-quantile plot',
                       'ProbDens': 'Detection probability density (PDF)',
-                      'DetProb': 'Detection probability',
-                      'Max Distance': 'Max Distance'},
+                      'DetProb': 'Detection probability'},
+                      #'Max Distance': 'Max Distance'},
                   fr={'Quick-view results': 'Résultats : l\'essentiel', 
                       'SampleParams': 'Echantillon & Modèle',
                       'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
                       'QqPlot': 'Diagramme quantile-quantile',
                       'ProbDens': 'Densité de probabilité de détection (DdP)',
-                      'DetProb': 'Probabilité de détection',
-                      'Max Distance': 'Max Distance'}))
+                      'DetProb': 'Probabilité de détection'}))
+                      #'Max Distance': 'Max Distance'}))
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
                  sampleCols, paramCols, resultCols, synthCols=None, sortCols=None, sortAscend=None,
@@ -1584,7 +1633,6 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         # 1. Super-synthesis: Generate post-processed and translated table.
         #    (index + 5 columns : sample + params, results, Qq plot, ProbDens plot, DetProb plot)
         # a. Get translated and post-formated detailed results
-        #dfDet = self.resultsSet.dfTransData(self.lang)
         dfDet = dfDetRes.copy()  # Also needed as is below.
         
         # b. Styling not used for super-synthesis, so don't do it.
@@ -1592,15 +1640,18 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         dfDet = dfsDet.data
 
         # c. Translate sample, parameter and result columns
+        # TODO: Check that all specified columns - sampleCols, paramCols, resultCols -
+        #       are in dfDet.columns, and clearly explain which are not if any
+        #       rather than crashing later with an obscure exception ...
         dTransResCol = self.resultsSet.transTable()
         sampleTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.sampleCols]
         paramTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.paramCols]
         result1TrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
 
-        if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
-            rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol, str(self.RightTruncCol)))
-            dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
-            result1TrCols[rightTruncColInd] = self.tr('Max Distance')
+        #if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
+        #    rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol, str(self.RightTruncCol)))
+        #    dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
+        #    result1TrCols[rightTruncColInd] = self.tr('Max Distance')
 
         midResInd = len(result1TrCols) // 2 + len(result1TrCols) % 2
         result2TrCols = result1TrCols[midResInd:]
@@ -1631,10 +1682,6 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
 
         # 2. Synthesis: Generate post-processed and translated table.
         # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
-        #synCols = self.synthCols
-        #if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
-        #    synCols += [self.resultsSet.analysisClass.RunFolderColumn]
-        #dfSyn = self.resultsSet.dfTransData(self.lang, columns=synCols)
         dfSyn = dfSynRes
         dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         
@@ -1649,7 +1696,6 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
                                                  convert=True, round_=True, style=True)
 
         # 3. Details: Generate post-processed and translated table.
-        #dfDet = self.resultsSet.dfTransData(self.lang)  # Again, but clean for sure ...
         dfDet = dfDetRes
 
         # a. Add run folder column if not there (will serve to generate the link to the analysis detailed report)
@@ -1664,7 +1710,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
                                                  convert=False, round_=False, style=True)
 
         # 5. Generate traceability infos parts (results specs).
-        ddfTrc = self.asWorkbook(subset=['specs'])
+        ddfTrc = self.asWorkbook(subset=['specs', 'samples'])
 
         # Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -1866,11 +1912,11 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         """
 
         # Generate translated synthesis table.
-        synCols = self.synthCols
-        if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
-            synCols += [self.resultsSet.analysisClass.RunFolderColumn]
+        synthCols = self.synthCols
+        if self.resultsSet.analysisClass.RunFolderColumn not in synthCols:
+            synthCols += [self.resultsSet.analysisClass.RunFolderColumn]
         filSorSchId, dfFilSorSynRes, filSorSteps = \
-            self.resultsSet.dfFilSorData(scheme=filSorScheme, rebuild=rebuild, columns=synCols, lang=self.lang)
+            self.resultsSet.dfFilSorData(scheme=filSorScheme, rebuild=rebuild, columns=synthCols, lang=self.lang)
 
         # Generate translated detailed table.
         _, dfFilSorDetRes, _ = \
@@ -1893,10 +1939,6 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         # 1. Super-synthesis: Generate post-processed and translated table.
         #    (index + 5 columns : sample + params, results, Qq plot, ProbDens plot, DetProb plot)
         # a. Apply filter and sort scheme and get translated and post-formated detailed results
-        #dfDet = self.resultsSet.dfTransData(self.lang)
-        #filSorSchId, dfFilSorRes, filSorSteps = \
-        #    self.resultsSet.dfFilSorData(scheme=scheme, rebuild=rebuild, lang=self.lang)
-        #dfDet = dfFilSorRes
         dfDet = dfDetRes.copy()
 
         # b. Styling not used for super-synthesis, so don't do it.
@@ -1904,15 +1946,18 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         dfDet = dfsDet.data
 
         # c. Translate sample, parameter and result columns
+        # TODO: Check that all specified columns - sampleCols, paramCols, resultCols -
+        #       are in dfDet.columns, and clearly explain which are not if any
+        #       rather than crashing later with an obscure exception ...
         dTransResCol = self.resultsSet.transTable()
         sampleTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.sampleCols]
         paramTrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.paramCols]
         result1TrCols = [dTransResCol[self.lang].get(col, str(col)) for col in self.resultCols]
 
-        if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
-            rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol, str(self.RightTruncCol)))
-            dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
-            result1TrCols[rightTruncColInd] = self.tr('Max Distance')
+        #if self.RightTruncCol in self.resultCols:  # "Right truncation" is not the correct word here.
+        #    rightTruncColInd = result1TrCols.index(dTransResCol[self.lang].get(self.RightTruncCol, str(self.RightTruncCol)))
+        #    dfDet.rename(columns={result1TrCols[rightTruncColInd]: self.tr('Max Distance')}, inplace=True)
+        #    result1TrCols[rightTruncColInd] = self.tr('Max Distance')
 
         midResInd = len(result1TrCols) // 2 + len(result1TrCols) % 2
         result2TrCols = result1TrCols[midResInd:]
@@ -1943,13 +1988,6 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
 
         # 2. Synthesis: Apply filter and sort scheme and generate post-processed and translated table.
         # a. Add run folder column if not selected (will serve to generate the link to the analysis detailed report)
-        #synCols = self.synthCols
-        #if self.resultsSet.analysisClass.RunFolderColumn not in synCols:
-        #    synCols += [self.resultsSet.analysisClass.RunFolderColumn]
-        #dfSyn = self.resultsSet.dfTransData(self.lang, columns=synCols)
-        #filSorSchId, dfFilSorRes, filSorSteps = \
-        #    self.resultsSet.dfFilSorData(scheme=scheme, rebuild=rebuild, columns=synCols, lang=self.lang)
-        #dfSyn = dfFilSorRes
         dfSyn = dfSynRes
         dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         
@@ -1964,10 +2002,6 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                                                  convert=True, round_=True, style=True)
 
         # 3. Details: Generate post-processed and translated table.
-        #dfDet = self.resultsSet.dfTransData(self.lang)  # Again, but clean for sure ...
-        #filSorSchId, dfFilSorRes, filSorSteps = \
-        #    self.resultsSet.dfFilSorData(scheme=scheme, rebuild=rebuild, lang=self.lang)
-        #dfDet = dfFilSorRes
         dfDet = dfDetRes
 
         # a. Add run folder column if not there (will serve to generate the link to the analysis detailed report)
@@ -1990,7 +2024,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         ddfTrc = {self.tr('Filter & Sort steps'): (dfFilSorHist, True)}
 
         # b. Results specs
-        ddfTrc.update(self.asWorkbook(subset=['specs']))
+        ddfTrc.update(self.asWorkbook(subset=['specs', 'samples']))
 
         # 6. Generate top report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
@@ -2022,25 +2056,23 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         return htmlPathName
 
     def toHtml(self, filSorScheme=dict(idFmt='ExecCodeX', method=ResClass.filterSortOnExecCode),
-               rebuild=False, generators=None):
+               rebuild=False):
 
         """HTML report generation for a given scheme.
 
         Parameters:
         :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
                         otherwise, use any cached data or existing plot image file
-        :param generators: Number of parallel (process) generators to use :
-                           - 0 => auto-number, based on the actual number of CPUs onboard,
-                           - > 0 => the actual number to use
+
+        Note: Parallelism does not work for this class (WTF ?), hence the absence of the generators parameter.
         """
 
-        
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
             
         # Generate full report detailed pages (one for each analysis)
         # (done first to have plot image files generated for top report page generation right below).
-        self.toHtmlEachAnalysis(filSorScheme=filSorScheme, rebuild=rebuild, generators=generators)
+        self.toHtmlEachAnalysis(filSorScheme=filSorScheme, rebuild=rebuild, generators=None)
         
         # Generate top = main report page (one for all analyses).
         topHtmlPathName = self.toHtmlAllAnalyses(filSorScheme=filSorScheme, rebuild=rebuild)
