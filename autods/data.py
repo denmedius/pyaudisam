@@ -1285,7 +1285,7 @@ class ResultsSet(object):
 
         if not overwrite:
             assert all(name not in self.specs for name in specs), \
-                   "Unless explicitly  specified, won't overwrite already present specs {}" \
+                   "Unless explicitly specified, won't overwrite already present specs {}" \
                    .format(', '.join(name for name in specs if name in self.specs))
 
         self.specs.update(specs)
@@ -1329,13 +1329,30 @@ class ResultsSet(object):
         for spName, spData in self.specs.items():
             if isinstance(spData, (dict, list, pd.Series)):
                 if not isinstance(spData, pd.Series):
-                    spData = pd.Series(spData, name='Value')
+                    spData = pd.Series(spData)
                 spData = spData.to_frame()
             elif not isinstance(spData, pd.DataFrame):
                 raise NotImplementedError
             ddfSpecs[spName] = spData
 
         return ddfSpecs
+
+    def specsFromTables(self, ddfTables):
+
+        specs = dict()
+        for spName, dfSpData in ddfTables.items():
+            if len(dfSpData.columns) == 1:  # Output a Series, or dict or list
+                if dfSpData.columns[0] == 0:
+                    if dfSpData.index.equals(pd.RangeIndex(stop=len(dfSpData))):
+                        specs[spName] = dfSpData.loc[:, 0].to_list()
+                    else:
+                        specs[spName] = dfSpData.loc[:, 0].to_dict()
+                else:  # Output a Series
+                    specs[spName] = dfSpData[dfSpData.columns[0]]
+            else:  # Output a DataFrame
+                specs[spName] = dfSpData
+
+        return specs
 
     DefAllResultsSheetName = 'all-results'
 
@@ -1427,7 +1444,7 @@ class ResultsSet(object):
         
         start = pd.Timestamp.now()
 
-        # Load resultas data and spec from file
+        # Load results data and spec from file
         compressed = pl.Path(fileName).suffix in ['.xz', '.lzma']
         with lzma.open(fileName, 'rb') if compressed else open(fileName, 'rb') as file:
             dfData, dSpecs = pickle.load(file)
@@ -1508,16 +1525,11 @@ class ResultsSet(object):
         self.specs = dict()
         if specs:
             ddfAll = pd.read_excel(fileName, sheet_name=None, index_col=0, engine=engine)
+            ddfSpecs = dict()
             for shName, dfShData in ddfAll.items():
                 if shName.startswith(specSheetsPrfx):
-                    spName = shName[len(specSheetsPrfx):]
-                    if len(dfShData.columns) == 1 and dfShData.columns[0] == 0:
-                        if dfShData.index.equals(pd.RangeIndex(stop=len(dfShData))):
-                            self.specs[spName] = dfShData.loc[:, 0].to_list()
-                        else:
-                            self.specs[spName] = dfShData.loc[:, 0].to_dict()
-                    else:
-                        self.specs[spName] = dfShData
+                    ddfSpecs[shName[len(specSheetsPrfx):]] = dfShData
+            self.specs = self.specsFromTables(ddfSpecs)
 
         logger.info('{}x{} results rows x columns and {} specs loaded from {} in {:.3f}s'
                     .format(len(dfData), len(dfData.columns),
