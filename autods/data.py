@@ -1200,7 +1200,8 @@ class ResultsSet(object):
     # Get translated names of some columns (custom or not)
     def transColumns(self, columns, lang):
         
-        return [self.transTable()[lang].get(col, str(col)) for col in columns]
+        dTransCols = self.transTable()[lang]
+        return [dTransCols.get(col, str(col)) for col in columns]
     
     # Get translated names of custom columns
     def transCustomColumns(self, lang):
