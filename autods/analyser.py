@@ -1502,13 +1502,37 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         logger.debug2(f'* {step}: {propName} = {propValue}')
 
     @staticmethod
-    def filterSortSchemeId(scheme=None, idFmt=None, **filterSort):
-        """Unique (in memory) identification of a filter and sort scheme, with a human readable part :-)"""
+    def filterSortSchemeId(scheme=None, unique=True, nameFmt=None, **filterSort):
+        """Unique identification of a filter and sort scheme, with a human readable part :-)
+
+        Parameters:
+        :param scheme: the scheme to identify ; if not None, other parameters are ignored (except for unique)
+                       as a dict(nameFmt= format string for generating the name part of the Id of the report
+                                 method= filterSortOnXXX method to use,
+                                 deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
+                                     (if not or partially given, see filterSortOnXXX defaults)
+                                 filterSort= dict of other <method> params,
+                                 preselCols= target columns for generating auto-preselection ones,
+                                             containing [1, preselNum] ranks ; default: []
+                                 preselAscs= Rank direction to use for each column (list),
+                                             or all (single bool) ; default: True
+                                 preselNum= number of (best) preselections to keep for each sample) ;
+                                      default: 5
+        :param unique: if False, generate only the name part of the Id, from the name format string,
+                       that is a possibly non unique "Id" (if the name format string does not use every
+                       and each actual filter and sort arguments) ;
+                       otherwise, append the id of the python object after this name part to enforce uniqueness.
+        :param nameFmt: naming part (human readable) of the Id (ignored if scheme is not None)
+        :param **filterSort: actual filter and sort parameters of the scheme (ignored if scheme is not None)
+        """
         if scheme:
-            name = scheme['idFmt'].format_map(scheme.get('filterSort', {})).replace('.', '')
+            schId = scheme['nameFmt'].format_map(scheme.get('filterSort', {}))
         else:
-            name = idFmt.format_map(filterSort).replace('.', '')
-        return name + '@' + np.base_repr(id(scheme), 36).lower()
+            schId = nameFmt.format_map(filterSort)
+        schId = schId.replace('.', '')
+        if unique:
+            schId += '@' + np.base_repr(id(scheme), 36).lower()
+        return schId
 
     def filterSortOnExecCode(self, schemeId, dupSubset=LDupSubsetDef, dDupRounds=DDupRoundsDef):
 
@@ -1699,7 +1723,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         return dfFilSorRes
 
-    def dfFilSorData(self, scheme=[dict(idFmt='ExecCode', method=filterSortOnExecCode,
+    def dfFilSorData(self, scheme=[dict(nameFmt='ExecCode', method=filterSortOnExecCode,
                                         preselCols=[CLCmbQuaBal1], preselAscs=False, preselNum=5)],
                      columns=None, lang=None, rebuild=False):
 
@@ -1709,7 +1733,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         
         Parameters:
         :param filSorSchemes: filter and sort scheme to apply
-                 as a list of dict(idFmt= format string for generating the Id of the report
+                 as a list of dict(nameFmt= format string for generating the Id of the report
                                    method= ResClass.filterSortOnXXX method to use,
                                    deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
                                        (if not or partially given, see RCLS.filterSortOnXXX defaults)
@@ -1720,10 +1744,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                                   or all (single bool) ; default: True
                                    preselNum= number of (best) preselections to keep for each sample) ;
                                               default: 5
-                 examples: dict(idFmt='ExecCode', => format string to generate the name of the report
+                 examples: dict(nameFmt='ExecCode', => format string to generate the name of the report
                                 method=R.filterSortOnExecCode,
                                 preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False, preselNum=5),
-                           dict(idFmt='AicCKCvQua-r{sightRate:.1f}d{nResults}', 
+                           dict(nameFmt='AicCKCvQua-r{sightRate:.1f}d{nResults}', 
                                 method=R.filterSortOnAicCKCvQua,
                                 deduplicate=dict(dupSubset=[R.CLNObs, R.CLEffort, R.CLDeltaAic, R.CLChi2,
                                                             R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv]),
