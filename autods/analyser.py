@@ -713,6 +713,26 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
     
+    # Shortcut to already existing and useful columns names.
+    CLRunStatus = MCDSAnalysis.CLRunStatus
+    CLParTruncLeft = MCDSAnalysis.CLParTruncLeft
+    CLParTruncRight = MCDSAnalysis.CLParTruncRight
+    CLParModFitDistCuts = MCDSAnalysis.CLParModFitDistCuts
+    CLParModDiscrDistCuts = MCDSAnalysis.CLParModDiscrDistCuts
+
+    CLEffort = ('encounter rate', 'effort (L or K or T)', 'Value')
+    CLPDetec = ('detection probability', 'probability of detection (Pw)', 'Value')
+    CLPDetecMin = ('detection probability', 'probability of detection (Pw)', 'Lcl')
+    CLPDetecMax = ('detection probability', 'probability of detection (Pw)', 'Ucl')
+    CLDensity = ('density/abundance', 'density of animals', 'Value')
+    CLDensityMin = ('density/abundance', 'density of animals', 'Lcl')
+    CLDensityMax = ('density/abundance', 'density of animals', 'Ucl')
+    CLNumber = ('density/abundance', 'number of animals, if survey area is specified', 'Value')
+    CLNumberMin = ('density/abundance', 'number of animals, if survey area is specified', 'Lcl')
+    CLNumberMax = ('density/abundance', 'number of animals, if survey area is specified', 'Ucl')
+
+    DCLParTruncDist = dict(left=CLParTruncLeft, right=CLParTruncRight)
+
     # Computed Column Labels
     # a. Chi2 determined, Delta AIC, delta DCv
     CLChi2     = ('detection probability', 'chi-square test probability determined', 'Value')
@@ -735,8 +755,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLTPreSelection = 'Pre-selection'  # Label "Type" (3rd level)
 
     #   i. close truncation group identification
-    CLGroupTruncLeft  = (CLCAutoFilSor, MCDSAnalysis.CLParTruncLeft[1], CLTTruncGroup)
-    CLGroupTruncRight = (CLCAutoFilSor, MCDSAnalysis.CLParTruncRight[1], CLTTruncGroup)
+    CLGroupTruncLeft  = (CLCAutoFilSor, CLParTruncLeft[1], CLTTruncGroup)
+    CLGroupTruncRight = (CLCAutoFilSor, CLParTruncRight[1], CLTTruncGroup)
 
     #   ii. Order inside groups with same = identical truncation parameters (distances and model cut points)
     CLGrpOrdSmTrAic = (CLCAutoFilSor, 'AIC (same trunc)', CLTSortOrder)
@@ -821,9 +841,6 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     # Final-selection column label (empty, for user decision)
     CLFinalSelection = (CLCAutoFilSor, 'Final selection', 'Value')
     DFinalSelColTrans = dict(fr='Sélection finale', en='Final selection')
-
-    # Shortcut to real truncation params columns names.
-    DCLParTruncDist = dict(left=MCDSAnalysis.CLParTruncLeft, right=MCDSAnalysis.CLParTruncRight)
 
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
                        sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
@@ -1191,10 +1208,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     AutoFilSorKeySchemes = \
     [  # Ordre dans groupe.
        dict(key=CLGrpOrdSmTrAic,  # Meilleur AIC, à troncatures D et G identiques (avec variantes de nb tranches)
-            sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
-                  CLDeltaAic, CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
+            sort=[CLParTruncLeft, CLParTruncRight, CLDeltaAic, CLChi2, CLKS, CLDCv, CLNObs, CLRunStatus],
             ascend=[True, True, True, False, False, True, False, True],
-            group=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts]),
+            group=[CLParTruncLeft, CLParTruncRight, CLParModFitDistCuts]),
         
 #       dict(key=CLGrpOrdClTrChi2,  # Meilleur Chi2 par groupe de troncatures proches
 #            sort=[CLGroupTruncLeft, CLGroupTruncRight,
@@ -1212,8 +1228,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             ascend=[True, True, True],
             group=[CLGroupTruncLeft, CLGroupTruncRight]),
        dict(key=CLGrpOrdClTrChi2KSDCv,  # Meilleur Chi2 & KS & DCv par groupe de troncatures proches
-            sort=[CLGroupTruncLeft, CLGroupTruncRight,
-                  CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
+            sort=[CLGroupTruncLeft, CLGroupTruncRight, CLChi2, CLKS, CLDCv, CLNObs, CLRunStatus],
             ascend=[True, True, False, False, True, False, True],
             group=[CLGroupTruncLeft, CLGroupTruncRight]),
         
@@ -1250,7 +1265,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         
        # Ordres globaux (sans groupage par troncatures id. ou proches)
        dict(key=CLGblOrdChi2KSDCv,
-            sort=[CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
+            sort=[CLChi2, CLKS, CLDCv, CLNObs, CLRunStatus],
             ascend=[False, False, True, False, True]),
        dict(key=CLGblOrdQuaBal1,
             sort=[CLCmbQuaBal1], ascend=False),
@@ -1266,8 +1281,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             sort=[CLCmbQuaDCv], ascend=False),
 
        dict(key=CLGblOrdDAicChi2KSDCv,
-            sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
-                  CLDeltaAic, CLChi2, CLKS, CLDCv, CLNObs, MCDSAnalysis.CLRunStatus],
+            sort=[CLParTruncLeft, CLParTruncRight, CLParModFitDistCuts,
+                  CLDeltaAic, CLChi2, CLKS, CLDCv, CLNObs, CLRunStatus],
             ascend=[True, True, True, True, False, False, True, False, True], napos='first'),
     ]
 
@@ -1300,10 +1315,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             raise NotImplementedError
 
     DCLUnsortableCols = \
-        {MCDSAnalysis.CLParModFitDistCuts:
-            (MCDSAnalysis.CLParModFitDistCuts[0], MCDSAnalysis.CLParModFitDistCuts[1], 'Sortable'),
-         MCDSAnalysis.CLParModDiscrDistCuts:
-            (MCDSAnalysis.CLParModDiscrDistCuts[0], MCDSAnalysis.CLParModDiscrDistCuts[1], 'Sortable')}
+        {CLParModFitDistCuts: (CLParModFitDistCuts[0], CLParModFitDistCuts[1], 'Sortable'),
+         CLParModDiscrDistCuts: (CLParModDiscrDistCuts[0], CLParModDiscrDistCuts[1], 'Sortable')}
 
     # Make results cell values hashable (needed for grouping in _postComputeFilterSortKeys)
     @staticmethod
@@ -1317,10 +1330,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             return str(value)
 
     DCLUnhashableCols = \
-        {MCDSAnalysis.CLParModFitDistCuts:
-            (MCDSAnalysis.CLParModFitDistCuts[0], MCDSAnalysis.CLParModFitDistCuts[1], 'Hashable'),
-         MCDSAnalysis.CLParModDiscrDistCuts:
-            (MCDSAnalysis.CLParModDiscrDistCuts[0], MCDSAnalysis.CLParModDiscrDistCuts[1], 'Hashable')}
+        {CLParModFitDistCuts: (CLParModFitDistCuts[0], CLParModFitDistCuts[1], 'Hashable'),
+         CLParModDiscrDistCuts: (CLParModDiscrDistCuts[0], CLParModDiscrDistCuts[1], 'Hashable')}
 
     def _postComputeFilterSortKeys(self):
         
@@ -1482,14 +1493,6 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
      
         return i2Drop
 
-    CLEffort = ('encounter rate', 'effort (L or K or T)', 'Value')
-    CLPDetec = ('detection probability', 'probability of detection (Pw)', 'Value')
-    CLPDetecMin = ('detection probability', 'probability of detection (Pw)', 'Lcl')
-    CLPDetecMax = ('detection probability', 'probability of detection (Pw)', 'Ucl')
-    CLDensity = ('density/abundance', 'density of animals', 'Value')
-    CLDensityMin = ('density/abundance', 'density of animals', 'Lcl')
-    CLDensityMax = ('density/abundance', 'density of animals', 'Ucl')
-
     LDupSubsetDef = [CLNObs, CLEffort, CLDeltaAic, CLChi2, CLKS, CLCvMUw, CLCvMCw, CLDCv, 
                      CLPDetec, CLPDetecMin, CLPDetecMax, CLDensity, CLDensityMin, CLDensityMax]
     DDupRoundsDef = {CLDeltaAic: 1, CLChi2: 2, CLKS: 2, CLCvMUw: 2, CLCvMCw: 2, CLDCv: 2, 
@@ -1559,13 +1562,12 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         dfFilSorRes = self.getData(copy=True)
         cls._logFilterSortStep(filSorSteps, schemeId, 'before', 'results', len(dfFilSorRes))
 
-        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index,
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLRunStatus] > 2].index,
                          inplace=True)
-        cls._logFilterSortStep(filSorSteps, schemeId, MCDSAnalysis.CLRunStatus[1], 'max', 2)
-        cls._logFilterSortStep(filSorSteps, schemeId, MCDSAnalysis.CLRunStatus[1], 'results', len(dfFilSorRes))
+        cls._logFilterSortStep(filSorSteps, schemeId, cls.CLRunStatus[1], 'max', 2)
+        cls._logFilterSortStep(filSorSteps, schemeId, cls.CLRunStatus[1], 'results', len(dfFilSorRes))
 
-        dfFilSorRes.sort_values(by=[self.sampleIndCol, MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
-                                    MCDSAnalysis.CLRunStatus],
+        dfFilSorRes.sort_values(by=[self.sampleIndCol, cls.CLParTruncLeft, cls.CLParTruncRight, cls.CLRunStatus],
                                 ascending=True, na_position='first', inplace=True)
         if self.sampleIndCol not in dupSubset:
             dupSubset = [self.sampleIndCol] + dupSubset
@@ -1573,7 +1575,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                          inplace=True)
         cls._logFilterSortStep(filSorSteps, schemeId, 'duplicates', 'results', len(dfFilSorRes))
 
-        sortCols = [MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
+        sortCols = [cls.CLParTruncLeft, cls.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
         dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols,
                                 ascending=True, na_position='first', inplace=True)
         cls._logFilterSortStep(filSorSteps, schemeId, 'sorting', 'columns', ', '.join(miCol[1] for miCol in sortCols))
@@ -1626,12 +1628,11 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         dfFilSorRes = self.getData(copy=True)
         cls._logFilterSortStep(filSorSteps, schemeId, 'before', 'results', len(dfFilSorRes))
 
-        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[MCDSAnalysis.CLRunStatus] > 2].index, inplace=True)
-        cls._logFilterSortStep(filSorSteps, schemeId, MCDSAnalysis.CLRunStatus[1], 'max', 2)
-        cls._logFilterSortStep(filSorSteps, schemeId, MCDSAnalysis.CLRunStatus[1], 'results', len(dfFilSorRes))
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLRunStatus] > 2].index, inplace=True)
+        cls._logFilterSortStep(filSorSteps, schemeId, cls.CLRunStatus[1], 'max', 2)
+        cls._logFilterSortStep(filSorSteps, schemeId, cls.CLRunStatus[1], 'results', len(dfFilSorRes))
 
-        dfFilSorRes.sort_values(by=[self.sampleIndCol, MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
-                                    MCDSAnalysis.CLRunStatus],
+        dfFilSorRes.sort_values(by=[self.sampleIndCol, cls.CLParTruncLeft, cls.CLParTruncRight, cls.CLRunStatus],
                                 ascending=True, na_position='first', inplace=True)
         if self.sampleIndCol not in dupSubset:
             dupSubset = [self.sampleIndCol] + dupSubset
@@ -1670,7 +1671,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         cls._logFilterSortStep(filSorSteps, schemeId, 'best Bal1 Quality results',
                                'actual total number', len(dfFilSorRes))
 
-        sortCols = [MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
+        sortCols = [cls.CLParTruncLeft, cls.CLParTruncRight, cls.CLGrpOrdClTrQuaBal1]
         dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols, ascending=True, na_position='first', inplace=True)
         cls._logFilterSortStep(filSorSteps, schemeId, 'sorting', 'columns', ', '.join(miCol[1] for miCol in sortCols))
 
