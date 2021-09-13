@@ -1912,7 +1912,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                 logger.info1(f'* filter & sort {filSorSchId} : done')
 
                 # Store results in workbook
-                ddfWbk['-'.join([self.tr('AFS'), filSorSchId])] = (dfFilSorRes, True)
+                ddfWbk['-'.join([self.tr('AFS'), filSorSchId])] = (dfFilSorRes, False)
 
                 # Update all-scheme log
                 repLog += filSorSteps
