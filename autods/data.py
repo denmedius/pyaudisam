@@ -911,13 +911,14 @@ class ResultsSet(object):
 
         # 
         self.computedCols = list(dComputedCols.keys())
-        self.miCustomCols = miCustomCols.copy()
+        self.miCustomCols = miCustomCols.copy() if miCustomCols is not None else list()
         
         self.isMultiIndexedCols = isinstance(miCols, pd.MultiIndex)
 
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        self.dfColTrans = pd.concat([dfColTrans, dfComputedColTrans])
-        self.dfCustomColTrans = dfCustomColTrans.copy()
+        self.dfColTrans = pd.concat([dfColTrans if dfColTrans is not None else pd.DataFrame(),
+                                     dfComputedColTrans if dfColTrans is not None else pd.DataFrame()])
+        self.dfCustomColTrans = dfCustomColTrans.copy() if dfCustomColTrans is not None else pd.DataFrame()
         
         # Sorting and cleaning parameters (after postComputing)
         self.sortCols = sortCols
@@ -1485,10 +1486,11 @@ class ResultsSet(object):
 
         Parameters:
         :param fileName: source file name
-        :param sheetName: name of the sheet to load data from (default None => 1st)
-        :param header: list of source data row indexes to use for column index
-        :param skipRows: list of source data row indexes to ignore
-        :param indexCol: index of the source data column to use as index (None => auto-generated, not read)
+        :param sheetName: name of the sheet to load data from (default None => 1st sheetw)
+        :param header: list of source data row indexes to use for column index (1st sheet only)
+        :param skipRows: list of source data row indexes to ignore (1st sheet only)
+        :param indexCol: index of the source data column to use as index (1st sheet only)
+                         (None => auto-generated, not read)
         :param specs: if False, don't load specs
         :param specSheetsPrfx: name prefix to use to detect spec sheets
         :param postComputed: if True, prevents next post-computation 
@@ -1499,15 +1501,14 @@ class ResultsSet(object):
         :param engine: None => auto-selection from file extension ; otherwise, use xlrd, openpyxl or odf.
         """
 
-        # TODO: can this be done in 1 only read_excel call ?
-        #       Not as of pandas 1.1, 'cause of 1st call params, specific to results data structure,
-        #       whereas specs sheets are in "free" format.
-
         start = pd.Timestamp.now()
         
         # Load results data.
-        dfData = pd.read_excel(fileName, sheet_name=sheetName or 0, header=header,
-                               skiprows=skipRows, index_col=indexCol, engine=engine)
+        logger.info1(f'Loading {fileName}:')
+        xlReader = pd.ExcelFile(fileName, engine=engine)
+        logger.info2(f'* {sheetName or xlReader.sheet_names[0]} ...')
+        dfData = pd.read_excel(xlReader, sheet_name=sheetName or 0, header=header,
+                               skiprows=skipRows, index_col=indexCol)
 
         # Complete missing columns if any.
         for colName, colDefVal in dDefMissingCols.items():
@@ -1525,11 +1526,12 @@ class ResultsSet(object):
         # Load specs
         self.specs = dict()
         if specs:
-            ddfAll = pd.read_excel(fileName, sheet_name=None, index_col=0, engine=engine)
             ddfSpecs = dict()
-            for shName, dfShData in ddfAll.items():
+            for shName in xlReader.sheet_names:
                 if shName.startswith(specSheetsPrfx):
-                    ddfSpecs[shName[len(specSheetsPrfx):]] = dfShData
+                    logger.info2(f'* {shName} ...')
+                    ddfSpecs[shName[len(specSheetsPrfx):]] = \
+                        pd.read_excel(xlReader, sheet_name=shName, index_col=0)
             self.specs = self.specsFromTables(ddfSpecs)
 
         logger.info('{}x{} results rows x columns and {} specs loaded from {} in {:.3f}s'

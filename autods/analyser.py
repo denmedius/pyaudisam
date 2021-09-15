@@ -888,8 +888,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
         self.truncIntrvEpsilon = truncIntrvEpsilon
 
+        # Short (but unique) Ids for already seen "filter and sort" schemes,
+        # based on the scheme name and an additional int suffix when needed ;
+        # Definition: 2 equal schemes (dict ==) have the same Id
+        self.dFilSorSchemes = dict() # Unique Id => value
+
         # Cache for filter and sort applied schemes
-        self.dFilSorViews = dict()  # Filter and sort scheme name => index of selected rows, scheme steps
+        self.dFilSorViews = dict()  # Filter and sort scheme unique Id => index of selected rows, scheme steps
 
     def copy(self, withData=True):
     
@@ -911,6 +916,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             clone.rightColOrder = self.rightColOrder
             clone.postComputed = self.postComputed
             clone.dfSamples = None if dfSample is None else self.dfSamples.copy()
+            clone.dFilSorSchemes = copy.deepcopy(self.dFilSorSchemes)
             clone.dFilSorViews = copy.deepcopy(self.dFilSorViews)
 
         return clone
@@ -1504,9 +1510,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         filSorSteps.append([scheme, step, propName, propValue])
         logger.debug2(f'* {step}: {propName} = {propValue}')
 
-    @staticmethod
-    def filterSortSchemeId(scheme=None, unique=True, nameFmt=None, **filterSort):
-        """Unique identification of a filter and sort scheme, with a human readable part :-)
+    def filterSortSchemeId(self, scheme=None, nameFmt=None, **filterSort):
+
+        """Human readable but unique identification of a filter and sort scheme
+        
+        Built on the scheme name and an additional int suffix when needed.
+        
+        Definition: 2 equal schemes (dict ==) have the same Id
 
         Parameters:
         :param scheme: the scheme to identify ; if not None, other parameters are ignored (except for unique)
@@ -1521,21 +1531,32 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                              or all (single bool) ; default: True
                                  preselNum= number of (best) preselections to keep for each sample) ;
                                       default: 5
-        :param unique: if False, generate only the name part of the Id, from the name format string,
-                       that is a possibly non unique "Id" (if the name format string does not use every
-                       and each actual filter and sort arguments) ;
-                       otherwise, append the id of the python object after this name part to enforce uniqueness.
         :param nameFmt: naming part (human readable) of the Id (ignored if scheme is not None)
         :param **filterSort: actual filter and sort parameters of the scheme (ignored if scheme is not None)
+
+        :return: the unique Id.
         """
+
+        # Compute the name part of the Id
         if scheme:
-            schId = scheme['nameFmt'].format_map(scheme.get('filterSort', {}))
+            schemeId = scheme['nameFmt'].format_map(scheme.get('filterSort', {}))
         else:
-            schId = nameFmt.format_map(filterSort)
-        schId = schId.replace('.', '')
-        if unique:
-            schId += '@' + np.base_repr(id(scheme), 36).lower()
-        return schId
+            schemeId = nameFmt.format_map(filterSort)
+        schemeId = schemeId.replace('.', '')
+
+        # The Id must be unique: enforce it through a uniqueness suffix only if needed
+        if schemeId in self.dFilSorSchemes:  # Seems there's a possible collision
+            closeSchemes = {schId: schVal for schId, schVal in self.dFilSorSchemes.items()
+                            if schId.startswith(schemeId)}
+            for schId, schVal in closeSchemes.items():  # Check if not simply an exact match
+                if scheme == schVal:
+                    return schId   # Bingo !
+            schemeId += '-' + str(len(closeSchemes) + 1)  # No exact match => new unused Id !
+
+        # Register new scheme and Id.
+        self.dFilSorSchemes[schemeId] = scheme
+        
+        return schemeId
 
     def filterSortOnExecCode(self, schemeId, dupSubset=LDupSubsetDef, dDupRounds=DDupRoundsDef):
 
