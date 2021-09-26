@@ -1084,14 +1084,8 @@ class ResultsSet(object):
         May have to remove computed columns and reset postCompute state.
         """
 
-        if self.postComputed:
-
-            # Remove any computed column: will be recomputed later on
-            # (but ignore those which are not there : backward compat. / tolerance)
-            self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
-            
-            # Post-computation not yet done.
-            self.postComputed = False
+        # Post-computation is now "not yet done" (and remove any computed column: will be recomputed later on).
+        self.setPostComputed(False)
 
         return self._dfData
         
@@ -1147,7 +1141,17 @@ class ResultsSet(object):
     def dfData(self):
 
         return self.getData(copy=True)
+    
+    def setPostComputed(self, on=True):
+
+        # If not specified as already postComputed, prepare for recomputation later by removing any "computed" column.
+        if not on:
+            # ... but ignore those which are not there : backward compat. / tolerance ...
+            self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
         
+        # Post-computation not yet done (unless told it _is_: accept blindly).
+        self.postComputed = on
+
     def setData(self, dfData, postComputed=False, acceptNewCols=False):
         
         assert isinstance(dfData, pd.DataFrame), 'dfData must be a pd.DataFrame'
@@ -1162,13 +1166,8 @@ class ResultsSet(object):
         # Let's assume that columns order is dirty.
         self.rightColOrder = False
         
-        # If not specified as already postComputed, prepare for recomputation later by removing any "computed" column.
-        if not postComputed:
-            # ... but ignore those which are not there : backward compat. / tolerance ...
-            self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
-        
-        # Post-computation not yet done (unless told it _is_: accept blindly).
-        self.postComputed = postComputed
+        # Post-computation as not yet done, unless told it _is_: accept blindly.
+        self.setPostComputed(postComputed)
     
     @dfData.setter
     def dfData(self, dfData):
