@@ -1,0 +1,6 @@
+include autods/mcds/*.htpl
+include autods/mcds/*.txt
+include autods/report/*.css
+include autods/report/*.svg
+
+prune tmp
