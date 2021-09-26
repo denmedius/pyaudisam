@@ -2080,7 +2080,8 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
 
         # 7. Write top HTML to file.
-        htmlPathName = self.targetFilePathName(suffix='.html')
+        filSorSchId = self.resultsSet.filterSortSchemeId(filSorScheme)
+        htmlPathName = self.targetFilePathName(suffix=f'.{filSorSchId}.html')
         with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
             tgtFile.write(html)
 
