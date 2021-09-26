@@ -166,6 +166,8 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
                         dfIntrv = pd.DataFrame(lsNewIntrvs).reset_index(drop=True)
                         dfIntrv.sort_values(by='dMin', inplace=True)
 
+                        logger.debug4(f'  => intervals: {dfIntrv}')
+
                     # Update result table : Assign positive interval = "truncation group" number
                     # to each truncation distance (special case when no truncation: num=0 if NaN truncation distance)
                     sb = (self._dfData[self.sampleIndCol] == lblSamp) & (self._dfData[self.CLOptimTruncFlag] == isOpt)

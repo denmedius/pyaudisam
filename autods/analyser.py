@@ -1357,7 +1357,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             # Apply each filter and sort scheme
             for scheme in cls.AutoFilSorKeySchemes:
 
-                logger.debug3('* {}'.format(scheme))
+                logger.debug3('* scheme {}'.format(scheme))
                 dfSampRes.to_pickle('tmp/_.pickle')
 
                 # Workaround to-be-sorted problematic columns.
@@ -1510,6 +1510,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         filSorSteps.append([scheme, step, propName, propValue])
         logger.debug2(f'* {step}: {propName} = {propValue}')
 
+    MainSchSpecNames = ['nameFmt', 'method', 'deduplicate', 'filterSort', 'preselCols', 'preselAscs', 'preselNum']
+
     def filterSortSchemeId(self, scheme=None, nameFmt=None, **filterSort):
 
         """Human readable but unique identification of a filter and sort scheme
@@ -1536,6 +1538,27 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         :return: the unique Id.
         """
+
+        # Check scheme specification (1st level properties: presence of mandatory ones, autorised list, ...)
+        mandProps = list()
+        if scheme:
+            props = scheme.keys()
+            mandProps.append('nameFmt')
+        else:
+            props = filterSort.keys()
+        mandProps.append('method')
+
+        assert all(prop in self.MainSchSpecNames for prop in props), \
+               'Unknown filter and sort scheme property/ies: {}' \
+               .format(', '.join(prop for prop in props if prop not in self.MainSchSpecNames))
+        assert all(prop in props for prop in mandProps), \
+               'Missing filter and sort scheme mandatory property/ies: {}' \
+               .format(', '.join(prop for prop in mandProps if not prop in props))
+
+        nameFmt = scheme['nameFmt'] if scheme else nameFmt
+        assert nameFmt, 'Filter and sort scheme name format must not be None or empty'
+        method = scheme['method'] if scheme else filterSort['method']
+        assert callable(method), 'Filter and sort scheme method must not be callable'
 
         # Compute the name part of the Id
         if scheme:
