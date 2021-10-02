@@ -56,8 +56,10 @@ class DSEngine(object):
     ForbidPathChars = [' ', '(', ')', ',']
     
     # Distance software detection params.
-    DistanceSuppVers = [7, 6] # Lastest first.
-    DistancePossInstPaths = [pl.Path('C:/Program files (x86)'), pl.Path('C:/Program files'), KInstDirPath]
+    DistanceMajorVersions = [7, 6] # Lastest first.
+    DistanceInstDirNameFmt = 'Distance {majorVersion}'
+    DistancePossInstPaths = [pl.Path('C:/Program files (x86)'), pl.Path('C:/Program files'),
+                             pl.Path('C:/PortableApps'), pl.Path('.')]
 
     # Find given executable installation dir.
     # Note: MCDS.exe is an autonomous executable : simply put it in a "Distance 7" subfolder
@@ -67,9 +69,9 @@ class DSEngine(object):
 
         exeFilePathName = None
         logger.debug('Looking for {} ...'.format(exeFileName))
-        for ver in DSEngine.DistanceSuppVers:
+        for ver in DSEngine.DistanceMajorVersions:
             for path in DSEngine.DistancePossInstPaths:
-                exeFN = path / 'Distance {}'.format(ver) / exeFileName
+                exeFN = path / DSEngine.DistanceInstDirNameFmt.format(majorVersion=ver) / exeFileName
                 if not exeFN.exists():
                     logger.debug1('  Checking {} : No,'.format(exeFN))
                 else:

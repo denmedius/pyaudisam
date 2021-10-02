@@ -1,6 +1,8 @@
-include autods/mcds/*.htpl
-include autods/mcds/*.txt
-include autods/report/*.css
-include autods/report/*.svg
+include README.md
+
+include pyaudisam/mcds/*.htpl
+include pyaudisam/mcds/*.txt
+include pyaudisam/report/*.css
+include pyaudisam/report/*.svg
 
 prune tmp
