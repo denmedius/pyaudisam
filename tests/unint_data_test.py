@@ -1,11 +1,22 @@
-# Unit integration automated tests
-#
-# Application Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# Current test file author:Jean-Philippe Meuret & Sylvain Sainnier
-# License: GPL 3
+# coding: utf-8
+
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
+
+# Copyright (C) 2021 Jean-Philippe Meuret, Sylvain Sainnier
+
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Automated unit and integration tests for "data" submodule
 
 # To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and tmp/unit-int-test.{datetime}.log for details
+#          and check standard output ; and ./tmp/unit-int-test.{datetime}.log for details
 
 import sys
 import pathlib as pl
@@ -13,8 +24,12 @@ import pandas as pd
 import numpy as np
 import logging
 
-sys.path.insert(0, '..')
-import autods as ads
+KTestSrcPath = pl.Path(__file__).parent
+
+# Update PYTHONPATH for pyaudisam package to be importable.
+sys.path.insert(0, KTestSrcPath.parent.as_posix())
+
+import pyaudisam as ads
 
 import pytest
 
@@ -65,6 +80,7 @@ def configureLoggers(loggers=[dict(name='child', level=logging.ERROR)],
 
 def describeRunEnv():
 
+    logger.info('PyAuDiSam {} from {}'.format(ads.__version__, pl.Path(ads.__path__[0]).resolve().as_posix()))
     logger.info('Python environment:')
     logger.info('*  {}: {}'.format(sys.implementation.name, sys.version))
     logger.info('* platform: {}'.format(sys.platform))
@@ -73,8 +89,7 @@ def describeRunEnv():
     logger.info('')
 
 
-# logger = logging.getLogger('unint_data_test')
-logger = ads.logger('unint_data_test')  # works with both lines. This ones seems more consistent to me
+logger = ads.logger('unt.dat')
 
 # List of logger/sub_loggers
 l_loggers = [dict(name='unint_data_test', level=ads.DEBUG),
@@ -87,8 +102,11 @@ l_loggers = [dict(name='unint_data_test', level=ads.DEBUG),
 #          line below added to limit log ouput
 #            dict(name='ads.dat', level=ads.WARNING)]
 
+# Temporary work folder.
+tmpDir = KTestSrcPath / 'tmp'
+
 # Configure logging.
-configureLoggers(l_loggers, handlers=['tmp/unit-int-test.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d'))])
+configureLoggers(l_loggers, handlers=[tmpDir / 'unit-int-test.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d'))])
 logger.info('')
 
 # Describe environment.
@@ -102,20 +120,24 @@ logger.info(f'Testing ads {ads.__version__} ...')
 ###############################################################################
 #   Generate DataFrame (returned) and other format files  from .ods source
 #   and return a list of sources (4 files and 1 DataFrame)
-def sources():
-    dfPapAlaArv = pd.read_excel('refin/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods')
 
-    dfPapAlaArv.to_csv('tmp/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv', sep='\t', index=False)
-    dfPapAlaArv.to_excel('tmp/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls', index=False)
+KSrcRefin = KTestSrcPath / 'refin'
+KSrcRefout = KTestSrcPath / 'refout'
+
+def sources():
+    dfPapAlaArv = pd.read_excel(KSrcRefin / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods')
+
+    dfPapAlaArv.to_csv(tmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv', sep='\t', index=False)
+    dfPapAlaArv.to_excel(tmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls', index=False)
 
     # DataSet from multiple sources from various formats (same columns).
     # For test, list of require to contain 1 DataFrame, and one or several
     # source files (one for each different extension)
     # DataFrame and all files need to contain the same data
-    sources = ['refin/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',  # Need for module odfpy
-               'refin/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',  # Need for module openpyxl (or xlrd)
-               'tmp/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls',  # No need module xlwt(openpyxl seems to just do it)
-               'tmp/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv',
+    sources = [KSrcRefin / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',  # Need for module odfpy
+               KSrcRefin / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',  # Need for module openpyxl (or xlrd)
+               tmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls',  # No need for xlwt(openpyxl seems OK)
+               tmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv',
                dfPapAlaArv]
     return sources
 
@@ -393,7 +415,7 @@ def test_DataSet_toFiles(sources_fxt):
     # => toExcel, toOpenDoc, toPickle, compareDataFrames
     closenessThreshold = 15  # => max relative delta = 1e-15
     subsetCols = ['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']
-    filePathName = pl.Path('tmp') / 'dataset-uni.ods'
+    filePathName = tmpDir / 'dataset-uni.ods'
     dfRef = ds.dfSubData(columns=subsetCols).reset_index(drop=True)
 
     for fpn in [filePathName, filePathName.with_suffix('.xlsx'), filePathName.with_suffix('.xls'),
@@ -462,11 +484,11 @@ def test_closeness():
 # Comparison (from other files data sources, the same as for ResultsSet.compare below, but through DataSet)
 # => compare, compareDataFrames, _toHashable, _closeness
 def test_compare():
-    # a. Loading of Distance 7 and values to compare issued from AutoDS
-    dsDist = ads.DataSet('refin/ACDC2019-Papyrus-ALAARV-TURMER-comp-dist-auto.ods',
+    # a. Loading of Distance 7 and values to compare issued from PyAuDiSam
+    dsDist = ads.DataSet(KSrcRefin / 'ACDC2019-Papyrus-ALAARV-TURMER-comp-dist-auto.ods',
                          sheet='RefDist73', skipRows=[3], headerRows=[0, 1, 2], indexCols=0)
 
-    dsAuto = ads.DataSet('refin/ACDC2019-Papyrus-ALAARV-TURMER-comp-dist-auto.ods',
+    dsAuto = ads.DataSet(KSrcRefin / 'ACDC2019-Papyrus-ALAARV-TURMER-comp-dist-auto.ods',
                          sheet='ActAuto', skipRows=[3], headerRows=[0, 1, 2], indexCols=0)
 
     # b. Index columns to be compared
@@ -479,7 +501,7 @@ def test_compare():
                  ('parameters', 'distance discretisation cut points', 'Value')]
 
     # # c. Columns to be compared (DeltaDCV and DeltaAIC were removed as results are dependant of a set of ran analyses,
-    # #    different between reference and AutoDS run.
+    # #    different between reference and PyAuDiSam run.
     subsetCols = [col for col in dsDist.dfData.columns.to_list()
                   if col not in indexCols + [('run output', 'run time', 'Value'),
                                              ('density/abundance', 'density of animals', 'Delta Cv'),
@@ -545,7 +567,7 @@ def test_SDS_Ctor():
                  format(e_info.value))
 
     # Excel source (path as simple string)
-    sds = ads.SampleDataSet(source='refin/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',
+    sds = ads.SampleDataSet(source=KSrcRefin / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',
                             decimalFields=['EFFORT', 'DISTANCE', 'NOMBRE'])
 
     assert sds.columns.to_list() == ['ZONE', 'HA', 'POINT', 'ESPECE', 'DISTANCE', 'MALE', 'DATE',
@@ -557,7 +579,7 @@ def test_SDS_Ctor():
     Sum of values from column "NOMBRE" should be 217'
 
     # Libre / Open Office source (path as simple string)
-    sds = ads.SampleDataSet(source='refin/ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',
+    sds = ads.SampleDataSet(source=KSrcRefin / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',
                             decimalFields=['EFFORT', 'DISTANCE', 'NOMBRE'])
 
     assert sds.columns.to_list() == ['ZONE', 'HA', 'POINT', 'ESPECE', 'DISTANCE', 'MALE', 'DATE',
@@ -568,7 +590,7 @@ def test_SDS_Ctor():
     from column "NOMBRE" should be 217'
 
     # CSV source with ',' as decimal point (path as pl.Path)
-    sds = ads.SampleDataSet(source=pl.Path('refin/ACDC2019-Papyrus-TURMER-AB-5mn-1dec-dist.txt'),
+    sds = ads.SampleDataSet(source=KSrcRefin / 'ACDC2019-Papyrus-TURMER-AB-5mn-1dec-dist.txt',
                             decimalFields=['Point transect*Survey effort', 'Observation*Radial distance'])
 
     assert not any(sds.dfData[col].dropna().apply(lambda v: isinstance(v, str)).any() for col in sds.decimalFields), \
@@ -583,7 +605,7 @@ def test_SDS_Ctor():
     data loaded in SDS: Sum of values from column "Observation*Radial distance" should be 324'
 
     # CSV source with '.' as decimal point
-    sds = ads.SampleDataSet(source=pl.Path('refin/ACDC2019-Papyrus-ALAARV-AB-10mn-1dotdec-dist.txt'),
+    sds = ads.SampleDataSet(source=KSrcRefin / 'ACDC2019-Papyrus-ALAARV-AB-10mn-1dotdec-dist.txt',
                             decimalFields=['Point transect*Survey effort', 'Observation*Radial distance'])
 
     assert not any(sds.dfData[col].dropna().apply(lambda v: isinstance(v, str)).any() for col in sds.decimalFields), \
@@ -632,6 +654,6 @@ if __name__ == '__main__':
             logger.exception('Exception: ' + str(exc))
             rc = 1
 
-    logger.info('Done unit integration testing autods.data: {} (code: {})'
+    logger.info('Done unit integration testing pyaudisam.data: {} (code: {})'
                 .format({-1: 'Not run', 0: 'Success'}.get(rc, 'Error'), rc))
     sys.exit(rc)

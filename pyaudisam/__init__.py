@@ -1,28 +1,25 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
+# Copyright (C) 2021 Jean-Philippe Meuret
 
-# Requirements:
-#  python 3.8+
-#  pandas 0.25+
-#  matplotlib 3.1+
-#  jinja2
-#  zoopt 4.0+
-#  ... to be completed.
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
 
 # Module version
-__version__ = 0.9.0
+__version__ = '0.9.1'
 
+import sys
 
 # Infos about run-time (Python version, dependency library versions, ...)
-runtime = dict()  # Updated by sub-modules.
-
+runtime = {'platform': sys.platform, sys.implementation.name: sys.version}  # Updated by sub-modules.
 
 # Sub-module exports
 from . import log

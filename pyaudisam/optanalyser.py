@@ -1,31 +1,34 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
-#
-# Optanalyser: Run a bunch of DS analyses according to a user-friendly set of analysis specs
-#              with possibly some undetermined analysis parameters in specs :
-#              for these analyses, an auto-computation of these parameters will then be run first
-#              through some optimisation engine specified in specs : zoopt only for now,
-#              and for some kind of parameters : only distance truncations supported for now)
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
+# Copyright (C) 2021 Jean-Philippe Meuret
 
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Submodule "optanalyser": Run a bunch of DS analyses according to a user-friendly set of analysis specs
+#  with possibly some undetermined analysis parameters in specs :
+#  for these analyses, an auto-computation of these parameters will then be run first
+#  through some optimisation engine specified in specs (only "zoopt" supported as for now),
+#  and for some kind of parameters (only distance truncations supported as for now).
 
 import numpy as np
 import pandas as pd
 
-import autods.log as log
+from . import log
+from .engine import MCDSEngine
+from .analysis import MCDSAnalysis
+from .analyser import MCDSAnalyser, MCDSAnalysisResultsSet
+from .optimiser import MCDSTruncationOptimiser, MCDSZerothOrderTruncationOptimiser
 
 logger = log.logger('ads.onr')
-
-from autods.engine import MCDSEngine
-from autods.analysis import MCDSAnalysis
-from autods.analyser import MCDSAnalyser, MCDSAnalysisResultsSet
-from autods.optimiser import MCDSTruncationOptimiser, MCDSZerothOrderTruncationOptimiser
 
 
 class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):

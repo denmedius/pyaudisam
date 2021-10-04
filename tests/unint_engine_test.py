@@ -1,8 +1,19 @@
-# Unit integration automated tests
-#
-# Application Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# Current test file author:Jean-Philippe Meuret & Sylvain Sainnier
-# License: GPL 3
+# coding: utf-8
+
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
+
+# Copyright (C) 2021 Jean-Philippe Meuret, Sylvain Sainnier
+
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Automated unit and integration tests for "engine" submodule
 
 # To run : simply run "pytest" or "python <this file>" in current folder
 #          and check standard output ; and tmp/unit-int-test.{datetime}.log for details
@@ -16,8 +27,12 @@ import pandas as pd
 import numpy as np
 import logging
 
-sys.path.insert(0, '..')
-import autods as ads
+KTestSrcPath = pl.Path(__file__).parent
+
+# Update PYTHONPATH for pyaudisam package to be importable.
+sys.path.insert(0, KTestSrcPath.parent.as_posix())
+
+import pyaudisam as ads
 
 import pytest
 
@@ -67,6 +82,7 @@ def configureLoggers(loggers=[dict(name='child', level=logging.ERROR)],
 
 def describeRunEnv():
 
+    logger.info('PyAuDiSam {} from {}'.format(ads.__version__, pl.Path(ads.__path__[0]).resolve().as_posix()))
     logger.info('Python environment:')
     logger.info('*  {}: {}'.format(sys.implementation.name, sys.version))
     logger.info('* platform: {}'.format(sys.platform))
@@ -75,8 +91,7 @@ def describeRunEnv():
     logger.info('')
 
 
-# logger = logging.getLogger('unint_engine_test')
-logger = ads.logger('unint_engine_test')  # works with both lines. This ones seems more consistent to me
+logger = ads.logger('unt.eng')
 
 # List of logger/sub_loggers
 l_loggers = [dict(name='unint_engine_test', level=ads.DEBUG),
@@ -89,8 +104,11 @@ l_loggers = [dict(name='unint_engine_test', level=ads.DEBUG),
 # line below added to limit log ouput
 #            dict(name='ads.dat', level=ads.WARNING)]
 
+# Temporary work folder.
+tmpDir = KTestSrcPath / 'tmp'
+
 # Configure logging.
-configureLoggers(l_loggers, handlers=['tmp/unit-int-test.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d'))])
+configureLoggers(l_loggers, handlers=[tmpDir / 'unit-int-test.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d'))])
 logger.info('')
 
 # Describe environment.
@@ -140,22 +158,22 @@ def test_executableNotFound():
 def test_MCDS_Ctor():
     # test Exception raising with one of unsupported characters in workdir string (space) - first way
     with pytest.raises(Exception) as e_info:
-        ads.MCDSEngine(workDir='tmp/test out')  # Simple string path
+        ads.MCDSEngine(workDir=tmpDir.as_posix() + '/test out')  # Simple string path
     logger.info0('PASS (test_MCDS_Ctor) => EXCEPTION RAISED AS AWAITED with the following Exception message:\n{}'
                  .format(e_info.value))
 
     # test Exception raising with one of unsupported characters in workdir string (space) - second way
     with pytest.raises(Exception) as e_info:
-        ads.MCDSEngine(workDir=pl.Path('tmp', 'test out'))  # pl.Path path
+        ads.MCDSEngine(workDir=tmpDir / 'test out')  # pl.Path path
     logger.info0('PASS (test_MCDS_Ctor) => EXCEPTION RAISED AS AWAITED with the following Exception message:\n{}'
                  .format(e_info.value))
 
     # test preferred method to initiate MCDSEngine
-    assert ads.MCDSEngine(workDir=pl.Path('tmp', 'mcds-out'), runMethod='os.system'), 'MCDS Engine: \
+    assert ads.MCDSEngine(workDir=tmpDir / 'mcds-out', runMethod='os.system'), 'MCDS Engine: \
     Non identified issue at engine initiation'
 
     # test previous (older) method to initiate MCDSEngine
-    assert ads.MCDSEngine(workDir=pl.Path('tmp', 'mcds-out')), 'MCDS Engine: Non identified issue at engine initiation'
+    assert ads.MCDSEngine(workDir=tmpDir / 'mcds-out'), 'MCDS Engine: Non identified issue at engine initiation'
 
     # test Specs DataFrames not empty
     # TODO: improve for deeper test ???
@@ -226,7 +244,7 @@ def test_buildExportTable(shortDF_fxt):
 
 
 def test_buildDataFile(shortDF_fxt):
-    eng = ads.MCDSEngine(workDir=pl.Path('tmp', 'mcds-out'))
+    eng = ads.MCDSEngine(workDir=tmpDir / 'mcds-out')
     runDir = eng.setupRunFolder(runPrefix='uni')
     dfData = shortDF_fxt  # load source test data
 
@@ -242,7 +260,7 @@ def test_buildDataFile(shortDF_fxt):
     test_buildDataFile: data exported to file do not match to source data'
 
     # clean-up: 'mcds-out' directory and content deleted
-    shutil.rmtree('./tmp/mcds-out')
+    shutil.rmtree(tmpDir / 'mcds-out')
 
     logger.info0('PASS => MCDSEngine => methods "buildDataFile"')
 
@@ -254,7 +272,7 @@ def test_buildCmdFile():
     t_estimAdjustFn = 'COSINE'
     t_estimCriterion = 'AIC'
     t_cvInterval = 95
-    eng = ads.MCDSEngine(workDir=pl.Path('tmp', 'mcds-out'))
+    eng = ads.MCDSEngine(workDir=tmpDir / 'mcds-out')
     runDir = eng.setupRunFolder(runPrefix='uni')
     cmdFileName = eng.buildCmdFile(estimKeyFn=t_estimKeyFn, estimAdjustFn=t_estimAdjustFn,
                                    estimCriterion=t_estimCriterion, cvInterval=t_cvInterval, runDir=runDir)
@@ -276,14 +294,14 @@ def test_buildCmdFile():
                    recorded in cmd.txt (cvInterval)'
 
     # clean-up: 'mcds-out' directory and content deleted
-    shutil.rmtree('./tmp/mcds-out')
+    shutil.rmtree(tmpDir / 'mcds-out')
 
     logger.info0('PASS => MCDSEngine => methods "test_buildCmdFile"')
 
 
 def test__run(shortDF_fxt):
     # init MCDSEngine
-    eng = ads.MCDSEngine(workDir=pl.Path('tmp', 'mcds-out'), runMethod='os.system')
+    eng = ads.MCDSEngine(workDir=tmpDir / 'mcds-out', runMethod='os.system')
     # Prepare temporary working folder
     runDir = eng.setupRunFolder(runPrefix='uni')
     # Prepare SampleDataSet and data.txt file

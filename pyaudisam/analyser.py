@@ -1,15 +1,19 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
-#
-# Analyser: Run a bunch of DS analyses according to a user-friendly set of analysis specs
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
+# Copyright (C) 2021 Jean-Philippe Meuret
 
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Submodule "analyser": Run a bunch of DS analyses according to a user-friendly set of analysis specs
 
 import re
 import pathlib as pl
@@ -21,14 +25,13 @@ import math
 import numpy as np
 import pandas as pd
 
-import autods
+from . import log, runtime
+from .data import MonoCategoryDataSet, ResultsSet
+from .executor import Executor
+from .engine import MCDSEngine
+from .analysis import DSAnalysis, MCDSAnalysis, MCDSPreAnalysis
 
-logger = autods.log.logger('ads.anr')
-
-from autods.data import MonoCategoryDataSet, ResultsSet
-from autods.executor import Executor
-from autods.engine import MCDSEngine
-from autods.analysis import DSAnalysis, MCDSAnalysis, MCDSPreAnalysis
+logger = log.logger('ads.anr')
 
 
 class AnalysisResultsSet(ResultsSet):
@@ -2152,7 +2155,7 @@ class MCDSAnalyser(DSAnalyser):
 
         # Set results specs for traceability.
         self.results.updateSpecs(analyses=dfExplParamSpecs, analyser=self.flatSpecs(),
-                                 runtime=pd.Series(autods.runtime, name='Version'))
+                                 runtime=pd.Series(runtime, name='Version'))
         
         # Done.
         logger.info(f'Analyses completed ({len(self.results)} results).')
@@ -2350,7 +2353,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         # Set results specs for traceability.
         self.results.updateSpecs(samples=dfExplSampleSpecs, models=pd.DataFrame(dModelStrategy),
-                                 analyser=self.flatSpecs(), runtime=pd.Series(autods.runtime, name='Version'))
+                                 analyser=self.flatSpecs(), runtime=pd.Series(runtime, name='Version'))
         
         # Done.
         logger.info('Analyses completed.')

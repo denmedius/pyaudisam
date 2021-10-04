@@ -1,15 +1,19 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
-#
-# Engines : Interface to (external) DS engines
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
+# Copyright (C) 2021 Jean-Philippe Meuret
 
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Submodule "engine": Interface to (external) DS engines
 
 import sys
 import os
@@ -25,11 +29,11 @@ import subprocess as sproc
 import numpy as np
 import pandas as pd
 
-import autods.log as log
+from . import log
 
 logger = log.logger('ads.eng', level=log.INFO) # Initial config (can be changed later)
 
-from autods.executor import Executor
+from .executor import Executor
 
 # Keep ruin'dows from opening a GPF dialog box every time a launched executable (like MCDS.exe) crashes !
 # BUT: This does NOT work :-(
@@ -58,8 +62,7 @@ class DSEngine(object):
     # Distance software detection params.
     DistanceMajorVersions = [7, 6] # Lastest first.
     DistanceInstDirNameFmt = 'Distance {majorVersion}'
-    DistancePossInstPaths = [pl.Path('C:/Program files (x86)'), pl.Path('C:/Program files'),
-                             pl.Path('C:/PortableApps'), pl.Path('.')]
+    DistancePossInstPaths = map(pl.Path, ['C:/Program files (x86)', 'C:/Program files', 'C:/PortableApps', '.'])
 
     # Find given executable installation dir.
     # Note: MCDS.exe is an autonomous executable : simply put it in a "Distance 7" subfolder
@@ -128,7 +131,7 @@ class DSEngine(object):
                .format(''.join(self.ForbidPathChars), workDir)
         self.workDir = pl.Path(workDir)
         self.workDir.mkdir(exist_ok=True)
-        logger.info('DSEngine work folder: {}'.format(self.workDir.absolute()))
+        logger.info('DSEngine work folder: {}'.format(self.workDir.absolute().as_posix()))
     
     # Possible regexps for auto-detection of columns to import (into Distance / MCDS) from data sets / exports
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK).

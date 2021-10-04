@@ -1,15 +1,19 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 #
-# Report : HTML and Excel report generation from DS results
+# Copyright (C) 2021 Jean-Philippe Meuret
 #
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
-
+# Submodule "report": HTML and Excel report generation from DS results
 
 import sys
 import os, shutil
@@ -30,11 +34,11 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
 #import seaborn as sb
 
-import autods.log as log
-import autods.executor as exor
-import autods as ads
+from . import log, runtime, __version__
+from .executor import Executor
+from .analyser import MCDSAnalysisResultsSet
 
-ads.runtime.update({'matplotlib': sys.modules['matplotlib'].__version__})
+runtime.update(matplotlib=sys.modules['matplotlib'].__version__, jinja2=jinja2.__version__)
 
 logger = log.logger('ads.rep')
 
@@ -102,7 +106,15 @@ class ResultsReport(object):
         self.tgtFolder = tgtFolder
         
         self.tmplEnv = None
-        
+    
+    @staticmethod
+    def _libVersions():
+        return {'Python': runtime[sys.implementation.name].split()[0],
+                'NumPy': runtime['numpy'],
+                'Pandas': runtime['pandas'],
+                'ZOOpt': runtime['zoopt'],
+                'Matplotlib': runtime['matplotlib'],
+                'Jinja': runtime['jinja2']}
     # Translate string
     def tr(self, s):
         return self.dTrans[self.lang].get(s, s)
@@ -390,7 +402,7 @@ class DSResultsDistanceReport(ResultsReport):
         self.logProgressEvery = logProgressEvery
         
     # Static attached files for HTML report.
-    AttachedFiles = ['autods.css', 'fa-feather-alt.svg', 'fa-angle-up.svg', 'fa-file-excel.svg', 'fa-file-excel-hover.svg',
+    AttachedFiles = ['report.css', 'fa-feather-alt.svg', 'fa-angle-up.svg', 'fa-file-excel.svg', 'fa-file-excel-hover.svg',
                      'fa-arrow-left-hover.svg', 'fa-arrow-left.svg', 'fa-arrow-right-hover.svg', 'fa-arrow-right.svg',
                      'fa-arrow-up-hover.svg', 'fa-arrow-up.svg']
     
@@ -643,7 +655,7 @@ class DSResultsDistanceReport(ResultsReport):
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang], 
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime, autodsVersion=ads.__version__,
+                           genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(),
                            distanceUnit=self.tr(self.resultsSet.distanceUnit),
                            areaUnit=self.tr(self.resultsSet.areaUnit),
                            surveyType=self.tr(self.resultsSet.surveyType),
@@ -701,7 +713,7 @@ class DSResultsDistanceReport(ResultsReport):
 
         # Generate translated synthesis and detailed tables.
         logger.info(f'Analyses pages ({len(dfSynthRes)}) ...')
-        executor = exor.Executor(processes=generators)
+        executor = Executor(processes=generators)
         nExpWorkers = executor.expectedWorkers()
         if nExpWorkers > 1:
             logger.info(f'... through at most {nExpWorkers} parallel generators ...')
@@ -820,7 +832,7 @@ class DSResultsDistanceReport(ResultsReport):
                                         nextAnlys='../' + sResNav.next,
                                         back2Top='../' + os.path.basename(topHtmlPathName)),
                            tr=self.dTrans[self.lang], pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime, autodsVersion=ads.__version__, 
+                           genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(), 
                            distanceUnit=self.tr(self.resultsSet.distanceUnit),
                            areaUnit=self.tr(self.resultsSet.areaUnit),
                            surveyType=self.tr(self.resultsSet.surveyType),
@@ -974,7 +986,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
         :param tgtPrefix: default target file name for the report
          """
     
-        assert isinstance(resultsSet, ads.MCDSAnalysisResultsSet), 'resultsSet must be a MCDSAnalysisResultsSet'
+        assert isinstance(resultsSet, MCDSAnalysisResultsSet), 'resultsSet must be a MCDSAnalysisResultsSet'
 
         super().__init__(resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                          synthCols=synthCols, sortCols=sortCols, sortAscend=sortAscend,
@@ -1549,7 +1561,7 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime, autodsVersion=ads.__version__, 
+                           genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(), 
                            distanceUnit=self.tr(self.resultsSet.distanceUnit),
                            areaUnit=self.tr(self.resultsSet.areaUnit),
                            surveyType=self.tr(self.resultsSet.surveyType),
@@ -1757,7 +1769,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
                            description=self.description, keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime, autodsVersion=ads.__version__,
+                           genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(),
                            distanceUnit=self.tr(self.resultsSet.distanceUnit),
                            areaUnit=self.tr(self.resultsSet.areaUnit),
                            surveyType=self.tr(self.resultsSet.surveyType),
@@ -1800,7 +1812,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                       'AFS': 'FTA', 'Steps': 'Etapes',
                       'Filter & Sort steps': 'Etapes de filtrage et tri'}))
 
-    ResClass = ads.MCDSAnalysisResultsSet
+    ResClass = MCDSAnalysisResultsSet
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
                  sampleCols, paramCols, resultCols, synthCols=None, sortCols=None, sortAscend=None,
@@ -2071,7 +2083,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                            description=self.description.format(fsId=filSorSchId.split('@')[0]),
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
-                           genDateTime=genDateTime, autodsVersion=ads.__version__, 
+                           genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(), 
                            distanceUnit=self.tr(self.resultsSet.distanceUnit),
                            areaUnit=self.tr(self.resultsSet.areaUnit),
                            surveyType=self.tr(self.resultsSet.surveyType),

@@ -35,3 +35,6 @@ __pycache__
 *old.*
 
 tests/tmp
+build
+dist
+pyaudisam.egg-info

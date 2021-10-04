@@ -5,7 +5,7 @@
 // 
 // Author: see https://github.com/kmahelona/ipython_notebook_goodies
 //
-// Changes (by jpmeuret@free.fr) :
+// Changes (by Jean-Philippe Meuret) :
 // * removed articifial roman numbering
 // * added support for notebook title
 //

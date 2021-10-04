@@ -1,15 +1,19 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
-#
-# Parameters: Auto-determine analysis parameters values based on quality criteria
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
+# Copyright (C) 2021 Jean-Philippe Meuret
 
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Submodule "optimiser": Auto-determine analysis parameters values based on quality criteria
 
 import re
 
@@ -24,16 +28,15 @@ import pandas as pd
 import pickle
 import lzma
 
-import autods.log as log
+from . import log
+from .data import MonoCategoryDataSet, ResultsSet
+from .executor import Executor
+from .engine import MCDSEngine
+from .analyser import DSAnalyser, MCDSAnalyser
+from .optimisation import Interval, Error, DSOptimisation
+from .optimisation import MCDSTruncationOptimisation, MCDSZerothOrderTruncationOptimisation
 
 logger = log.logger('ads.opr')
-
-from autods.data import MonoCategoryDataSet, ResultsSet
-from autods.executor import Executor
-from autods.engine import MCDSEngine
-from autods.analyser import DSAnalyser, MCDSAnalyser
-from autods.optimisation import Interval, Error, DSOptimisation, \
-                                MCDSTruncationOptimisation, MCDSZerothOrderTruncationOptimisation
 
 
 class OptimisationResultsSet(ResultsSet):

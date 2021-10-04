@@ -1,15 +1,19 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
-#
-# Analysis : One layer above engines, to run DS analyses from an imput data set, and get computation results
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
+# Copyright (C) 2021 Jean-Philippe Meuret
 
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Submodule "analysis": One layer above engines, to run DS analyses from an imput data set, and get computation results
 
 import sys
 import pathlib as pl
@@ -21,14 +25,11 @@ import pandas as pd
 
 import concurrent.futures as cofu
 
-import autods.log as log
+from . import log
+from .engine import DSEngine, MCDSEngine
+from .executor import Executor
 
 logger = log.logger('ads.ans')
-
-#import engine as adse # Bad: double import of 'engine' averall.
-from autods.engine import DSEngine, MCDSEngine # Good
-#import autods.engine as adse # Also good.
-from autods.executor import Executor
 
 
 # Analysis (abstract) : Gather input params, data set, results, debug and log files
@@ -383,8 +384,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
 
 if __name__ == '__main__':
 
-    #import data as adsd
-    from autods.data import SampleDataSet
+    from .data import SampleDataSet
 
     # Parse command line args.
     argser = argparse.ArgumentParser(description='Run a distance sampling analysis using a DS engine from Distance software')

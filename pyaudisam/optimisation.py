@@ -1,18 +1,22 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
-#
-# Optimisation : One layer above analysis, to optimise some of the parameters of one DS analysis.
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
+# Copyright (C) 2021 Jean-Philippe Meuret
+
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Submodule "optimisation": One layer above analysis, to optimise some of the parameters of one DS analysis.
 
 # Warning: If you add/remove/change optimisation parameters to XXOptimisation class ctors,
 #          remember to update ParmXX constants accordingly in XXOptimiser classes.
-
 
 import sys
 import pathlib as pl
@@ -26,18 +30,17 @@ import numpy as np
 import pandas as pd
 
 import zoopt
-
-import autods.log as log
-logger = log.logger('ads.opn')
-
-import autods
 import pkg_resources as pkgrsc  # zoopt has no standard __version__ !
-autods.runtime.update({'zoopt': pkgrsc.get_distribution('zoopt').version})
 
-from autods.executor import Executor
-from autods.engine import MCDSEngine
-from autods.analysis import MCDSAnalysis
-from autods.analyser import MCDSAnalysisResultsSet
+from . import log, runtime
+from .executor import Executor
+from .engine import MCDSEngine
+from .analysis import MCDSAnalysis
+from .analyser import MCDSAnalysisResultsSet
+
+runtime.update({'zoopt': pkgrsc.get_distribution('zoopt').version})
+
+logger = log.logger('ads.opn')
 
 
 class Interval(object):
@@ -766,7 +769,7 @@ if __name__ == '__main__':
 
     raise NotImplementedError()
 
-    from autods.data import SampleDataSet
+    from .data import SampleDataSet
 
     # Parse command line args.
     argser = argparse.ArgumentParser(description='Run a distance sampling analysis using a DS engine from Distance software')

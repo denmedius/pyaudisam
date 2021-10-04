@@ -1,30 +1,45 @@
-import pathlib
+# coding: utf-8
+
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
+
+# Copyright (C) 2021 Jean-Philippe Meuret
+
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+import pathlib as pl
+import re
 from setuptools import setup
 
 # The directory containing this file
-HERE = pathlib.Path(__file__).parent
+here = pl.Path(__file__).parent
+
+# Retrieve version from __init__.py
+version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', open('pyaudisam/__init__.py').read()).group(1)
 
 # This call to setup() does all the work
-setup(
-    name="pyaudisam",
-    version="0.9.0",
-    python_requires='>=3.8.0',
-    description="Distance Sampling automation through Distance sofware",
-    long_description=(HERE / "README.md").read_text(),
-    long_description_content_type="text/markdown",
-    url="https://github.com/denmedius/pyaudisam",
-    author="Jean-Philippe Meuret",
-    license="GPLv3",
-    classifiers=[
-        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-    ],
-    packages=["pyaudisam"],
-    include_package_data=True,
-    install_requires=["pandas", "matplotlib", "jinja2", "zoopt"],
-    entry_points={
-        "console_scripts": []
-    },
-)
+setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaudisam',
+      description='Distance Sampling automation through Distance sofware',
+      long_description=(here / 'README.md').read_text(),
+      long_description_content_type='text/markdown',
+      author='Jean-Philippe Meuret', author_email='jpmeuret@e.email',
+      license='GPLv3+',
+      classifiers=['Topic :: Software Development :: Libraries',
+                   'Topic :: Software Development :: Libraries :: Python Modules',
+                   'Intended Audience :: Science/Research',
+                   'Development Status :: 3 - Alpha',
+                   'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+                   'Programming Language :: Python :: 3 :: Only',
+                   'Programming Language :: Python :: 3.8',
+                   'Environment :: Win32 (MS Windows)'],
+      packages=['pyaudisam'],
+      include_package_data=True,
+      python_requires='>=3.8',
+      install_requires=['pandas >= 0.25', 'matplotlib >= 3.1', 'jinja2', 'zoopt >= 0.4'],
+      entry_points={'console_scripts': []})

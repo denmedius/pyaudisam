@@ -1,8 +1,7 @@
 include README.md
+include LICENSE.txt
 
 include pyaudisam/mcds/*.htpl
 include pyaudisam/mcds/*.txt
 include pyaudisam/report/*.css
 include pyaudisam/report/*.svg
-
-prune tmp

@@ -1,9 +1,24 @@
 <!DOCTYPE HTML>
+
+<!-- PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
+
+     Copyright (C) 2021 Jean-Philippe Meuret
+     
+     This program is free software: you can redistribute it and/or modify it under the terms
+     of the GNU General Public License as published by the Free Software Foundation,
+     either version 3 of the License, or (at your option) any later version.
+     This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+     See the GNU General Public License for more details.
+     You should have received a copy of the GNU General Public License along with this program.
+     If not, see https://www.gnu.org/licenses/.
+-->
+
 <head>
 
   <meta charset="utf-8">
   <meta name="author" content="Jean-Philippe Meuret"/>
-  <meta name="copyright" content="Jean-Philippe Meuret 2019"/>
+  <meta name="copyright" content="Jean-Philippe Meuret 2021"/>
   <meta name="license" content="CC BY NC SA"/>
   <meta name="description" content="{{title}}"/>
   <meta name="keywords" content="distance, sampling, mcds, full, {{keywords}}"/>
@@ -11,7 +26,7 @@
   
   <title>{{title}}</title>
   
-  <link rel="stylesheet" media="screen" type="text/css" href="./autods.css">
+  <link rel="stylesheet" media="screen" type="text/css" href="./report.css">
   
   <script>
     // Back to top floating button managment
@@ -146,12 +161,14 @@
     
     <h6 style="margin-bottom: 10px">
       {{tr['Page generated']}} {{tr['on']}} {{genDateTime}}
-      {{tr['with']}} <a href="https://www.python.org/" target="_blank">Python 3</a>,
-      <a href="https://pandas.pydata.org/" target="_blank">Pandas</a>,
-      <a href="https://matplotlib.org/" target="_blank">Matplotlib</a>,
-      <a href="http://jinja.pocoo.org/" target="_blank">Jinja 2</a>
+      {{tr['with']}} <a href="https://www.python.org/" target="_blank">Python {{libVersions['Python']}}</a>,
+      <a href="https://numpy.org/" target="_blank">NumPy {{libVersions['NumPy']}}</a>,
+      <a href="https://pandas.pydata.org/" target="_blank">Pandas {{libVersions['Pandas']}}</a>,
+      <a href="https://github.com/polixir/ZOOpt/" target="_blank">ZOOpt {{libVersions['ZOOpt']}}</a>,
+      <a href="https://matplotlib.org/" target="_blank">Matplotlib {{libVersions['Matplotlib']}}</a>,
+      <a href="https://palletsprojects.com/p/jinja/" target="_blank">Jinja {{libVersions['Jinja']}}</a>
       ... {{tr['and']}}
-      <a href="http://jpmeuret.free.fr/informatique.html#AutoDS" target="_blank">AutoDS {{autodsVersion}}</a>,
+      <a href="https://pypi.org/project/pyaudisam/" target="_blank">PyAuDiSam {{version}}</a>,
       {{tr['with icons from']}} <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>
       {%if pySources %}
         ({{tr['sources']}} :

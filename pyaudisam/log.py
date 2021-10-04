@@ -1,11 +1,22 @@
 # coding: utf-8
 
-# Thin wrapper above logging to get more debug and info levels
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
+
+# Copyright (C) 2021 Jean-Philippe Meuret
+
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Submodule "log": Thin wrapper above logging to get more debug and info levels, and easier configuration.
 
 import sys
+import pathlib as pl
 import logging
 from logging import NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
 
@@ -72,16 +83,21 @@ class Logger(logging.Logger):
     def debug4(self, msg, *args, **kwargs):
         self.log(DEBUG4, msg, *args, **kwargs)
 
+    def _handlerId(hdlr):
+        if isinstance(hdlr, pl.Path):
+            hdlr = hdlr.as_posix()
+        return 'File({})'.format(hdlr) if isinstance(hdlr, str) else 'Stream({})'.format(hdlr.name)
+
     @staticmethod
     def configure(level=NOTSET, handlers=[sys.stdout], fileMode='w', verbose=False,
-                  format='%(asctime)s %(name)s %(levelname)s\t%(message)s', reset=False):
+                  format='%(asctime)s %(process)d %(name)s %(levelname)s\t%(message)s', reset=False):
         
         """Configure logging system, mainly the root logger (levels, handlers, formatter, ...)
 
         Parameters:
         :param level: see logging.Logger.setLevel
         :param handlers: a list of "handler specs" ; according to type,
-            * str: logging.FileHandler for given file path-name
+            * str / pathlib.Path: logging.FileHandler for given file path-name
             * otherwise: StreamHandler (for sys.stdout and so on)
             * None or empty list => use currently configured ones for root logger
         :param fileMode: see logging.FileHandler ctor
@@ -104,6 +120,9 @@ class Logger(logging.Logger):
         for hdlr in handlers:
             if isinstance(hdlr, str):
                 handler = logging.FileHandler(hdlr, mode=fileMode)
+            elif isinstance(hdlr, pl.Path):
+                hdlr = hdlr.as_posix()
+                handler = logging.FileHandler(hdlr, mode=fileMode)
             else:
                 handler = logging.StreamHandler(stream=hdlr)
             handler.setFormatter(formatter)
@@ -111,9 +130,7 @@ class Logger(logging.Logger):
         
         if verbose:
             root.setLevel(INFO)
-            def handlerId(hdlr):
-                return 'File({})'.format(hdlr) if isinstance(hdlr, str) else 'Stream({})'.format(hdlr.name)
-            root.info('Will log to {}'.format(', '.join(handlerId(hdlr) for hdlr in handlers)))
+            root.info('Will log to {}'.format(', '.join(Logger._handlerId(hdlr) for hdlr in handlers)))
 
         if not verbose or level != INFO:
             root.setLevel(level)

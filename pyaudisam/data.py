@@ -1,15 +1,19 @@
 # coding: utf-8
 
-# Automation of Distance Sampling analyses with Distance software
-#  http://distancesampling.org/
-#
-# Data: Input and output DS data manipulation tools
-#
-# Author: Jean-Philippe Meuret (http://jpmeuret.free.fr/)
-# License: GPL 3
+# PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Warning: Only MCDS engine, and Point Transect analyses supported for the moment
+# Copyright (C) 2021 Jean-Philippe Meuret
 
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation,
+# either version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see https://www.gnu.org/licenses/.
+
+# Submodule "data": Input and output DS data manipulation tools
 
 import sys
 import pathlib as pl
@@ -21,14 +25,11 @@ import pickle
 import numpy as np
 import pandas as pd
 
-import autods
+from . import log, runtime
 
-autods.runtime.update({'platform': sys.platform, sys.implementation.name: sys.version,
-                       'numpy': np.__version__,
-                       'pandas': pd.__version__,
-                       'pickle': pickle.format_version})
+runtime.update(numpy=np.__version__, pandas=pd.__version__, pickle=pickle.format_version)
 
-logger = autods.log.logger('ads.dat')
+logger = log.logger('ads.dat')
 
 
 class DataSet(object):
