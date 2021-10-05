@@ -22,98 +22,45 @@ import sys
 import pathlib as pl
 import pandas as pd
 import numpy as np
-import logging
-
-KTestSrcPath = pl.Path(__file__).parent
-
-# Update PYTHONPATH for pyaudisam package to be importable.
-sys.path.insert(0, KTestSrcPath.parent.as_posix())
 
 import pyaudisam as ads
 
 import pytest
 
 
+# The "tests" folder.
+KTestSrcPath = pl.Path(__file__).parent
+
+# Temporary work folder (created once in conftest.py if needed).
+tmpDir = KTestSrcPath / 'tmp'
+
+# Logger for this module.
+logger = ads.logger('unt.dat')
+
 ###############################################################################
-#   LOGGERS CONFIG & RUN ENVIRONMENT RECORDING
-#
-#   Located there instead of in '__main__' in order that loggers could be used
-#   by running '__main__' OR pytest
-#
-# INFORMATION: I kept this function to set handlers for multiple children.
-# May be implemented as method from the 'log' class ???
+#                         Actions to be done before any test                  #
 ###############################################################################
-def configureLoggers(loggers=[dict(name='child', level=logging.ERROR)],
-                     handlers=[sys.stdout], fileMode='w',
-                     format='%(asctime)s %(name)s %(levelname)s\t%(message)s'):
-    """Configure loggers (levels, handlers, formatter, ...)
+def test_init():
 
-    Note: Setting handlers for multiple children rather than once and for all for root ...
-           gives bad things on FileHandlers, with many missing / intermixed / unsorted lines ...
-           => unusable. Whereas it seems to work well with StreamHandlers
-    """
+    # Configure logging.
+    logFilePathName = tmpDir / 'unt-dat.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d%H%M'))
+    ads.log.configure(loggers=[dict(name='matplotlib', level=ads.WARNING),
+                               dict(name='ads', level=ads.INFO),
+                               #dict(name='ads.dat', level=ads.WARNING),  # Uncomment to limit log ouput
+                               dict(name='ads.eng', level=ads.INFO2),
+                               dict(name='unt.dat', level=ads.DEBUG)],
+                      handlers=[logFilePathName], reset=True)
 
-    # Configure root logger (assuming children have propagate=on).
-    root = logging.getLogger()
-    root.debug('ROOT')
-    formatter = logging.Formatter(format)
-    for hdlr in handlers:
-        if isinstance(hdlr, str):
-            handler = logging.FileHandler(hdlr, mode=fileMode)
-        else:
-            handler = logging.StreamHandler(stream=hdlr)
-        handler.setFormatter(formatter)
-        root.addHandler(handler)
-
-    def handlerId(hdlr):
-        return 'File({})'.format(hdlr) if isinstance(hdlr, str) else 'Stream({})'.format(hdlr.name)
-    root.setLevel(logging.INFO)
-
-    # Configure children loggers.
-    msg = 'Logging to {}'.format(', '.join(handlerId(hdlr) for hdlr in handlers))
-    for logrCfg in loggers:
-        logr = logging.getLogger(logrCfg['name'])
-        logr.info(msg)
-        if 'level' in logrCfg:
-            logr.setLevel(logrCfg['level'])
-
-
-def describeRunEnv():
-
-    logger.info('PyAuDiSam {} from {}'.format(ads.__version__, pl.Path(ads.__path__[0]).resolve().as_posix()))
+    # Show testing configuration (traçability).
+    logger.info('PyAuDiSam {} from {}'
+                .format(ads.__version__, pl.Path(ads.__path__[0]).resolve().as_posix()))
     logger.info('Python environment:')
     logger.info('*  {}: {}'.format(sys.implementation.name, sys.version))
     logger.info('* platform: {}'.format(sys.platform))
-    for module in ['pytest', 'pandas', 'numpy', 'logging']:  # 'lxml', 'scipy', 'pyproj', 'shapely']:
+    for module in ['pytest', 'pandas', 'numpy']:
         logger.info('* {:>8s}: {}'.format(module, sys.modules[module].__version__))
-    logger.info('')
 
-
-logger = ads.logger('unt.dat')
-
-# List of logger/sub_loggers
-l_loggers = [dict(name='unint_data_test', level=ads.DEBUG),
-             dict(name='ads', level=ads.INFO),
-             dict(name='matplotlib', level=ads.WARNING),
-             dict(name='ads.eng', level=ads.INFO2),
-             dict(name='ads.opn', level=ads.INFO1),
-             dict(name='ads.opr', level=ads.INFO1),
-             dict(name='ads.anr', level=ads.INFO1)]
-#          line below added to limit log ouput
-#            dict(name='ads.dat', level=ads.WARNING)]
-
-# Temporary work folder.
-tmpDir = KTestSrcPath / 'tmp'
-
-# Configure logging.
-configureLoggers(l_loggers, handlers=[tmpDir / 'unit-int-test.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d'))])
-logger.info('')
-
-# Describe environment.
-describeRunEnv()
-
-logger.info(f'Testing ads {ads.__version__} ...')
-
+    logger.info('Testing pyaudisam.data ...')
 
 ###############################################################################
 #                         Input Data Preparation                              #
@@ -125,6 +72,7 @@ KSrcRefin = KTestSrcPath / 'refin'
 KSrcRefout = KTestSrcPath / 'refout'
 
 def sources():
+
     dfPapAlaArv = pd.read_excel(KSrcRefin / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods')
 
     dfPapAlaArv.to_csv(tmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv', sep='\t', index=False)
@@ -145,6 +93,7 @@ def sources():
 # same as above => to allow using pytest
 @pytest.fixture
 def sources_fxt():
+
     return sources()
 
 
@@ -621,6 +570,13 @@ def test_SDS_Ctor():
 
     logger.info0('PASS (test_SDS_Ctor) => SampleDATASET => Constructor')
 
+###############################################################################
+#                         Actions to be done after all tests                  #
+###############################################################################
+def test_final():
+
+    logger.info('Done testing pyaudisam.data.')
+
 
 if __name__ == '__main__':
 
@@ -630,6 +586,8 @@ if __name__ == '__main__':
 
     if run:
         try:
+            test_init()
+
             # Tests for DataSet
             test_DataSet_Ctor_len(sources())
             test_DataSet_dfData_getter_setter(sources())

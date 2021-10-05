@@ -89,13 +89,15 @@ class Logger(logging.Logger):
         return 'File({})'.format(hdlr) if isinstance(hdlr, str) else 'Stream({})'.format(hdlr.name)
 
     @staticmethod
-    def configure(level=NOTSET, handlers=[sys.stdout], fileMode='w', verbose=False,
+    def configure(loggers=[dict(name='child', level=logging.ERROR)],
+                  level=NOTSET, handlers=[sys.stdout], fileMode='w', verbose=False,
                   format='%(asctime)s %(process)d %(name)s %(levelname)s\t%(message)s', reset=False):
         
         """Configure logging system, mainly the root logger (levels, handlers, formatter, ...)
 
         Parameters:
-        :param level: see logging.Logger.setLevel
+        :param loggers: if not None, list of dict(name, [level]) to apply
+        :param level: for root only, see logging.Logger.setLevel
         :param handlers: a list of "handler specs" ; according to type,
             * str / pathlib.Path: logging.FileHandler for given file path-name
             * otherwise: StreamHandler (for sys.stdout and so on)
@@ -129,23 +131,31 @@ class Logger(logging.Logger):
             root.addHandler(handler)
         
         if verbose:
+            msg = 'Logging to {}'.format(', '.join(Logger._handlerId(hdlr) for hdlr in handlers))
             root.setLevel(INFO)
-            root.info('Will log to {}'.format(', '.join(Logger._handlerId(hdlr) for hdlr in handlers)))
+            root.info(msg)
 
         if not verbose or level != INFO:
             root.setLevel(level)
 
+        # Configure children loggers.
+        for logrCfg in loggers:
+            logr = logging.getLogger(logrCfg['name'])
+            if verbose:
+                logr.info(msg)
+            if 'level' in logrCfg:
+                logr.setLevel(logrCfg['level'])
+
         Logger.Configured = True
 
     @staticmethod
-    def logger(name, level=NOTSET, reset=False):
+    def logger(name, level=None, reset=False):
 
-        """ Create and setup the logger with given name.
+        """ Create, or retrieve, and eventually update the logger with given name.
         
         Parameters:
-        :param name: see logging.getLogger
-        :param level: see logging.Logger.setLevel
-        :param verbose: if True, write a first INFO msg to the handlers' targets
+        :param name: name o fthe target logget (see logging.getLogger)
+        :param level: if not None, level to set (see logging.Logger.setLevel)
         :param reset: if True, hard cleanup logger config. (useful in jupyter notebooks)
         """
         
@@ -161,7 +171,8 @@ class Logger(logging.Logger):
                 logr.handlers.pop()
         
         # Set level
-        logr.setLevel(level)
+        if level is not None:
+            logr.setLevel(level)
         
         return logr
 

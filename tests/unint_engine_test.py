@@ -27,95 +27,44 @@ import pandas as pd
 import numpy as np
 import logging
 
-KTestSrcPath = pl.Path(__file__).parent
-
-# Update PYTHONPATH for pyaudisam package to be importable.
-sys.path.insert(0, KTestSrcPath.parent.as_posix())
-
 import pyaudisam as ads
 
 import pytest
 
+
+# The "tests" folder.
+KTestSrcPath = pl.Path(__file__).parent
+
+# Temporary work folder (created once in conftest.py if needed).
+tmpDir = KTestSrcPath / 'tmp'
+
+# Logger for this module.
+logger = ads.logger('unt.eng')
+
 ###############################################################################
-#   LOGGERS CONFIG & RUN ENVIRONMENT RECORDING
-#
-#   Located there instead of in '__main__' in order that loggers could be used
-#   by running '__main__' OR pytest
-#
-# INFORMATION: I kept this function to set handlers for multiple children.
-# May be implemented as method from the 'log' class ???
+#                         Actions to be done before any test                  #
 ###############################################################################
-def configureLoggers(loggers=[dict(name='child', level=logging.ERROR)],
-                     handlers=[sys.stdout], fileMode='w',
-                     format='%(asctime)s %(name)s %(levelname)s\t%(message)s'):
-    """Configure loggers (levels, handlers, formatter, ...)
+def test_init():
 
-    Note: Setting handlers for multiple children rather than once and for all for root ...
-           gives bad things on FileHandlers, with many missing / intermixed / unsorted lines ...
-           => unusable. Whereas it seems to work well with StreamHandlers
-    """
+    # Configure logging.
+    logFilePathName = tmpDir / 'unt-eng.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d%H%M'))
+    ads.log.configure(loggers=[dict(name='matplotlib', level=ads.WARNING),
+                               dict(name='ads', level=ads.INFO),
+                               #dict(name='ads.dat', level=ads.WARNING),  # Uncomment to limit log ouput
+                               dict(name='ads.eng', level=ads.INFO2),
+                               dict(name='unt.eng', level=ads.DEBUG)],
+                      handlers=[logFilePathName], reset=True)
 
-    # Configure root logger (assuming children have propagate=on).
-    root = logging.getLogger()
-    root.debug('ROOT')
-    formatter = logging.Formatter(format)
-    for hdlr in handlers:
-        if isinstance(hdlr, str):
-            handler = logging.FileHandler(hdlr, mode=fileMode)
-        else:
-            handler = logging.StreamHandler(stream=hdlr)
-        handler.setFormatter(formatter)
-        root.addHandler(handler)
-
-    def handlerId(hdlr):
-        return 'File({})'.format(hdlr) if isinstance(hdlr, str) else 'Stream({})'.format(hdlr.name)
-    root.setLevel(logging.INFO)
-
-    # Configure children loggers.
-    msg = 'Logging to {}'.format(', '.join(handlerId(hdlr) for hdlr in handlers))
-    for logrCfg in loggers:
-        logr = logging.getLogger(logrCfg['name'])
-        logr.info(msg)
-        if 'level' in logrCfg:
-            logr.setLevel(logrCfg['level'])
-
-
-def describeRunEnv():
-
-    logger.info('PyAuDiSam {} from {}'.format(ads.__version__, pl.Path(ads.__path__[0]).resolve().as_posix()))
+    # Show testing configuration (traçability).
+    logger.info('PyAuDiSam {} from {}'
+                .format(ads.__version__, pl.Path(ads.__path__[0]).resolve().as_posix()))
     logger.info('Python environment:')
     logger.info('*  {}: {}'.format(sys.implementation.name, sys.version))
     logger.info('* platform: {}'.format(sys.platform))
-    for module in ['pytest', 'pandas', 'numpy', 'logging', 're']:  # 'lxml', 'scipy', 'pyproj', 'shapely']:
+    for module in ['pytest', 'pandas', 'numpy']:  # 'lxml', 'scipy', 'pyproj', 'shapely']:
         logger.info('* {:>8s}: {}'.format(module, sys.modules[module].__version__))
-    logger.info('')
 
-
-logger = ads.logger('unt.eng')
-
-# List of logger/sub_loggers
-l_loggers = [dict(name='unint_engine_test', level=ads.DEBUG),
-             dict(name='ads', level=ads.INFO),
-             dict(name='matplotlib', level=ads.WARNING),
-             dict(name='ads.eng', level=ads.INFO2),
-             dict(name='ads.opn', level=ads.INFO1),
-             dict(name='ads.opr', level=ads.INFO1),
-             dict(name='ads.anr', level=ads.INFO1)]
-# line below added to limit log ouput
-#            dict(name='ads.dat', level=ads.WARNING)]
-
-# Temporary work folder.
-tmpDir = KTestSrcPath / 'tmp'
-
-# Configure logging.
-configureLoggers(l_loggers, handlers=[tmpDir / 'unit-int-test.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d'))])
-logger.info('')
-
-# Describe environment.
-describeRunEnv()
-
-logger.info(f'Testing ads {ads.__version__} ...')
-
+    logger.info('Testing pyaudisam.engine ...')
 
 ###############################################################################
 #                         Input Data Preparation                              #
@@ -123,6 +72,7 @@ logger.info(f'Testing ads {ads.__version__} ...')
 #   Generate a short DataFrame (returned) for test purpose
 #   and return a list of sources (4 files and 1 DataFrame)
 def shortDF():
+
     shortDF = pd.DataFrame(columns=['Date', 'TrucDec', 'Espece', 'Point', 'Effort', 'Distance'],
                            data=[('2019-05-13', 3.5, 'TURMER', 23, 2, 83),
                                  ('2019-05-15', np.nan, 'TURMER', 23, 2, 27.355),
@@ -133,12 +83,14 @@ def shortDF():
                                  ])
     shortDF['Region'] = 'ACDC'
     shortDF['Surface'] = '2400'
+
     return shortDF
 
 
 # same as above => to allow using pytest
 @pytest.fixture
 def shortDF_fxt():
+
     return shortDF()
 
 
@@ -149,6 +101,7 @@ def shortDF_fxt():
 #                                Test Cases                                   #
 ###############################################################################
 def test_executableNotFound():
+
     with pytest.raises(Exception) as e_info:
         ads.MCDSEngine().findExecutable('WrongName')
     logger.info0('PASS (test_executableNotFound) => EXCEPTION RAISED AS AWAITED with the following \
@@ -156,6 +109,7 @@ def test_executableNotFound():
 
 
 def test_MCDS_Ctor():
+
     # test Exception raising with one of unsupported characters in workdir string (space) - first way
     with pytest.raises(Exception) as e_info:
         ads.MCDSEngine(workDir=tmpDir.as_posix() + '/test out')  # Simple string path
@@ -187,6 +141,7 @@ def test_MCDS_Ctor():
 
 
 def test_MCDS_setupRunFolder():
+
     runDir = ads.MCDSEngine().setupRunFolder(runPrefix=' t,e.s:t; ( )_setupRunFolder')
 
     assert not re.search('[ ,.:;()/]', str(runDir)), 'Error: test_MCDS_setupRunFolde: Setted up directory: unsupported \
@@ -199,6 +154,7 @@ def test_MCDS_setupRunFolder():
 
 
 def test_buildExportTable(shortDF_fxt):
+
     eng = ads.MCDSEngine()
     dfData = shortDF_fxt  # load source test data
     dfData.drop(['Surface'], axis=1, inplace=True)  # to create missing field
@@ -244,6 +200,7 @@ def test_buildExportTable(shortDF_fxt):
 
 
 def test_buildDataFile(shortDF_fxt):
+
     eng = ads.MCDSEngine(workDir=tmpDir / 'mcds-out')
     runDir = eng.setupRunFolder(runPrefix='uni')
     dfData = shortDF_fxt  # load source test data
@@ -300,6 +257,7 @@ def test_buildCmdFile():
 
 
 def test__run(shortDF_fxt):
+
     # init MCDSEngine
     eng = ads.MCDSEngine(workDir=tmpDir / 'mcds-out', runMethod='os.system')
     # Prepare temporary working folder
@@ -382,6 +340,14 @@ def test__run(shortDF_fxt):
     logger.info0('PASS => MCDSEngine => methods "_run", "_runThroughOSSystem" and "_runThroughSubProcessRun"')
 
 
+###############################################################################
+#                         Actions to be done after all tests                  #
+###############################################################################
+def test_final():
+
+    logger.info('Done testing pyaudisam.engine.')
+
+
 if __name__ == '__main__':
 
     run = True
@@ -390,6 +356,8 @@ if __name__ == '__main__':
 
     if run:
         try:
+            test_init()
+
             test_executableNotFound()
             test_MCDS_Ctor()
             test_MCDS_setupRunFolder()
