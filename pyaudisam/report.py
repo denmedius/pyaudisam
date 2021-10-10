@@ -1856,11 +1856,16 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                                                containing [1, preselNum] ranks ; default: []
                                    preselAscs= Rank direction to use for each column (list),
                                                or all (single bool) ; default: True
+                                               (True means that lower values are "better" ones)
+                                   preselThrhs= Eliminatory threshold for each column (list),
+                                                or all (single number) ; default: 0.2
+                                                (eliminated above if preselAscs True, below otherwise)
                                    preselNum= number of (best) preselections to keep for each sample) ;
                                               default: 5
                  example: [dict(nameFmt='ExecCode', => format string to generate the name of the Id of the report
                                 method=ResClass.filterSortOnExecCode,
-                                preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False, preselNum=5),
+                                preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False,
+                                preselThrhs=0.2, preselNum=5),
                            dict(nameFmt='AicCKCvQua-r{sightRate:.1f}d{nResults}', 
                                 method=ResClass.filterSortOnAicCKCvQua,
                                 deduplicate=dict(dupSubset=[R.CLNObs, R.CLEffort, R.CLDeltaAic, R.CLChi2,
@@ -1868,7 +1873,8 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                                                  dDupRounds={R.CLDeltaAic: 1, R.CLChi2: 2, R.CLKS: 2,
                                                              R.CLCvMUw: 2, R.CLCvMCw: 2, R.CLDCv: 2})
                                 filterSort=dict(sightRate=92.5, nBestAIC=3, nBestQua=1, nResults=12),
-                                preselCols=[R.CLCmbQuaBal1, R.R.CLDCv], preselAscs=[False, True], preselNum=3)]        
+                                preselCols=[R.CLCmbQuaBal1, R.CLDCv], preselAscs=[False, True],
+                                preselThrhs=[0.2, 0.5], preselNum=3)]        
         :param superSynthPlotsHeight: Display height (in pixels) of the super-synthesis table plots
         :param plotImgFormat: png, svg and jpg all work with Matplotlib 3.2.1+
         :param plotImgSize: size of the image generated for each plot = (width, height) in pixels

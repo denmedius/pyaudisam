@@ -1608,7 +1608,7 @@ class ResultsSet(object):
         elif fpn.suffix in ['.xls', '.xlsx']:
             self.fromExcel(fileName, sheetName=sheetName, header=header, skipRows=skipRows,
                            indexCol=indexCol, specs=specs, specSheetsPrfx=specSheetsPrfx, postComputed=postComputed,
-                             acceptNewCols=acceptNewCols, dDefMissingCols=dDefMissingCols)
+                           acceptNewCols=acceptNewCols, dDefMissingCols=dDefMissingCols)
         else:
             raise NotImplementedError(f'Unsupported ResultsSet input file format: {fileName}')
 

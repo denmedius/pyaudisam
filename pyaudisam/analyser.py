@@ -727,6 +727,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLPDetec = ('detection probability', 'probability of detection (Pw)', 'Value')
     CLPDetecMin = ('detection probability', 'probability of detection (Pw)', 'Lcl')
     CLPDetecMax = ('detection probability', 'probability of detection (Pw)', 'Ucl')
+    CLEswEdr = ('detection probability', 'effective strip width (ESW) or effective detection radius (EDR)', 'Value')
     CLDensity = ('density/abundance', 'density of animals', 'Value')
     CLDensityMin = ('density/abundance', 'density of animals', 'Lcl')
     CLDensityMax = ('density/abundance', 'density of animals', 'Ucl')
@@ -969,7 +970,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     def _postComputeChi2(self):
         
-        logger.debug(f'Post-computing actual Chi2:{self.CLChi2}')
+        logger.debug(f'Post-computing actual Chi2: {self.CLChi2}')
         
         # Last value of all the tests done.
         chi2AllColLbls = [col for col in self.CLsChi2All if col in self._dfData.columns]
@@ -1006,7 +1007,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     # Post computations : Usefull columns for quality indicators.
     CLNObs = ('encounter rate', 'number of observations (n)', 'Value')
     CLNTotObs = MCDSEngine.MIStatSampCols[0]
+    CLKeyFn = ('detection probability', 'key function type', 'Value')
     CLNTotPars = ('detection probability', 'total number of parameters (m)', 'Value')
+    CLNAdjPars = ('detection probability', 'number of adjustment term parameters (NAP)', 'Value')
     CLKS = ('detection probability', 'Kolmogorov-Smirnov test probability', 'Value')
     CLCvMUw = ('detection probability', 'Cramér-von Mises (uniform weighting) test probability', 'Value')
     CLCvMCw = ('detection probability', 'Cramér-von Mises (cosine weighting) test probability', 'Value')
@@ -1017,52 +1020,97 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     def _normNObs(cls, sRes):
         return sRes[cls.CLNObs] / sRes[cls.CLNTotObs]
 
+    DNormKeyFn = dict(HNORMAL=1.0, UNIFORM=0.9, HAZARD=0.6, NEXPON=0.1)
+    #DNormKeyFn = dict(HNORMAL=1.00, UNIFORM=0.75, HAZARD=0.5, NEXPON=0.1)  # Not better
+
+    @classmethod
+    def _normKeyFn(cls, sRes):
+        return cls.DNormKeyFn.get(sRes[cls.CLKeyFn], 0.0)
+
     @classmethod
     def _normNTotPars(cls, sRes, a=0.2, b=0.6, c=2):  #, d=1):
-        #return 1 / (a * sRes[cls.CLNTotPars] + b)  # Trop pénalisant: a=0.2, b=1
         return 1 / (a * max(c, sRes[cls.CLNTotPars]) + b)  # Mieux: a=0.2, b=0.6, c=2 / a=0.2, b=0.8, c=1
         #return 1 / (a * max(c, sRes[cls.CLNTotPars])**d + b)  # Idem (d=1)
 
     @classmethod
-    def _normCVDens(cls, sRes, a=12):
+    def _normNAdjPars(cls, sRes, a=0.1):
+        return math.exp(-a * sRes[cls.CLNAdjPars] ** 2)
+
+    @classmethod
+    def _normCVDens(cls, sRes, a=12, b=2):
         #return max(0, 1 - a * sRes[cls.CLDCv]) # Pas très pénalisant: a=1
-        return math.exp(-a * sRes[cls.CLDCv] * sRes[cls.CLDCv]) # Mieux : déjà ~0.33 à 30% (a=12)
+        return math.exp(-a * sRes[cls.CLDCv] ** b) # Mieux : déjà ~0.33 à 30% (a=12, b=2)
 
     @classmethod
     def _combinedQualityBalanced1(cls, sRes):  # The one used for ACDC 2019 filtering & sorting in jan/feb 2021"""
         return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
                 * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
-                * cls._normCVDens(sRes, a=12)) ** (1.0/7)
+                * cls._normCVDens(sRes, a=12, b=2)) ** (1.0/7)
+
+# August 2021
+#    @classmethod
+#    def _combinedQualityBalanced2(cls, sRes):  # A more devaluating version for NTotPars and CVDens
+#        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.8, c=1)
+#                * cls._normCVDens(sRes, a=16, b=2)) ** (1.0/7)
+#
+#    @classmethod
+#    def _combinedQualityBalanced3(cls, sRes):  # An even more devaluating version for NTotPars and CVDens
+#        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.3, b=0.7, c=1)
+#                * cls._normCVDens(sRes, a=20, b=2)) ** (1.0/7)
+
+    # October 2021
+    @classmethod
+    def _combinedQualityBalanced2(cls, sRes):  # A more devaluating version for NAdjPars, CVDens + KeyFn
+        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.15)
+                * cls._normCVDens(sRes, a=20, b=2) * cls._normKeyFn(sRes)) ** (1.0/8)
 
     @classmethod
-    def _combinedQualityBalanced2(cls, sRes):  # A more devaluating version for NTotPars and CVDens
+    def _combinedQualityBalanced3(cls, sRes):  # An even more devaluating version for NAdjPars, CVDens + KeyFn
         return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.8, c=1)
-                * cls._normCVDens(sRes, a=16)) ** (1.0/7)
+                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
+                * cls._normCVDens(sRes, a=63, b=2.8) * cls._normKeyFn(sRes)) ** (1.0/8)
 
-    @classmethod
-    def _combinedQualityBalanced3(cls, sRes):  # An even more devaluating version for NTotPars and CVDens
-        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.3, b=0.7, c=1)
-                * cls._normCVDens(sRes, a=20)) ** (1.0/7)
+# March 2021
+#    @classmethod
+#    def _combinedQualityMoreChi2(cls, sRes):
+#        return (sRes[[cls.CLChi2, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
+#                * cls._normCVDens(sRes, a=12, b=2)) ** (1.0/8)
+#
+#    @classmethod
+#    def _combinedQualityMoreKS(cls, sRes):
+#        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
+#                * cls._normCVDens(sRes, a=12, b=2)) ** (1.0/8)
+#
+#    @classmethod
+#    def _combinedQualityMoreDCv(cls, sRes):
+#        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
+#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
+#                * cls._normCVDens(sRes, a=12, b=2) ** 2) ** (1.0/8)
 
+    # October 2021 : follow _combinedQualityBalanced3 update (were based on _combinedQualityBalanced1).
     @classmethod
     def _combinedQualityMoreChi2(cls, sRes):
         return (sRes[[cls.CLChi2, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
-                * cls._normCVDens(sRes, a=12)) ** (1.0/8)
+                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
+                * cls._normCVDens(sRes, a=63, b=2.8) * cls._normKeyFn(sRes)) ** (1.0/9)
 
     @classmethod
     def _combinedQualityMoreKS(cls, sRes):
         return (sRes[[cls.CLChi2, cls.CLKS, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
-                * cls._normCVDens(sRes, a=12)) ** (1.0/8)
+                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
+                * cls._normCVDens(sRes, a=63, b=2.8) * cls._normKeyFn(sRes)) ** (1.0/9)
 
     @classmethod
     def _combinedQualityMoreDCv(cls, sRes):
         return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
-                * cls._normCVDens(sRes, a=12) ** 2) ** (1.0/8)
+                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
+                * cls._normCVDens(sRes, a=63, b=2.8) ** 2 * cls._normKeyFn(sRes)) ** (1.0/9)
+
 
     def _postComputeQualityIndicators(self):
         
@@ -1076,19 +1124,21 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         logger.debug1('* Pre-processing source data')
 
         # a. extract the useful columns
-        miCompCols = [cls.CLNObs, cls.CLNTotObs, cls.CLNTotPars, 
+        miCompCols = [cls.CLKeyFn, cls.CLNAdjPars, cls.CLNTotPars, cls.CLNObs, cls.CLNTotObs, 
                       cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw, cls.CLDCv]
         dfCompData = self._dfData[miCompCols].copy()
 
-        # b. NaN should kill down these indicators => we have to enforce this !
-        # TODO: Activate !
-        #dfCompData[[cls.CLNObs, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].fillna(0, inplace=True)
-        #dfCompData[cls.CLDCv].fillna(1e5, inplace=True)  # Usually considered good under 0.3 ...
-        #dfCompData[cls.CLNTotObs].fillna(1e9, inplace=True)  # Should slap down normObs whatever NObs ...
-        #dfCompData[cls.CLNTotPars].fillna(1e3, inplace=True)  # Should slap down normNTotPars whatever NObs ...
-
+        # b. historical bal qua 1
         logger.debug1('* Balanced quality 1')
         self._dfData[cls.CLCmbQuaBal1] = dfCompData.apply(cls._combinedQualityBalanced1, axis='columns')
+
+        # c. NaN should kill down these following indicators => we have to enforce this !
+        for col in [cls.CLNObs, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]:
+            dfCompData[col].fillna(0, inplace=True)
+        dfCompData[cls.CLDCv].fillna(1e5, inplace=True)  # Usually considered good under 0.3 ...
+        dfCompData[cls.CLNTotObs].fillna(1e9, inplace=True)  # Should slap down _normObs whatever NObs ...
+        dfCompData[cls.CLNAdjPars].fillna(1e3, inplace=True)  # Should slap down _normNAdjPars whatever NObs ...
+        dfCompData[cls.CLNTotPars].fillna(1e3, inplace=True)  # Should slap down _normNTotPars whatever NObs ...
 
         logger.debug1('* Balanced quality 2')
         self._dfData[cls.CLCmbQuaBal2] = dfCompData.apply(cls._combinedQualityBalanced2, axis='columns')
@@ -1354,7 +1404,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
             # Select sample data
             dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp].copy()
-            logger.debug1('#{} {} : {} rows '
+            logger.debug2('#{} {} : {} rows '
                           .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
 
             # Apply each filter and sort scheme
@@ -1513,7 +1563,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         filSorSteps.append([scheme, step, propName, propValue])
         logger.debug2(f'* {step}: {propName} = {propValue}')
 
-    MainSchSpecNames = ['nameFmt', 'method', 'deduplicate', 'filterSort', 'preselCols', 'preselAscs', 'preselNum']
+    MainSchSpecNames = ['nameFmt', 'method', 'deduplicate', 'filterSort',
+                        'preselCols', 'preselAscs', 'preselThrhs', 'preselNum']
 
     def filterSortSchemeId(self, scheme=None, nameFmt=None, **filterSort):
 
@@ -1534,6 +1585,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                              containing [1, preselNum] ranks ; default: []
                                  preselAscs= Rank direction to use for each column (list),
                                              or all (single bool) ; default: True
+                                             (True means that lower values are "better" ones)
+                                 preselThrhs= Eliminatory threshold for each column (list),
+                                              or all (single number) ; default: 0.2
+                                              (eliminated above if preselAscs True, below otherwise)
                                  preselNum= number of (best) preselections to keep for each sample) ;
                                       default: 5
         :param nameFmt: naming part (human readable) of the Id (ignored if scheme is not None)
@@ -1725,7 +1780,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         return dfFilSorRes.index, filSorSteps
 
     def _addPreselColumns(self, dfFilSorRes, filSorSteps, filSorSchId,
-                          preselCols=[CLCmbQuaBal1], preselAscend=True, nSamplePreSels=5):
+                          preselCols=[CLCmbQuaBal1], preselAscend=True, preselThresh=[0.2], nSamplePreSels=5):
 
         """Add (in-place) a pre-selection column to a filtered and sorted translated results table
 
@@ -1733,9 +1788,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         :param dfFilSorRes: the filtered and sorted table to update
         :param filSorSteps: the filtered and sorted step log to update
         :param filSorSchId: the filter and sort scheme Id (step-logging only)
-        :param nSamplePreSels: Number of generated pre-selections per sample
+        :param nSamplePreSels: Max number of generated pre-selections per sample
         :param preselCols: Results columns to use for generating auto-preselection indices (in [1, nSamplePreSels])
-        :param preselAscend: Order to use for each column (list), or all (single bool)
+        :param preselAscend: Order to use for each column (list[bool]), or all (single bool) ;
+                             True means that lower values are "better" ones, and the other way round
+        :param preselThresh: Value above (ascend=True) or below () which no preselection is proposed
+                             (=> nan in target column), for each column (list[number]), or all (single number)
+
         """
 
         if isinstance(preselAscend, bool):
@@ -1743,12 +1802,17 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         assert len(preselCols) == len(preselAscend), \
                'preselAscend must be a single bool or a list(bool) with len(preselCols)'
 
+        if isinstance(preselThresh, (int, float)):
+            preselThresh = [preselThresh for i in range(len(preselCols))]
+        assert len(preselCols) == len(preselThresh), \
+               'preselAscend must be a single number or a list(number) with len(preselCols)'
+
         self._logFilterSortStep(filSorSteps, filSorSchId, 'Auto-preselection',
                                 'Nb of preselections', nSamplePreSels)
 
         # Create each pre-selection column: rank per sample in preselCol/ascending (or not) order
-        # up to nSamplePreSels.
-        for srcCol, srcColAscend in zip(preselCols, preselAscend):
+        # up to nSamplePreSels (but no preselection under / over threshold).
+        for srcCol, srcColAscend, srcColThresh in zip(preselCols, preselAscend, preselThresh):
 
             # Determine label and translation.
             tgtPreSelCol, dTgtPreSelColTrans = self.preselectionColumn(srcCol)
@@ -1759,10 +1823,18 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                dfFilSorRes.groupby(self.miSampleCols.to_list())[[srcCol]] \
                                           .transform(lambda s: s.rank(ascending=srcColAscend,
                                                                       method='dense', na_option='keep'))[srcCol])
-            dfFilSorRes.loc[dfFilSorRes[tgtPreSelCol] > nSamplePreSels, tgtPreSelCol] = np.nan
+
+            sbKillOnThresh = dfFilSorRes[srcCol] > srcColThresh if srcColAscend \
+                             else dfFilSorRes[srcCol] < srcColThresh
+            sbKillOnNumber = dfFilSorRes[tgtPreSelCol] > nSamplePreSels
+            dfFilSorRes.loc[sbKillOnThresh | sbKillOnNumber, tgtPreSelCol] = np.nan
 
             self._logFilterSortStep(filSorSteps, filSorSchId, 'Auto-preselection',
                                     'Pre-selection column', srcCol)
+            self._logFilterSortStep(filSorSteps, filSorSchId, 'Auto-preselection',
+                                    'Lower is better ?', srcColAscend)
+            self._logFilterSortStep(filSorSteps, filSorSchId, 'Auto-preselection',
+                                    'Eliminating threshold', srcColThresh)
 
         # Create final empty selection column (for the user to self-decide at the end)
         # (right before the first added pre-selection column, no choice)
@@ -1772,7 +1844,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         return dfFilSorRes
 
     def dfFilSorData(self, scheme=[dict(nameFmt='ExecCode', method=filterSortOnExecCode,
-                                        preselCols=[CLCmbQuaBal1], preselAscs=False, preselNum=5)],
+                                        preselCols=[CLCmbQuaBal1], preselAscs=False, preselThrhs=[0.2],
+                                        preselNum=5)],
                      columns=None, lang=None, rebuild=False):
 
         """Extract filtered and sorted data following the given scheme
@@ -1789,12 +1862,17 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                    preselCols= target columns for generating auto-preselection ones,
                                                containing [1, preselNum] ranks ; default: []
                                    preselAscs= Rank direction to use for each column (list),
-                                                  or all (single bool) ; default: True
+                                               or all (single bool) ; default: True
+                                               (True means that lower values are "better" ones)
+                                   preselThrhs= Eliminatory threshold for each column (list),
+                                                or all (single number) ; default: 0.2
+                                                (eliminated above if preselAscs True, below otherwise)
                                    preselNum= number of (best) preselections to keep for each sample) ;
                                               default: 5
                  examples: dict(nameFmt='ExecCode', => format string to generate the name of the report
                                 method=R.filterSortOnExecCode,
-                                preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False, preselNum=5),
+                                preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False,
+                                preselThrhs=0.2, preselNum=5),
                            dict(nameFmt='AicCKCvQua-r{sightRate:.1f}d{nResults}', 
                                 method=R.filterSortOnAicCKCvQua,
                                 deduplicate=dict(dupSubset=[R.CLNObs, R.CLEffort, R.CLDeltaAic, R.CLChi2,
@@ -1802,7 +1880,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                                  dDupRounds={R.CLDeltaAic: 1, R.CLChi2: 2, R.CLKS: 2,
                                                              R.CLCvMUw: 2, R.CLCvMCw: 2, R.CLDCv: 2})
                                 filterSort=dict(sightRate=92.5, nBestAIC=3, nBestQua=1, nResults=12),
-                                preselCols=[R.CLCmbQuaBal1, R.R.CLDCv], preselAscs=[False, True], preselNum=3)
+                                preselCols=[R.CLCmbQuaBal1, R.R.CLDCv], preselAscs=[False, True],
+                                preselThrhs=[0.2, 0.5], preselNum=3)
         :param columns: Subset and order of columns to keep at the end (before translation) (None = [] = all)
                        Warning: No need to specify here pre-selection and final selection columns,
                                 as they'll be added automatically, and relocated at a non-customisable place.
@@ -1838,7 +1917,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         dfFilSorRes = self._addPreselColumns(dfFilSorRes, filSorSteps, filSorSchId,
                                              nSamplePreSels=scheme.get('preselNum', 5),
                                              preselCols=scheme.get('preselCols', []), 
-                                             preselAscend=scheme.get('preselAscs', True))
+                                             preselAscend=scheme.get('preselAscs', True),
+                                             preselThresh=scheme.get('preselThrhs', 0.2))
 
         # Final translation if specified.
         if lang:
