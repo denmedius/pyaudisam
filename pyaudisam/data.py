@@ -1230,14 +1230,13 @@ class ResultsSet(object):
                'columns must be specified as None/[] (all), or as a list of tuples, or as a pandas.[Multi]Index'
 
         # Make a copy of / extract selected columns of dfData.
-        if columns is None or len(columns) == 0:
-            dfSbData = self.getData(copy=False)
-        else:
+        dfSbData = self.getData(copy=False)
+        if columns is not None and len(columns) > 0:
             if self.isMultiIndexedCols and isinstance(columns, list):
                 iColumns = pd.MultiIndex.from_tuples(columns)
             else:
                 iColumns = columns
-            dfSbData = self.getData(copy=False).reindex(columns=iColumns)
+            dfSbData = dfSbData.reindex(columns=iColumns)
         
         if index is not None:
             dfSbData = dfSbData.loc[index]
