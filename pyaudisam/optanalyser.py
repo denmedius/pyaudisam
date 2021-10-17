@@ -183,87 +183,88 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
 
     # Post computations : Schemes for computing filtering and sorting keys (see inherited _postComputeFilterSortKeys).
     AutoFilSorKeySchemes = \
-    [  # Ordre dans groupe.
-       dict(key=Super.CLGrpOrdSmTrAic,  # Meilleur AIC, à troncatures D et G identiques (avec variantes de nb tranches)
-            sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
-                  Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
-            ascend=[True, True, True, False, False, True, False, True],
-            group=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts]),
-        
-#       dict(key=Super.CLGrpOrdClTrChi2,  # Meilleur Chi2 par groupe de troncatures proches
-#            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-#                  Super.CLChi2],
-#            ascend=[True, True, True, False],
-#            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-#       dict(key=Super.CLGrpOrdClTrKS,  # Meilleur KS par groupe de troncatures proches
-#            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-#                  Super.CLKS],
-#            ascend=[True, True, True, False],
-#            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-       dict(key=Super.CLGrpOrdClTrDCv,  # Meilleur DCv par groupe de troncatures proches
-            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                  Super.CLDCv],
-            ascend=[True, True, True, True],
-            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-       dict(key=Super.CLGrpOrdClTrChi2KSDCv,  # Meilleur Chi2 & KS & DCv par groupe de troncatures proches
-            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                  Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
-            ascend=[True, True, True, False, False, True, False, True],
-            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-        
-       dict(key=Super.CLGrpOrdClTrQuaBal1,  # Meilleur Qualité combinée équilibrée 1 par groupe de troncatures proches
-            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                  Super.CLCmbQuaBal1],
-            ascend=[True, True, True, False],
-            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-       dict(key=Super.CLGrpOrdClTrQuaBal2,  # Meilleur Qualité combinée équilibrée 2 par groupe de troncatures proches
-            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                  Super.CLCmbQuaBal2],
-            ascend=[True, True, True, False],
-            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),        
-       dict(key=Super.CLGrpOrdClTrQuaBal3,  # Meilleur Qualité combinée équilibrée 3 par groupe de troncatures proches
-            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                  Super.CLCmbQuaBal3],
-            ascend=[True, True, True, False],
-            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-       dict(key=Super.CLGrpOrdClTrQuaChi2,  # Meilleur Qualité combinée Chi2+ par groupe de troncatures proches
-            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                  Super.CLCmbQuaChi2],
-            ascend=[True, True, True, False],
-            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-       dict(key=Super.CLGrpOrdClTrQuaKS,  # Meilleur Qualité combinée KS+ par groupe de troncatures proches
-            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                  Super.CLCmbQuaKS],
-            ascend=[True, True, True, False],
-            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-       dict(key=Super.CLGrpOrdClTrQuaDCv,  # Meilleur Qualité combinée DCv+ par groupe de troncatures proches
-            sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                  Super.CLCmbQuaDCv],
-            ascend=[True, True, True, False],
-            group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-        
-       # Ordres globaux (sans groupage par troncatures id. ou proches)
-       dict(key=Super.CLGblOrdChi2KSDCv,
-            sort=[Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
-            ascend=[False, False, True, False, True]),
-       dict(key=Super.CLGblOrdQuaBal1,
-            sort=[Super.CLCmbQuaBal1], ascend=False),
-       dict(key=Super.CLGblOrdQuaBal2,
-            sort=[Super.CLCmbQuaBal2], ascend=False),
-       dict(key=Super.CLGblOrdQuaBal3,
-            sort=[Super.CLCmbQuaBal3], ascend=False),
-       dict(key=Super.CLGblOrdQuaChi2,
-            sort=[Super.CLCmbQuaChi2], ascend=False),
-       dict(key=Super.CLGblOrdQuaKS,
-            sort=[Super.CLCmbQuaKS], ascend=False),
-       dict(key=Super.CLGblOrdQuaDCv,
-            sort=[Super.CLCmbQuaDCv], ascend=False),
+    [# Orders inside groups with identical trucation params.
+     dict(key=Super.CLGrpOrdSmTrAic,  # Best AIC, for same left and right truncations (but variable nb of cut points)
+          sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
+                Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+          ascend=[True, True, True, False, False, True, False, True],
+          group=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts]),
+      
+     # Orders inside groups of close truncation params.
+#     dict(key=Super.CLGrpOrdClTrChi2,  # Best Chi2 inside groups of close truncation params
+#          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+#                Super.CLChi2],
+#          ascend=[True, True, True, False],
+#          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+#     dict(key=Super.CLGrpOrdClTrKS,  # Best KS inside groups of close truncation params
+#          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+#                Super.CLKS],
+#          ascend=[True, True, True, False],
+#          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+     dict(key=Super.CLGrpOrdClTrDCv,  # Best DCv inside groups of close truncation params
+          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                Super.CLDCv],
+          ascend=[True, True, True, True],
+          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+     dict(key=Super.CLGrpOrdClTrChi2KSDCv,  # Best Chi2 & KS & DCv inside groups of close truncation params
+          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+          ascend=[True, True, True, False, False, True, False, True],
+          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+      
+     dict(key=Super.CLGrpOrdClTrQuaBal1,  # Best Combined Quality 1 inside groups of close truncation params
+          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                Super.CLCmbQuaBal1],
+          ascend=[True, True, True, False],
+          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+     dict(key=Super.CLGrpOrdClTrQuaBal2,  # Best Combined Quality 2 inside groups of close truncation params
+          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                Super.CLCmbQuaBal2],
+          ascend=[True, True, True, False],
+          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),        
+     dict(key=Super.CLGrpOrdClTrQuaBal3,  # Best Combined Quality 3 inside groups of close truncation params
+          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                Super.CLCmbQuaBal3],
+          ascend=[True, True, True, False],
+          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+     dict(key=Super.CLGrpOrdClTrQuaChi2,  # Best Combined Quality Chi2+ inside groups of close truncation params
+          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                Super.CLCmbQuaChi2],
+          ascend=[True, True, True, False],
+          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+     dict(key=Super.CLGrpOrdClTrQuaKS,  # Best Combined Quality KS+ inside groups of close truncation params
+          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                Super.CLCmbQuaKS],
+          ascend=[True, True, True, False],
+          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+     dict(key=Super.CLGrpOrdClTrQuaDCv,  # Best Combined Quality DCv+ inside groups of close truncation params
+          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                Super.CLCmbQuaDCv],
+          ascend=[True, True, True, False],
+          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+      
+     # Global orders (no grouping by close or identical truncations)
+     dict(key=Super.CLGblOrdChi2KSDCv,
+          sort=[Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+          ascend=[False, False, True, False, True]),
+     dict(key=Super.CLGblOrdQuaBal1,
+          sort=[Super.CLCmbQuaBal1], ascend=False),
+     dict(key=Super.CLGblOrdQuaBal2,
+          sort=[Super.CLCmbQuaBal2], ascend=False),
+     dict(key=Super.CLGblOrdQuaBal3,
+          sort=[Super.CLCmbQuaBal3], ascend=False),
+     dict(key=Super.CLGblOrdQuaChi2,
+          sort=[Super.CLCmbQuaChi2], ascend=False),
+     dict(key=Super.CLGblOrdQuaKS,
+          sort=[Super.CLCmbQuaKS], ascend=False),
+     dict(key=Super.CLGblOrdQuaDCv,
+          sort=[Super.CLCmbQuaDCv], ascend=False),
 
-       dict(key=Super.CLGblOrdDAicChi2KSDCv,
-            sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
-                  Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
-            ascend=[True, True, True,
-                    True, False, False, True, False, True], napos='first'),
+     dict(key=Super.CLGblOrdDAicChi2KSDCv,
+          sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
+                Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+          ascend=[True, True, True,
+                  True, False, False, True, False, True], napos='first'),
     ]
 
     # Enforce unicity of keys in filter and sort key specs.
