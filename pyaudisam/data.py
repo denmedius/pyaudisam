@@ -113,27 +113,26 @@ class DataSet(object):
     # Wrapper around pd.read_csv for smart ./, decimal character management (pandas is not smart on this)
     # TODO: Make this more efficient
     @staticmethod
-    def _csv2df(fileName, decCols, skipRows=None, headerRows=0, indexCols=None, sep='\t'):
+    def _csv2df(fileName, decCols, skipRows=None, headerRows=0, indexCols=None, sep='\t', encoding='utf-8'):
         df = pd.read_csv(fileName, sep=sep, skiprows=skipRows,
                          header=headerRows, index_col=indexCols)
         allRight = True
         for col in decCols:
-            
             if df[col].dropna().apply(lambda v: isinstance(v, str)).any():
                 allRight = False
                 break
         if not allRight:
-            df = pd.read_csv(fileName, sep=sep, skiprows=skipRows,
+            df = pd.read_csv(fileName, sep=sep, skiprows=skipRows, encoding=encoding,
                              header=headerRows, index_col=indexCols, decimal=',')
 
         return df
     
-    SupportedFileExts = ['.xlsx', '.xls', '.csv', '.txt'] \
-                        + (['.ods'] if pkgver.parse(pd.__version__).release >= (0, 25) else [])
+    SupportedFileExts = \
+        ['.xlsx', '.xls', '.csv', '.txt'] + (['.ods'] if pkgver.parse(pd.__version__).release >= (0, 25) else [])
     
     @classmethod
     def _fromDataFile(cls, sourceFpn, sheet=None, skipRows=None, headerRows=0, indexCols=None,
-                           decimalFields=[], separator='\t', encoding='utf-8'):
+                      decimalFields=[], separator='\t', encoding='utf-8'):
         
         if isinstance(sourceFpn, str):
             sourceFpn = pl.Path(sourceFpn)
@@ -142,14 +141,15 @@ class DataSet(object):
 
         ext = sourceFpn.suffix.lower()
         assert ext in cls.SupportedFileExts, \
-               'Unsupported source file type {}: not from {{{}}}' \
-               .format(ext, ','.join(cls.SupportedFileExts))
+               'Unsupported source file type {}: not from {{{}}}'.format(ext, ','.join(cls.SupportedFileExts))
         if ext in ['.xlsx', '.xls', '.ods']:
             dfData = pd.read_excel(sourceFpn, sheet_name=sheet or 0,
                                    skiprows=skipRows, header=headerRows, index_col=indexCols)
         elif ext in ['.csv', '.txt']:
-            dfData = cls._csv2df(sourceFpn, decCols=decimalFields, sep=separator,
+            dfData = cls._csv2df(sourceFpn, decCols=decimalFields, sep=separator, encoding=encoding,
                                  skipRows=skipRows, headerRows=headerRows, indexCols=indexCols)
+        else:
+            raise NotImplementedError(f'Unsupported DataSet file input format {ext}')
             
         return dfData
     
@@ -244,7 +244,7 @@ class DataSet(object):
             else:
                 dfData[colName] = computeCol
                
-        return dfData # Can be usefull when chaining ...
+        return dfData  # Can be useful when chaining ...
 
     def addColumns(self, dComputeCols):
     
@@ -293,6 +293,7 @@ class DataSet(object):
         * .ods (through 'odfpy'), if pandas >= 0.25.
 
         Parameters:
+        :param fileName: target file pathname
         :param sheetName: for results data only
         :param subset: subset of columns to save
         :param index: if True, save index column
@@ -310,6 +311,12 @@ class DataSet(object):
         """Save data table to an Open Document worksheet, ODF format (through 'odfpy' module)
 
         Warning: Needs pandas >= 0.25
+
+        Parameters:
+        :param fileName: target file pathname
+        :param sheetName: for results data only
+        :param subset: subset of columns to save
+        :param index: if True, save index column
         """
         
         assert pkgver.parse(pd.__version__).release >= (1, 1), \
@@ -329,8 +336,6 @@ class DataSet(object):
            Ex: 3 = 10**3 ratio between max absolute difference of the two,
                +inf = NO difference at all,
                0 = bad, one of the two is 0, and the other not.
-               
-        See unitary test in unintests notebook.
         """
 
         x, y = sLeftRight.to_list()
@@ -338,12 +343,12 @@ class DataSet(object):
         # Special cases with 1 NaN, or 1 or more inf => all different
         if np.isnan(x):
             if not np.isnan(y):
-                return 0 # All different
+                return 0  # All different
         elif np.isnan(y):
-            return 0 # All different
+            return 0  # All different
         
         if np.isinf(x) or np.isinf(y):
-            return 0 # All different
+            return 0  # All different
         
         # Normal case
         c = abs(x - y)
@@ -354,7 +359,7 @@ class DataSet(object):
 
     # Make results cell values hashable (and especially analysis model params)
     # * needed for use in indexes (hashability)
-    # * needed to cope with to_excel/read_excel unconsistent None management
+    # * needed to cope with to_excel/read_excel Inconsistent None management
     @staticmethod
     def _toHashable(value):
     
@@ -365,7 +370,7 @@ class DataSet(object):
         elif isinstance(value, (int, float)):
             hValue = value
         elif isinstance(value, str):
-            if ',' in value: # Assumed already somewhat stringified list
+            if ',' in value:  # Assumed already somewhat stringified list
                 hValue = str([float(v) for v in value.strip('[]').split(',')])
             else:
                 hValue = str(value)
@@ -398,7 +403,7 @@ class DataSet(object):
         :param bool dropCloserCols: if True, also drop all "> dropCloser (or eventually NaN)"-all-cell columns,
                                     just as rows
 
-        :returns: the diagnostic DataFrame.
+        :return: the diagnostic DataFrame.
         """
         
         # Make copies : we need to change the frames.
@@ -406,7 +411,7 @@ class DataSet(object):
         dfRight = dfRight.copy()
         
         # Check input columns
-        dColsSets = { 'Subset column': subsetCols, 'Index column': indexCols }
+        dColsSets = {'Subset column': subsetCols, 'Index column': indexCols}
         for colsSetName, colsSet in dColsSets.items():
             for col in colsSet:
                 if col not in dfLeft.columns:
@@ -417,11 +422,11 @@ class DataSet(object):
         # Set specified cols as the index (after making them hashable) and sort it.
         dfLeft[indexCols] = dfLeft[indexCols].applymap(cls._toHashable)
         dfLeft.set_index(indexCols, inplace=True)
-        dfLeft = dfLeft.sort_index() # Not inplace: don't modify a copy/slice
+        dfLeft = dfLeft.sort_index()  # Not inplace: don't modify a copy/slice
 
         dfRight[indexCols] = dfRight[indexCols].applymap(cls._toHashable)
         dfRight.set_index(indexCols, inplace=True)
-        dfRight = dfRight.sort_index() # Idem
+        dfRight = dfRight.sort_index()  # Idem
 
         # Filter data to compare (subset of columns).
         if subsetCols:
@@ -429,7 +434,7 @@ class DataSet(object):
             dfRight = dfRight[subsetCols]
 
         # Append mutually missing rows to the 2 tables => a complete and identical index.
-        anyCol = dfLeft.columns[0] # Need one, whichever.
+        anyCol = dfLeft.columns[0]  # Need one, whichever.
         dfLeft = dfLeft.join(dfRight[[anyCol]], rsuffix='_r', how='outer')
         dfLeft.drop(columns=dfLeft.columns[-1], inplace=True)
         dfRight = dfRight.join(dfLeft[[anyCol]], rsuffix='_l', how='outer')
@@ -461,9 +466,9 @@ class DataSet(object):
         dfCells2Drop = dfRelDiff.applymap(lambda v: v > dropCloser or (dropNans and pd.isnull(v)))
         dfRelDiff.drop(dfRelDiff[dfCells2Drop.all(axis='columns')].index, inplace=True)
         if dropCloserCols:
-            #dfRelDiff.drop(columns=dfRelDiff.T[dfCells2Drop.all(axis='index')].index, axis='index', inplace=True)
+            # dfRelDiff.drop(columns=dfRelDiff.T[dfCells2Drop.all(axis='index')].index, axis='index', inplace=True)
             dfRelDiff.drop(columns=[col for col, drop in dfCells2Drop.all(axis='index').items() if drop],
-                           inplace=True) # 40% faster.
+                           inplace=True)  # 40% faster.
             
         return dfRelDiff
 
@@ -488,40 +493,47 @@ class DataSet(object):
         :param bool dropCloserCols: if True, also drop all "> dropCloser (or eventually NaN)" columns-all-cell,
                                     just as rows
 
-        :returns: the diagnostic DataFrame.
+        :return: the diagnostic DataFrame.
         """
         
         return self.compareDataFrames(dfLeft=self.dfData,
                                       dfRight=other if isinstance(other, pd.DataFrame) else other.dfData,
                                       subsetCols=subsetCols, indexCols=indexCols,
                                       dropCloser=dropCloser, dropNans=dropNans, dropCloserCols=dropCloserCols)
-        
 
 
-# A tabular data set for producing mono-category or even indivividuals data sets
-# from "raw sightings data", aka "field data" (with possibly multiple category counts on each row)
-# * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
-#   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
 class FieldDataSet(DataSet):
 
-    # Ctor
-    # Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
-    # and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
-    # * source: the input field data table
-    # * countCols: the category columns (each of them holds counts of individuals for the category)
-    # * addMonoCatCols: name and method of computing for columns to add after separating multi-category counts
-    #   (each column to add is computed through :
-    #      dfMonoCatSights[colName] = dfMonoCatSights[].apply(computeCol, axis='columns')
-    #      for colName, computeCol in addMonoCatCols.items()) 
+    """A tabular data set for producing mono-category or even individuals data sets from "raw sightings data",
+    aka "field data" (with possibly multiple category counts on each row)
+
+    Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
+      and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+    """
     def __init__(self, source, countCols, addMonoCatCols=dict(), importDecFields=[], sheet=None, separator='\t'):
-        
+
+        """Ctor
+
+        Parameters:
+        :param source: the input field-data table
+        :param countCols: the category columns (each of them holds counts of individuals for the category)
+        :param addMonoCatCols: name and method of computing for columns to add after separating multi-category counts
+             (each column to add is computed through :
+                dfMonoCatSights[colName] = dfMonoCatSights[].apply(computeCol, axis='columns')
+                for colName, computeCol in addMonoCatCols.items())
+        :param importDecFields: for smart ./, decimal character management in CSV sources (pandas is not smart on this)
+        :param sheet: name of the sheet to read from, for multi-sheet data input file
+             (like Excel or Open Doc. workbooks)
+        :param separator: columns separator for CSV input file
+        """
+
         super().__init__(sources=source, importDecFields=importDecFields, sheet=sheet, separator=separator)
         
         self.countCols = countCols
         self.dCompdMonoCatColSpecs = addMonoCatCols
         
-        self.dfIndivSights = None # Not yet computed.
-        self.dfMonoCatSights = None # Idem.
+        self.dfIndivSights = None  # Not yet computed.
+        self.dfMonoCatSights = None  # Idem.
         
         logger.info(f'Field data : {len(self)} sightings')
 
@@ -533,19 +545,20 @@ class FieldDataSet(DataSet):
     @dfData.setter
     def dfData(self, dfData_):
         
-        assert sorted(self._dfData.columns) == sorted(dfData_.columns), 'Can\'t set data with diffent columns'
+        assert sorted(self._dfData.columns) == sorted(dfData_.columns), "Can't set data with different columns"
         
         self._dfData = dfData_
         
-        self.dfIndivSights = None # Not yet computed.
-        self.dfMonoCatSights = None # Idem.
+        self.dfIndivSights = None  # Not yet computed.
+        self.dfMonoCatSights = None  # Idem.
     
     # Transform a multi-category sightings set into an equivalent mono-category sightings set,
     # that is where no sightings has more that one category with positive count (keeping the same total counts).
     # Highly optimized version.
     # Ex: A sightings set with 2 category count columns nMales and nFemales
     #     * in the input set, you may have 1 sightings with nMales = 5 and nFemales = 2
-    #     * in the output set, this sightings have been separated in 2 distinct ones (all other properties left untouched) :
+    #     * in the output set, this sightings have been separated in 2 distinct ones
+    #       (all other properties left untouched) :
     #       the 1st with nMales = 5 and nFemales = 0, the 2nd with nMales = 0 and nFemales = 2.
     @staticmethod
     def _separateMultiCategoryCounts(dfInSights, countColumns):
@@ -643,7 +656,7 @@ class FieldDataSet(DataSet):
         
 
 # A tabular data set for producing on-demand sample data sets from "mono-category sightings data"
-# * Input support provided for pandas.DataFrame (from FieldDataSet.indivulaise/monoCategorise),
+# * Input support provided for pandas.DataFrame (from FieldDataSet.individualise/monoCategorise),
 #   Excel .xlsx file, tab-separated .csv/.txt files, and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
 class MonoCategoryDataSet(DataSet):
 
@@ -652,9 +665,9 @@ class MonoCategoryDataSet(DataSet):
     #                If None, auto generated from input sightings
     # * effortConstVal: if dfTransects is None and effortCol not in source table, use this constant value
     def __init__(self, source, dSurveyArea, importDecFields=[], dfTransects=None,
-                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleDecFields=['Effort', 'Distance'], effortConstVal=1, 
-                       sheet=None, separator='\t'):
+                 transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                 sampleDecFields=['Effort', 'Distance'], effortConstVal=1,
+                 sheet=None, separator='\t'):
         
         super().__init__(sources=source, importDecFields=importDecFields, sheet=sheet, separator=separator)
         
@@ -685,7 +698,7 @@ class MonoCategoryDataSet(DataSet):
     @dfData.setter
     def dfData(self, dfData_):
         
-        assert sorted(self._dfData.columns) == sorted(dfData_.columns), 'Can\'t set data with diffent columns'
+        assert sorted(self._dfData.columns) == sorted(dfData_.columns), "Can't set data with different columns"
         
         self._dfData = dfData_
     
@@ -693,7 +706,7 @@ class MonoCategoryDataSet(DataSet):
     # * effortConstVal: if effortCol not in dfIndivSightings, create one with this constant value
     @staticmethod
     def _extractTransects(dfIndivSightings, transectPlaceCols=['Transect'], passIdCol='Pass', 
-                                            effortCol='Effort', effortConstVal=1):
+                          effortCol='Effort', effortConstVal=1):
     
         transCols = transectPlaceCols + [passIdCol]
         if effortCol in dfIndivSightings.columns:
@@ -726,14 +739,14 @@ class MonoCategoryDataSet(DataSet):
         # Select sightings
         dfSampSights = dfAllSights
         for key, values in dSample.items():
-            values = str(values).strip() # For ints as strings that get forced to int in io sometimes (ex. from_excel)
-            if values and values not in ['nan', 'None']: # Empty value means "no selection criteria for this columns"
+            values = str(values).strip()  # For ints as strings that get forced to int in io sometimes (ex. from_excel)
+            if values and values not in ['nan', 'None']:  # Empty value means "no selection criteria for this columns"
                 values = values.split('+') if '+' in values else [values]
                 dfSampSights = dfSampSights[dfSampSights[key].astype(str).isin(values)]
 
         # Compute sample effort
-        passes = str(dSample[passIdCol]) # Same as above ...
-        if passes and passes not in ['nan', 'None']: # Same as above ...
+        passes = str(dSample[passIdCol])  # Same as above ...
+        if passes and passes not in ['nan', 'None']:  # Same as above ...
             passes = passes.split('+') if '+' in passes else [passes]
             dfSampEffort = dfAllEffort[dfAllEffort[passIdCol].astype(str).isin(passes)]
         else:
@@ -745,7 +758,7 @@ class MonoCategoryDataSet(DataSet):
 
         return dfSampSights, dfSampEffort
         
-    # Add "abscence" sightings to field data collected on transects for a given sample
+    # Add "absence" sightings to field data collected on transects for a given sample
     # * dfInSights : input data table
     # * sampleCols : the names of the sample identification columns
     # * dfExpdTransects : the expected transects, as a data frame indexed by the transectPlace,
@@ -759,8 +772,7 @@ class MonoCategoryDataSet(DataSet):
         # Use the 1st sightings of the sample to build the absence sightings prototype
         # (all null columns except for the sample identification ones, lefts as is)
         dAbscSightTmpl = dfInSights.iloc[0].to_dict()
-        dAbscSightTmpl.update({ k: None for k in dAbscSightTmpl.keys() if k not in sampleCols })
-        dAbscSightTmpl
+        dAbscSightTmpl.update({k: None for k in dAbscSightTmpl.keys() if k not in sampleCols})
 
         # Determine missing transects for the sample
         transectPlaceCols = dfExpdTransects.index.name
@@ -770,12 +782,12 @@ class MonoCategoryDataSet(DataSet):
 
         dfMissgTransects = dfExpdTransects.loc[dfExpdTransects.index.difference(dfSampTransects.index)]
 
-        # Generate the abscence sightings : 1 row per missing transect
+        # Generate the absence sightings : 1 row per missing transect
         ldAbscSights = list()
         for _, sMissgTrans in dfMissgTransects.reset_index().iterrows():
 
-            dAbscSight = dAbscSightTmpl.copy() # Copy template sightings
-            dAbscSight.update(sMissgTrans.to_dict()) # Update transect columns only
+            dAbscSight = dAbscSightTmpl.copy()  # Copy template sightings
+            dAbscSight.update(sMissgTrans.to_dict())  # Update transect columns only
 
             ldAbscSights.append(dAbscSight)
 
@@ -820,7 +832,8 @@ class MonoCategoryDataSet(DataSet):
         # Add information about the studied geographical area
         dfSampIndivObs = self._addSurveyAreaInfo(dfSampIndivObs, dSurveyArea=self.dSurveyArea)
 
-        # Create SampleDataSet instance (sort by transectPlaceCols : mandatory for MCDS analysis) and save it into cache.
+        # Create SampleDataSet instance (sort by transectPlaceCols : mandatory for MCDS analysis)
+        # and save it into cache.
         self._sdsSampleDataSetCache = \
             SampleDataSet(dfSampIndivObs, decimalFields=self.sampleDecFields, sortFields=self.transectPlaceCols)
         self._sSampleSpecsCache = sSampleSpecs
@@ -829,15 +842,17 @@ class MonoCategoryDataSet(DataSet):
         return self._sdsSampleDataSetCache
 
 
-# A tabular input data set for multiple analyses on the same sample, with 1 or 0 individual per row
-# Warning:
-# * Only Point transect supported as for now
-# * No change made afterwards on decimal precision : provide what you need !
-# * Rows can be sorted if and as specified
-# * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
-#   and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
 class SampleDataSet(DataSet):
-    
+
+    """
+    A tabular input data set for multiple analyses on the same sample, with 1 or 0 individual per row
+    Warning:
+    * Only Point transect supported as for now
+    * No change made afterwards on decimal precision : provide what you need !
+    * Rows can be sorted if and as specified
+    * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
+      and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
+    """
     def __init__(self, source, decimalFields=[], sortFields=[], sheet=None, separator='\t'):
         
         self.decimalFields = decimalFields
@@ -891,7 +906,8 @@ class ResultsSet(object):
         :param dfComputedColTrans: translation DataFrame for computed column labels,
         :param sortCols: if not empty, iterable of columns to sort values by in dfData()
         :param sortAscend: sorting order for all (bool), or each column (iterable of bool) in dfData()
-        :param dropNACols: If True, dfData() won't return columns with no relevant results data (except for custom cols).
+        :param dropNACols: If True, dfData() won't return columns with no relevant results data
+                           (except for custom cols).
         """
         
         assert len(sortCols) == len(sortAscend), 'sortCols and sortAscend must have same length'
@@ -927,9 +943,9 @@ class ResultsSet(object):
         self.dropNACols = dropNACols
         
         # Non-constant data members
-        self._dfData = pd.DataFrame() # The real data (frame).
-        self.rightColOrder = False # self._dfData columns are assumed to be in a wrong order.
-        self.postComputed = False # Post-computation not yet done.
+        self._dfData = pd.DataFrame()  # The real data (frame).
+        self.rightColOrder = False  # self._dfData columns are assumed to be in a wrong order.
+        self.postComputed = False  # Post-computation not yet done.
     
         # Specifications of computations that led to the results
         self.specs = dict()
@@ -967,7 +983,8 @@ class ResultsSet(object):
         """Clone function (shallow), with optional (deep) data copy"""
 
         # 1. Call ctor without computed columns stuff for now and here (we no more have initial data)
-        clone = ResultsSet(miCustomCols=self.miCustomCols.copy(),
+        clone = ResultsSet(miCols=self.miCols,
+                           miCustomCols=self.miCustomCols.copy(),
                            dfCustomColTrans=self.dfCustomColTrans.copy(),
                            sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy())
     
@@ -1052,7 +1069,7 @@ class ResultsSet(object):
         if sCustomHead is not None:
             if isinstance(sdfResult, pd.Series):
                 sdfResult = sCustomHead.append(sdfResult)
-            else: # DataFrame
+            else:  # DataFrame
                 dfCustomHead = pd.DataFrame([sCustomHead]*len(sdfResult)).reset_index(drop=True)
                 sdfResult = pd.concat([dfCustomHead, sdfResult], axis='columns')
         
@@ -1061,9 +1078,9 @@ class ResultsSet(object):
             # In order to preserve types, we can't use self._dfData.append(sdfResult),
             # because it doesn't preserve original types (int => float)
             if isinstance(sdfResult, pd.Series):
-                #self._dfData = sdfResult.to_frame().T  # This doesn't preserve types (=> all object)
+                # self._dfData = sdfResult.to_frame().T  # This doesn't preserve types (=> all object)
                 self._dfData = pd.DataFrame([sdfResult])
-            else: # DataFrame
+            else:  # DataFrame
                 self._dfData = sdfResult
         else:
             self._dfData = self._dfData.append(sdfResult, ignore_index=True)
@@ -1101,7 +1118,7 @@ class ResultsSet(object):
             
             # Post-compute as specified (or not).
             self.postComputeColumns()
-            self.postComputed = True # No need to do it again from now on !
+            self.postComputed = True  # No need to do it again from now on !
             
             # Sort as/if specified.
             if self.sortCols:
@@ -1117,7 +1134,7 @@ class ResultsSet(object):
                 else:
                     miTgtColumns = self.miCustomCols + miTgtColumns
             self._dfData = self._dfData.reindex(columns=miTgtColumns)
-            self.rightColOrder = True # No need to do it again, until next append() !
+            self.rightColOrder = True  # No need to do it again, until next append() !
         
         # This is also documentation line !
         if self.isMultiIndexedCols and not self._dfData.empty:
@@ -1145,7 +1162,7 @@ class ResultsSet(object):
     
     def setPostComputed(self, on=True):
 
-        # If not specified as already postComputed, prepare for recomputation later by removing any "computed" column.
+        # If not specified as already postComputed, prepare for re-computation later by removing any "computed" column.
         if not on:
             # ... but ignore those which are not there : backward compat. / tolerance ...
             self._dfData.drop(columns=self.computedCols, errors='ignore', inplace=True)
@@ -1279,7 +1296,7 @@ class ResultsSet(object):
         :param reset: if True, cleanup before updating => like a set !
         :param overwrite: if False, and at least 1 of the spec already exists,
                       raise an exception (refuse to update) ; otherwise, overwrite silently
-        :param **specs: named specs to add/update
+        :param specs: named specs to add/update
         """
         if reset:
             self.specs.clear()
@@ -1370,6 +1387,7 @@ class ResultsSet(object):
         * specs to the sheets given spec name, prefixed as specified (specSheetsPrfx)
 
         Parameters:
+        :param fileName: target file name
         :param sheetName: for results data only
         :param lang: if not None, save translated data columns names
         :param subset: subset of data columns to save
@@ -1381,15 +1399,14 @@ class ResultsSet(object):
         
         assert sheetName is None or not specs or not sheetName.lower().startswith(specSheetsPrfx), \
                f"Results data sheet name can't start with reserved prefix {specSheetsPrfx} (whatever case)"
-        assert not (sheetName is None \
-               and specs and self.DefAllResultsSheetName.lower().startswith(specSheetsPrfx.lower())), \
+        assert not (sheetName is None
+                    and specs and self.DefAllResultsSheetName.lower().startswith(specSheetsPrfx.lower())), \
                "Sheet prefix '{}' can't be a heading part of {} (whatever case)" \
                .format(specSheetsPrfx, self.DefAllResultsSheetName)
 
         start = pd.Timestamp.now()
         
-        dfOutData = self.dfSubData(columns=subset) \
-                    if lang is None else self.dfTransData(columns=subset, lang=lang)
+        dfOutData = self.dfSubData(columns=subset) if lang is None else self.dfTransData(columns=subset, lang=lang)
         
         with pd.ExcelWriter(fileName, engine=engine) as xlWrtr:
             dfOutData.to_excel(xlWrtr, sheet_name=sheetName or self.DefAllResultsSheetName, index=index)
@@ -1413,6 +1430,7 @@ class ResultsSet(object):
         * specs to the sheets given spec name, prefixed as specified (specSheetsPrfx)
 
         Parameters:
+        :param fileName: target file name
         :param sheetName: for results data only
         :param lang: if not None, save translated data columns names
         :param subset: subset of data columns to save
@@ -1422,7 +1440,7 @@ class ResultsSet(object):
         """
 
         assert pkgver.parse(pd.__version__).release >= (1, 1), \
-               'Don\'t know how to write to OpenDoc format before Pandas 1.1'
+               "Don't know how to write to OpenDoc format before Pandas 1.1"
         
         self.toExcel(fileName, sheetName=sheetName, lang=lang, subset=subset, index=index,
                      specs=specs, specSheetsPrfx=specSheetsPrfx, engine='odf')
@@ -1433,7 +1451,7 @@ class ResultsSet(object):
         assuming ctor params match the results object used for prior toPickle(),
         which can well be ensured by using the same ctor params as used for saving !
 
-        :param fileName: target file pathname ; file is auto-decompressed through the lzma module
+        :param fileName: source file pathname ; file is auto-decompressed through the lzma module
                          if its extension is .xz or .lzma.
         :param specs: if False, don't load specs
         :param postComputed: if True, prevents next post-computation 
@@ -1575,8 +1593,8 @@ class ResultsSet(object):
                  specs=True, specSheetsPrfx='sp-', postComputed=False,
                  acceptNewCols=False, dDefMissingCols=dict()):
         
-        """Load (overwrite) data data and optionaly specs from a given file,
-        (supported formats are .pickle, .pickle.xz, .ods, .xlsx, .xls, autodetected from file name)
+        """Load (overwrite) data data and eventually specs from a given file,
+        (supported formats are .pickle, .pickle.xz, .ods, .xlsx, .xls, auto-detected from file name)
         assuming ctor params match with the results object used to generate source file,
         which can well be ensured by using the same ctor params as used for saving !
         Notes: Needs odfpy module and pandas.version >= 0.25.1
@@ -1632,7 +1650,7 @@ class ResultsSet(object):
         :param bool dropCloserCols: if True, also drop "> dropCloser (or eventually NaN)"-all-cell columns,
                                     just as rows
 
-        :returns: the diagnostic DataFrame.
+        :return: the diagnostic DataFrame.
         """
         
         return DataSet.compareDataFrames(dfLeft=self.dfData,
@@ -1644,4 +1662,3 @@ class ResultsSet(object):
 if __name__ == '__main__':
 
     sys.exit(0)
-

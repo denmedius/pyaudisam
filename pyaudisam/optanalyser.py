@@ -26,7 +26,7 @@ from . import log
 from .engine import MCDSEngine
 from .analysis import MCDSAnalysis
 from .analyser import MCDSAnalyser, MCDSAnalysisResultsSet
-from .optimiser import MCDSTruncationOptimiser, MCDSZerothOrderTruncationOptimiser
+from .optimiser import MCDSZerothOrderTruncationOptimiser
 
 logger = log.logger('ads.onr')
 
@@ -41,15 +41,12 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
     OptimTruncFlagCol = 'OptimTrunc'
     CLOptimTruncFlag = ('header (tail)', OptimTruncFlagCol, 'Value')
     
-    # Computed column labels
-    #CL = ('', '', 'Value')
-
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
-                       sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
-                       surveyType='Point', distanceType='Radial', clustering=False,
-                       ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
-                                          dict(col='right', minDist=25.0, maxLen=25.0)],
-                       truncIntrvEpsilon=1e-6):
+                 sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
+                 surveyType='Point', distanceType='Radial', clustering=False,
+                 ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
+                                    dict(col='right', minDist=25.0, maxLen=25.0)],
+                 truncIntrvEpsilon=1e-6):
         
         """
         """
@@ -84,7 +81,7 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
 
         return clone
     
-    # Post computations : Trunctions groups.
+    # Post computations : Truncations groups.
     def _postComputeTruncationGroups(self):
         
         logger.debug('Post-computing Truncation Groups')
@@ -121,43 +118,31 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
                     dfIntrv = pd.DataFrame(dict(dist=sSelDist.values))
                     if not dfIntrv.empty:
 
-                        try:
-                            dfIntrv['deltaDist'] = dfIntrv.dist.diff()
-                            dfIntrv.loc[dfIntrv.dist.idxmin(), 'deltaDist'] = np.inf
-                            dfIntrv.dropna(inplace=True)
-                            dfIntrv = dfIntrv[dfIntrv.deltaDist > 0].copy()
-                        except Exception:  # TODO: Remove this debugging try/except code
-                            logger.error(f'_postComputeTruncationGroups(dfIntrv1): dfIntrv.dtypes={dfIntrv.dtypes}')
-                            logger.error(f'_postComputeTruncationGroups(dfIntrv1): dfIntrv.dist.dtype={dfIntrv.dist.dtype}')
-                            dfIntrv.to_pickle('tmp/optanlr-dfIntrv1.pickle')
-                            logger.error(f'_postComputeTruncationGroups(dfIntrv1): {dfIntrv:}')
-                            raise
+                        dfIntrv['deltaDist'] = dfIntrv.dist.diff()
+                        dfIntrv.loc[dfIntrv.dist.idxmin(), 'deltaDist'] = np.inf
+                        dfIntrv.dropna(inplace=True)
+                        dfIntrv = dfIntrv[dfIntrv.deltaDist > 0].copy()
 
                         # Deduce start (min) and end (sup) for each such interval (left-closed, right-open)
-                        try:
-                            dfIntrv['dMin'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist']
-                            dfIntrv['dSup'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist'].shift(-1).dropna()
-                            dfIntrv.loc[dfIntrv['dMin'].idxmax(), 'dSup'] = np.inf
-                            dfIntrv.dropna(inplace=True)
+                        dfIntrv['dMin'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist']
+                        dfIntrv['dSup'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist'].shift(-1).dropna()
+                        dfIntrv.loc[dfIntrv['dMin'].idxmax(), 'dSup'] = np.inf
+                        dfIntrv.dropna(inplace=True)
 
-                            dfIntrv['dSup'] = \
-                                dfIntrv['dSup'].apply(lambda supV: sSelDist[sSelDist < supV].max() + self.truncIntrvEpsilon)
-                        except Exception:  # TODO: Remove this debugging try/except code
-                            logger.error(f'_postComputeTruncationGroups(dfIntrv2): dfIntrv.dtypes={dfIntrv.dtypes}')
-                            logger.error(f'_postComputeTruncationGroups(dfIntrv2): dfIntrv.dist.dtype={dfIntrv.dist.dtype}')
-                            dfIntrv.to_pickle('tmp/optanlr-dfIntrv2.pickle')
-                            logger.error(f'_postComputeTruncationGroups(dfIntrv2): {dfIntrv:}')
-                            raise
+                        dfIntrv['dSup'] = \
+                            dfIntrv['dSup'].apply(lambda supV: sSelDist[sSelDist < supV].max() + self.truncIntrvEpsilon)
 
                         dfIntrv = dfIntrv[['dMin', 'dSup']].reset_index(drop=True)
 
-                        # If these intervals are two wide, cut them up in equal sub-intervals and make them new intervals
+                        # If these intervals are two wide, cut them up in equal sub-intervals
+                        # and make them new intervals
                         lsNewIntrvs = list()
                         for _, sIntrv in dfIntrv.iterrows():
 
                             if sIntrv.dSup - sIntrv.dMin > maxIntrvLen:
                                 nSubIntrvs = (sIntrv.dSup - sIntrv.dMin) / maxIntrvLen
-                                nSubIntrvs = int(nSubIntrvs) if nSubIntrvs - int(nSubIntrvs) < 0.5 else int(nSubIntrvs) + 1
+                                nSubIntrvs = \
+                                    int(nSubIntrvs) if nSubIntrvs - int(nSubIntrvs) < 0.5 else int(nSubIntrvs) + 1
                                 subIntrvLen = (sIntrv.dSup - sIntrv.dMin) / nSubIntrvs
                                 lsNewIntrvs += [pd.Series(dict(dMin=sIntrv.dMin + nInd * subIntrvLen, 
                                                                dSup=min(sIntrv.dMin + (nInd + 1) * subIntrvLen,
@@ -174,8 +159,10 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
                     # Update result table : Assign positive interval = "truncation group" number
                     # to each truncation distance (special case when no truncation: num=0 if NaN truncation distance)
                     sb = (self._dfData[self.sampleIndCol] == lblSamp) & (self._dfData[self.CLOptimTruncFlag] == isOpt)
+
                     def truncationIntervalNumber(d):
                         return 0 if pd.isnull(d) else 1 + dfIntrv[(dfIntrv.dMin <= d) & (dfIntrv.dSup > d)].index[0]
+
                     self._dfData.loc[sb, (self.CLCAutoFilSor, truncCol[1], self.CLTTruncGroup)] = \
                         self._dfData.loc[sb, truncCol].apply(truncationIntervalNumber) 
 
@@ -183,95 +170,94 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
 
     # Post computations : Schemes for computing filtering and sorting keys (see inherited _postComputeFilterSortKeys).
     AutoFilSorKeySchemes = \
-    [# Orders inside groups with identical trucation params.
-     dict(key=Super.CLGrpOrdSmTrAic,  # Best AIC, for same left and right truncations (but variable nb of cut points)
-          sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
-                Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
-          ascend=[True, True, True, False, False, True, False, True],
-          group=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts]),
+        [  # Orders inside groups with identical truncation params.
+         dict(key=Super.CLGrpOrdSmTrAic,  # Best AIC, for same left & right truncations (but variable nb of cut points)
+              sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight,
+                    Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+              ascend=[True, True, True, False, False, True, False, True],
+              group=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts]),
       
-     # Orders inside groups of close truncation params.
-#     dict(key=Super.CLGrpOrdClTrChi2,  # Best Chi2 inside groups of close truncation params
-#          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-#                Super.CLChi2],
-#          ascend=[True, True, True, False],
-#          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-#     dict(key=Super.CLGrpOrdClTrKS,  # Best KS inside groups of close truncation params
-#          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-#                Super.CLKS],
-#          ascend=[True, True, True, False],
-#          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-     dict(key=Super.CLGrpOrdClTrDCv,  # Best DCv inside groups of close truncation params
-          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                Super.CLDCv],
-          ascend=[True, True, True, True],
-          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-     dict(key=Super.CLGrpOrdClTrChi2KSDCv,  # Best Chi2 & KS & DCv inside groups of close truncation params
-          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
-          ascend=[True, True, True, False, False, True, False, True],
-          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-      
-     dict(key=Super.CLGrpOrdClTrQuaBal1,  # Best Combined Quality 1 inside groups of close truncation params
-          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                Super.CLCmbQuaBal1],
-          ascend=[True, True, True, False],
-          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-     dict(key=Super.CLGrpOrdClTrQuaBal2,  # Best Combined Quality 2 inside groups of close truncation params
-          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                Super.CLCmbQuaBal2],
-          ascend=[True, True, True, False],
-          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),        
-     dict(key=Super.CLGrpOrdClTrQuaBal3,  # Best Combined Quality 3 inside groups of close truncation params
-          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                Super.CLCmbQuaBal3],
-          ascend=[True, True, True, False],
-          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-     dict(key=Super.CLGrpOrdClTrQuaChi2,  # Best Combined Quality Chi2+ inside groups of close truncation params
-          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                Super.CLCmbQuaChi2],
-          ascend=[True, True, True, False],
-          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-     dict(key=Super.CLGrpOrdClTrQuaKS,  # Best Combined Quality KS+ inside groups of close truncation params
-          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                Super.CLCmbQuaKS],
-          ascend=[True, True, True, False],
-          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-     dict(key=Super.CLGrpOrdClTrQuaDCv,  # Best Combined Quality DCv+ inside groups of close truncation params
-          sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
-                Super.CLCmbQuaDCv],
-          ascend=[True, True, True, False],
-          group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
-      
-     # Global orders (no grouping by close or identical truncations)
-     dict(key=Super.CLGblOrdChi2KSDCv,
-          sort=[Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
-          ascend=[False, False, True, False, True]),
-     dict(key=Super.CLGblOrdQuaBal1,
-          sort=[Super.CLCmbQuaBal1], ascend=False),
-     dict(key=Super.CLGblOrdQuaBal2,
-          sort=[Super.CLCmbQuaBal2], ascend=False),
-     dict(key=Super.CLGblOrdQuaBal3,
-          sort=[Super.CLCmbQuaBal3], ascend=False),
-     dict(key=Super.CLGblOrdQuaChi2,
-          sort=[Super.CLCmbQuaChi2], ascend=False),
-     dict(key=Super.CLGblOrdQuaKS,
-          sort=[Super.CLCmbQuaKS], ascend=False),
-     dict(key=Super.CLGblOrdQuaDCv,
-          sort=[Super.CLCmbQuaDCv], ascend=False),
+         # Orders inside groups of close truncation params.
+         # dict(key=Super.CLGrpOrdClTrChi2,  # Best Chi2 inside groups of close truncation params
+         #      sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+         #            Super.CLChi2],
+         #      ascend=[True, True, True, False],
+         #      group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+         # dict(key=Super.CLGrpOrdClTrKS,  # Best KS inside groups of close truncation params
+         #      sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+         #            Super.CLKS],
+         #      ascend=[True, True, True, False],
+         #      group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+         dict(key=Super.CLGrpOrdClTrDCv,  # Best DCv inside groups of close truncation params
+              sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                    Super.CLDCv],
+              ascend=[True, True, True, True],
+              group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+         dict(key=Super.CLGrpOrdClTrChi2KSDCv,  # Best Chi2 & KS & DCv inside groups of close truncation params
+              sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                    Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+              ascend=[True, True, True, False, False, True, False, True],
+              group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
 
-     dict(key=Super.CLGblOrdDAicChi2KSDCv,
-          sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
-                Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
-          ascend=[True, True, True,
-                  True, False, False, True, False, True], napos='first'),
-    ]
+         dict(key=Super.CLGrpOrdClTrQuaBal1,  # Best Combined Quality 1 inside groups of close truncation params
+              sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                    Super.CLCmbQuaBal1],
+              ascend=[True, True, True, False],
+              group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+         dict(key=Super.CLGrpOrdClTrQuaBal2,  # Best Combined Quality 2 inside groups of close truncation params
+              sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                    Super.CLCmbQuaBal2],
+              ascend=[True, True, True, False],
+              group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+         dict(key=Super.CLGrpOrdClTrQuaBal3,  # Best Combined Quality 3 inside groups of close truncation params
+              sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                    Super.CLCmbQuaBal3],
+              ascend=[True, True, True, False],
+              group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+         dict(key=Super.CLGrpOrdClTrQuaChi2,  # Best Combined Quality Chi2+ inside groups of close truncation params
+              sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                    Super.CLCmbQuaChi2],
+              ascend=[True, True, True, False],
+              group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+         dict(key=Super.CLGrpOrdClTrQuaKS,  # Best Combined Quality KS+ inside groups of close truncation params
+              sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                    Super.CLCmbQuaKS],
+              ascend=[True, True, True, False],
+              group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
+         dict(key=Super.CLGrpOrdClTrQuaDCv,  # Best Combined Quality DCv+ inside groups of close truncation params
+              sort=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight,
+                    Super.CLCmbQuaDCv],
+              ascend=[True, True, True, False],
+              group=[CLOptimTruncFlag, Super.CLGroupTruncLeft, Super.CLGroupTruncRight]),
 
-    # Enforce unicity of keys in filter and sort key specs.
+         # Global orders (no grouping by close or identical truncations)
+         dict(key=Super.CLGblOrdChi2KSDCv,
+              sort=[Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+              ascend=[False, False, True, False, True]),
+         dict(key=Super.CLGblOrdQuaBal1,
+              sort=[Super.CLCmbQuaBal1], ascend=False),
+         dict(key=Super.CLGblOrdQuaBal2,
+              sort=[Super.CLCmbQuaBal2], ascend=False),
+         dict(key=Super.CLGblOrdQuaBal3,
+              sort=[Super.CLCmbQuaBal3], ascend=False),
+         dict(key=Super.CLGblOrdQuaChi2,
+              sort=[Super.CLCmbQuaChi2], ascend=False),
+         dict(key=Super.CLGblOrdQuaKS,
+              sort=[Super.CLCmbQuaKS], ascend=False),
+         dict(key=Super.CLGblOrdQuaDCv,
+              sort=[Super.CLCmbQuaDCv], ascend=False),
+
+         dict(key=Super.CLGblOrdDAicChi2KSDCv,
+              sort=[MCDSAnalysis.CLParTruncLeft, MCDSAnalysis.CLParTruncRight, MCDSAnalysis.CLParModFitDistCuts,
+                    Super.CLDeltaAic, Super.CLChi2, Super.CLKS, Super.CLDCv, Super.CLNObs, MCDSAnalysis.CLRunStatus],
+              ascend=[True, True, True,
+                      True, False, False, True, False, True], napos='first')]
+
+    # Enforce uniqueness of keys in filter and sort key specs.
     assert len(AutoFilSorKeySchemes) == len(set(scheme['key'] for scheme in AutoFilSorKeySchemes)), \
            'Duplicated scheme key in MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes'
 
-    # Enforce unicity of sort and group column in filter and sort key specs.
+    # Enforce uniqueness of sort and group column in filter and sort key specs.
     assert all(len(scheme['sort']) == len(set(scheme['sort'])) for scheme in AutoFilSorKeySchemes), \
            'Duplicated sort column spec in some scheme of MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes'
     assert all(len(scheme.get('group', [])) == len(set(scheme.get('group', []))) for scheme in AutoFilSorKeySchemes), \
@@ -280,7 +266,7 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
     # Check sort vs ascend list lengths in filter and sort key specs.
     assert all(isinstance(scheme['ascend'], bool) or len(scheme['ascend']) == len(scheme['sort'])
                for scheme in AutoFilSorKeySchemes), \
-           'Unconsistent ascend vs sort specs in some scheme of MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes'
+           'Inconsistent ascend vs sort specs in some scheme of MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes'
 
 
 class MCDSTruncationOptanalyser(MCDSAnalyser):
@@ -344,6 +330,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                          anlysIndCol=anlysIndCol, sampleIndCol=sampleIndCol,
                          anlysSpecCustCols=anlysSpecCustCols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
+                         surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols,
                          ldTruncIntrvSpecs=ldTruncIntrvSpecs, truncIntrvEpsilon=truncIntrvEpsilon,
                          workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut,
@@ -383,7 +370,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Note: For the moment, only zoopt engine supported
         # TODO: Add support for other engines, thanks to the OptimCore columns spec (default = zoopt)
         #       provided the associated MCDSXXXTruncationOptimiser classes derive from MCDSTruncationOptimiser.
-        # TODO: Make this instanciation simpler (most params unused => default values would then fit well !)
+        # TODO: Make this instantiation simpler (most params unused => default values would then fit well !)
         self.zoptr4Specs = \
             MCDSZerothOrderTruncationOptimiser(
                 self.dfMonoCatObs, dfTransects=self._mcDataSet.dfTransects,
@@ -450,9 +437,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # b. Search for (possibly) optimisation specs with string data (const params are numbers or lists)
         def analysisNeedsOptimisationFirst(sAnlysSpec):
             return any(isinstance(v, str) for v in sAnlysSpec.values)
-        dfExplOptimParamSpecs = \
-            dfExplParamSpecs[dfExplParamSpecs[optimUserParamSpecCols] \
-                                .apply(analysisNeedsOptimisationFirst, axis='columns')]
+        dfExplOptimParamSpecs = dfExplParamSpecs[dfExplParamSpecs[optimUserParamSpecCols]
+                                                    .apply(analysisNeedsOptimisationFirst, axis='columns')]
          
         # 3. Run optimisations if needed and replace computed truncation params in analysis specs
         logger.info('Found {}/{} analysis specs implying some prior optimisation'

@@ -59,10 +59,6 @@ class ImmediateFuture(object):
         
         return True
 
-    def exception(self):
-        
-        return None
-
 
 class SequentialExecutor(cofu.Executor):
 
@@ -75,11 +71,11 @@ class SequentialExecutor(cofu.Executor):
             
     def submit(self, func, *args, **kwargs):
         
-        return ImmediateFuture(func(*args, **kwargs)) # Do it now !
+        return ImmediateFuture(func(*args, **kwargs))  # Do it now !
     
     def map(self, func, *iterables, timeout=None, chunksize=1):
         
-        return map(func, *iterables) # Do it now !
+        return map(func, *iterables)  # Do it now !
     
     def shutdown(self, wait=True):
         
@@ -149,21 +145,17 @@ class Executor(object):
     
     def expectedWorkers(self):
 
-        """Compute the theorically expected to be used number of thread/process workers
+        """Compute the theoretically expected to be used number of thread/process workers
         of an Executor instance, from the specified number of threads / processes
 
         Warning: Fully reports what's in the actual implementation of concurrent.futures.ThreadPoolExecutor
                  and concurrent.futures.ProcessPoolExecutor : figures are verified only for python versions
                  from 3.0 to 3.10pre
-        
-        Parameters:
-        :param threads: Must be None or >= 0 ; if processes is not None, must be None (= unspecified)
-        :param processes: Must be None or >= 0 ; if threads is not None, must be None (= unspecified)
         """
 
         if sys.version_info.major < 3 or sys.version_info.minor < 5 or sys.version_info.minor > 10:
-            wanings.warn('Executor.expectedWorkers() may not report accurate figures as Python < 3.5 or > 3.10',
-                         RuntimeWarning)
+            warnings.warn('Executor.expectedWorkers() may not report accurate figures as Python < 3.5 or > 3.10',
+                          RuntimeWarning)
 
         if self.threads is None:
             if self.processes is None:

@@ -46,12 +46,12 @@ def test_init():
     logFilePathName = tmpDir / 'unt-dat.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d%H%M'))
     ads.log.configure(loggers=[dict(name='matplotlib', level=ads.WARNING),
                                dict(name='ads', level=ads.INFO),
-                               #dict(name='ads.dat', level=ads.WARNING),  # Uncomment to limit log ouput
+                               # dict(name='ads.dat', level=ads.WARNING),  # Uncomment to limit log ouput
                                dict(name='ads.eng', level=ads.INFO2),
                                dict(name='unt.dat', level=ads.DEBUG)],
                       handlers=[logFilePathName], reset=True)
 
-    # Show testing configuration (traçability).
+    # Show testing configuration (traceability).
     logger.info('PyAuDiSam {} from {}'
                 .format(ads.__version__, pl.Path(ads.__path__[0]).resolve().as_posix()))
     logger.info('Python environment:')
@@ -104,7 +104,7 @@ def male2bool(s):
     return False if pd.isnull(s.MALE) or s.MALE.lower() != 'oui' else True
 
 
-def sexe2bool(s):
+def sex2bool(s):
     return False if pd.isnull(s.SEXE) or s.SEXE.lower() != 'oui' else True
 
 
@@ -120,7 +120,7 @@ def newval2othercol(s):
 def test_DataSet_Ctor_len(sources_fxt):
 
     # gather source DataFrame (used for checking size of DataSet)
-    srcDf = [src for src in sources_fxt if isinstance(src, pd.core.frame.DataFrame)][0]
+    srcDf = [src for src in sources_fxt if isinstance(src, pd.DataFrame)][0]
 
     # list of awaited columns form input DataFrame with associated types
     dTypes = {'ZONE': 'object', 'HA': 'int', 'POINT': 'int', 'ESPECE': 'object',
@@ -226,7 +226,7 @@ def test_DataSet_addComputedColumns(sources_fxt):
 
     # Checking adding a new column with computing process and rename it
     #   a new column also added to prepare following test step
-    ds = ads.DataSet(sources_fxt, dRenameCols={'MALE': 'SEXE'}, dComputeCols={'MALE': sexe2bool, 'NEWCOL': ''},
+    ds = ads.DataSet(sources_fxt, dRenameCols={'MALE': 'SEXE'}, dComputeCols={'MALE': sex2bool, 'NEWCOL': ''},
                      sheet='Sheet1', skipRows=None, separator='\t')
     print(ds.columns)
     print(ds.dfData.SEXE)
@@ -310,7 +310,7 @@ def test_DataSet_dropColumns(sources_fxt):
     ds = ads.DataSet(sources_fxt, sheet='Sheet1', skipRows=None, separator='\t')
 
     # gather source DataFrame (used for checking size of DataSet)
-    srcDf = [src for src in sources_fxt if isinstance(src, pd.core.frame.DataFrame)][0]
+    srcDf = [src for src in sources_fxt if isinstance(src, pd.DataFrame)][0]
 
     # Checking deletion of columns
     dropCols = ['ZONE', 'HA', 'OBSERVATEUR']
@@ -334,7 +334,7 @@ def test_DataSet_dropRows(sources_fxt):
     ds = ads.DataSet(sources_fxt, sheet='Sheet1', dComputeCols={'MALE': male2bool}, skipRows=None, separator='\t')
 
     # gather source DataFrame (used for checking size of DataSet)
-    srcDf = [src for src in sources_fxt if isinstance(src, pd.core.frame.DataFrame)][0]
+    srcDf = [src for src in sources_fxt if isinstance(src, pd.DataFrame)][0]
 
     # deletion of rows with no distance noted
     ds.dropRows(ds.dfData.DISTANCE.isnull())
@@ -442,12 +442,12 @@ def test_compare():
 
     # b. Index columns to be compared
     indexCols = [('sample', 'AnlysNum', 'Value')] \
-              + [('sample', col, 'Value') for col in ['Species', 'Periods', 'Prec.', 'Duration']] \
-              + [('model', 'Model', 'Value')] \
-              + [('parameters', 'left truncation distance', 'Value'),
-                 ('parameters', 'right truncation distance', 'Value'),
-                 ('parameters', 'model fitting distance cut points', 'Value'),
-                 ('parameters', 'distance discretisation cut points', 'Value')]
+                + [('sample', col, 'Value') for col in ['Species', 'Periods', 'Prec.', 'Duration']] \
+                + [('model', 'Model', 'Value')] \
+                + [('parameters', 'left truncation distance', 'Value'),
+                   ('parameters', 'right truncation distance', 'Value'),
+                   ('parameters', 'model fitting distance cut points', 'Value'),
+                   ('parameters', 'distance discretisation cut points', 'Value')]
 
     # # c. Columns to be compared (DeltaDCV and DeltaAIC were removed as results are dependant of a set of ran analyses,
     # #    different between reference and PyAuDiSam run.
@@ -598,7 +598,7 @@ if __name__ == '__main__':
             test_DataSet_dropColumns(sources())
             test_DataSet_dfSubData(sources())
             test_DataSet_dropRows(sources())
-            test_toFiles(sources())
+            test_DataSet_toFiles(sources())
             test_closeness()
             test_compare()
 

@@ -18,15 +18,11 @@
 import re
 
 import pathlib as pl
-from packaging import version
 
 from collections import namedtuple as ntuple
 
 import numpy as np
 import pandas as pd
-
-import pickle
-import lzma
 
 from . import log
 from .data import MonoCategoryDataSet, ResultsSet
@@ -49,7 +45,7 @@ class OptimisationResultsSet(ResultsSet):
         assert issubclass(optimisationClass, DSOptimisation), \
                'optimisationClass must derive from DSOptimisation'
         assert miCustomCols is None \
-               or (isinstance(miCustomCols, list) and len(miCustomCols) > 0 \
+               or (isinstance(miCustomCols, list) and len(miCustomCols) > 0
                    and all(isinstance(col, str) for col in miCustomCols)), \
                'customCols must be None or a list of strings'
         
@@ -94,7 +90,7 @@ class OptimisationResultsSet(ResultsSet):
 
     def fromExcel(self, fileName, sheetName=None, specs=True, specSheetsPrfx='sp-'):
 
-        """Load (overwrite) data and optionnaly specs from an Excel worksheet (XLSX format),
+        """Load (overwrite) data and optionally specs from an Excel worksheet (XLSX format),
         assuming ctor params match with Excel sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
         """
@@ -104,7 +100,7 @@ class OptimisationResultsSet(ResultsSet):
 
     def fromOpenDoc(self, fileName, sheetName=None, specs=True, specSheetsPrfx='sp-'):
 
-        """Load (overwrite) data and optionnaly specs from an Open Document worksheet (ODS format),
+        """Load (overwrite) data and optionally specs from an Open Document worksheet (ODS format),
         assuming ctor params match with ODF sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
         Notes: Needs odfpy module and pandas.version >= 0.25.1
@@ -115,8 +111,8 @@ class OptimisationResultsSet(ResultsSet):
 
     def fromFile(self, fileName, sheetName=None, specs=True, specSheetsPrfx='sp-'):
 
-        """Load (overwrite) data data and optionnaly specs from a given file,
-        (see ResultsSet.fromFile for supported formats, autodetected from file extensions)
+        """Load (overwrite) data data and optionally specs from a given file,
+        (see ResultsSet.fromFile for supported formats, auto-detected from file extensions)
         assuming ctor params match with the file contents,
         which can well be ensured by using the same ctor params as used for saving !
         """
@@ -297,8 +293,10 @@ class DSParamsOptimiser(object):
 
     # Types for user specs parsing (see usage below)
     class Auto(object):
+
         def __repr__(self):
             return 'Auto()'
+
         def __eq__(self, other):
             return isinstance(other, self.__class__)
     
@@ -312,10 +310,10 @@ class DSParamsOptimiser(object):
         :param globals: dict of globals for case-insensitive rules (we use eval function for parsing !)
         :param locals: dict of locals for case-insensitive rules (we use eval function for parsing !)
         :param oneStrArg: assume function call syntax with 1 single string argument
-                (ex: input "f(x,y)" is tranformed to "f('x,y')" before calling eval)
+                (ex: input "f(x,y)" is transformed to "f('x,y')" before calling eval)
         :param nullOrEmpty: return value for null of empty spec ; not checked against errIfNotA
             (default: Error => an instance of Error with error description inside)
-        :param errIfNotA: list of autorised output types ; empty => any type
+        :param errIfNotA: list of authorised output types ; empty => any type
         
         :return: a 2-value tuple : (None or an Error instance, parsed value or None in case of error)
         """
@@ -367,7 +365,7 @@ class DSParamsOptimiser(object):
         
         Parameters:
         :param spec: None or np.nan or string spec to parse
-        :param errIfNotA: list of autorised output types ; empty => any type
+        :param errIfNotA: list of authorised output types ; empty => any type
         
         :return: a 2-value tuple : (None or an Error instance, parsed value or None in case of error)
                  Parsed value may result None or an instance of AbsInterval, MultInterval, OutliersMethod, Auto
@@ -375,14 +373,19 @@ class DSParamsOptimiser(object):
 
         # Defs for optimisation param. spec. mini-language
         auto = cls.Auto()
+
         def dist(dmin, dmax):
             return cls.DistInterval(dmin, dmax)
+
         def quant(pct):
             return cls.OutliersMethod('quant', pct)
+
         def tucquant(pct):
             return cls.OutliersMethod('tucquant', pct)
+
         def mult(kmin, kmax):
             return cls.MultInterval(kmin, kmax)
+
         def abs(min, max):
             return cls.AbsInterval(min, max)
             
@@ -400,13 +403,13 @@ class DSParamsOptimiser(object):
     
         """Parse user spec for optimisation core parameters
         
-        Praameters:
+        Parameters:
         :param spec: the spec to parse
         :param globals: dict of globals for rules (we use eval function for parsing !)
         :param locals: dict of locals for rules (we use eval function for parsing !)
         :param nullOrEmpty: return value for null of empty spec ; not checked against errIfNotA
             (default: Error => an instance of Error with error description inside)
-        :param errIfNotA: list of autorised output types ; empty => any type
+        :param errIfNotA: list of authorised output types ; empty => any type
         
         :return: a 2-value tuple : (None or an Error instance, parsed value or None in case of error)
                  Parsed value may result None or an instance of AbsInterval, MultInterval, OutliersMethod, Auto
@@ -424,10 +427,9 @@ class DSParamsOptimiser(object):
             # String parameters don't need quoting in spec, but python needs it : add it if needed
             spec = re.sub('([a-z_]+) *= *([^=0-9,; ][^=,;\) ]*)', r"\1='\2'", spec)
     
-        # Parse pythonised spec.
+        # Parse pythonified spec.
         return cls._parseUserSpec(spec, nullOrEmpty=nullOrEmpty, errIfNotA=errIfNotA, 
                                   oneStrArg=False, globals=globals, locals=locals)
-        
 
     # Optimisation object ctor parameter names (MUST match exactly: check in optimisation submodule !).
     ParmExpr2Optimise = 'expr2Optimise'
@@ -445,7 +447,7 @@ class DSParamsOptimiser(object):
         Ex: max(aic), min(1/aic/ks)"""
 
         def _buildParsedValue(expr2Optimise, minimiseExpr):
-            return { self.ParmExpr2Optimise: expr2Optimise, self.ParmMinimiseExpr: minimiseExpr }
+            return {self.ParmExpr2Optimise: expr2Optimise, self.ParmMinimiseExpr: minimiseExpr}
 
         # Parse expression to optimise in sAnIntSpec if present.
         if self.IntSpecExpr2Optimise in sAnIntSpec:
@@ -456,6 +458,7 @@ class DSParamsOptimiser(object):
             # Parse
             def min(expr):
                 return _buildParsedValue(expr, True)
+
             def max(expr):
                 return _buildParsedValue(expr, False)
 
@@ -503,7 +506,7 @@ class DSParamsOptimiser(object):
         Ex: dict(times=, onlyBest=, ...)"""
 
         def _buildParsedValue(times, onlyBest):
-            return { self.ParmSubmTimes: times, self.ParmSubmOnlyBest: onlyBest }
+            return {self.ParmSubmTimes: times, self.ParmSubmOnlyBest: onlyBest}
 
         # Parse expression to optimise in sAnIntSpec if present.
         if self.IntSpecSubmitParams in sAnIntSpec:
@@ -539,9 +542,9 @@ class DSParamsOptimiser(object):
         :param sampleDataSet: SampleDataSet to analyse
         :param name: of the optimisation (for clearer logging only, auto-generated and auto-unique anyway)
         :param customData: pd.Series of custom data for heading optimisation results columns
-        :param error: if an error occurred during optimisation submit params user specs parsing,
+        :param setupError: if an error occurred during optimisation submit params user specs parsing,
                  a string is here for explaining it, and to prevent any submit call of course !
-                 This is done for keeping trace of unrun optimisations in results table (1 empty/null row)
+                 This is done for keeping trace of not run optimisations in results table (1 empty/null row)
         :param otherParams: some room for derived classes
         """
 
@@ -555,7 +558,7 @@ class DSParamsOptimiser(object):
         
         Can moreover check params specs for usability, if check is True :
         * use it before calling analyser.run(implParamSpecs=..., dfExplParamSpecs=..., ...)
-          to check that everythings OK,
+          to check that everything's OK,
         * or be sure that run() will fail at startup (because it itself will do it).
         
         Parameters:
@@ -571,7 +574,7 @@ class DSParamsOptimiser(object):
            * explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned),
            * list of analysis and optimisationparam. columns internal names,
            * list of analysis and optimisationparam. columns user names,
-           if ckeck, 2 more items in the return tuple :
+           if check, 2 more items in the return tuple :
            * check verdict : True if everything went well, False otherwise,
              * some columns from paramSpecCols could not be found in dfExplParamSpecs columns,
              * some user columns could not be matched with some of the expected internal parameter names,
@@ -633,23 +636,23 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     """Abstract class ; Run a bunch of MCDS truncation optimisations"""
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
-                       abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
-                       distanceUnit='Meter', areaUnit='Hectare',
-                       surveyType='Point', distanceType='Radial', clustering=False,
-                       resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
-                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       workDir='.', runMethod='subprocess.run', runTimeOut=300,
-                       logData=False, logProgressEvery=5, backupEvery=50, autoClean=True,
-                       defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
-                       defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
-                       defExpr2Optimise='chi2', defMinimiseExpr=False,
-                       defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
-                       defFitDistCutsFctr=dict(min=2/3, max=3/2), defDiscrDistCutsFctr=dict(min=1/3, max=1),
-                       defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
-                       dDefOptimCoreParams=dict()):
+                 transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                 sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'],
+                 sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
+                 abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
+                 distanceUnit='Meter', areaUnit='Hectare',
+                 surveyType='Point', distanceType='Radial', clustering=False,
+                 resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'],
+                                      sample=['Species', 'Pass', 'Adult', 'Duration']),
+                 workDir='.', runMethod='subprocess.run', runTimeOut=300,
+                 logData=False, logProgressEvery=5, backupEvery=50, autoClean=True,
+                 defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
+                 defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
+                 defExpr2Optimise='chi2', defMinimiseExpr=False,
+                 defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
+                 defFitDistCutsFctr=dict(min=2/3, max=3/2), defDiscrDistCutsFctr=dict(min=1/3, max=1),
+                 defSubmitTimes=1, defSubmitOnlyBest=None, dDefSubmitOtherParams=dict(),
+                 dDefOptimCoreParams=dict()):
 
         """Ctor (don't use directly, abstract class)
         
@@ -691,6 +694,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
         assert runTimeOut is None or runMethod != 'os.system', \
                f"Can't care about {runTimeOut}s execution time limit with os.system run method (not implemented)"
+        assert defOutliersMethod in ['quant', 'tucquant'], f'Unsupported default outliers method {defOutliersMethod}'
 
         self.surveyType = surveyType
         self.distanceType = distanceType
@@ -727,8 +731,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     IntSpecEstimAdjustFn = MCDSAnalyser.IntSpecEstimAdjustFn
     IntSpecEstimCriterion = MCDSAnalyser.IntSpecEstimCriterion
     IntSpecCVInterval = MCDSAnalyser.IntSpecCVInterval
-    IntSpecMinDist = MCDSAnalyser.IntSpecMinDist # Left truncation distance
-    IntSpecMaxDist = MCDSAnalyser.IntSpecMaxDist # Right truncation distance
+    IntSpecMinDist = MCDSAnalyser.IntSpecMinDist  # Left truncation distance
+    IntSpecMaxDist = MCDSAnalyser.IntSpecMaxDist  # Right truncation distance
     IntSpecFitDistCuts = MCDSAnalyser.IntSpecFitDistCuts
     IntSpecDiscrDistCuts = MCDSAnalyser.IntSpecDiscrDistCuts
     IntSpecOutliersMethod = 'OutliersMethod'
@@ -738,8 +742,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
     #  and case is ignored during searching).
     Int2UserSpecREs = \
-      dict(list(DSParamsOptimiser.Int2UserSpecREs.items()) \
-           + list(MCDSAnalyser.Int2UserSpecREs.items()) \
+      dict(list(DSParamsOptimiser.Int2UserSpecREs.items())
+           + list(MCDSAnalyser.Int2UserSpecREs.items())
            + [(IntSpecOutliersMethod, ['outl[a-z]*[\.\-_ ]*', 'me[a-z]*[\.\-_ ]*outl'])])
 
     # Names of internal parameters which can be used as settings for optimising truncations
@@ -782,8 +786,6 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                                   dict(estimKeyFn=, estimAdjustFn=, estimCriterion=, cvInterval=) or None)
         """
         
-        dParams = dict()
-        
         estimKeyFn = sAnIntSpec.get(self.IntSpecEstimKeyFn, self.defEstimKeyFn)
         if pd.isnull(estimKeyFn):
             estimKeyFn = self.defEstimKeyFn
@@ -800,8 +802,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         if pd.isnull(cvInterv):
             cvInterv = self.defCVInterval
         
-        return None, { self.ParmEstimKeyFn: estimKeyFn, self.ParmEstimAdjustFn: estimAdjFn,
-                       self.ParmEstimCriterion: estimCrit, self.ParmCVInterval: cvInterv }
+        return None, {self.ParmEstimKeyFn: estimKeyFn, self.ParmEstimAdjustFn: estimAdjFn,
+                      self.ParmEstimCriterion: estimCrit, self.ParmCVInterval: cvInterv}
 
     # From / to: Optimisation object ctor parameter names = Solution dimension names
     # To / From: Optimiser internal param. spec names.
@@ -847,7 +849,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                                               errIfNotA=[self.Auto, self.OutliersMethod])
 
         logger.debug('OptimedParams specs:' + str(dict(minDist=minDistSpec, maxDist=maxDistSpec,
-                                                 fitDistCuts=fitDistCutsSpec, discrDistCuts=discrDistCutsSpec)))
+                                                       fitDistCuts=fitDistCutsSpec, discrDistCuts=discrDistCutsSpec)))
 
         # Stop here if any parsing error.
         finalErr = Error()
@@ -871,6 +873,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         else:
             raise Exception('MCDSTruncationOptimiser.getAnalysisOptimedParams:'
                             'Should not fall there (outliersMethod specs)')
+        assert outliersMethod in ['quant', 'tucquant'], f'Unsupported outliers method {outliersMethod}'
 
         # B. minDist, maxDist :
         # - None,
@@ -908,7 +911,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         elif isinstance(maxDistSpec, (self.Auto, self.OutliersMethod)):
             if isinstance(maxDistSpec, self.Auto):
                 d25, d75, d95, dPct = np.percentile(a=sDist, q=[25, 75, 95, 100-outliersQuantCutPct])
-            else: # self.OutliersMethod
+            else:  # self.OutliersMethod
                 d25, d75, d95, dPct = np.percentile(a=sDist, q=[25, 75, 95, 100-maxDistSpec.percent])
             if outliersMethod == 'quant':
                 minMaxDist = dPct
@@ -924,10 +927,10 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
         # C. fitDistCuts, discrDistCuts :
         # - None,
-        # - auto : mode full auto via colonne outliersMethod, 
-        #                             ou alors defOutliersMethod et defOutliersQuantCutPct,
-        # - mult(1/3, 3/2) : mode fixé, facteurs mult. min et max de sqrt(nb données) fournies en dur
-        # - abs(5, 10) : mode fixé, facteurs mult. min et max de sqrt(nb données) fournies en dur
+        # - auto : full automated mode through column outliersMethod,
+        #          or else defOutliersMethod and defOutliersQuantCutPct,
+        # - mult(1/3, 3/2) : "fixed" mode = hard-coded mult. factors min and max for sqrt(nb of sightings)
+        # - abs(5, 10) : fixed" mode = hard-coded mult. factors min and max for sqrt(nb of sightings)
 
         # 1. fitDistCuts specs
         if fitDistCutsSpec is None or isinstance(fitDistCutsSpec, (int, float)):
@@ -1004,7 +1007,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                                       
     # Supported truncation optimisation classes (=> engines = cores) (see submodule optimisation),
     # all must be subclasses of MCDSTruncationOptimisation.
-    OptimisationClasses = [MCDSZerothOrderTruncationOptimisation] #, MCDSGridBruteTruncationOptimisation]
+    OptimisationClasses = [MCDSZerothOrderTruncationOptimisation]  #, MCDSGridBruteTruncationOptimisation]
             
     def getOptimisationCoreParams(self, sAnIntSpec):
 
@@ -1025,7 +1028,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             userSpec = sAnIntSpec[self.IntSpecOptimisationCore]
                 
             # Parse
-            parsers = { cls.CoreName: cls.CoreUserSpecParser for cls in self.OptimisationClasses }
+            parsers = {cls.CoreName: cls.CoreUserSpecParser for cls in self.OptimisationClasses}
             parseError, parsedValue = \
                  self._parseOptimCoreUserSpecs(userSpec, globals=None, locals=parsers,
                                                nullOrEmpty=self.dDefOptimCoreParams,
@@ -1080,9 +1083,9 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
         # Search for optimisation class from core name dCoreParams['core']
         # (default to 'zoopt' in case of any error parsing optim core params)
+        optimCore = dCoreParams.get('core', 'zoopt')
         try:
-            OptimionClass = next(iter(cls for cls in self.OptimisationClasses
-                                          if cls.CoreName == dCoreParams.get('core', 'zoopt')))
+            OptimionClass = next(iter(cls for cls in self.OptimisationClasses if cls.CoreName == optimCore))
         except StopIteration:
             raise NotImplementedError('No such optimisation core "{}" in house'.format(optimCore))
         
@@ -1092,9 +1095,9 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                'No such parameter(s) {} for {} ctor'.format(','.join(invalidParams), OptimionClass.__name__)
 
         # Build remainder of optimisation ctor params.
-        dOtherOptimParms = { k: v for k, v in dCoreParams.items() if k in OptimionClass.CoreParamNames }
+        dOtherOptimParms = {k: v for k, v in dCoreParams.items() if k in OptimionClass.CoreParamNames}
         
-        # Instanciate optimisation.
+        # Instantiate optimisation.
         optimion = OptimionClass(self._engine, sampleDataSet, name=name,
                                  customData=customData, error=error,
                                  executor=self._executor, logData=self.logData, autoClean=self.autoClean,
@@ -1125,20 +1128,20 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                                   (overwrite any specs loaded from file; see blow)
         :param recover: if True, try and load the last backup file (see completeResults)
         :param loadFrom: if specified, and not recover, try and load the specified file
-                         (see OptimisationResultsSet.fromFile for supported formats, autodetected from file extensions)
+                         (see OptimisationResultsSet.fromFile for supported formats, auto-detected from file extensions)
         :param sheetName: when loadFrom targets a workbook format file, the name of the sheet to load.
         """
     
         # Build the empty result object
         customCols = \
             self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
-        dfCustColTrans = pd.DataFrame(index=customCols, data={ lang: customCols for lang in ['fr', 'en'] })
+        dfCustColTrans = pd.DataFrame(index=customCols, data={lang: customCols for lang in ['fr', 'en']})
 
+        # TODO: optimisationClass=MCDSZerothOrderTruncationOptimisation,
         self.results = OptimisationResultsSet(optimisationClass=MCDSTruncationOptimisation,
-                                                                # TODO: MCDSZerothOrderTruncationOptimisation,
                                               miCustomCols=customCols, dfCustomColTrans=dfCustColTrans)
 
-        # e. Load data from file if resquested to.
+        # e. Load data from file if requested to.
         if recover:
 
             # Check that there will be an analysis index = Id column in results
@@ -1200,7 +1203,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         """
     
         # Start of elapsed time measurement (yes, starting the optimisations may take some time, but it is
-        # neglectable when compared to optimisation time ; and better here for evaluating mean per optimisation).
+        # negligible when compared to optimisation time ; and better here for evaluating mean per optimisation).
         optimStart = pd.Timestamp.now()
         
         # For each optimisation as it gets completed (first completed => first yielded)
@@ -1270,8 +1273,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
         # Failed try: Seems we can't stack ThreadPoolExecutors, as optimisations get run sequentially
         #             when using an Executor(threads=1) (means async) for self._engine ... 
-        #engineExor = None if self.runMethod != 'os.system' or self.runTimeOut is None else Executor(threads=1)
-        self._engine = MCDSEngine(workDir=self.workDir, #executor=engineExor,
+        # engineExor = None if self.runMethod != 'os.system' or self.runTimeOut is None else Executor(threads=1)
+        self._engine = MCDSEngine(workDir=self.workDir,  # executor=engineExor,
                                   runMethod=self.runMethod, timeOut=self.runTimeOut,
                                   distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                   surveyType=self.surveyType, distanceType=self.distanceType,
@@ -1326,7 +1329,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                 self.getOptimisationSetupParams(sOptimIntSpec, sds.dfData[self.sampleDistCol])
             
             # Create optimisation object
-            logger.debug('Optim. params: {}'.format(', '.join(f'{k}:{v}' for k,v in dSetupParams.items())))
+            logger.debug('Optim. params: ' + ', '.join(f'{k}: {v}' for k, v in dSetupParams.items()))
             optim = self.setupOptimisation(sampleDataSet=sds, name=sOptimSpec[self.abbrevCol],
                                            customData=sOptimSpec[customCols].copy(),
                                            error=setupError, **dSetupParams)
@@ -1335,7 +1338,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             submitError, dSubmitParams = self.getOptimisationSubmitParams(sOptimIntSpec)
                                                
             # Submit optimisation (but don't wait for it's finished, go on with next, may run in parallel)
-            logger.debug('Submit params: {}'.format(', '.join([f'{k}:{v}' for k,v in dSubmitParams.items()])))
+            logger.debug('Submit params: ' + ', '.join([f'{k}: {v}' for k, v in dSubmitParams.items()]))
             optimFut = optim.submit(error=submitError, **dSubmitParams)
             
             # Store optimisation object and associated "future" for later use (should be running soon or later).
@@ -1363,24 +1366,24 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
     """Run a bunch of Zeroth Order MCDS truncation optimisations"""
 
     def __init__(self, dfMonoCatObs, dfTransects=None, effortConstVal=1, dSurveyArea=dict(), 
-                       transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
-                       sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'], 
-                       sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
-                       abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
-                       distanceUnit='Meter', areaUnit='Hectare',
-                       surveyType='Point', distanceType='Radial', clustering=False,
-                       resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'], 
-                                            sample=['Species', 'Pass', 'Adult', 'Duration']),
-                       workDir='.', runMethod='subprocess.run', runTimeOut=300,
-                       logData=False, logProgressEvery=5, backupEvery=50, autoClean=True,
-                       defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
-                       defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
-                       defExpr2Optimise='chi2', defMinimiseExpr=False,
-                       defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
-                       defFitDistCutsFctr=Interval(min=2/3, max=3/2),
-                       defDiscrDistCutsFctr=Interval(min=1/3, max=1),
-                       defSubmitTimes=1, defSubmitOnlyBest=None,
-                       defCoreMaxIters=100, defCoreTermExprValue=None, defCoreAlgorithm='racos', defCoreMaxRetries=0):
+                 transectPlaceCols=['Transect'], passIdCol='Pass', effortCol='Effort',
+                 sampleSelCols=['Species', 'Pass', 'Adult', 'Duration'],
+                 sampleDecCols=['Effort', 'Distance'], sampleDistCol='Distance', anlysSpecCustCols=[],
+                 abbrevCol='AnlysAbbrev', abbrevBuilder=None, anlysIndCol='AnlysNum', sampleIndCol='SampleNum',
+                 distanceUnit='Meter', areaUnit='Hectare',
+                 surveyType='Point', distanceType='Radial', clustering=False,
+                 resultsHeadCols=dict(before=['AnlysNum', 'SampleNum'], after=['AnlysAbbrev'],
+                                      sample=['Species', 'Pass', 'Adult', 'Duration']),
+                 workDir='.', runMethod='subprocess.run', runTimeOut=300,
+                 logData=False, logProgressEvery=5, backupEvery=50, autoClean=True,
+                 defEstimKeyFn=MCDSEngine.EstKeyFnDef, defEstimAdjustFn=MCDSEngine.EstAdjustFnDef,
+                 defEstimCriterion=MCDSEngine.EstCriterionDef, defCVInterval=MCDSEngine.EstCVIntervalDef,
+                 defExpr2Optimise='chi2', defMinimiseExpr=False,
+                 defOutliersMethod='tucquant', defOutliersQuantCutPct=5,
+                 defFitDistCutsFctr=Interval(min=2/3, max=3/2),
+                 defDiscrDistCutsFctr=Interval(min=1/3, max=1),
+                 defSubmitTimes=1, defSubmitOnlyBest=None,
+                 defCoreMaxIters=100, defCoreTermExprValue=None, defCoreAlgorithm='racos', defCoreMaxRetries=0):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects, 
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
@@ -1394,11 +1397,14 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                          resultsHeadCols=resultsHeadCols,
                          workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut, logData=logData,
                          logProgressEvery=logProgressEvery, backupEvery=backupEvery, autoClean=autoClean,
+                         defEstimKeyFn=defEstimKeyFn, defEstimAdjustFn=defEstimAdjustFn,
+                         defEstimCriterion=defEstimCriterion, defCVInterval=defCVInterval,
                          defExpr2Optimise=defExpr2Optimise, defMinimiseExpr=defMinimiseExpr,
                          defOutliersMethod=defOutliersMethod, defOutliersQuantCutPct=defOutliersQuantCutPct,
                          defFitDistCutsFctr=defFitDistCutsFctr, defDiscrDistCutsFctr=defDiscrDistCutsFctr,
                          defSubmitTimes=defSubmitTimes, defSubmitOnlyBest=defSubmitOnlyBest,
-                         dDefOptimCoreParams=dict(core='zoopt', maxIters=defCoreMaxIters, termExprValue=defCoreTermExprValue,
+                         dDefOptimCoreParams=dict(core='zoopt', maxIters=defCoreMaxIters,
+                                                  termExprValue=defCoreTermExprValue,
                                                   algorithm=defCoreAlgorithm, maxRetries=defCoreMaxRetries))
                          
 

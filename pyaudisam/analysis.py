@@ -70,7 +70,7 @@ class MCDSAnalysis(DSAnalysis):
     @staticmethod
     def checkDistCuts(distCuts, minDist, maxDist):
         if distCuts is None:
-            return # OK !
+            return  # OK !
         if isinstance(distCuts, int) or isinstance(distCuts, float):
             assert distCuts > 1, 'Invalid number of distance cuts {}; should be None or > 1'.format(distCuts)
         elif isinstance(distCuts, list):
@@ -81,7 +81,8 @@ class MCDSAnalysis(DSAnalysis):
                                       ' in ]{}, {}['.format(minDist, maxDist, distCuts)
                 prevCut = cut
             if maxDist is not None:
-                assert distCuts[-1] < maxDist, 'Invalid last distance cut {}; should be empty < {}'.format(distCuts[-1], maxDist)
+                assert distCuts[-1] < maxDist, \
+                       'Invalid last distance cut {}; should be empty < {}'.format(distCuts[-1], maxDist)
     
     def __init__(self, engine, sampleDataSet, name=None, customData=None, logData=False,
                  estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
@@ -95,7 +96,7 @@ class MCDSAnalysis(DSAnalysis):
         :param engine: DS engine to use
         :param sampleDataSet: SampleDataSet instance to use
         :param name: used for prefixing run folders (sure to be automatically unique anyway),
-            analysis names, and so on, only for user-friendliness and deasier debugging ;
+            analysis names, and so on, only for user-friendliness and easier debugging ;
             default: None => auto-generated from optimisation parameters
         :param customData: custom data for the run to ship through
         :param estimKeyFn: fitting estimator key function (see Distance documentation)
@@ -118,29 +119,29 @@ class MCDSAnalysis(DSAnalysis):
         
         # Check analysis params
         assert len(estimKeyFn) >= 2 and estimKeyFn in [kf[:len(estimKeyFn)] for kf in engine.EstKeyFns], \
-               'Invalid estimate key function {}: should be in {} or at least 2-char abreviations' \
+               'Invalid estimate key function {}: should be in {} or at least 2-char abbreviations' \
                .format(estimKeyFn, engine.EstKeyFns)
         assert len(estimAdjustFn) >= 2 and estimAdjustFn in [kf[:len(estimAdjustFn)] for kf in engine.EstAdjustFns], \
-               'Invalid estimate adjust function {}: should be in {} or at least 2-char abreviations' \
+               'Invalid estimate adjust function {}: should be in {} or at least 2-char abbreviations' \
                .format(estimAdjustFn, engine.EstAdjustFns)
-        assert estimCriterion in engine.EstCriterions, \
-               'Invalid estimate criterion {}: should be in {}'.format(estimCriterion, engine.EstCriterions)
-        assert cvInterval > 0 and cvInterval < 100, \
+        assert estimCriterion in engine.EstCriteria, \
+               'Invalid estimate criterion {}: should be in {}'.format(estimCriterion, engine.EstCriteria)
+        assert 0 < cvInterval < 100, \
                'Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%[')
         if isinstance(minDist, float) and np.isnan(minDist):
-            minDist = None # enforce minDist NaN => None for later
+            minDist = None  # enforce minDist NaN => None for later
         assert minDist is None or minDist >= 0, \
                'Invalid left truncation distance {}: should be None/NaN or >= 0'.format(minDist)
         if isinstance(maxDist, float) and np.isnan(maxDist):
-            maxDist = None # enforce maxDist NaN => None for later
+            maxDist = None  # enforce maxDist NaN => None for later
         assert maxDist is None or minDist is None or minDist <= maxDist, \
                'Invalid right truncation distance {}:' \
                ' should be None/NaN or >= left truncation distance if specified, or >= 0'.format(maxDist)
         if isinstance(fitDistCuts, float) and np.isnan(fitDistCuts):
-            fitDistCuts = None # enforce fitDistCuts NaN => None for later
+            fitDistCuts = None  # enforce fitDistCuts NaN => None for later
         self.checkDistCuts(fitDistCuts, minDist, maxDist)
         if isinstance(discrDistCuts, float) and np.isnan(discrDistCuts):
-            discrDistCuts = None # enforce discrDistCuts NaN => None for later
+            discrDistCuts = None  # enforce discrDistCuts NaN => None for later
         self.checkDistCuts(discrDistCuts, minDist, maxDist)
         
         # Build name from main params if not specified
@@ -158,7 +159,7 @@ class MCDSAnalysis(DSAnalysis):
         self.sSampleStats = self.engine.computeSampleStats(self.sampleDataSet)
 
         # Analysis run time-out implemented here if engine doesn't know how to do it
-        # (but then, MCDS exe are not killed, only abandonned in "space")
+        # (but then, MCDS exe are not killed, only abandoned in "space")
         self.timeOut = engine.timeOut if engine.runMethod == 'os.system' else None
         if self.timeOut is not None:
             logger.debug(f"Will take care of {self.timeOut}s time limit because engine can't do this")
@@ -175,7 +176,7 @@ class MCDSAnalysis(DSAnalysis):
         self.discrDistCuts = discrDistCuts
     
     # Run columns for output : analysis params + root engine output (3-level multi-index)
-    CLParTruncLeft  = ('parameters', 'left truncation distance', 'Value')
+    CLParTruncLeft = ('parameters', 'left truncation distance', 'Value')
     CLParTruncRight = ('parameters', 'right truncation distance', 'Value')
     CLParModFitDistCuts = ('parameters', 'model fitting distance cut points', 'Value')
     CLParModDiscrDistCuts = ('parameters', 'distance discretisation cut points', 'Value')
@@ -185,20 +186,20 @@ class MCDSAnalysis(DSAnalysis):
                                               ('parameters', 'estimator selection criterion', 'Value'),
                                               ('parameters', 'CV interval', 'Value'),
                                               CLParTruncLeft, CLParTruncRight,
-                                              CLParModFitDistCuts, CLParModDiscrDistCuts] \
+                                              CLParModFitDistCuts, CLParModDiscrDistCuts]
                                              + DSAnalysis.RunRunColumns)
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DfRunColumnTrans = \
         pd.DataFrame(index=MIRunColumns,
                      data=dict(en=['Mod Key Fn', 'Mod Adj Ser', 'Mod Chc Crit', 'Conf Interv',
-                                   'Left Trunc Dist', 'Right Trunc Dist', 'Fit Dist Cuts', 'Discr Dist Cuts'] \
+                                   'Left Trunc Dist', 'Right Trunc Dist', 'Fit Dist Cuts', 'Discr Dist Cuts']
                                   + DSAnalysis.DRunRunColumnTrans['en'],
                                fr=['Fn Clé Mod', 'Sér Ajust Mod', 'Crit Chx Mod', 'Interv Conf',
-                                   'Dist Tronc Gche', 'Dist Tronc Drte', 'Tranch Dist Mod', 'Tranch Dist Discr'] \
+                                   'Dist Tronc Gche', 'Dist Tronc Drte', 'Tranch Dist Mod', 'Tranch Dist Discr']
                                   + DSAnalysis.DRunRunColumnTrans['fr']))
     
-     # Start running the analysis, and return immediately (the associated cofu.Future object) :
+    # Start running the analysis, and return immediately (the associated cofu.Future object) :
     # this starts an async. run ; you'll need to call getResults to wait for the real end of execution.
     def submit(self, realRun=True):
         
@@ -271,25 +272,25 @@ class MCDSAnalysis(DSAnalysis):
         
     def wasRun(self):
     
-        self._wait4Results() # First, wait for end of actual run !
+        self._wait4Results()  # First, wait for end of actual run !
         
         return self.engine.wasRun(self.runStatus)
     
     def success(self):
    
-        self._wait4Results() # First, wait for end of actual run !
+        self._wait4Results()  # First, wait for end of actual run !
         
         return self.engine.success(self.runStatus)
     
     def warnings(self):
     
-        self._wait4Results() # First, wait for end of actual run !
+        self._wait4Results()  # First, wait for end of actual run !
         
         return self.engine.warnings(self.runStatus)
     
     def errors(self):
    
-        self._wait4Results() # First, wait for end of actual run !
+        self._wait4Results()  # First, wait for end of actual run !
         
         return self.engine.errors(self.runStatus)
 
@@ -320,6 +321,7 @@ class MCDSPreAnalysis(MCDSAnalysis):
     
     MIAicValue = ('detection probability', 'AIC value', 'Value')
 
+    @classmethod
     def isAnalysisBetter(cls, left, right):
 
         """Return True if left is better than right, otherwise False"""
@@ -360,14 +362,14 @@ class MCDSPreAnalysis(MCDSAnalysis):
 
         return bestAnlys
     
-    def submit(self):
+    def submit(self, realRun=True):
 
         # Submit analysis work and return a Future object to ask from and wait for its results.
         self.future = self.executor.submit(self._run)
         
         return self.future
     
-    def getResults(self):
+    def getResults(self, postCleanup=False):
         
         # Get self result : the best analysis.
         anlys = self.future.result()
@@ -387,22 +389,27 @@ if __name__ == '__main__':
     from .data import SampleDataSet
 
     # Parse command line args.
-    argser = argparse.ArgumentParser(description='Run a distance sampling analysis using a DS engine from Distance software')
+    argser = argparse.ArgumentParser(description='Run a distance sampling analysis'
+                                                 ' using a DS engine from Distance software')
 
     argser.add_argument('-g', '--debug', dest='debug', action='store_true', default=False, 
                         help='Generate input data files, but don\'t run analysis')
     argser.add_argument('-w', '--workdir', type=str, dest='workDir', default='.',
                         help='Folder where to store DS analyses subfolders and output files')
-    argser.add_argument('-e', '--engine', type=str, dest='engineType', default='MCDS', choices=['MCDS'],
+    argser.add_argument('-e', '--engine', type=str, dest='engineType', default='MCDS',
+                        choices=['MCDS'],
                         help='The Distance engine to use, among MCDS, ... and no other for the moment')
     argser.add_argument('-d', '--datafile', type=str, dest='dataFile',
-                        help='tabular data file path-name (XLSX or CSV/tab format)' \
+                        help='tabular data file path-name (XLSX or CSV/tab format)'
                              ' with at least region, surface, point, effort and distance columns')
-    argser.add_argument('-k', '--keyfn', type=str, dest='keyFn', default='HNORMAL', choices=['UNIFORM', 'HNORMAL', 'HAZARD'],
+    argser.add_argument('-k', '--keyfn', type=str, dest='keyFn', default='HNORMAL',
+                        choices=['UNIFORM', 'HNORMAL', 'HAZARD'],
                         help='Model key function')
-    argser.add_argument('-a', '--adjustfn', type=str, dest='adjustFn', default='COSINE', choices=['COSINE', 'POLY', 'HERMITE'],
+    argser.add_argument('-a', '--adjustfn', type=str, dest='adjustFn', default='COSINE',
+                        choices=['COSINE', 'POLY', 'HERMITE'],
                         help='Model adjustment function')
-    argser.add_argument('-c', '--criterion', type=str, dest='criterion', default='AIC', choices=['AIC', 'AICC', 'BIC', 'LR'],
+    argser.add_argument('-c', '--criterion', type=str, dest='criterion', default='AIC',
+                        choices=['AIC', 'AICC', 'BIC', 'LR'],
                         help='Criterion to use for selecting number of adjustment terms of the model')
     argser.add_argument('-i', '--cvinter', type=int, dest='cvInterval', default=95,
                         help='Confidence value for estimated values interval (%%)')

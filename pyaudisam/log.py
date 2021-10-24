@@ -83,6 +83,7 @@ class Logger(logging.Logger):
     def debug4(self, msg, *args, **kwargs):
         self.log(DEBUG4, msg, *args, **kwargs)
 
+    @staticmethod
     def _handlerId(hdlr):
         if isinstance(hdlr, pl.Path):
             hdlr = hdlr.as_posix()
@@ -154,9 +155,9 @@ class Logger(logging.Logger):
         """ Create, or retrieve, and eventually update the logger with given name.
         
         Parameters:
-        :param name: name o fthe target logget (see logging.getLogger)
+        :param name: name of the target logger (see logging.getLogger)
         :param level: if not None, level to set (see logging.Logger.setLevel)
-        :param reset: if True, hard cleanup logger config. (useful in jupyter notebooks)
+        :param reset: if True, hard cleanup of the logger config (useful in jupyter notebooks)
         """
         
         if not Logger.Configured:

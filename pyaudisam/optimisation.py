@@ -18,11 +18,6 @@
 # Warning: If you add/remove/change optimisation parameters to XXOptimisation class ctors,
 #          remember to update ParmXX constants accordingly in XXOptimiser classes.
 
-import sys
-import pathlib as pl
-import shutil
-import argparse
-
 from collections import namedtuple as ntuple
 
 import math
@@ -74,7 +69,7 @@ class Interval(object):
         
     def check(self, order=False, minRange=(None, None), maxRange=(None, None)):
     
-        errors = list() # No error by default.
+        errors = list()  # No error by default.
         
         if order and self.min > self.max:
             errors.append(f'min:{self.min} > max:{self.max}')
@@ -121,7 +116,7 @@ class Error(object):
         
         Parameters:
         :param error: string or Error
-        :error head: string ; ignored if error is an Error
+        :param head: string ; ignored if error is an Error
         """
         
         if isinstance(error, self.__class__):
@@ -154,8 +149,6 @@ class DSOptimisation(object):
     """DSOptimisation (abstract) : A distance sampling analysis optimisation
          possibly run in parallel with others, through an asynchronous "submit then getResults" scheme.
     """
-    
-    #OptStatusCol = 'OptStatus'
     
     def __init__(self, engine, sampleDataSet, name=None,
                  executor=None, customData=None, error=None,
@@ -217,13 +210,13 @@ class DSOptimisation(object):
                       in order to prevent real submission, but still for keeping trace
                       of unrun optimisations in optimiser results table :
                       the optimisation then always returns at least a 1-row (empty/null) result + errors.
-        :param *args, **kwargs: other _run arguments
+        :param args, kwargs: other _run arguments
         """
 
         # Submit optimisation work and return a Future object to ask from and wait for its results.
         self.future = \
             self.executor.submit(self._run, *args, 
-                                 **{ 'times': times, 'onlyBest': onlyBest, 'error': error, **kwargs })
+                                 **{'times': times, 'onlyBest': onlyBest, 'error': error, **kwargs})
         
         return self.future
 
@@ -250,12 +243,12 @@ class DSOptimisation(object):
         return fnValue if self.minimiseExpr else -fnValue 
     
 
-#class MCDSOptimisation(DSOptimisation):
+# class MCDSOptimisation(DSOptimisation):
 #
-#    """Optimisation for MCDS analyses ... stuff
-#    """
+#     """Optimisation for MCDS analyses ... stuff
+#     """
 #
-#    pass
+#     pass
 
 
 class MCDSTruncationOptimisation(DSOptimisation):
@@ -292,7 +285,8 @@ class MCDSTruncationOptimisation(DSOptimisation):
         :param cvInterval:  
 
         Optimisation target parameters (at least one MUST be not None):
-        :param minDist: Min, max Interval() or 2-item list or tuple, or int / float constant for left truncation distance ;
+        :param minDist: Min, max Interval() or 2-item list or tuple,
+                        or int / float constant for left truncation distance ;
                         default: None => not optimised
         :param maxDist: Idem, for right truncation distance ;
                         default: None => not optimised
@@ -316,16 +310,15 @@ class MCDSTruncationOptimisation(DSOptimisation):
         # Check and prepare analysis and optimisation params
         moreError = Error()
         if not (len(estimKeyFn) >= 2 and estimKeyFn in [kf[:len(estimKeyFn)] for kf in engine.EstKeyFns]):
-            moreError.append('Invalid estimate key function {}: should be in {} or at least 2-char abreviations'
+            moreError.append('Invalid estimate key function {}: should be in {} or at least 2-char abbreviations'
                              .format(estimKeyFn, engine.EstKeyFns))
-        if not (len(estimAdjustFn) >= 2 \
-                and estimAdjustFn in [kf[:len(estimAdjustFn)] for kf in engine.EstAdjustFns]):
-            moreError.append('Invalid estimate adjust function {}: should be in {} or at least 2-char abreviations'
+        if not (len(estimAdjustFn) >= 2 and estimAdjustFn in [kf[:len(estimAdjustFn)] for kf in engine.EstAdjustFns]):
+            moreError.append('Invalid estimate adjust function {}: should be in {} or at least 2-char abbreviations'
                              .format(estimAdjustFn, engine.EstAdjustFns))
-        if not (estimCriterion in engine.EstCriterions):
+        if not (estimCriterion in engine.EstCriteria):
             moreError.append('Invalid estimate criterion {}: should be in {}'
-                             .format(estimCriterion, engine.EstCriterions))
-        if not (cvInterval > 0 and cvInterval < 100):
+                             .format(estimCriterion, engine.EstCriteria))
+        if not (0 < cvInterval < 100):
             moreError.append('Invalid cvInterval {}% : should be in {}'.format(cvInterval, ']0%, 100%['))
                
         if not any(optPar is not None for optPar in [minDist, maxDist, fitDistCuts, discrDistCuts]):
@@ -369,9 +362,11 @@ class MCDSTruncationOptimisation(DSOptimisation):
                              .format(minDist.max, maxDist.min))
         
         if not (fitDistCutsFctr is None or 0 <= fitDistCutsFctr.min < fitDistCutsFctr.max):
-            moreError.append('Invalid mult. factor for number of fitting distance cuts {}'.format(fitDistCutsFctr))
+            moreError.append('Invalid mult. factor for number of fitting distance cuts {}'
+                             .format(fitDistCutsFctr))
         if not (discrDistCutsFctr is None or 0 <= discrDistCutsFctr.min < discrDistCutsFctr.max):
-            moreError.append('Invalid mult. factor number for distance discretisation cuts {}'.format(discrDistCutsFctr))
+            moreError.append('Invalid mult. factor number for distance discretisation cuts {}'
+                             .format(discrDistCutsFctr))
         
         if not (fitDistCutsFctr is None or fitDistCuts is None):
             moreError.append('Can\'t specify both absolute value and mult. factor'
@@ -434,7 +429,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
             self.discrDistCuts = discrDistCuts
             
         # Other optimisation stuff.
-        fltSup = float('inf') # sys.float_info.max
+        fltSup = float('inf')  # sys.float_info.max
         self.invalidFuncValue = fltSup if minimiseExpr else -fltSup
 
         # Where to store analyses elapsed times before computing stats at the end.
@@ -463,8 +458,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
 
     def _getAnalysisResultValue(self, resultExpr, sResults):
         
-        dLocals = { alias: sResults.get(name, worst) 
-                    for alias, (name, worst) in self.AnlysResultIndex.items() }
+        dLocals = {alias: sResults.get(name, worst) for alias, (name, worst) in self.AnlysResultIndex.items()}
                                           
         logger.debug3('_getAnalysisResultValue: locals={}'.format(dLocals))
         
@@ -494,8 +488,8 @@ class MCDSTruncationOptimisation(DSOptimisation):
         dNameFlds = dict(l=minDist, r=maxDist, f=fitDistCuts, d=discrDistCuts)
         nameSufx = ''.join(c+str(int(v)) for c, v in dNameFlds.items() if v is not None)
 
-        logger.debug2(f'Running analysis (minDist={minDist}, maxDist={maxDist},' \
-                       'fitDistCuts={fitDistCuts}, discrDistCuts={discrDistCuts}) ...')
+        logger.debug2(f'Running analysis (minDist={minDist}, maxDist={maxDist},'
+                      f'fitDistCuts={fitDistCuts}, discrDistCuts={discrDistCuts}) ...')
                       
         anlys = MCDSAnalysis(engine=self.engine, sampleDataSet=self.sampleDataSet,
                              name=self.name + '-' + nameSufx, logData=self.logData,
@@ -596,17 +590,17 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         dParms = dict(core='zoopt')
         
         mxi = max(0, mxi)
-        if mxi != 0: # Default zoopt value
+        if mxi != 0:  # Default zoopt value
             dParms.update(maxIters=mxi)
 
-        if tv is not None: # Default zoopt value
+        if tv is not None:  # Default zoopt value
             dParms.update(termExprValue=tv)
             
-        if a != 'racos': # Default zoopt value
+        if a != 'racos':  # Default zoopt value
             dParms.update(algorithm=a)
             
         mxr = max(0, mxr)
-        if mxr != 0: # Default value
+        if mxr != 0:  # Default value
             dParms.update(maxRetries=mxr)
             
         return dParms
@@ -616,7 +610,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
     CoreUserSpecParser = zoopt
     
     Parameter = ntuple('Parameter', ['name', 'interval', 'continuous', 'ordered'],
-                                    defaults=['unknown', Interval(), True, True])
+                       defaults=['unknown', Interval(), True, True])
     
     def __init__(self, engine, sampleDataSet, name=None,
                  distanceField='Distance', customData=None,
@@ -626,17 +620,19 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                  minDist=None, maxDist=None, fitDistCutsFctr=None, discrDistCutsFctr=None,
                  fitDistCuts=None, discrDistCuts=None,
                  expr2Optimise='chi2', minimiseExpr=False, 
-                 maxIters=100, termExprValue=None, algorithm='racos', maxRetries=0): # CoreParamNames !
+                 maxIters=100, termExprValue=None, algorithm='racos', maxRetries=0):  # CoreParamNames !
 
         """Ctor
         
         Other parameters: See base class
         
         ZOOpt specific parameters:
-        :param algorithm: Zeroth Order optimisation algorithm to use (only 'racos' is suitable here, 'poss' is not, don't use))
+        :param algorithm: Zeroth Order optimisation algorithm to use
+                          (only 'racos' is suitable here, 'poss' is not, don't use))
         :param maxRetries: Max number of retries on optim. core failure ; default: 0 => 0 retries = 1 try
         :param maxIters: Number of iterations that stop optimisation algorithm when reached ; default: 0 => no limit
-        :param termExprValue: Value that stops optimisation algorithm when exceeded ; default: None => no such check done
+        :param termExprValue: Value that stops optimisation algorithm when exceeded ;
+                          default: None => no such check done
                           Note: when minimising, "exceeded" means that the function value becomes <= that termExprValue,
                                 and the other way round when maximising.
         """
@@ -690,12 +686,12 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
 
         # Retry-on-failure stuff
         self.maxRetries = max(maxRetries, 0)
-        self.retries = 0 # Just to keep track ...
+        self.retries = 0  # Just to keep track ...
 
     def _function(self, solution):
     
         """The function to minimise : called as many times as needed by zoopt kernel.
-        :param solution: the zoop "possible Solution" object to try and check if good enough
+        :param solution: the zoopt "possible Solution" object to try and check if good enough
         """
 
         # Retrieve input parameters (to optimise)
@@ -722,12 +718,12 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
             except Exception as exc:
                 nTriesLeft -= 1
                 if nTriesLeft > 0:
-                    self.retries += 1 # Just to keep track.
+                    self.retries += 1  # Just to keep track.
                     logger.warning('zoopt.Opt.min retry #{} on {}'.format(maxTries - nTriesLeft, exc),
                                    exc_info=True)
                 else:
                     logger.warning('zoopt.Opt.min failed after #{} tries on {}'.format(maxTries, exc))
-                    return None #raise
+                    return None
 
     def _run(self, times=1, onlyBest=None, error=None, *args, **kwargs):
         
@@ -760,7 +756,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         nMeanFunEvals = int(round(self.nFunEvals / len(solutions)))
         meanFunElapd = np.nan if not self.nFunEvals or not self.elapsedTimes \
                               else sum(self.elapsedTimes) / self.nFunEvals
-        return [dict(zip(self.resultsCols, [None, None, nMeanFunEvals, meanFunElapd] \
+        return [dict(zip(self.resultsCols, [None, None, nMeanFunEvals, meanFunElapd]
                                            + sol.get_x() + [self.analysisValue(sol.get_value())]))
                 for sol in solutions]
 
@@ -772,22 +768,26 @@ if __name__ == '__main__':
     from .data import SampleDataSet
 
     # Parse command line args.
-    argser = argparse.ArgumentParser(description='Run a distance sampling analysis using a DS engine from Distance software')
+    argser = argparse.ArgumentParser(description='Run a distance sampling analysis'
+                                                 ' using a DS engine from Distance software')
 
     argser.add_argument('-g', '--debug', dest='debug', action='store_true', default=False, 
-                        help='Generate input data files, but don\'t run analysis')
+                        help="Generate input data files, but don't run analysis")
     argser.add_argument('-w', '--workdir', type=str, dest='workDir', default='.',
                         help='Folder where to store DS analyses subfolders and output files')
     argser.add_argument('-e', '--engine', type=str, dest='engineType', default='MCDS', choices=['MCDS'],
                         help='The Distance engine to use, among MCDS, ... and no other for the moment')
     argser.add_argument('-d', '--datafile', type=str, dest='dataFile',
-                        help='tabular data file path-name (XLSX or CSV/tab format)' \
+                        help='tabular data file path-name (XLSX or CSV/tab format)'
                              ' with at least region, surface, point, effort and distance columns')
-    argser.add_argument('-k', '--keyfn', type=str, dest='keyFn', default='HNORMAL', choices=['UNIFORM', 'HNORMAL', 'HAZARD'],
+    argser.add_argument('-k', '--keyfn', type=str, dest='keyFn', default='HNORMAL',
+                        choices=['UNIFORM', 'HNORMAL', 'HAZARD'],
                         help='Model key function')
-    argser.add_argument('-a', '--adjustfn', type=str, dest='adjustFn', default='COSINE', choices=['COSINE', 'POLY', 'HERMITE'],
+    argser.add_argument('-a', '--adjustfn', type=str, dest='adjustFn', default='COSINE',
+                        choices=['COSINE', 'POLY', 'HERMITE'],
                         help='Model adjustment function')
-    argser.add_argument('-c', '--criterion', type=str, dest='criterion', default='AIC', choices=['AIC', 'AICC', 'BIC', 'LR'],
+    argser.add_argument('-c', '--criterion', type=str, dest='criterion', default='AIC',
+                        choices=['AIC', 'AICC', 'BIC', 'LR'],
                         help='Criterion to use for selecting number of adjustment terms of the model')
     argser.add_argument('-i', '--cvinter', type=int, dest='cvInterval', default=95,
                         help='Confidence value for estimated values interval (%%)')

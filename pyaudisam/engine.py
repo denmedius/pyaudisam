@@ -31,15 +31,16 @@ import pandas as pd
 
 from . import log
 
-logger = log.logger('ads.eng', level=log.INFO) # Initial config (can be changed later)
+logger = log.logger('ads.eng', level=log.INFO)  # Initial config (can be changed later)
 
 from .executor import Executor
 
 # Keep ruin'dows from opening a GPF dialog box every time a launched executable (like MCDS.exe) crashes !
 # BUT: This does NOT work :-(
 if sys.platform.startswith('win'):
-    import ctypes, msvcrt
-    ctypes.windll.kernel32.SetErrorMode(msvcrt.SEM_NOGPFAULTERRORBOX);
+    import ctypes
+    import msvcrt
+    ctypes.windll.kernel32.SetErrorMode(msvcrt.SEM_NOGPFAULTERRORBOX)
 
 # Actual package install dir.
 KInstDirPath = pl.Path(__file__).parent.resolve()
@@ -60,7 +61,7 @@ class DSEngine(object):
     ForbidPathChars = [' ', '(', ')', ',']
     
     # Distance software detection params.
-    DistanceMajorVersions = [7, 6] # Lastest first.
+    DistanceMajorVersions = [7, 6]  # Lastest first.
     DistanceInstDirNameFmt = 'Distance {majorVersion}'
     DistancePossInstPaths = map(pl.Path, ['C:/Program files (x86)', 'C:/Program files', 'C:/PortableApps', '.'])
 
@@ -172,8 +173,8 @@ class DSEngine(object):
                 if foundTgtField:
                     break
             if not foundTgtField:
-                raise KeyError('Could not find a match for expected field {} in sample data set columns [{}]' \
-                                .format(tgtField, ', '.join(srcFields)))
+                raise KeyError('Could not find a match for expected field {} in sample data set columns [{}]'
+                               .format(tgtField, ', '.join(srcFields)))
         
         # Extra fields.
         extFields = [field for field in srcFields if field not in matFields]
@@ -184,7 +185,7 @@ class DSEngine(object):
 
     # Setup a thread & process safe run folder for an analysis
     # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
-    # Note: Not a classmethod because it uses self.workDir
+    # Note: Not a class method because it uses self.workDir
     def setupRunFolder(self, runPrefix=None):
 
         # MCDS does not support folder and file names with spaces inside ...
@@ -192,17 +193,17 @@ class DSEngine(object):
         if runPrefix is None:
             runPrefix = ''
         else:
-            runPrefix = runPrefix.translate(str.maketrans({c:'' for c in ' ,.:;()/'})) + '-'
+            runPrefix = runPrefix.translate(str.maketrans({c: '' for c in ' ,.:;()/'})) + '-'
 
         return pl.Path(tempfile.mkdtemp(dir=self.workDir, prefix=runPrefix))
 
     # Engine in/out file names.
-    CmdFileName    = 'cmd.txt'
-    DataFileName   = 'data.txt'
+    CmdFileName = 'cmd.txt'
+    DataFileName = 'data.txt'
     OutputFileName = 'output.txt'
-    LogFileName    = 'log.txt'
-    StatsFileName  = 'stats.txt'
-    PlotsFileName  = 'plots.txt'
+    LogFileName = 'log.txt'
+    StatsFileName = 'stats.txt'
+    PlotsFileName = 'plots.txt'
         
     # Shutdown : release any used resource.
     # Post-condition: Instance can no more run analyses.
@@ -226,8 +227,8 @@ class MCDSEngine(DSEngine):
     
     # First data fields in exports for distance / MCDS importing
     # (N/A ones may get removed before use, according to distance type and clustering options).
-    FirstDataFields = { 'Point' : ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE', 'SIZE'],
-                        'Line' : ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE', 'ANGLE', 'SIZE'] }
+    FirstDataFields = {'Point': ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE', 'SIZE'],
+                       'Line': ['STR_LABEL', 'STR_AREA', 'SMP_LABEL', 'SMP_EFFORT', 'DISTANCE', 'ANGLE', 'SIZE']}
 
     # Estimator key functions (Order: Distance .chm doc, "MCDS Engine Stats File", note 2 below second table).
     EstKeyFns = ['UNIFORM', 'HNORMAL', 'NEXPON', 'HAZARD']
@@ -238,17 +239,17 @@ class MCDSEngine(DSEngine):
     EstAdjustFnDef = EstAdjustFns[0]
 
     # Estimator adjustment terms selection criterion.
-    EstCriterions = ['AIC', 'AICC', 'BIC', 'LR']
-    EstCriterionDef = EstCriterions[0]
+    EstCriteria = ['AIC', 'AICC', 'BIC', 'LR']
+    EstCriterionDef = EstCriteria[0]
     
     # Estimator confidence value for output interval.
-    EstCVIntervalDef = 95 # %
+    EstCVIntervalDef = 95  # %
     
     # Distance truncation / cut points parameters.
-    DistMinDef = None # No left truncation (min = 0)
-    DistMaxDef = None # No right truncation (max = max. distance observed)
-    DistFitCutsDef = None # Model fitting : Automatic engine distance cuts determination.
-    DistDiscrCutsDef = None # Distance values discretisation : None (keep exact values).
+    DistMinDef = None  # No left truncation (min = 0)
+    DistMaxDef = None  # No right truncation (max = max. distance observed)
+    DistFitCutsDef = None  # Model fitting : Automatic engine distance cuts determination.
+    DistDiscrCutsDef = None  # Distance values discretisation : None (keep exact values).
 
     # Executable 
     ExeFilePathName = DSEngine.findExecutable('MCDS.exe')
@@ -267,8 +268,8 @@ class MCDSEngine(DSEngine):
         logger.debug1('* {}'.format(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatRowSpecs:
             statRowSpecLines = [line.rstrip('\n') for line in fStatRowSpecs.readlines() if not line.startswith('#')]
-            statRowSpecs =  [(statRowSpecLines[i].strip(), statRowSpecLines[i+1].strip()) \
-                             for i in range(0, len(statRowSpecLines)-2, 3)]
+            statRowSpecs = [(statRowSpecLines[i].strip(), statRowSpecLines[i+1].strip())
+                            for i in range(0, len(statRowSpecLines)-2, 3)]
             cls.DfStatRowSpecs = pd.DataFrame(columns=['Name', 'Description'],
                                               data=statRowSpecs).set_index('Name')
             assert not cls.DfStatRowSpecs.empty, 'Empty MCDS stats row specs'
@@ -300,12 +301,12 @@ class MCDSEngine(DSEngine):
                         break
                 modNum = int(modNum)
                 if statNum.startswith('101 '):
-                    for num in range(nMaxAdjParams): # Assume no more than that ... a bit hacky !
-                        statModSpecs.append((modNum, modDesc, 101+num, # Make statDesc unique for later indexing
+                    for num in range(nMaxAdjParams):  # Assume no more than that ... a bit hacky !
+                        statModSpecs.append((modNum, modDesc, 101+num,  # Make statDesc unique for later indexing
                                              statDesc.replace('each', 'A({})'.format(num+1)), statNotes))
                 else:
                     statNum = int(statNum)
-                    if modNum == 2 and statNum == 3: # Actually, there are 0 or 3 of these ...
+                    if modNum == 2 and statNum == 3:  # Actually, there are 0 or 3 of these ...
                         for num in range(3):
                             statModSpecs.append((modNum, modDesc, num+201,
                                                  # Change statNum & Make statDesc unique for later indexing
@@ -329,7 +330,7 @@ class MCDSEngine(DSEngine):
         logger.debug1('* {}'.format(fileName))
         with open(fileName, mode='r', encoding='utf8') as fStatModNotes:
             statModNoteLines = [line.rstrip('\n') for line in fStatModNotes.readlines() if not line.startswith('#')]
-            statModNotes =  [(int(line[:2]), line[2:].strip()) for line in statModNoteLines if line]
+            statModNotes = [(int(line[:2]), line[2:].strip()) for line in statModNoteLines if line]
             cls.DfStatModNotes = pd.DataFrame(data=statModNotes, columns=['Note', 'Text']).set_index('Note')
             assert not cls.DfStatModNotes.empty, 'Empty MCDS stats module notes'
             
@@ -402,7 +403,6 @@ class MCDSEngine(DSEngine):
 
         return cls._DfStatSampColsTrans
 
-
     def __init__(self, workDir='.', executor=None, runMethod='subprocess.run', timeOut=None,
                  distanceUnit='Meter', areaUnit='Hectare',
                  surveyType='Point', distanceType='Radial', clustering=False):
@@ -425,7 +425,7 @@ class MCDSEngine(DSEngine):
                'Invalid distance type {} : should be in {}'.format(distanceType, self.DistTypes)
         
         # Specialise class level regexps for matching import fields,
-        #according to distance type and clustering options
+        # according to distance type and clustering options
         self.importFieldAliasREs = self.ImportFieldAliasREs.copy()
         if not clustering:
             del self.importFieldAliasREs['SIZE']
@@ -522,7 +522,7 @@ class MCDSEngine(DSEngine):
                 distDiscrSpecs += ' /NClass=' + format(discrDistCuts, 'g')
             # Other cases not supported, should be asserted by the caller.
         
-        elif fitDistCuts is not None: # Can't fit model on other distance intervals than used for discretisation.
+        elif fitDistCuts is not None:  # Can't fit model on other distance intervals than used for discretisation.
             
             if isinstance(fitDistCuts, list):
                 assert not (minDist is None or maxDist is None)
@@ -540,7 +540,7 @@ class MCDSEngine(DSEngine):
         # b. Format contents string
         cmdTxt = self.CmdTxt.format(output=runDir/self.OutputFileName, log=runDir/self.LogFileName,
                                     stats=runDir/self.StatsFileName, plots=runDir/self.PlotsFileName,
-                                    bootstrap='None', bootpgrss='None', # No support for the moment.
+                                    bootstrap='None', bootpgrss='None',  # No support for the moment.
                                     survType=self.options.surveyType, distType=self.options.distanceType,
                                     distUnit=self.options.distanceUnit, areaUnit=self.options.areaUnit,
                                     dataFields=','.join(self.options.firstDataFields),
@@ -614,13 +614,13 @@ class MCDSEngine(DSEngine):
         return dataFileName
     
     # Run status codes (from MCDS documentation)
-    RCNotRun      = 0
-    RCOK          = 1
-    RCWarnings    = 2
-    RCErrors      = 3
-    RCFileErrors  = 4
+    RCNotRun = 0
+    RCOK = 1
+    RCWarnings = 2
+    RCErrors = 3
+    RCFileErrors = 4
     RCOtherErrors = 5  # and above, straight from MCDS.exe.
-    RCTimedOut    = 555  # as named (through subprocess or concurrent.futures modules)
+    RCTimedOut = 555  # as named (through subprocess or concurrent.futures modules)
     
     @classmethod
     def wasRun(cls, runCode):
@@ -711,13 +711,11 @@ class MCDSEngine(DSEngine):
         """
 
         if method == 'os.system':
-            return cls._runThroughOSSystem(execFileName, cmdFileName,
-                                          forReal=forReal)
+            return cls._runThroughOSSystem(execFileName, cmdFileName, forReal=forReal)
         elif method == 'subprocess.run':
-            return cls._runThroughSubProcessRun(execFileName, cmdFileName,
-                                               forReal=forReal, timeOut=timeOut)
+            return cls._runThroughSubProcessRun(execFileName, cmdFileName, forReal=forReal, timeOut=timeOut)
 
-        raise NotImplementedError(f'Unkown MCDSEngine run method "{method}"')
+        raise NotImplementedError(f'Unknown MCDSEngine run method "{method}"')
 
     # Run 1 MCDS analysis from the beginning to the end (blocking for the calling thread)
     # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
@@ -753,7 +751,7 @@ class MCDSEngine(DSEngine):
 
         return runStatus, anlysStartTime, anlysElapsedTime + engElapsedTime, runDir, sResults
     
-   # Start running an MCDS analysis, using the executor (possibly asynchronously if it is not a sequential one)
+    # Start running an MCDS analysis, using the executor (possibly asynchronously if it is not a sequential one)
     def submitAnalysis(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
         # Check really implemented options
@@ -782,7 +780,7 @@ class MCDSEngine(DSEngine):
         # 2. Remove Stratum, Sample and Estimator columns (no support for multiple ones for the moment)
         dfStats.drop(columns=['Stratum', 'Sample', 'Estimator'], inplace=True)
         
-        # 3. Stack figure columns to rows, to get more confortable
+        # 3. Stack figure columns to rows, to get more comfortable
         dfStats.set_index(['Module', 'Statistic'], append=True, inplace=True)
         dfStats = dfStats.stack().reset_index()
         dfStats.rename(columns={'level_0': 'id', 'level_3': 'Figure', 0: 'Value'}, inplace=True)
@@ -810,9 +808,11 @@ class MCDSEngine(DSEngine):
         
         # 8. Make some values more readable.
         lblKeyFn = (dfStats.Module == 2) & (dfStats.Statistic == 13)
-        dfStats.loc[lblKeyFn, 'Value'] = dfStats.loc[lblKeyFn, 'Value'].astype(int).apply(lambda n: cls.EstKeyFns[n-1])
+        dfStats.loc[lblKeyFn, 'Value'] = \
+            dfStats.loc[lblKeyFn, 'Value'].astype(int).apply(lambda n: cls.EstKeyFns[n-1])
         lblAdjFn = (dfStats.Module == 2) & (dfStats.Statistic == 14)
-        dfStats.loc[lblAdjFn, 'Value'] = dfStats.loc[lblAdjFn, 'Value'].astype(int).apply(lambda n: cls.EstAdjustFns[n-1])
+        dfStats.loc[lblAdjFn, 'Value'] = \
+            dfStats.loc[lblAdjFn, 'Value'].astype(int).apply(lambda n: cls.EstAdjustFns[n-1])
         
         # 9. Final indexing
         dfStats = dfStats.reindex(columns=['modDesc', 'statDesc', 'Figure', 'Value'])
@@ -839,8 +839,8 @@ class MCDSEngine(DSEngine):
         
         outLst = open(pl.Path(runDir) / cls.OutputFileName).read().strip().split('\t')
         
-        return [dict(id=title.translate(str.maketrans({c:'' for c in ' ,.-:()/'})), 
-                     title=title.strip(), text=text.strip('\n')) \
+        return [dict(id=title.translate(str.maketrans({c: '' for c in ' ,.-:()/'})),
+                     title=title.strip(), text=text.strip('\n'))
                 for title, text in [outLst[i:i+2] for i in range(0, len(outLst), 2)]]
             
     # Decode output plots file as a dict of plot dicts (key = output chapter title)
@@ -860,10 +860,10 @@ class MCDSEngine(DSEngine):
             xMin, xMax, yMin, yMax = [float(s) for s in next(lines).split()]
             nDataRows = int(next(lines))
             dataRows = list()
-            for l in range(nDataRows):
+            for _ in range(nDataRows):
                 dataRows.append([np.nan if '*' in s else float(s) for s in next(lines).split()])
                 
-            dPlots[title] = dict(title=title, subTitle=subTitle, dataRows=dataRows, #nDataRows=nDataRows,,
+            dPlots[title] = dict(title=title, subTitle=subTitle, dataRows=dataRows,  # nDataRows=nDataRows,
                                  xLabel=xLabel, yLabel=yLabel, xMin=xMin, xMax=xMax, yMin=yMin, yMax=yMax)
 
         return dPlots
@@ -880,7 +880,7 @@ class MCDSEngine(DSEngine):
         dataFilePathName = runDir / cls.DataFileName
         dfData = pd.read_csv(dataFilePathName, sep='\t', names=dataCols)
 
-        logger.debug('Loaded {} rows with columns {} from MCDS data file {}.' \
+        logger.debug('Loaded {} rows with columns {} from MCDS data file {}.'
                      .format(len(dfData), ','.join(dataCols), dataFilePathName.as_posix()))
 
         return dfData
@@ -888,14 +888,14 @@ class MCDSEngine(DSEngine):
     # Columns names for exporting to Distance import format with explicit columns headers
     # (or for explicitating their contents in a standard way).
     FirstDistanceExportFields = \
-    { 'Point': dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
-                    SMP_LABEL='Point transect*Label', SMP_EFFORT='Point transect*Survey effort',
-                    DISTANCE='Observation*Radial distance',
-                    SIZE='Observation*Cluster size'),
-      'Line':  dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
-                    SMP_LABEL='Line transect*Label', SMP_EFFORT='Line transect*Line length',
-                    DISTANCE='Observation*Perp distance', ANGLE='Observation*Angle',
-                    SIZE='Observation*Cluster size') }
+        {'Point': dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
+                       SMP_LABEL='Point transect*Label', SMP_EFFORT='Point transect*Survey effort',
+                       DISTANCE='Observation*Radial distance',
+                       SIZE='Observation*Cluster size'),
+         'Line':  dict(STR_LABEL='Region*Label', STR_AREA='Region*Area',
+                       SMP_LABEL='Line transect*Label', SMP_EFFORT='Line transect*Line length',
+                       DISTANCE='Observation*Perp distance', ANGLE='Observation*Angle',
+                       SIZE='Observation*Cluster size')}
  
     def distanceFields(self, dsFields):
         return [self.FirstDistanceExportFields[self.options.surveyType][name] for name in dsFields]
@@ -932,7 +932,7 @@ class MCDSEngine(DSEngine):
         logger.debug('Data Distance-exported to {}.'.format(tgtFilePathName))
         
         return tgtFilePathName
-        
+
 
 if __name__ == '__main__':
 

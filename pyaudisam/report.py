@@ -16,7 +16,8 @@
 # Submodule "report": HTML and Excel report generation from DS results
 
 import sys
-import os, shutil
+import os
+import shutil
 import re
 import pathlib as pl
 from packaging import version as pkgver
@@ -32,7 +33,7 @@ import pandas as pd
 import jinja2
 import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
-#import seaborn as sb
+# import seaborn as sb
 
 from . import log, runtime, __version__
 from .executor import Executor
@@ -92,7 +93,7 @@ class ResultsReport(object):
         self.resultsSet = resultsSet
         
         self.trRunFolderCol = resultsSet.dfColTrans.loc[resultsSet.analysisClass.RunFolderColumn, lang]
-        self.dfEnColTrans = None # EN to other languages column name translation
+        self.dfEnColTrans = None  # EN to other languages column name translation
 
         self.lang = lang
         self.title = title
@@ -140,7 +141,8 @@ class ResultsReport(object):
             if self.dfEnColTrans is None:
                 self.dfEnColTrans = self.resultsSet.transTable()
                 self.dfEnColTrans.set_index('en', inplace=True, drop=True)
-            def _trEnColName(cn): # Assuming there's only 1 match !
+
+            def _trEnColName(cn):  # Assuming there's only 1 match !
                 return self.dfEnColTrans.at[cn, self.lang]
         
         # 2. Translate !
@@ -153,7 +155,8 @@ class ResultsReport(object):
         elif isinstance(colNames, dict):
             trColNames = {_trEnColName(colName): value for colName, value in colNames.items()
                           if not startsWith or colName.startswith(startsWith)}
-        # Otherwise ... boom: trColNames undefined !
+        else:
+            raise NotImplementedError(f'Unsupported type {type(colNames)} for en-column names to translate spec')
         
         # Done
         return trColNames
@@ -181,11 +184,11 @@ class ResultsReport(object):
     # Get Jinja2 template environment for HTML reports.
     def getTemplateEnv(self):
         
-        # Build and configure jinja2 environnement if not already done.
+        # Build and configure jinja2 environment if not already done.
         if self.tmplEnv is None:
             self.tmplEnv = jinja2.Environment(loader=jinja2.FileSystemLoader([KInstDirPath]),
                                               trim_blocks=True, lstrip_blocks=True)
-            #self.tmplEnv.filters.update(trace=_jcfPrint2StdOut) # Template debugging ...
+            # self.tmplEnv.filters.update(trace=_jcfPrint2StdOut)  # Template debugging ...
 
         return self.tmplEnv
     
@@ -228,7 +231,7 @@ class ResultsReport(object):
 
         fileName = fileName or os.path.join(self.tgtFolder, self.tgtPrefix + ext)
         
-        with pd.ExcelWriter(fileName) as xlsxWriter:
+        with pd.ExcelWriter(fileName, engine=engine) as xlsxWriter:
             for wstName, (dfWstData, wstIndex) in self.asWorkbook(rebuild=rebuild).items():
                 dfWstData.to_excel(xlsxWriter, sheet_name=wstName, index=wstIndex)            
 
@@ -248,7 +251,6 @@ class ResultsReport(object):
         
         return self.toExcel(fileName, engine='odf', ext='.ods', rebuild=rebuild)
 
-
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
     # in the "one analysis at a time" case.
     # (sort, convert units, round values, and style).
@@ -257,7 +259,7 @@ class ResultsReport(object):
     # Return a pd.DataFrame.Styler
     def finalFormatEachAnalysisData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
         
-        return dfTrData.style # Nothing done here, specialize in derived class if needed.
+        return dfTrData.style  # Nothing done here, specialize in derived class if needed.
 
     # Final formatting of translated data tables, for HTML or SpreadSheet rendering
     # in the "all analyses at once" case.
@@ -265,83 +267,82 @@ class ResultsReport(object):
     # To be specialized in derived classes (here, we do nothing) !
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalFormatAllAnalysesData(self, dfTrData, sort=True, convert=True, round_=True, style=True):
+    def finalFormatAllAnalysesData(self, dfTrData, sort=True, indexer=None, convert=True, round_=True, style=True):
         
-        logger.debug(f'ResultsReport.finalFormatAllAnalysesData'
-                     f'({sort=}, {indexer=}, {convert=}, {round_=}, {style=})')
+        logger.debug(f'ResultsReport.finalFormatAllAnalysesData({sort=}, {indexer=}, {convert=}, {round_=}, {style=})')
 
-        return dfTrData.style # Nothing done here, specialize in derived class if needed.
+        return dfTrData.style  # Nothing done here, specialize in derived class if needed.
 
-    
-# DS results reports class (Excel and HTML, targetting similar layout as in Distance 6+)
+
+# DS results reports class (Excel and HTML, targeting similar layout as in Distance 6+)
 class DSResultsDistanceReport(ResultsReport):
 
     # Translation table.
     DTrans = _mergeTransTables(base=ResultsReport.DTrans,
-      update=dict(en={'RunFolder': 'Analysis', 'Synthesis': 'Synthesis',
-                      'Details': 'Details', 'Traceability': 'Traceability',
-                      'Table of contents': 'Table of contents',
-                      'Click on analysis # for details': 'Click on analysis number to get to detailed report',
-                      'Main results': 'Results: main figures',
-                      'Detailed results': 'Results: all details',
-                      'Download Excel': 'Download as Excel(TM) file',
-                      'Summary computation log': 'Summary computation log',
-                      'Detailed computation log': 'Detailed computation log',
-                      'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
-                      'Back to top': 'Back to global report',
-                      'Observation model': 'Observations (fitted)',
-                      'Real observations': 'Observations (sampled)',
-                      'Fixed bin distance histograms': 'Fixed bin distance histograms',
-                      'Distance': 'Distance', 'Number of observations': 'Number of observations',
-                      'Page generated': 'Page generated', 'with': 'with',
-                      'with icons from': 'with icons from',
-                      'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
-                      'Point': 'Point transect', 'Line': 'Line transect',
-                      'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
-                      'Radial & Angle': 'Radial distance & Angle',
-                      'Clustering': 'With clustering', 'No clustering': 'No clustering',
-                      'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
-                      'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
-                      'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
-                      'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
-                      'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
-                      'Sq. Nautical mile': 'Sq. Nautical mile',
-                      'Traceability tech. details':
-                        'Traceability data (more technical details on how this report was produced)',
-                      'Order': 'Order', 'Qual Bal': 'Qual Bal', 'Pre-selection': 'Pre-selection'},
-                  fr={'DossierExec': 'Analyse', 'Synthesis': 'Synthèse',
-                      'Details': 'Détails', 'Traceability': 'Traçabilité',
-                      'Table of contents': 'Table des matières',
-                      'Click on analysis # for details': 
-                        "Cliquer sur le numéro de l'analyse pour accéder au rapport détaillé",
-                      'Main results': 'Résultats : indicateurs principaux',
-                      'Detailed results': 'Résultats : tous les détails',
-                      'Download Excel': 'Télécharger le classeur Excel (TM)',
-                      'Summary computation log': 'Résumé des calculs',
-                      'Detailed computation log': 'Détail des calculs',
-                      'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
-                      'Back to top': 'Retour au rapport global',
-                      'Observation model': 'Observations (fitted)',  # No actual translation for plots
-                      'Real observations': 'Observations (sampled)',  # Idem
-                      'Fixed bin distance histograms': 'Fixed bin distance histograms',  # Idem
-                      'Distance': 'Distance',  # Idem
-                      'Number of observations': 'Number of observations',  # Idem
-                      'Page generated': 'Page générée', 'with': 'avec',
-                      'with icons from': 'avec les pictogrammes de',
-                      'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
-                      'Point': 'Point fixe', 'Line': 'Transect',
-                      'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
-                      'Radial & Angle': 'Distance radiale & Angle',
-                      'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
-                      'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
-                      'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
-                      'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
-                      'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
-                      'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
-                      'Sq. Nautical mile': 'Mille marin carré',
-                      'Traceability tech. details':
-                        'Données de traçabilité (autres détails techniques sur comment ce rapport a été produit)',
-                      'Order': 'Ordre', 'Qual Bal': 'Qual Equi', 'Pre-selection': 'Pré-selection'}))
+        update=dict(en={'RunFolder': 'Analysis', 'Synthesis': 'Synthesis',
+                        'Details': 'Details', 'Traceability': 'Traceability',
+                        'Table of contents': 'Table of contents',
+                        'Click on analysis # for details': 'Click on analysis number to get to detailed report',
+                        'Main results': 'Results: main figures',
+                        'Detailed results': 'Results: all details',
+                        'Download Excel': 'Download as Excel(TM) file',
+                        'Summary computation log': 'Summary computation log',
+                        'Detailed computation log': 'Detailed computation log',
+                        'Previous analysis': 'Previous analysis', 'Next analysis': 'Next analysis',
+                        'Back to top': 'Back to global report',
+                        'Observation model': 'Observations (fitted)',
+                        'Real observations': 'Observations (sampled)',
+                        'Fixed bin distance histograms': 'Fixed bin distance histograms',
+                        'Distance': 'Distance', 'Number of observations': 'Number of observations',
+                        'Page generated': 'Page generated', 'with': 'with',
+                        'with icons from': 'with icons from',
+                        'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
+                        'Point': 'Point transect', 'Line': 'Line transect',
+                        'Radial': 'Radial distance', 'Perpendicular': 'Perpendicular distance',
+                        'Radial & Angle': 'Radial distance & Angle',
+                        'Clustering': 'With clustering', 'No clustering': 'No clustering',
+                        'Meter': 'Meter', 'Kilometer': 'Kilometer', 'Mile': 'Mile',
+                        'Inch': 'Inch', 'Feet': 'Feet', 'Yard': 'Yard', 'Nautical mile': 'Nautical mile',
+                        'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Sq. Meter',
+                        'Sq. Kilometer': 'Sq. Kilometer', 'Sq. Mile': 'Sq. Mile',
+                        'Sq. Inch': 'Sq. Inch', 'Sq. Feet': 'Sq. Feet', 'Sq. Yard': 'Sq. Yard',
+                        'Sq. Nautical mile': 'Sq. Nautical mile',
+                        'Traceability tech. details':
+                          'Traceability data (more technical details on how this report was produced)',
+                        'Order': 'Order', 'Qual Bal': 'Qual Bal', 'Pre-selection': 'Pre-selection'},
+                    fr={'DossierExec': 'Analyse', 'Synthesis': 'Synthèse',
+                        'Details': 'Détails', 'Traceability': 'Traçabilité',
+                        'Table of contents': 'Table des matières',
+                        'Click on analysis # for details':
+                          "Cliquer sur le numéro de l'analyse pour accéder au rapport détaillé",
+                        'Main results': 'Résultats : indicateurs principaux',
+                        'Detailed results': 'Résultats : tous les détails',
+                        'Download Excel': 'Télécharger le classeur Excel (TM)',
+                        'Summary computation log': 'Résumé des calculs',
+                        'Detailed computation log': 'Détail des calculs',
+                        'Previous analysis': 'Analyse précédente', 'Next analysis': 'Analyse suivante',
+                        'Back to top': 'Retour au rapport global',
+                        'Observation model': 'Observations (fitted)',  # No actual translation for plots
+                        'Real observations': 'Observations (sampled)',  # Idem
+                        'Fixed bin distance histograms': 'Fixed bin distance histograms',  # Idem
+                        'Distance': 'Distance',  # Idem
+                        'Number of observations': 'Number of observations',  # Idem
+                        'Page generated': 'Page générée', 'with': 'avec',
+                        'with icons from': 'avec les pictogrammes de',
+                        'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
+                        'Point': 'Point fixe', 'Line': 'Transect',
+                        'Radial': 'Distance radiale', 'Perpendicular': 'Distance perpendiculaire',
+                        'Radial & Angle': 'Distance radiale & Angle',
+                        'Clustering': 'Avec clustering', 'No clustering': 'Sans clustering',
+                        'Meter': 'Mètre', 'Kilometer': 'Kilomètre', 'Mile': 'Mile',
+                        'Inch': 'Pouce', 'Feet': 'Pied', 'Yard': 'Yard', 'Nautical mile': 'Mille marin',
+                        'Hectare': 'Hectare', 'Acre': 'Acre', 'Sq. Meter': 'Mètre carré',
+                        'Sq. Kilometer': 'Kilomètre carré', 'Sq. Mile': 'Mile carré',
+                        'Sq. Inch': 'Pouce carré', 'Sq. Feet': 'Pied carré', 'Sq. Yard': 'Yard carré',
+                        'Sq. Nautical mile': 'Mille marin carré',
+                        'Traceability tech. details':
+                          'Données de traçabilité (autres détails techniques sur comment ce rapport a été produit)',
+                        'Order': 'Ordre', 'Qual Bal': 'Qual Equi', 'Pre-selection': 'Pré-selection'}))
 
     @staticmethod
     def noDupColumns(cols, log=True, head='Results cols'):
@@ -457,16 +458,18 @@ class DSResultsDistanceReport(ResultsReport):
             if 'Qq-plot' in title:
                 tgtFileName = self.PlotImgPrfxQqPlot
             elif 'Detection Probability' in title:
-                sufx = title.split(' ')[-1] # Assume last "word" is the plot number
-                sufx = sufx if sufx.isnumeric() else '' # But when only 1, there's no number.
+                sufx = title.split(' ')[-1]  # Assume last "word" is the plot number
+                sufx = sufx if sufx.isnumeric() else ''  # But when only 1, there's no number.
                 tgtFileName = self.PlotImgPrfxDetProb + sufx
             elif 'Pdf' in title:
-                sufx = title.split(' ')[-1] # Assume last "word" is the plot number
-                sufx = sufx if sufx.isnumeric() else '' # But when only 1, there's no number.
+                sufx = title.split(' ')[-1]  # Assume last "word" is the plot number
+                sufx = sufx if sufx.isnumeric() else ''  # But when only 1, there's no number.
                 tgtFileName = self.PlotImgPrfxProbDens + sufx
+            else:
+                raise NotImplementedError(f'Unsupported plot "{title}" found in loaded plot data')
             tgtFileName = tgtFileName + '.' + imgFormat.lower()
 
-            dPlots[title] = tgtFileName # Save image URL
+            dPlots[title] = tgtFileName  # Save image URL
 
             tgtFilePathName = os.path.join(tgtFolder, tgtFileName)                
             if not rebuild and os.path.isfile(tgtFilePathName):
@@ -493,10 +496,10 @@ class DSResultsDistanceReport(ResultsReport):
 
             elif 'Detection Probability' in title:
                 
-                #if sDistances is not None:
-                #    axes2 = axes.twinx()
-                #    sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
-                #                 alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
+                # if sDistances is not None:
+                #     axes2 = axes.twinx()
+                #     sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
+                #                  alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
 
                 df2Plot = pd.DataFrame(data=pld['dataRows'], 
                                        columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
@@ -511,14 +514,13 @@ class DSResultsDistanceReport(ResultsReport):
                 axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
                 axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
                 axes.grid(True, which='minor', zorder=0)
-        
 
             elif 'Pdf' in title:
                 
-                #if sDistances is not None:
-                #    axes2 = axes.twinx()
-                #    sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
-                #                 alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
+                # if sDistances is not None:
+                #     axes2 = axes.twinx()
+                #     sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
+                #                  alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
 
                 df2Plot = pd.DataFrame(data=pld['dataRows'], 
                                        columns=[pld['xLabel'], pld['yLabel'] + ' (sampled)',
@@ -533,7 +535,10 @@ class DSResultsDistanceReport(ResultsReport):
                 axes.xaxis.set_minor_locator(pltt.MultipleLocator((aMTicks[1]-aMTicks[0])/5))
                 axes.tick_params(which='minor', grid_linestyle='-.', grid_alpha=0.6)
                 axes.grid(True, which='minor', zorder=0)
-                
+
+            else:
+                raise NotImplementedError(f'Unsupported plot "{title}" found in loaded plot data')
+
             # d. Finish plotting.
             axes.legend(df2Plot.columns, fontsize=fontSizes['legend'])
             axes.set_title(label=pld['title'] + ' : ' + pld['subTitle'],
@@ -565,10 +570,10 @@ class DSResultsDistanceReport(ResultsReport):
             tgtFileName = self.PlotImgPrfxDistHist
             tgtFileName = tgtFileName + '.' + imgFormat.lower()
 
-            dPlots[title] = tgtFileName # Save image URL
+            dPlots[title] = tgtFileName  # Save image URL
 
             tgtFilePathName = os.path.join(tgtFolder, tgtFileName)                
-            if rebuild or not os.path.isfile(tgtFilePathName): # Do it only if forced to do or not already done.
+            if rebuild or not os.path.isfile(tgtFilePathName):  # Do it only if forced to do or not already done.
 
                 # b. Create the target figure and one-only subplot
                 figHeight = imgSize[1] / plt.rcParams['figure.dpi']
@@ -578,9 +583,9 @@ class DSResultsDistanceReport(ResultsReport):
                 axes = fig.subplots()
                     
                 # c. Plot the figure from the distance data
-                #axes2 = axes.twinx()
-                #sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
-                #             alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
+                # axes2 = axes.twinx()
+                # sb.stripplot(ax=axes2, zorder=5, x=sDistances, color=colors['dots'], size=widths['dots'],
+                #              alpha=self.StripPlotAlpha, jitter=self.StripPlotJitter)
 
                 distMax = sDistances.max()
 
@@ -648,6 +653,7 @@ class DSResultsDistanceReport(ResultsReport):
         # b. Links to each analysis detailed report.
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+
         def numNavLink(sAnlys):
             return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
        
@@ -675,8 +681,8 @@ class DSResultsDistanceReport(ResultsReport):
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         tmpl = self.getTemplateEnv().get_template('mcds/top.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
-        html = tmpl.render(synthesis=dfsSyn.render(), #escape=False, index=False),
-                           details=dfsDet.render(), #escape=False, index=False),
+        html = tmpl.render(synthesis=dfsSyn.render(),  # escape=False, index=False),
+                           details=dfsDet.render(),  # escape=False, index=False),
                            traceability={trcName: dfTrcTable.to_html(escape=False)
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle,
@@ -689,7 +695,7 @@ class DSResultsDistanceReport(ResultsReport):
                            surveyType=self.tr(self.resultsSet.surveyType),
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank line series to one only.
 
         # Write top HTML to file.
         htmlPathName = self.targetFilePathName(suffix='.html')
@@ -703,7 +709,7 @@ class DSResultsDistanceReport(ResultsReport):
         """Retrieve input translated raw data for HTML pages specific to each analysis
 
         Parameters:
-        :param **kwargs: Args relevant to derived classes (none here).
+        :param kwargs: Args relevant to derived classes (none here).
 
         :return: 2 dataFrames, for synthesis (synthCols) and detailed (all) column sets,
                  + None (other implementations may use this place for something relevant)
@@ -733,7 +739,7 @@ class DSResultsDistanceReport(ResultsReport):
         :param generators: Number of parallel (process) generators to use :
                            - 0 => auto-number, based on the actual number of CPUs onboard,
                            - > 0 => the actual number to use
-        :param **kwargs: Other args relevant to derived classes.
+        :param kwargs: Other args relevant to derived classes.
         """
 
         # Get source translated raw data to format
@@ -773,7 +779,7 @@ class DSResultsDistanceReport(ResultsReport):
         pages = dict()
         for lblRes in dfSynthRes.index:
             
-            logger.info1(f'#{lblRes}/{len(dfSynthRes)}: ' \
+            logger.info1(f'#{lblRes}/{len(dfSynthRes)}: '
                          + ' '.join(f'{k}={v}' for k, v in dfDetRes.loc[lblRes, trCustCols].iteritems()))
 
             pgFut = executor.submit(self._toHtmlAnalysis, lblRes, dfSynthRes.loc[lblRes],
@@ -801,14 +807,15 @@ class DSResultsDistanceReport(ResultsReport):
             if nDone % self.logProgressEvery == 0 or nDone == len(pages):
                 now = pd.Timestamp.now()
                 elapsedTilNow = now - genStart
+                expectedEnd = now
                 if nDone < len(pages):
-                    expectedEnd = \
-                        now + pd.Timedelta(elapsedTilNow.value * (len(pages) - nDone) / nDone)
-                    expectedEnd = expectedEnd.strftime('%Y-%m-%d %H:%M:%S').replace(now.strftime('%Y-%m-%d '), '')
+                    expectedEnd += pd.Timedelta(elapsedTilNow.value * (len(pages) - nDone) / nDone)
                 logger.info1('{}/{} pages in {} (mean {:.2f}s){}'
                              .format(nDone, len(pages), str(elapsedTilNow.round('S')).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nDone,
-                                     ': done.' if nDone == len(pages) else ': should end around ' + expectedEnd))
+                                     ': done.' if nDone == len(pages)
+                                               else ': should end around ' + expectedEnd.strftime('%Y-%m-%d %H:%M:%S')
+                                                                             .replace(now.strftime('%Y-%m-%d '), '')))
 
         # iii. Terminate parallel executor.
         executor.shutdown()
@@ -827,7 +834,7 @@ class DSResultsDistanceReport(ResultsReport):
         dfsSyn = self.finalformatEachAnalysisData(dfSyn, sort=False, indexer=None,
                                                   convert=True, round_=True, style=True)
         
-        # Postprocess detailed table :
+        # Post-process detailed table :
         dfDet = pd.DataFrame([sDetRes])
         dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         dfDet.index = dfDet.index.map(lambda n: idxFmt.format(n))
@@ -846,7 +853,7 @@ class DSResultsDistanceReport(ResultsReport):
                            output=engineClass.decodeOutput(anlysFolder),
                            plots=self.generatePlots(plotsData=engineClass.decodePlots(anlysFolder), 
                                                     sDistances=engineClass.loadDataFile(anlysFolder).DISTANCE,
-                                                    tgtFolder=anlysFolder, lang='en', # No translation.
+                                                    tgtFolder=anlysFolder, lang='en',  # No translation.
                                                     imgFormat=self.plotImgFormat, imgSize=self.plotImgSize,
                                                     imgQuality=self.plotImgQuality,
                                                     widths=dict(lines=self.plotLineWidth, dots=self.plotDotWidth),
@@ -866,7 +873,7 @@ class DSResultsDistanceReport(ResultsReport):
                            surveyType=self.tr(self.resultsSet.surveyType),
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank line series to one only.
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank line series to one only.
 
         # Write analysis HTML to file.
         htmlPathName = self.targetFilePathName(tgtFolder=anlysFolder, prefix='index', suffix='.html')
@@ -956,53 +963,54 @@ class DSResultsDistanceReport(ResultsReport):
         return ddfWbk
  
 
-# A specialized report for MCDS analyses, targetting similar layout as in Distance 6+, with actual output formating.
+# A specialized report for MCDS analyses, targetting similar layout as in Distance 6+, with actual output formatting.
 class MCDSResultsDistanceReport(DSResultsDistanceReport):
 
     DTrans = _mergeTransTables(base=DSResultsDistanceReport.DTrans,
-      update=dict(en={'Study type:': "<strong>Study type</strong>:",
-                      'Units used:': "<strong>Units used</strong>:",
-                      'for distances': 'for distances',
-                      'for areas': 'for areas',
-                      'Estimator selection criterion:': '<strong>Adjustment term selection criterion</strong>:',
-                      'Confidence value interval:': '<strong>Confidence value interval</strong>:',
-                      'If not listed in table below, please': 'If not listed in table below, please',
-                      'BE AWARE that different values have been used among analyses':
-                        '<strong>BE AWARE</strong> that different values have been used among analyses',
-                      'note that all analyses have been run with the same value':
-                        'note that <strong>ALL</strong> analyses have been run with the same value',
-                      'see detailed table below': 'see detailed table below',
-                      'see details for each analysis': 'see details for each analysis',
-                      'Note: Some figures rounded, but not converted':
-                         "<strong>Note</strong>: Most figures have been rounded for readability,"
-                         " but 'CoefVar Density' have been further modified : converted to %",
-                      'Note: All figures untouched, as output by MCDS': 
-                         "<strong>Note</strong>: All values have been left untouched,"
-                         " as output by MCDS (no rounding, no conversion)",
-                      'samples': 'Samples', 'analyses': 'Analyses', 'models': 'Models',
-                      'analyser': 'Analyser', 'runtime': 'Computing platform'},
-                  fr={'Study type:': "<strong>Type d'étude</strong>:",
-                      'Units used:': "<strong>Unités utilisées</strong>:",
-                      'for distances': 'pour les distances',
-                      'for areas': 'pour les surfaces',
-                      'Estimator selection criterion:': 
-                        "<strong>Critère de sélection des termes d'ajustement</strong>:",
-                      'Confidence value interval:': '<strong>Intervalle de confiance</strong>:',
-                      'If not listed in table below, please': 'Si non présent dans la table ci-dessous,',
-                      'BE AWARE that different values have been used among analyses':
-                        'faites <strong>ATTENTION</strong>, différentes valeurs ont été utilisés suivant les analyses',
-                      'note that all analyses have been run with the same value':
-                        'notez que <strong>TOUTES</strong> les analyses ont été faites avec la même valeur',
-                      'see detailed table below': 'voir table de détails ci-dessous',
-                      'see details for each analysis': 'voir détails de chaque analyse',
-                      'Note: Some figures rounded, but not converted':
-                         "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
-                         " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
-                      'Note: All figures untouched, as output by MCDS':
-                         "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
-                         " elles sont toutes telles que produites par MCDS",
-                      'samples': 'Echantillons', 'analyses': 'Analyses', 'models': 'Modèles',
-                      'analyser': 'Analyseur', 'runtime': 'Plateforme de calcul'}))
+        update=dict(en={'Study type:': "<strong>Study type</strong>:",
+                        'Units used:': "<strong>Units used</strong>:",
+                        'for distances': 'for distances',
+                        'for areas': 'for areas',
+                        'Estimator selection criterion:': '<strong>Adjustment term selection criterion</strong>:',
+                        'Confidence value interval:': '<strong>Confidence value interval</strong>:',
+                        'If not listed in table below, please': 'If not listed in table below, please',
+                        'BE AWARE that different values have been used among analyses':
+                          '<strong>BE AWARE</strong> that different values have been used among analyses',
+                        'note that all analyses have been run with the same value':
+                          'note that <strong>ALL</strong> analyses have been run with the same value',
+                        'see detailed table below': 'see detailed table below',
+                        'see details for each analysis': 'see details for each analysis',
+                        'Note: Some figures rounded, but not converted':
+                           "<strong>Note</strong>: Most figures have been rounded for readability,"
+                           " but 'CoefVar Density' have been further modified : converted to %",
+                        'Note: All figures untouched, as output by MCDS':
+                           "<strong>Note</strong>: All values have been left untouched,"
+                           " as output by MCDS (no rounding, no conversion)",
+                        'samples': 'Samples', 'analyses': 'Analyses', 'models': 'Models',
+                        'analyser': 'Analyser', 'runtime': 'Computing platform'},
+                    fr={'Study type:': "<strong>Type d'étude</strong>:",
+                        'Units used:': "<strong>Unités utilisées</strong>:",
+                        'for distances': 'pour les distances',
+                        'for areas': 'pour les surfaces',
+                        'Estimator selection criterion:':
+                          "<strong>Critère de sélection des termes d'ajustement</strong>:",
+                        'Confidence value interval:': '<strong>Intervalle de confiance</strong>:',
+                        'If not listed in table below, please': 'Si non présent dans la table ci-dessous,',
+                        'BE AWARE that different values have been used among analyses':
+                          'faites <strong>ATTENTION</strong>,'
+                          ' différentes valeurs ont été utilisés suivant les analyses',
+                        'note that all analyses have been run with the same value':
+                          'notez que <strong>TOUTES</strong> les analyses ont été faites avec la même valeur',
+                        'see detailed table below': 'voir table de détails ci-dessous',
+                        'see details for each analysis': 'voir détails de chaque analyse',
+                        'Note: Some figures rounded, but not converted':
+                           "<strong>N.B.</strong> Presque toutes les valeurs ont été arrondies pour la lisibilité,"
+                           " mais seul 'CoefVar Densité' a été autrement modifié : converti en %",
+                        'Note: All figures untouched, as output by MCDS':
+                           "<strong>N.B.</strong> Aucune valeur n'a été convertie ou arrondie,"
+                           " elles sont toutes telles que produites par MCDS",
+                        'samples': 'Echantillons', 'analyses': 'Analyses', 'models': 'Modèles',
+                        'analyser': 'Analyseur', 'runtime': 'Plateforme de calcul'}))
     
     RightTruncCol = ('encounter rate', 'right truncation distance (w)', 'Value')
 
@@ -1050,7 +1058,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
     CChrGray = '#869074'
     CBckGreen, CBckGray = '#e0ef8c', '#dae3cb'
     CSclGreen, CSclOrange, CSclRed = '#cbef8c', '#f9da56', '#fe835a'
-    CChrInvis = '#e8efd1' # body background
+    CChrInvis = '#e8efd1'  # body background
     ScaledColors = [CSclGreen, CSclOrange, CSclRed]
     ScaledColorsRvd = list(reversed(ScaledColors))
     
@@ -1061,7 +1069,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
         return ['background-color: ' + cls.DExCodeColors.get(c, cls.DExCodeColors[3]) for c in sCodes]
     
     @classmethod
-    def scaledColorV(cls, v, thresholds, colors): # len(thresholds) == len(colors) - 1
+    def scaledColorV(cls, v, thresholds, colors):  # len(thresholds) == len(colors) - 1
         if pd.isnull(v):
             return cls.CBckGray
         for ind, thresh in enumerate(thresholds):
@@ -1085,7 +1093,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
         if short in ['None', 'nan']:
             return None
         else:
-            return short.translate(str.maketrans({c:'' for c in '[] '})).replace('.0,', ',')
+            return short.translate(str.maketrans({c: '' for c in '[] '})).replace('.0,', ',')
 
     @staticmethod
     def _roundNumber(v, ndigits=0):
@@ -1139,24 +1147,23 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
             if not self.sortCols:
                 df.drop(columns=['#Sample#'], inplace=True)
 
-        # Standard 1 to N index + optional post-formating (ex. for synthesis <=> details navigation).
+        # Standard 1 to N index + optional post-formatting (ex. for synthesis <=> details navigation).
         if indexer:
             df.index = range(1, len(df) + 1)
             if callable(indexer):
                 df.index = df.apply(indexer, axis='columns')
 
         # Converting to other units, or so.
-        kVarDens = 1.0
         if convert:
             
-            #for col in self.trEnColNames(['Density', 'Min Density', 'Max Density']): # 'CoefVar Density', 
-            #    if col in df.columns:
-            #        df[col] *= 1000000 / 10000 # ha => km2
+            # for col in self.trEnColNames(['Density', 'Min Density', 'Max Density']): # 'CoefVar Density',
+            #     if col in df.columns:
+            #         df[col] *= 1000000 / 10000 # ha => km2
             
             col = self.trEnColNames('CoefVar Density')
             if col in df.columns:
                 kVarDens = 100.0
-                df[col] *= kVarDens # [0, 1] => %
+                df[col] *= kVarDens  # [0, 1] => %
             
             for col in self.trEnColNames(['Fit Dist Cuts', 'Discr Dist Cuts']):
                 if col in df.columns:
@@ -1167,15 +1174,15 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
             
             # Use built-in round for more accurate rounding than np.round
             # a. Fixed list of columns: enumerate their English names.
-            dColDecimals = {**{ col: 4 for col in ['Delta CoefVar Density'] },
-                            **{ col: 3 for col in ['Effort', 'PDetec', 'Min PDetec', 'Max PDetec']},
-                            **{ col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
-                                                   'Qual Chi2+', 'Qual KS+', 'Qual DCv+']},
-                            **{ col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                                   'Density', 'Min Density',
-                                                   'Max Density', 'CoefVar Density', 'Obs Rate']},
-                            **{ col: 0 for col in ['Left Trunc Dist', 'Right Trunc Dist',
-                                                   'Left Trunc', 'Right Trunc']}}
+            dColDecimals = {**{col: 4 for col in ['Delta CoefVar Density']},
+                            **{col: 3 for col in ['Effort', 'PDetec', 'Min PDetec', 'Max PDetec']},
+                            **{col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
+                                                  'Qual Chi2+', 'Qual KS+', 'Qual DCv+']},
+                            **{col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
+                                                  'Density', 'Min Density',
+                                                  'Max Density', 'CoefVar Density', 'Obs Rate']},
+                            **{col: 0 for col in ['Left Trunc Dist', 'Right Trunc Dist',
+                                                  'Left Trunc', 'Right Trunc']}}
                                                      
             for col, dec in self.trEnColNames(dColDecimals).items():
                 if col in df.columns:
@@ -1189,8 +1196,8 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
                     df[col] = df[col].apply(self._roundNumber, ndigits=0)
             
             # Don't use df.round ... because it does not work, at least with pandas 1.0.x up to 1.1.2 !?!?!?
-            #df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() \
-            #                                  if col in df.columns })
+            # df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() \
+            #                                   if col in df.columns })
             
         # Styling
         return self.styleAllAnalysesData(df, convert=convert, round_=round_, style=style)
@@ -1218,7 +1225,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
 
             # Green background for the 0-value Delta AIC rows
             col = self.trEnColNames('Delta AIC')
-            if col in df.columns and df[col].max() > 0: # if all delta AIC == 0, no need to stress it.
+            if col in df.columns and df[col].max() > 0:  # if all delta AIC == 0, no need to stress it.
                 dfs.set_properties(subset=pd.IndexSlice[df[df[col] == 0].index, :],
                                    **{'background-color': self.CBckGreen})
                
@@ -1268,11 +1275,14 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
                                                convert=convert, round_=round_, style=style)
 
     @staticmethod
+    def float2str(v):  # Workaround to_html non transparent default float format (!?)
+        return format(v, 'g')
+
+    @staticmethod
     def series2VertTable(ser):
-        
-        def float2str(v): # Workaround to_html non transparent default float format (!?)
-            return format(v, 'g')
-        return re.sub('\\\n *', '', ser.to_frame().to_html(header=False, float_format=float2str, na_rep=''))
+        return re.sub('\\\n *', '',  ser.to_frame().to_html(header=False,
+                                                            float_format=MCDSResultsDistanceReport.float2str,
+                                                            na_rep=''))
     
     def plotImageHtmlElement(self, runFolder, plotImgPrfx, plotHeight):
         
@@ -1282,15 +1292,15 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
                 return '<img src="./{}/{}" style="height: {}px" />' \
                        .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
         else:
-          for plotInd in range(3, 0, -1):
-              plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
-              if os.path.isfile(os.path.join(runFolder, plotFileName)):
-                  return '<img src="./{}/{}" style="height: {}px" />' \
-                         .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
-          plotFileName = '{}.{}'.format(plotImgPrfx, self.plotImgFormat)
-          if os.path.isfile(os.path.join(runFolder, plotFileName)):
-              return '<img src="./{}/{}" style="height: {}px" />' \
-                     .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
+            for plotInd in range(3, 0, -1):
+                plotFileName = '{}{}.{}'.format(plotImgPrfx, plotInd, self.plotImgFormat)
+                if os.path.isfile(os.path.join(runFolder, plotFileName)):
+                    return '<img src="./{}/{}" style="height: {}px" />' \
+                           .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
+            plotFileName = '{}.{}'.format(plotImgPrfx, self.plotImgFormat)
+            if os.path.isfile(os.path.join(runFolder, plotFileName)):
+                return '<img src="./{}/{}" style="height: {}px" />' \
+                       .format(self.relativeRunFolderUrl(runFolder), plotFileName, plotHeight)
         
         return f'No {plotImgPrfx} plot produced'
         
@@ -1377,7 +1387,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
 
 class MCDSResultsPreReport(MCDSResultsDistanceReport):
 
-    """A specialized pre-report for MCDS analyses, with actual output formating.
+    """A specialized pre-report for MCDS analyses, with actual output formatting.
 
     HTML mode gives a specialized main page layout, with a super-synthesis table (with plots)
     in place of the synthesis and detailed tables of MCDSResultsDistanceReport ;
@@ -1389,18 +1399,18 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
 
     # Translation table.
     DTrans = _mergeTransTables(base=MCDSResultsDistanceReport.DTrans,
-      update=dict(en={'Quick-view results': 'Results: the essence', 
-                      'SampleParams': 'Sample & Model',
-                      'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
-                      'DistHist': 'Standard distance histogram',
-                      'ProbDens': 'Detection probability density (PDF)',
-                      'DetProb': 'Detection probability'},
-                  fr={'Quick-view results': 'Résultats : l\'essentiel', 
-                      'SampleParams': 'Echantillon & Modèle',
-                      'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
-                      'DistHist': 'Histogramme standard des distances',
-                      'ProbDens': 'Densité de probabilité de détection (DdP)',
-                      'DetProb': 'Probabilité de détection'}))
+        update=dict(en={'Quick-view results': 'Results: the essence',
+                        'SampleParams': 'Sample & Model',
+                        'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
+                        'DistHist': 'Standard distance histogram',
+                        'ProbDens': 'Detection probability density (PDF)',
+                        'DetProb': 'Detection probability'},
+                    fr={'Quick-view results': 'Résultats : l\'essentiel',
+                        'SampleParams': 'Echantillon & Modèle',
+                        'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
+                        'DistHist': 'Histogramme standard des distances',
+                        'ProbDens': 'Densité de probabilité de détection (DdP)',
+                        'DetProb': 'Probabilité de détection'}))
 
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
                  sampleCols, paramCols, resultCols, synthCols=None,
@@ -1520,13 +1530,12 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
             df.index = range(1, len(df) + 1)
 
         # Converting to other units, or so.
-        kVarDens = 1.0
         if convert:
             
             col = self.trEnColNames('CoefVar Density')
             if col in df.columns:
                 kVarDens = 100.0
-                df[col] *= kVarDens # [0, 1] => %
+                df[col] *= kVarDens  # [0, 1] => %
             
         # Reducing float precision
         if round_:
@@ -1550,8 +1559,8 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
                     df[col] = df[col].apply(self._roundNumber, ndigits=2)
 
             # Don't use df.round ... because it does nothing, at least with pandas to 1.1.2 !?!?!?
-            #df = df.round(decimals={col: dec for col, dec in self.trEnColNames(dColDecimals).items()
-            #                        if col in df.columns})
+            # df = df.round(decimals={col: dec for col, dec in self.trEnColNames(dColDecimals).items()
+            #                         if col in df.columns})
 
         # Styling
         return self.styleAllAnalysesData(df, convert=convert, round_=round_, style=style)
@@ -1603,6 +1612,7 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSupSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+
         def numNavLink(sAnlys):
             return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
         dfSupSyn.index = dfDet.apply(numNavLink, axis='columns')
@@ -1631,7 +1641,7 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'),
                            estimSelCrits=estimSelCrits, confIntervals=[str(v) for v in confIntervals])
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
 
         # 9. Write top HTML to file.
         htmlPathName = self.targetFilePathName(suffix='.html')
@@ -1639,10 +1649,11 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
             tgtFile.write(html)
 
         return htmlPathName
-    
+
+
 class MCDSResultsFullReport(MCDSResultsDistanceReport):
 
-    """A specialized full report for MCDS analyses, with actual output formating.
+    """A specialized full report for MCDS analyses, with actual output formatting.
 
     HTML mode gives a mix of Distance and PreReport main page layout,
     with a super-synthesis table (with plots), a synthesis table, and a detailed table ;
@@ -1652,20 +1663,18 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
 
     # Translation table.
     DTrans = _mergeTransTables(base=MCDSResultsDistanceReport.DTrans,
-      update=dict(en={'Quick-view results': 'Results: the essence', 
-                      'SampleParams': 'Sample & Model',
-                      'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
-                      'QqPlot': 'Quantile-quantile plot',
-                      'ProbDens': 'Detection probability density (PDF)',
-                      'DetProb': 'Detection probability'},
-                      #'Max Distance': 'Max Distance'},
-                  fr={'Quick-view results': 'Résultats : l\'essentiel', 
-                      'SampleParams': 'Echantillon & Modèle',
-                      'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
-                      'QqPlot': 'Diagramme quantile-quantile',
-                      'ProbDens': 'Densité de probabilité de détection (DdP)',
-                      'DetProb': 'Probabilité de détection'}))
-                      #'Max Distance': 'Max Distance'}))
+        update=dict(en={'Quick-view results': 'Results: the essence',
+                        'SampleParams': 'Sample & Model',
+                        'Results1': 'Results (1/2)', 'Results2': 'Results (2/2)',
+                        'QqPlot': 'Quantile-quantile plot',
+                        'ProbDens': 'Detection probability density (PDF)',
+                        'DetProb': 'Detection probability'},
+                    fr={'Quick-view results': 'Résultats : l\'essentiel',
+                        'SampleParams': 'Echantillon & Modèle',
+                        'Results1': 'Résultats (1/2)', 'Results2': 'Résultats (2/2)',
+                        'QqPlot': 'Diagramme quantile-quantile',
+                        'ProbDens': 'Densité de probabilité de détection (DdP)',
+                        'DetProb': 'Probabilité de détection'}))
     
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
                  sampleCols, paramCols, resultCols, synthCols=None, sortCols=None, sortAscend=None,
@@ -1749,7 +1758,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
 
         # 3. Super-synthesis: Generate post-processed and translated table.
         #    (index + 5 columns : sample + params, results, Qq plot, ProbDens plot, DetProb plot)
-        # a. Get translated and post-formated detailed results
+        # a. Get translated and post-formatted detailed results
         dfDet = dfDetRes.copy()  # Also needed as is below.
         
         # b. Styling not used for super-synthesis, so don't do it.
@@ -1783,6 +1792,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSupSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+
         def numNavLink(sAnlys):
             return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
         dfSupSyn.index = dfDet.apply(numNavLink, axis='columns')
@@ -1798,6 +1808,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         # b. Links to each analysis detailed report.
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+
         def numNavLink(sAnlys):
             return numNavLinkFmt.format(p=sAnlys[self.trRunFolderCol], n=sAnlys.name)
        
@@ -1827,8 +1838,8 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         tmpl = self.getTemplateEnv().get_template('mcds/fulltop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
-                           synthesis=dfsSyn.render(), #escape=False, index=False),
-                           details=dfsDet.render(), #escape=False, index=False),
+                           synthesis=dfsSyn.render(),  # escape=False, index=False),
+                           details=dfsDet.render(),  # escape=False, index=False),
                            traceability={trcName: dfTrcTable.to_html(escape=False)
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle,
@@ -1842,7 +1853,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'),
                            estimSelCrits=estimSelCrits, confIntervals=[str(v) for v in confIntervals])
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
 
         # 7. Write top HTML to file.
         htmlPathName = self.targetFilePathName(suffix='.html')
@@ -1852,7 +1863,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         return htmlPathName
 
 
-# A specialized filtered and sorted report for MCDS analyses, with actual output formating ...
+# A specialized filtered and sorted report for MCDS analyses, with actual output formatting ...
 # and above all auto-filtered and sorted results aiming at showing the few best results to the user
 # among which s(he)'ll (manually) select THE best (for each sample)
 # (HTML mode gives a mix of Distance and PreReport main page layout,
@@ -1861,7 +1872,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
 #  detailed pages unchanged from MCDSResultsDistanceReport).
 class MCDSResultsFilterSortReport(MCDSResultsFullReport):
 
-    """A specialized filtered and sorted full report for MCDS analyses, with actual output formating
+    """A specialized filtered and sorted full report for MCDS analyses, with actual output formatting
     and above all auto-filtered and sorted results aiming at showing the few best results to the user
     among which to (manually) select THE best (for each sample).
 
@@ -1870,14 +1881,14 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
 
     # Translation table.
     DTrans = _mergeTransTables(base=MCDSResultsFullReport.DTrans,
-      update=dict(en={'Scheme': 'Scheme', 'Step': 'Step',
-                      'Property': 'Property', 'Value': 'Value',
-                      'AFS': 'AFS', 'Steps': 'Steps',
-                      'Filter & Sort steps': 'Filter and sort steps'},
-                  fr={'Scheme': 'Méthode', 'Step': 'Etape',
-                      'Property': 'Propriété', 'Value': 'Valeur',
-                      'AFS': 'FTA', 'Steps': 'Etapes',
-                      'Filter & Sort steps': 'Etapes de filtrage et tri'}))
+        update=dict(en={'Scheme': 'Scheme', 'Step': 'Step',
+                        'Property': 'Property', 'Value': 'Value',
+                        'AFS': 'AFS', 'Steps': 'Steps',
+                        'Filter & Sort steps': 'Filter and sort steps'},
+                    fr={'Scheme': 'Méthode', 'Step': 'Etape',
+                        'Property': 'Propriété', 'Value': 'Valeur',
+                        'AFS': 'FTA', 'Steps': 'Etapes',
+                        'Filter & Sort steps': 'Etapes de filtrage et tri'}))
 
     ResClass = MCDSAnalysisResultsSet
 
@@ -1925,10 +1936,10 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                                    preselAscs= Rank direction to use for each column (list),
                                                or all (single bool) ; default: True
                                                (True means that lower values are "better" ones)
-                                   preselThrhs= Eliminatory threshold for each column (list),
+                                   preselThrhs= Eliminating threshold for each column (list),
                                                 or all (single number) ; default: 0.2
                                                 (eliminated above if preselAscs True, below otherwise)
-                                   preselNum= number of (best) preselections to keep for each sample) ;
+                                   preselNum= number of (best) pre-selections to keep for each sample) ;
                                               default: 5
                  example: [dict(nameFmt='ExecCode', => format string to generate the Id of the report
                                 method=R.filterSortOnExecCode,  # let R = MCDSTruncOptanalysisResultsSet
@@ -2104,6 +2115,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         
         idxFmt = '{{n:0{}d}}'.format(1+max(int(math.log10(len(dfSupSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+
         def numNavLink(sAnlys):
             return numNavLinkFmt.format(p=self.relativeRunFolderUrl(sAnlys[self.trRunFolderCol]), n=sAnlys.name)
         dfSupSyn.index = dfDet.apply(numNavLink, axis='columns')
@@ -2119,6 +2131,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         # b. Links to each analysis detailed report.
         idxFmt = '{{n:0{}d}}'.format(1 + max(int(math.log10(len(dfSyn))), 1))
         numNavLinkFmt = '<a href="./{{p}}/index.html">{}</a>'.format(idxFmt)
+
         def numNavLink(sAnlys):
             return numNavLinkFmt.format(p=sAnlys[self.trRunFolderCol], n=sAnlys.name)
        
@@ -2156,8 +2169,8 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         tmpl = self.getTemplateEnv().get_template('mcds/fulltop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
-                           synthesis=dfsSyn.render(), #escape=False, index=False),
-                           details=dfsDet.render(), #escape=False, index=False),
+                           synthesis=dfsSyn.render(),  # escape=False, index=False),
+                           details=dfsDet.render(),  # escape=False, index=False),
                            traceability={trcName: dfTrcTable.to_html(escape=False)
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, keywords=self.keywords,
@@ -2172,7 +2185,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'),
                            estimSelCrits=estimSelCrits, confIntervals=[str(v) for v in confIntervals])
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html) # Cleanup blank lines series to one only
+        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
 
         # 8. Write top HTML to file.
         filSorSchId = self.resultsSet.filterSortSchemeId(filSorScheme)
@@ -2208,6 +2221,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         logger.info('... done.')
                 
         return topHtmlPathName
+
 
 if __name__ == '__main__':
 
