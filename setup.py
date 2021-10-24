@@ -21,13 +21,21 @@ from setuptools import setup
 here = pl.Path(__file__).parent
 
 # Retrieve version from __init__.py
-version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', open('pyaudisam/__init__.py').read()).group(1)
+with open(here / 'pyaudisam' / '__init__.py') as file:
+    version = re.search(r'__version__\s*=\s*[\'"]([^\'"]*)[\'"]', file.read()).group(1)
+
+# Retrieve install_requires from requirements.txt
+with open(here / 'README.md') as file:
+    long_desc = file.read()
+
+# Retrieve install_requires from requirements.txt
+with open(here / 'requirements.txt') as file:
+    requirements = file.read().splitlines()
 
 # This call to setup() does all the work
 setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaudisam',
       description='Distance Sampling automation through Distance sofware',
-      long_description=(here / 'README.md').read_text(),
-      long_description_content_type='text/markdown',
+      long_description=long_desc, long_description_content_type='text/markdown',
       author='Jean-Philippe Meuret', author_email='jpmeuret@e.email',
       license='GPLv3+',
       classifiers=['Topic :: Software Development :: Libraries',
@@ -41,5 +49,5 @@ setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaud
       packages=['pyaudisam'],
       include_package_data=True,
       python_requires='>=3.8',
-      install_requires=['pandas >= 0.25', 'matplotlib >= 3.1', 'jinja2', 'zoopt >= 0.4'],
+      install_requires=requirements,
       entry_points={'console_scripts': []})
