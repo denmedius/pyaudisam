@@ -712,6 +712,55 @@ class DSAnalyser(Analyser):
 #        self.shutdown()
 
 
+class _FilterSortSteps(object):
+
+    """Log = history of filter and sort steps for a given scheme"""
+
+    def __init__(self, filSorSchId, lang='en'):
+        self.schemeId = filSorSchId
+        self.lang = lang
+        self.steps = list()  # of [stepName, propName, propValue]
+
+    def copy(self):
+        clone = _FilterSortSteps(filSorSchId=self.schemeId, lang=self.lang)
+        clone.steps = copy.deepcopy(self.steps)
+        return clone
+
+    def append(self, stepName, propName, propValue):
+        logger.debug2(f'* {stepName}: {propName} = {propValue}')
+        self.steps.append([stepName, propName, propValue])
+
+    def toList(self):
+        return [[self.schemeId] + step for step in self.steps]
+
+
+class _FilterSortCache(object):
+
+    def __init__(self):
+        self.dResults = dict()
+
+    def copy(self):
+        clone = _FilterSortCache()
+        clone.dResults = {schId: (iFilSor.copy(), filSorSteps.copy())
+                          for schId, (iFilSor, filSorSteps) in self.dResults.items()}
+        return clone
+
+    def clear(self):
+        self.dResults.clear()
+
+    def update(self, schemeId, iFilSor, filSorSteps):
+        # Add / update a detached copy
+        self.dResults[schemeId] = iFilSor.copy(), filSorSteps.copy()
+
+    def get(self, schemeId):
+        if schemeId in self.dResults:
+            # return a detached copy.
+            iFilSor, filSorSteps = self.dResults[schemeId]
+            logger.info1(f'Filter and sort scheme "{schemeId}" found in cache.')
+            return iFilSor.copy(), filSorSteps.copy()
+        return None, None
+
+
 class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
@@ -897,8 +946,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # Definition: 2 equal schemes (dict ==) have the same Id
         self.dFilSorSchemes = dict()  # Unique Id => value
 
-        # Cache for filter and sort applied schemes
-        self.dFilSorViews = dict()  # Filter and sort scheme unique Id => index of selected rows, scheme steps
+        # Cache for results of filter and sort schemes
+        self.filSorCache = _FilterSortCache()
 
     def copy(self, withData=True):
     
@@ -921,7 +970,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             clone.postComputed = self.postComputed
             clone.dfSamples = None if self.dfSamples is None else self.dfSamples.copy()
             clone.dFilSorSchemes = copy.deepcopy(self.dFilSorSchemes)
-            clone.dFilSorViews = copy.deepcopy(self.dFilSorViews)
+            clone.filSorCache = self.filSorCache.copy()
 
         return clone
     
@@ -931,7 +980,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         but only when the calculus is coded in this class ; other calculi impacts taken care in base classes"""
 
         self.dfSamples = None
-        self.dFilSorViews = dict()
+        self.dFilSorSchemes = dict()
+        self.filSorCache.clear()
 
     def dropRows(self, sbSelRows):
     
@@ -1198,33 +1248,19 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                 dfIntrv = pd.DataFrame(dict(dist=sSelDist.values))
                 if not dfIntrv.empty:
 
-                    try:
-                        dfIntrv['deltaDist'] = dfIntrv.dist.diff()
-                        dfIntrv.loc[dfIntrv.dist.idxmin(), 'deltaDist'] = np.inf
-                        dfIntrv.dropna(inplace=True)
-                        dfIntrv = dfIntrv[dfIntrv.deltaDist > 0].copy()
-                    except Exception:  # TODO: Remove this debugging try/except code
-                        logger.error(f'_postComputeTruncationGroups(dfIntrv1): dfIntrv.dtypes={dfIntrv.dtypes}')
-                        logger.error(f'_postComputeTruncationGroups(dfIntrv1): dfIntrv.dist.dtype={dfIntrv.dist.dtype}')
-                        dfIntrv.to_pickle('tmp/anlr-dfIntrv1.pickle')
-                        logger.error(f'_postComputeTruncationGroups(dfIntrv1): {dfIntrv:}')
-                        raise
+                    dfIntrv['deltaDist'] = dfIntrv.dist.diff()
+                    dfIntrv.loc[dfIntrv.dist.idxmin(), 'deltaDist'] = np.inf
+                    dfIntrv.dropna(inplace=True)
+                    dfIntrv = dfIntrv[dfIntrv.deltaDist > 0].copy()
 
                     # Deduce start (min) and end (sup) for each such interval (left-closed, right-open)
-                    try:
-                        dfIntrv['dMin'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist']
-                        dfIntrv['dSup'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist'].shift(-1).dropna()
-                        dfIntrv.loc[dfIntrv['dMin'].idxmax(), 'dSup'] = np.inf
-                        dfIntrv.dropna(inplace=True)
+                    dfIntrv['dMin'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist']
+                    dfIntrv['dSup'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist'].shift(-1).dropna()
+                    dfIntrv.loc[dfIntrv['dMin'].idxmax(), 'dSup'] = np.inf
+                    dfIntrv.dropna(inplace=True)
 
-                        dfIntrv['dSup'] = \
-                            dfIntrv['dSup'].apply(lambda supV: sSelDist[sSelDist < supV].max() + self.truncIntrvEpsilon)
-                    except Exception:  # TODO: Remove this debugging try/except code
-                        logger.error(f'_postComputeTruncationGroups(dfIntrv2): dfIntrv.dtypes={dfIntrv.dtypes}')
-                        logger.error(f'_postComputeTruncationGroups(dfIntrv2): dfIntrv.dist.dtype={dfIntrv.dist.dtype}')
-                        dfIntrv.to_pickle('tmp/anlr-dfIntrv2.pickle')
-                        logger.error(f'_postComputeTruncationGroups(dfIntrv2): {dfIntrv:}')
-                        raise
+                    dfIntrv['dSup'] = \
+                        dfIntrv['dSup'].apply(lambda supV: sSelDist[sSelDist < supV].max() + self.truncIntrvEpsilon)
 
                     dfIntrv = dfIntrv[['dMin', 'dSup']].reset_index(drop=True)
 
@@ -1410,7 +1446,6 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             for scheme in cls.AutoFilSorKeySchemes:
 
                 logger.debug3('* scheme {}'.format(scheme))
-                dfSampRes.to_pickle('tmp/_.pickle')
 
                 # Workaround to-be-sorted problematic columns.
                 sortCols = list()
@@ -1563,22 +1598,6 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     DDupRoundsDef = {CLDeltaAic: 1, CLChi2: 2, CLKS: 2, CLCvMUw: 2, CLCvMCw: 2, CLDCv: 2, 
                      CLPDetec: 3, CLPDetecMin: 3, CLPDetecMax: 3, CLDensity: 2, CLDensityMin: 2, CLDensityMax: 2}
 
-    class FilterSortSteps(object):
-
-        """Log = history of filter and sort steps for a given scheme"""
-
-        def __init__(self, filSorSchId, lang='en'):
-            self.schemeId = filSorSchId
-            self.lang = lang
-            self.steps = list()  # of [stepName, propName, propValue]
-
-        def append(self, stepName, propName, propValue):
-            logger.debug2(f'* {stepName}: {propName} = {propValue}')
-            self.steps.append([stepName, propName, propValue])
-
-        def toList(self):
-            return [[self.schemeId] + step for step in self.steps]
-
     MainSchSpecNames = ['nameFmt', 'method', 'deduplicate', 'filterSort',
                         'preselCols', 'preselAscs', 'preselThrhs', 'preselNum']
 
@@ -1586,7 +1605,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         """Human readable but unique identification of a filter and sort scheme
         
-        Built on the scheme name and an additional int suffix when needed.
+        Built on the scheme name format and an additional int suffix when needed.
         
         Definition: 2 equal schemes (dict ==) have the same Id
 
@@ -1680,8 +1699,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # 1. Filter-out results obtained with some computation error (whatever sample).
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLRunStatus] > MCDSEngine.RCWarnings].index, inplace=True)
         clRunSts = self.transColumn(cls.CLRunStatus, filSorSteps.lang)
-        filSorSteps.append(clRunSts, 'max', MCDSEngine.RCWarnings)
-        filSorSteps.append(clRunSts, 'results', len(dfFilSorRes))
+        stepId = clRunSts
+        filSorSteps.append(stepId, 'max', MCDSEngine.RCWarnings)
+        filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 2. Filter-out results which are duplicates with respect to sample and truncation distances,
         # keeping best run status code first.
@@ -1691,12 +1711,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             dupSubset = [self.sampleIndCol] + dupSubset
         dfFilSorRes.drop(cls.indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
                          inplace=True)
-        filSorSteps.append('duplicates on params', 'param. names',
+        stepId = 'duplicates on params'
+        filSorSteps.append(stepId, 'param. names',
                            ', '.join(self.transColumn(miCol, filSorSteps.lang) for miCol in dupSubset))
-        filSorSteps.append('duplicates on params', 'param. precisions', 
+        filSorSteps.append(stepId, 'param. precisions',
                            ', '.join(self.transColumn(miCol, filSorSteps.lang) + f':{nDec}'
                                      for miCol, nDec in dDupRounds.items()))
-        filSorSteps.append('duplicates on params', 'results', len(dfFilSorRes))
+        filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
     def filterSortOnExecCode(self, schemeId, lang, whichFinalQua=CLGrpOrdClTrQuaBal1,
                              dupSubset=LDupSubsetDef, dDupRounds=DDupRoundsDef):
@@ -1727,7 +1748,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         logger.debug(f'Filter and sort scheme "{schemeId}": Applying.')
 
-        filSorSteps = cls.FilterSortSteps(schemeId, lang)
+        filSorSteps = _FilterSortSteps(schemeId, lang)
 
         # 0. Retrieve results to filter and sort.
         dfFilSorRes = self.getData(copy=True)
@@ -1783,21 +1804,28 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLGrpOrdSmTrAic] >= nBestAIC].index,
                          inplace=True)
         clOrdAic = self.transColumn(cls.CLGrpOrdSmTrAic, filSorSteps.lang)
-        filSorSteps.append('best ' + clOrdAic, 'max (sup) number', nBestAIC)
-        filSorSteps.append('best ' + clOrdAic, 'results', len(dfFilSorRes))
+        stepId = 'best ' + clOrdAic
+        filSorSteps.append(stepId, 'max (sup) number', nBestAIC)
+        filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
-        # 2. Filter-out results with poorest values of specified quality indicators,
+        # 2. Filter-out results not in N best ones for at least 1 in a specified set of quality indicator,
         # per groups of same sample and CLOSE truncation distances.
-        filSorSteps.append('best N for selected indicators', 'max (sup) N number', nBestQua)
-        for clQuaIndic in whichBestQua:
-            dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[clQuaIndic] >= nBestQua].index, inplace=True)
-            filSorSteps.append(self.transColumn(clQuaIndic, filSorSteps.lang), 'results', len(dfFilSorRes))
+        stepId = 'best results for selected indicators'
+        filSorSteps.append(stepId, 'max (sup) number per indicator', nBestQua)
+        filSorSteps.append(stepId, 'selected indicators',
+                           ', '.join(self.transColumns(whichBestQua, filSorSteps.lang)))
+        sb2keep = pd.Series(data=False, index=dfFilSorRes.index)
+        for clOrdQuaIndic in whichBestQua:
+            sb2keep |= (dfFilSorRes[clOrdQuaIndic] < nBestQua)
+        dfFilSorRes.drop(dfFilSorRes[~sb2keep].index, inplace=True)
+        filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 3. Filter-out results with insufficient considered sightings rate
         #    (due to a small sample or truncations params).
+        stepId = 'non-outlier sightings'
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLSightRate] < sightRate].index, inplace=True)
-        filSorSteps.append('non-outlier sightings', 'min %', sightRate)
-        filSorSteps.append('non-outlier sightings', 'results', len(dfFilSorRes))
+        filSorSteps.append(stepId, 'min %', sightRate)
+        filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 4. Filter-out eventually too numerous results, keeping only the N best ones
         # with respect to the specified quality indicator.
@@ -1806,9 +1834,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                                 sampleIds=dfFilSorRes[self.sampleIndCol].unique(),
                                                 sampleIdCol=self.sampleIndCol),
                          inplace=True)
-        clFinalQua = self.transColumn(whichFinalQua, filSorSteps.lang)
-        filSorSteps.append(f'final best N for ' + clFinalQua, 'target N per sample', nFinalRes)
-        filSorSteps.append(f'final best N for ' + clFinalQua, 'final results', len(dfFilSorRes))
+        stepId = 'final best N for ' + self.transColumn(whichFinalQua, filSorSteps.lang)
+        filSorSteps.append(stepId, 'target number of results', nFinalRes)
+        filSorSteps.append(stepId, 'final results', len(dfFilSorRes))
 
     def filterSortOnExCAicMulQua(self, schemeId, lang, sightRate=95, nBestAIC=2, nBestQua=1,
                                  whichBestQua=[CLGrpOrdClTrChi2KSDCv, CLGrpOrdClTrDCv, CLGrpOrdClTrQuaBal1,
@@ -1861,7 +1889,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         logger.debug(f'Filter and sort scheme "{schemeId}": Applying.')
 
-        filSorSteps = cls.FilterSortSteps(schemeId, lang)
+        filSorSteps = _FilterSortSteps(schemeId, lang)
 
         # 0. Retrieve results to filter and sort.
         dfFilSorRes = self.getData(copy=True)
@@ -1880,7 +1908,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         self._filterOnAicMultiQua(dfFilSorRes, filSorSteps, sightRate, nBestAIC, nBestQua, whichBestQua,
                                   nFinalRes, whichFinalQua)
 
-        # 6. Final sorting : increasing truncation distances & final quality indicator order.
+        # 6. Final sorting : increasing order for truncation distances & final quality indicator.
         sortCols = [cls.CLParTruncLeft, cls.CLParTruncRight, whichFinalQua]
         dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols, ascending=True, na_position='first', inplace=True)
         filSorSteps.append('sorting (ascending)', 'columns',
@@ -1916,7 +1944,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         assert len(preselCols) == len(preselThresh), \
                'preselAscend must be a single number or a list(number) with len(preselCols)'
 
-        filSorSteps.append('Auto-preselection', 'Nb of pre-selections', nSamplePreSels)
+        filSorSteps.append('auto-preselection', 'Nb of pre-selections', nSamplePreSels)
 
         # Create each pre-selection column: rank per sample in preselCol/ascending (or not) order
         # up to nSamplePreSels (but no preselection under / over threshold).
@@ -2003,33 +2031,36 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                        as a list of [schemeId, step name, property name, property value])
         """
 
-        # Apply filter and sort scheme if not already done or needed or user-required
-        # => index of filtered and sorted rows.
+        # Check (1/2) if need for applying scheme : needed if rebuild requested or post-computation needed.
+        isApplySchemeNeeded = rebuild or not self.postComputed
         filSorSchId = self.filterSortSchemeId(scheme)
-        if rebuild or not self.postComputed or filSorSchId not in self.dFilSorViews:
-        
-            # Apply scheme method => index of filtered and sorted results + log of steps
+
+        # If not needed, check (2/2) also if same scheme have been applied yet
+        if not isApplySchemeNeeded:
+            iFilSor, filSorSteps = self.filSorCache.get(filSorSchId)
+            isApplySchemeNeeded = iFilSor is None  # Not already applied => to apply now !
+
+        # Apply scheme if needed.
+        if isApplySchemeNeeded:
+
+            # Do it => index of filtered and sorted results + log of steps
             iFilSor, filSorSteps = \
                 scheme['method'](self, schemeId=filSorSchId, lang=lang or 'en',
                                  **scheme.get('filterSort', {}), **scheme.get('deduplicate', {}))
-            self.dFilSorViews[filSorSchId] = iFilSor, filSorSteps
 
-        else:
-
-            # Get from cache.
-            iFilSor, filSorSteps = self.dFilSorViews[filSorSchId]
-
-            logger.debug(f'Filter and sort scheme "{filSorSchId}": Re-using cached results.')
+            # Update cache
+            self.filSorCache.update(filSorSchId, iFilSor, filSorSteps)
 
         # Actually extract filtered and sorted rows and selected columns.
         dfFilSorRes = self.dfSubData(index=iFilSor, columns=columns, copy=True)
 
         # Add the preselection column (and update filter and sort log)
-        dfFilSorRes = self._addPreselColumns(dfFilSorRes, filSorSteps,
-                                             nSamplePreSels=scheme.get('preselNum', 5),
-                                             preselCols=scheme.get('preselCols', []), 
-                                             preselAscend=scheme.get('preselAscs', True),
-                                             preselThresh=scheme.get('preselThrhs', 0.2))
+        if not dfFilSorRes.empty:
+            dfFilSorRes = self._addPreselColumns(dfFilSorRes, filSorSteps,
+                                                 nSamplePreSels=scheme.get('preselNum', 5),
+                                                 preselCols=scheme.get('preselCols', []),
+                                                 preselAscend=scheme.get('preselAscs', True),
+                                                 preselThresh=scheme.get('preselThrhs', 0.2))
 
         # Final translation if specified.
         if lang:
