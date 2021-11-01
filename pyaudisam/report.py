@@ -1883,16 +1883,16 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
     DTrans = _mergeTransTables(base=MCDSResultsFullReport.DTrans,
         update=dict(en={'Scheme': 'Scheme', 'Step': 'Step',
                         'Property': 'Property', 'Value': 'Value',
-                        'AFS': 'AFS', 'Steps': 'Steps',
+                        'AFS': 'AFS', 'AFSM': 'AFSM', 'Steps': 'Steps',
                         'Filter & Sort steps': 'Filter and sort steps'},
                     fr={'Scheme': 'Méthode', 'Step': 'Etape',
                         'Property': 'Propriété', 'Value': 'Valeur',
-                        'AFS': 'FTA', 'Steps': 'Etapes',
+                        'AFS': 'FTA', 'AFSM': 'MFTA', 'Steps': 'Etapes',
                         'Filter & Sort steps': 'Etapes de filtrage et tri'}))
 
     ResClass = MCDSAnalysisResultsSet
 
-    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords, 
+    def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                  sampleCols, paramCols, resultCols, synthCols=None, sortCols=None, sortAscend=None,
                  dCustomTrans=None, lang='en',
                  filSorSchemes=[dict(nameFmt='ExecCodeX', method=ResClass.filterSortOnExecCode)], 
@@ -2014,7 +2014,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                                                  columns=self.synthCols, lang=self.lang)
 
                 # Store results in workbook
-                ddfWbk['-'.join([self.tr('AFS'), filSorSchId])] = (dfFilSorRes, False)
+                ddfWbk['-'.join([self.tr('AFSM'), filSorSchId])] = (dfFilSorRes, False)
 
                 # Update all-scheme log
                 repLog += filSorSteps
@@ -2206,14 +2206,19 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                         otherwise, use any cached data or existing plot image files
 
         Note: Parallelism does not work for this class (WTF ?), hence the absence of the 'generators' parameter.
+              Actually, it seems to work only the first time, and only when rebuild == False
+              (and may be no matplotlib drawing actually done) ;
+              but then, Exception: Can't pickle <function sync_do_first ... :-(
         """
+
+        generators = None
 
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)
             
         # Generate full report detailed pages (one for each analysis)
         # (done first to have plot image files generated for top report page generation right below).
-        self.toHtmlEachAnalysis(filSorScheme=filSorScheme, rebuild=rebuild, generators=None)
+        self.toHtmlEachAnalysis(filSorScheme=filSorScheme, rebuild=rebuild, generators=generators)
         
         # Generate top = main report page (one for all analyses).
         topHtmlPathName = self.toHtmlAllAnalyses(filSorScheme=filSorScheme, rebuild=rebuild)
