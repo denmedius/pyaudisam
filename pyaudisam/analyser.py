@@ -807,7 +807,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLTSortOrder = 'Order'  # Label "Type" (3rd level)
     CLTPreSelection = 'Pre-selection'  # Label "Type" (3rd level)
 
-    #   i. close truncation group identification
+    #   i. Close truncation group identification
     CLGroupTruncLeft = (CLCAutoFilSor, CLParTruncLeft[1], CLTTruncGroup)
     CLGroupTruncRight = (CLCAutoFilSor, CLParTruncRight[1], CLTTruncGroup)
 
@@ -1495,8 +1495,12 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     # Tools for actually filtering results
     @classmethod
-    def indexOfDuplicates(cls, dfRes, keep='first', subset=list(), round2decs=dict()):
-        
+    def _indexOfDuplicates(cls, dfRes, keep='first', subset=list(), round2decs=dict()):
+
+        """
+        Compute the indices of duplicates to remove in a data-frame,
+        keep=first meaning that the first item of an "equality" set is not considered a duplicate at the end
+        """
         if round2decs:
             # dfRes = dfRes.round(round2decs)  # Buggy (pandas 1.0.x up to 1.1.2): forgets columns !?!?!?
             if len(subset) > 0:
@@ -1506,97 +1510,40 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                 if len(subset) == 0 or col in subset:
                     dfRes[col] = dfRes[col].apply(lambda x: x if pd.isnull(x) else round(x, ndigits=dec))
 
-            # Don't use df.round ... because it does not work, at least with pandas 1.0.x up to 1.1.2 !?!?!?
-            # df = df.round(decimals={ col: dec for col, dec in self.trEnColNames(dColDecimals).items() \
-            #                          if col in df.columns })
-            
         return dfRes[dfRes.duplicated(keep=keep, subset=subset)].index
 
     @classmethod
-    def filterDichotScheme(cls, dfRes, sampleIds, sampleIdCol, critCol=CLCmbQuaBal1, ascendCrit=True,
-                           minCritStep=0.001, nMinRes=10, verbose=False):
-        
-        """Generic filtering function enforcing a max number of output results through an adaptive threshold strategy
-        on 1 given criteria, taking care of its actual variation domain
+    def _indexOfWorstOneCriterion(cls, dfRes, sampleIds, sampleIdCol, critCol,
+                                  ascendCrit=True, nTgtRes=10, verbose=False):
+
+        """Filtering function enforcing a target number of best output results based on 1 given criterion.
+        ascendCrit=True means that the best criterion values are the smallest ones
         """
-        
-        # For each sample ...
-        i2Drop = []
+
+        i2Drop = pd.Index([], dtype=dfRes.index.dtype)
+
+        # For each sample to filter ...
         for sampId in sampleIds:
+            # Extract sample results, and sort them  based on the criterion.
+            dfSampRes = dfRes[dfRes[sampleIdCol] == sampId].sort_values(by=critCol, ascending=ascendCrit)
 
-            # Extract results.
-            dfSampRes = dfRes[dfRes[sampleIdCol] == sampId]
-            if verbose:
-                print('#{}: {} results'.format(sampId, len(dfSampRes)), end=' => ')
+            # Done for this sample.
+            i2Drop = i2Drop.append(dfSampRes.index[nTgtRes:])  # Will drop indices after the N best's ones
 
-            # Compute criteria threshold variation scheme from actual value domain
-            start = dfSampRes[critCol].max() if ascendCrit else dfSampRes[critCol].min()
-            stop = dfSampRes[critCol].min() if ascendCrit else dfSampRes[critCol].max()
-            if verbose:
-                print(f'{critCol} [{start:.3f},{stop:.3f}]', end=': ')
-
-            # No need for tweaking criteria thresholds, we won't get more results.
-            if len(dfSampRes) <= nMinRes:
-                if verbose:
-                    print('t={:.3f}/k={}'.format(stop, len(dfSampRes)), end=', ')
-                if verbose:
-                    print('done, no more possible.')
-                continue
-            
-            # For each step of the scheme ...
-            i2DropSamp, thresh = [], start
-            while True:
-                
-                # Next try : middle of the interval to explore.
-                threshTry = (start + stop) / 2
-
-                # Try and apply the threshold step : number of dropped results if ...
-                if ascendCrit:
-                    i2DropSampTry = dfSampRes[dfSampRes[critCol] < threshTry].index
-                else:
-                    i2DropSampTry = dfSampRes[dfSampRes[critCol] > threshTry].index
-
-                if verbose:
-                    print('t={:.3f}/k={}'.format(threshTry, len(dfSampRes) - len(i2DropSampTry)), end=', ')
-
-                # Stop here if the min number expected of results would be reached
-                if len(dfSampRes) - len(i2DropSampTry) == nMinRes:
-                    i2DropSamp, thresh = i2DropSampTry, threshTry
-                    if verbose:
-                        print('done, target reached.')
-                    break
-                    
-                # Stop when no change in list to drop and above the min number expected of results.
-                elif len(i2DropSampTry) == len(i2DropSamp) and abs(start - stop) < minCritStep:
-                    if verbose:
-                        print('done, no more change.')
-                    break
-                                
-                # Update criteria interval to explore according to whether we would be
-                #  below or above the min number expected of results if ...
-                if len(dfSampRes) - len(i2DropSampTry) > nMinRes:
-                    if ascendCrit:
-                        stop = threshTry
-                    else:
-                        start = threshTry
-                else:
-                    if ascendCrit:
-                        start = threshTry
-                    else:
-                        stop = threshTry
-                        
-                # Or else, save current try, and go on.
-                i2DropSamp, thresh = i2DropSampTry, threshTry
-
-            # Append index to drop for sample to the final one
-            i2Drop = i2DropSamp if not len(i2Drop) else i2Drop.append(i2DropSamp)
-     
         return i2Drop
 
-    LDupSubsetDef = [CLNObs, CLEffort, CLDeltaAic, CLChi2, CLKS, CLCvMUw, CLCvMCw, CLDCv, 
-                     CLPDetec, CLPDetecMin, CLPDetecMax, CLDensity, CLDensityMin, CLDensityMax]
-    DDupRoundsDef = {CLDeltaAic: 1, CLChi2: 2, CLKS: 2, CLCvMUw: 2, CLCvMCw: 2, CLDCv: 2, 
-                     CLPDetec: 3, CLPDetecMin: 3, CLPDetecMax: 3, CLDensity: 2, CLDensityMin: 2, CLDensityMax: 2}
+    @classmethod
+    def _indexOfWorstMultiOrderCriteria(cls, dfRes, critCols=list(), supCrit=1):
+
+        """Filtering function enforcing a max(sup) order for output results based on multiple given criterion
+        (results will be dropped if not in the supCrit best ones for at least 1 of the order criteria)
+        """
+
+        sb2keep = pd.Series(data=False, index=dfRes.index)
+        for critCol in critCols:
+            sb2keep |= (dfRes[critCol] < supCrit)
+
+        return dfRes[~sb2keep].index
 
     MainSchSpecNames = ['nameFmt', 'method', 'deduplicate', 'filterSort',
                         'preselCols', 'preselAscs', 'preselThrhs', 'preselNum']
@@ -1709,7 +1656,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                 ascending=True, na_position='first', inplace=True)
         if self.sampleIndCol not in dupSubset:
             dupSubset = [self.sampleIndCol] + dupSubset
-        dfFilSorRes.drop(cls.indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
+        dfFilSorRes.drop(cls._indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
                          inplace=True)
         stepId = 'duplicates on params'
         filSorSteps.append(stepId, 'param. names',
@@ -1718,6 +1665,11 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                            ', '.join(self.transColumn(miCol, filSorSteps.lang) + f':{nDec}'
                                      for miCol, nDec in dDupRounds.items()))
         filSorSteps.append(stepId, 'results', len(dfFilSorRes))
+
+    LDupSubsetDef = [CLNObs, CLEffort, CLDeltaAic, CLChi2, CLKS, CLCvMUw, CLCvMCw, CLDCv,
+                     CLPDetec, CLPDetecMin, CLPDetecMax, CLDensity, CLDensityMin, CLDensityMax]
+    DDupRoundsDef = {CLDeltaAic: 1, CLChi2: 2, CLKS: 2, CLCvMUw: 2, CLCvMCw: 2, CLDCv: 2,
+                     CLPDetec: 3, CLPDetecMin: 3, CLPDetecMax: 3, CLDensity: 2, CLDensityMin: 2, CLDensityMax: 2}
 
     def filterSortOnExecCode(self, schemeId, lang, whichFinalQua=CLGrpOrdClTrQuaBal1,
                              dupSubset=LDupSubsetDef, dDupRounds=DDupRoundsDef):
@@ -1793,7 +1745,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                               to be retained, a result MUST be among the nBestQua best ones for ALL
                               the specified indicators)
         :param nFinalRes: Final nb of best whichFinalQua results to keep per sample
-        :param whichFinalQua: Quality indicator order column to use for final "best results per sample" selection
+        :param whichFinalQua: Quality indicator _order_ column to use for final "best results per sample" selection
 
         :return: tuple(index of selected and sorted results, log of filter & sort steps accomplished)
         """
@@ -1814,10 +1766,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         filSorSteps.append(stepId, 'max (sup) number per indicator', nBestQua)
         filSorSteps.append(stepId, 'selected indicators',
                            ', '.join(self.transColumns(whichBestQua, filSorSteps.lang)))
-        sb2keep = pd.Series(data=False, index=dfFilSorRes.index)
-        for clOrdQuaIndic in whichBestQua:
-            sb2keep |= (dfFilSorRes[clOrdQuaIndic] < nBestQua)
-        dfFilSorRes.drop(dfFilSorRes[~sb2keep].index, inplace=True)
+        i2Drop = cls._indexOfWorstMultiOrderCriteria(dfFilSorRes, critCols=whichBestQua, supCrit=nBestQua)
+        dfFilSorRes.drop(labels=i2Drop, inplace=True)
         filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 3. Filter-out results with insufficient considered sightings rate
@@ -1828,12 +1778,11 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 4. Filter-out eventually too numerous results, keeping only the N best ones
-        # with respect to the specified quality indicator.
-        dfFilSorRes.drop(cls.filterDichotScheme(dfFilSorRes, critCol=whichFinalQua,
-                                                ascendCrit=True, nMinRes=nFinalRes,
-                                                sampleIds=dfFilSorRes[self.sampleIndCol].unique(),
-                                                sampleIdCol=self.sampleIndCol),
-                         inplace=True)
+        #    with respect to the specified quality indicator _order_ (lower is better).
+        i2Drop = cls._indexOfWorstOneCriterion(dfFilSorRes, sampleIds=dfFilSorRes[self.sampleIndCol].unique(),
+                                               sampleIdCol=self.sampleIndCol, nTgtRes=nFinalRes,
+                                               critCol=whichFinalQua, ascendCrit=True)  # Order => Lower is better
+        dfFilSorRes.drop(labels=i2Drop, inplace=True)
         stepId = 'final best N for ' + self.transColumn(whichFinalQua, filSorSteps.lang)
         filSorSteps.append(stepId, 'target number of results', nFinalRes)
         filSorSteps.append(stepId, 'final results', len(dfFilSorRes))
