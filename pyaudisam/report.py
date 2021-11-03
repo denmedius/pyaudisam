@@ -1953,7 +1953,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                                                              R.CLCvMUw: 2, R.CLCvMCw: 2, R.CLDCv: 2})
                                 filterSort=dict(sightRate=92.5, nBestAIC=3, nBestQua=1,
                                                 whichBestQua=[R.CLGrpOrdClTrChi2KSDCv, R.CLGrpOrdClTrQuaBal3],
-                                                nFinalRes=12, whichFinalQua=R.CLGrpOrdClTrQuaBal3),
+                                                nFinalRes=12, whichFinalQua=R.CLCmbQuaBal3, ascFinalQua=False),
                                 preselCols=[R.CLCmbQuaBal1, R.CLDCv], preselAscs=[False, True],
                                 preselThrhs=[0.2, 0.5], preselNum=3)]        
         :param superSynthPlotsHeight: Display height (in pixels) of the super-synthesis table plots
@@ -2171,7 +2171,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
                            synthesis=dfsSyn.render(),  # escape=False, index=False),
                            details=dfsDet.render(),  # escape=False, index=False),
-                           traceability={trcName: dfTrcTable.to_html(escape=False)
+                           traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, keywords=self.keywords,
                            subtitle=self.subTitle.format(fsId=filSorSchId.split('@')[0]),
