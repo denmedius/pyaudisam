@@ -1171,9 +1171,12 @@ class ResultsSet(object):
         self.postComputed = on
 
     def setData(self, dfData, postComputed=False, acceptNewCols=False):
-        
+
+        # Prerequisites
         assert isinstance(dfData, pd.DataFrame), 'dfData must be a pd.DataFrame'
-        
+        assert dfData.index.nunique() == len(dfData), 'dfData index must be unique'
+
+        # Take source data as ours now (after copying).
         self._dfData = dfData.copy()
         
         # If specified, update results columns list (self.miCols) dynamically 
@@ -1355,7 +1358,8 @@ class ResultsSet(object):
 
         return ddfSpecs
 
-    def specsFromTables(self, ddfTables):
+    @staticmethod
+    def specsFromTables(ddfTables):
 
         specs = dict()
         for spName, dfSpData in ddfTables.items():
