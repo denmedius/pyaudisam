@@ -716,18 +716,29 @@ class _FilterSortSteps(object):
 
     """Log = history of filter and sort steps for a given scheme"""
 
-    def __init__(self, filSorSchId, lang='en'):
+    def __init__(self, filSorSchId, resultsSet, lang):
         self.schemeId = filSorSchId
         self.lang = lang
+        self.results = resultsSet  # only for resultsSet.transColumn(...)
         self.steps = list()  # of [stepName, propName, propValue]
 
     def copy(self):
-        clone = _FilterSortSteps(filSorSchId=self.schemeId, lang=self.lang)
+        clone = _FilterSortSteps(filSorSchId=self.schemeId, resultsSet=self.results, lang=self.lang)
         clone.steps = copy.deepcopy(self.steps)
         return clone
+    
+    def transColumns(self, columns):
+        if isinstance(columns, (list, dict)):
+            return ', '.join(self.results.transColumn(col, self.lang) for col in columns)
+        else:
+            return self.results.transColumn(columns, self.lang)
 
-    def append(self, stepName, propName, propValue):
+    def append(self, stepName, propName, propValue, transColumns=False):
+        """Append a step, property, value record in the log
+        (translate value as columns label(s) if specified: transColumns=True)"""
         logger.debug2(f'* {stepName}: {propName} = {propValue}')
+        if transColumns:
+            propValue = self.transColumns(propValue)
         self.steps.append([stepName, propName, propValue])
 
     def toList(self):
@@ -1033,7 +1044,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLsTruncDist = [('encounter rate', 'left truncation distance', 'Value'),
                     ('encounter rate', 'right truncation distance (w)', 'Value')]
 
-    def _postComputeDeltaAicDcv(self):
+    def _postComputeDeltaAicDCv(self):
         
         logger.debug(f'Post-computing Delta AIC/DCv: {self.CLDeltaAic} / {self.CLDeltaDCv}')
         
@@ -1054,7 +1065,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         self._dfData[self.CLDeltaAic] = self._dfData[self.CLAic] - self._dfData[self.CLDeltaAic]
         self._dfData[self.CLDeltaDCv] = self._dfData[self.CLDCv] - self._dfData[self.CLDeltaDCv]
 
-    # Post computations : Usefull columns for quality indicators.
+    # Post computations : Useful columns for quality indicators.
     CLNObs = ('encounter rate', 'number of observations (n)', 'Value')
     CLNTotObs = MCDSEngine.MIStatSampCols[0]
     CLKeyFn = ('detection probability', 'key function type', 'Value')
@@ -1488,7 +1499,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     def postComputeColumns(self):
         
         self._postComputeChi2()
-        self._postComputeDeltaAicDcv()
+        self._postComputeDeltaAicDCv()
         self._postComputeQualityIndicators()
         self._postComputeTruncationGroups()
         self._postComputeFilterSortKeys()
@@ -1497,9 +1508,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     @classmethod
     def _indexOfDuplicates(cls, dfRes, keep='first', subset=list(), round2decs=dict()):
 
-        """
-        Compute the indices of duplicates to remove in a data-frame,
-        keep=first meaning that the first item of an "equality" set is not considered a duplicate at the end
+        """Compute the indices of duplicates to remove in a data-frame,
+        keep=first means that the first item of an "equality" set is the one kept at the end
+        Warning: No sorting done here => do it before to get the right first !
         """
         if round2decs:
             # dfRes = dfRes.round(round2decs)  # Buggy (pandas 1.0.x up to 1.1.2): forgets columns !?!?!?
@@ -1513,8 +1524,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         return dfRes[dfRes.duplicated(keep=keep, subset=subset)].index
 
     @classmethod
-    def _indexOfWorstOneCriterion(cls, dfRes, sampleIds, sampleIdCol, critCol,
-                                  ascendCrit=True, nTgtRes=10, verbose=False):
+    def _indexOfWorstOneCriterion(cls, dfRes, sampleIds, sampleIdCol, critCol, ascendCrit=True, nTgtRes=10):
 
         """Filtering function enforcing a target number of best output results based on 1 given criterion.
         ascendCrit=True means that the best criterion values are the smallest ones
@@ -1598,7 +1608,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         nameFmt = scheme['nameFmt'] if scheme else nameFmt
         assert nameFmt, 'Filter and sort scheme name format must not be None or empty'
         method = scheme['method'] if scheme else filterSort['method']
-        assert callable(method), 'Filter and sort scheme method must not be callable'
+        assert callable(method), 'Filter and sort scheme method must be callable'
 
         # Compute the name part of the Id
         if scheme:
@@ -1608,7 +1618,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         schemeId = schemeId.replace('.', '')
 
         # The Id must be unique: enforce it through a uniqueness suffix only if needed
-        if schemeId in self.dFilSorSchemes:  # Seems there's a possible collision
+        if schemeId in self.dFilSorSchemes:  # Seems there's a possible collision ...
             closeSchemes = {schId: schVal for schId, schVal in self.dFilSorSchemes.items()
                             if schId.startswith(schemeId)}
             for schId, schVal in closeSchemes.items():  # Check if not simply an exact match
@@ -1621,7 +1631,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         
         return schemeId
 
-    def _filterOnExecCode(self, dfFilSorRes, filSorSteps, dupSubset, dDupRounds):
+    @classmethod
+    def _filterOnExecCode(cls, dfFilSorRes, filSorSteps, sampleIndCol, dupSubset, dDupRounds):
 
         """Inplace filter out results based on exec code and truncation params duplicates
 
@@ -1635,35 +1646,32 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         Parameters:
         :param dfFilSorRes: results table to update
         :param filSorSteps: filter and sort step list to update
+        :param sampleIndCol: sample index = identification column
         :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates (as a list of tuples)
                           Warning: self.sampleIndCol is automatically prepended to this list if not already inside
         :param dDupRounds: {col: nb decimals} => number of decimals to keep (after rounding)
                            for a sub-set or all of dupSubset columns
         """
 
-        cls = self
-
         # 1. Filter-out results obtained with some computation error (whatever sample).
         dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLRunStatus] > MCDSEngine.RCWarnings].index, inplace=True)
-        clRunSts = self.transColumn(cls.CLRunStatus, filSorSteps.lang)
-        stepId = clRunSts
-        filSorSteps.append(stepId, 'max', MCDSEngine.RCWarnings)
+        stepId = 'run status'
+        filSorSteps.append(stepId, 'column', cls.CLRunStatus, transColumns=True)
+        filSorSteps.append(stepId, 'max value', MCDSEngine.RCWarnings)
         filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 2. Filter-out results which are duplicates with respect to sample and truncation distances,
         # keeping best run status code first.
-        dfFilSorRes.sort_values(by=[self.sampleIndCol, cls.CLParTruncLeft, cls.CLParTruncRight, cls.CLRunStatus],
+        dfFilSorRes.sort_values(by=[sampleIndCol, cls.CLParTruncLeft, cls.CLParTruncRight, cls.CLRunStatus],
                                 ascending=True, na_position='first', inplace=True)
-        if self.sampleIndCol not in dupSubset:
-            dupSubset = [self.sampleIndCol] + dupSubset
+        if sampleIndCol not in dupSubset:
+            dupSubset = [sampleIndCol] + dupSubset
         dfFilSorRes.drop(cls._indexOfDuplicates(dfFilSorRes, keep='first', subset=dupSubset, round2decs=dDupRounds),
                          inplace=True)
         stepId = 'duplicates on params'
-        filSorSteps.append(stepId, 'param. names',
-                           ', '.join(self.transColumn(miCol, filSorSteps.lang) for miCol in dupSubset))
-        filSorSteps.append(stepId, 'param. precisions',
-                           ', '.join(self.transColumn(miCol, filSorSteps.lang) + f':{nDec}'
-                                     for miCol, nDec in dDupRounds.items()))
+        filSorSteps.append(stepId, 'param. names', dupSubset, transColumns=True)
+        filSorSteps.append(stepId, 'param. precisions', ', '.join(filSorSteps.transColumns(miCol) + f': {nDec}'
+                                                                  for miCol, nDec in dDupRounds.items()))
         filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
     LDupSubsetDef = [CLNObs, CLEffort, CLDeltaAic, CLChi2, CLKS, CLCvMUw, CLCvMCw, CLDCv,
@@ -1671,7 +1679,27 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     DDupRoundsDef = {CLDeltaAic: 1, CLChi2: 2, CLKS: 2, CLCvMUw: 2, CLCvMCw: 2, CLDCv: 2,
                      CLPDetec: 3, CLPDetecMin: 3, CLPDetecMax: 3, CLDensity: 2, CLDensityMin: 2, CLDensityMax: 2}
 
-    def filterSortOnExecCode(self, schemeId, lang, whichFinalQua=CLGrpOrdClTrQuaBal1,
+    @classmethod
+    def _sortOnQua(cls, dfFilSorRes, filSorSteps, sampleIndCol, whichQua=CLCmbQuaBal3, ascendQua=False):
+
+        """Inplace sort results per sample based on truncation distances and a customisable quality indicator
+
+        Parameters:
+        :param dfFilSorRes: results table to update
+        :param filSorSteps: filter and sort step list to update
+        :param sampleIndCol: sample index = identification column
+        :param whichQua: Quality indicator (not order of) column to use
+        :param ascendQua: if True, lower whichQua indicator values are better
+        """
+
+        sortCols = [cls.CLParTruncLeft, cls.CLParTruncRight, whichQua]
+        dfFilSorRes.sort_values(by=[sampleIndCol] + sortCols, ascending=[True, True, True, ascendQua],
+                                na_position='first', inplace=True)
+        stepId = 'final sorting'
+        filSorSteps.append(stepId, 'columns', sortCols, transColumns=True)
+        filSorSteps.append(stepId, 'lower last column is better ?', ascendQua)
+
+    def filterSortOnExecCode(self, schemeId, lang, whichFinalQua=CLCmbQuaBal3, ascFinalQua=False,
                              dupSubset=LDupSubsetDef, dDupRounds=DDupRoundsDef):
 
         """Minimal filter and sort scheme
@@ -1687,7 +1715,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         Parameters:
         :param schemeId: Scheme identification, for traceability
         :param lang: Translation language, for traceability
-        :param whichFinalQua: Quality indicator order column to use for final sorting
+        :param whichFinalQua: Quality indicator (not order of) column to use for final sorting
+        :param ascFinalQua: if True, lower whichFinalQua indicator values are better
         :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates (as a list of tuples)
                           Warning: self.sampleIndCol is automatically prepended to this list if not already inside
         :param dDupRounds: {col: nb decimals} => number of decimals to keep (after rounding)
@@ -1700,97 +1729,103 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         logger.debug(f'Filter and sort scheme "{schemeId}": Applying.')
 
-        filSorSteps = _FilterSortSteps(schemeId, lang)
+        filSorSteps = _FilterSortSteps(schemeId, resultsSet=self, lang=lang)
 
         # 0. Retrieve results to filter and sort.
         dfFilSorRes = self.getData(copy=True)
         filSorSteps.append('before', 'results', len(dfFilSorRes))
 
         # 1&2. Filter-out results with some computation error, and also duplicates based on same truncation params.
-        self._filterOnExecCode(dfFilSorRes, filSorSteps, dupSubset, dDupRounds)
+        self._filterOnExecCode(dfFilSorRes, filSorSteps, sampleIndCol=self.sampleIndCol,
+                               dupSubset=dupSubset, dDupRounds=dDupRounds)
 
-        # 3. Final sorting : increasing truncation distances & final quality indicator order.
-        sortCols = [cls.CLParTruncLeft, cls.CLParTruncRight, whichFinalQua]
-        dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols,
-                                ascending=True, na_position='first', inplace=True)
-        filSorSteps.append('sorting (ascending)', 'columns',
-                           ', '.join(self.transColumn(miCol, lang) for miCol in sortCols))
+        # 3. Final sorting : increasing order for truncation distances (and final quality indicator if needed).
+        self._sortOnQua(dfFilSorRes, filSorSteps, sampleIndCol=self.sampleIndCol,
+                        whichQua=whichFinalQua, ascendQua=ascFinalQua)
+
+        # Done.
+        filSorSteps.append('after', 'results', len(dfFilSorRes))
 
         return dfFilSorRes.index, filSorSteps
 
-    def _filterOnAicMultiQua(self, dfFilSorRes, filSorSteps, sightRate, nBestAIC, nBestQua, whichBestQua,
-                             nFinalRes, whichFinalQua):
+    @classmethod
+    def _filterOnAicMultiQua(cls, dfFilSorRes, filSorSteps, sampleIndCol,
+                             minSightRate=90, nBestAicOrd=2,
+                             nBestMQuaOrd=1, whichBestMQuaOrd=[CLGrpOrdClTrChi2KSDCv, CLGrpOrdClTrQuaBal3],
+                             nFinalQua=10, whichFinalQua=CLCmbQuaBal3, ascFinalQua=False):
 
-        """Inplace filter out results based on a customisable selection of quality indicators
+        """Inplace filter out results based on a mostly customisable selection of quality indicators
 
         Details:
-        1. Per sample and group of IDENTICAL truncation params (left & right distance + nb of fitting cuts),
-           keep only the nBestAIC best AIC values (and then best Chi2, KS, DCv, NObs, CodEx if same AIC ... etc)
+        1. Per sample and group of IDENTICAL left and right truncation distances,
+           keep only the results with CLGrpOrdSmTrAic < nBestAicOrd ;
+           Note: this is generally close to: the nBestAicOrd best AIC values
+            (and if equal, the best Chi2, KS, DCv, NObs, CodEx ... etc)
+           but may actually give more than nBestAicOrd rows per sample and group of ...
         2. Per sample and group of close truncation distances (see _postComputeTruncationGroups),
-           keep the nBestQua indicator values for the whichBestQua selection of quality indicators,
-           all considered at the same priority
-        3. Eliminate sighting rates below sightRate %,
-        4. Keep only the nFinalRes best results, with respect to whichFinalQua indicator
-           (through a dichotomous adaptive threshold algorithm: see filterDichotScheme)
+           keep only the results with a least one of the whichBestMQuaOrd indicator orders < nBestMQuaOrd ;
+           Note: this will probably give more than nBestMQuaOrd rows par sample and group of ...
+        3. Eliminate sighting rates < minSightRate,
+        4. Keep only the nFinalQua best results, with respect to whichFinalQua indicator
+           (ascendFinalQua=True meaning that lower values are better)
 
         Parameters:
         :param dfFilSorRes: results table to update
         :param filSorSteps: filter and sort step list to update
-        :param sightRate: Minimal observation rate (ratio of NTot Obs / NObs, not 1 because of dist. truncations)
-        :param nBestAIC: Nb of best AIC results to keep per sample and IDENTICAL truncation parameters
-        :param nBestQua: Nb of best results to keep per sample with respect to each quality indicator specified
-                         through its related order column name in whichBestQua
-        :param whichBestQua: Quality indicator order columns to use for filtering best results per sample
-                             (at most nBestQua best results are kept for each related indicator ;
-                              to be retained, a result MUST be among the nBestQua best ones for ALL
-                              the specified indicators)
-        :param nFinalRes: Final nb of best whichFinalQua results to keep per sample
-        :param whichFinalQua: Quality indicator _order_ column to use for final "best results per sample" selection
-
-        :return: tuple(index of selected and sorted results, log of filter & sort steps accomplished)
+        :param sampleIndCol: sample index = identification column
+        :param minSightRate: Minimal observation rate (ratio of NTot Obs / NObs, seldom=1 because of dist. truncations)
+        :param nBestAicOrd: Upper limit (excluded) for CLGrpOrdSmTrAic quality indicator order
+                            (per sample and IDENTICAL truncation parameters)
+        :param nBestMQuaOrd: Upper limit (excluded) for whichBestMQuaOrd for quality indicator orders
+                             (keep results with at least 1 of them under the limit)
+        :param whichBestMQua: Quality indicator order columns to use for filtering best results per sample
+                              and close truncation distances
+        :param nFinalQua: Final nb of best whichFinalQua indicator (not order of) results to keep per sample
+        :param whichFinalQua: Quality indicator (not order of) column to use
+                              for final "best results per sample" selection
+        :param ascFinalQua: if True, lower whichFinalQua indicator values are better
         """
 
-        cls = self
-
         # 1. Filter-out results with poorest AIC, per groups of same sample and IDENTICAL truncation distances.
-        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLGrpOrdSmTrAic] >= nBestAIC].index,
+        stepId = 'best AIC'
+        filSorSteps.append(stepId, 'column', cls.CLGrpOrdSmTrAic, transColumns=True)
+        filSorSteps.append(stepId, 'upper limit (excluded)', nBestAicOrd)
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLGrpOrdSmTrAic] >= nBestAicOrd].index,
                          inplace=True)
-        clOrdAic = self.transColumn(cls.CLGrpOrdSmTrAic, filSorSteps.lang)
-        stepId = 'best ' + clOrdAic
-        filSorSteps.append(stepId, 'max (sup) number', nBestAIC)
         filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 2. Filter-out results not in N best ones for at least 1 in a specified set of quality indicator,
         # per groups of same sample and CLOSE truncation distances.
-        stepId = 'best results for selected indicators'
-        filSorSteps.append(stepId, 'max (sup) number per indicator', nBestQua)
-        filSorSteps.append(stepId, 'selected indicators',
-                           ', '.join(self.transColumns(whichBestQua, filSorSteps.lang)))
-        i2Drop = cls._indexOfWorstMultiOrderCriteria(dfFilSorRes, critCols=whichBestQua, supCrit=nBestQua)
+        stepId = 'best results for >= 1 indicator'
+        filSorSteps.append(stepId, 'selected indicator orders', whichBestMQuaOrd, transColumns=True)
+        filSorSteps.append(stepId, 'order limit (excluded) / indicator', nBestMQuaOrd)
+        i2Drop = cls._indexOfWorstMultiOrderCriteria(dfFilSorRes, critCols=whichBestMQuaOrd, supCrit=nBestMQuaOrd)
         dfFilSorRes.drop(labels=i2Drop, inplace=True)
         filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 3. Filter-out results with insufficient considered sightings rate
         #    (due to a small sample or truncations params).
         stepId = 'non-outlier sightings'
-        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLSightRate] < sightRate].index, inplace=True)
-        filSorSteps.append(stepId, 'min %', sightRate)
+        filSorSteps.append(stepId, 'min sighting rate', minSightRate)
+        dfFilSorRes.drop(dfFilSorRes[dfFilSorRes[cls.CLSightRate] < minSightRate].index, inplace=True)
         filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
         # 4. Filter-out eventually too numerous results, keeping only the N best ones
-        #    with respect to the specified quality indicator _order_ (lower is better).
-        i2Drop = cls._indexOfWorstOneCriterion(dfFilSorRes, sampleIds=dfFilSorRes[self.sampleIndCol].unique(),
-                                               sampleIdCol=self.sampleIndCol, nTgtRes=nFinalRes,
-                                               critCol=whichFinalQua, ascendCrit=True)  # Order => Lower is better
+        #    with respect to the specified quality indicator (real indicator, not relevant close trunc order).
+        stepId = 'final best results'
+        filSorSteps.append(stepId, 'column', whichFinalQua, transColumns=True)
+        filSorSteps.append(stepId, 'lower is better ?', ascFinalQua)
+        filSorSteps.append(stepId, 'max results', nFinalQua)
+        i2Drop = cls._indexOfWorstOneCriterion(dfFilSorRes, sampleIds=dfFilSorRes[sampleIndCol].unique(),
+                                               sampleIdCol=sampleIndCol, nTgtRes=nFinalQua,
+                                               critCol=whichFinalQua, ascendCrit=ascFinalQua)
         dfFilSorRes.drop(labels=i2Drop, inplace=True)
-        stepId = 'final best N for ' + self.transColumn(whichFinalQua, filSorSteps.lang)
-        filSorSteps.append(stepId, 'target number of results', nFinalRes)
-        filSorSteps.append(stepId, 'final results', len(dfFilSorRes))
+        filSorSteps.append(stepId, 'results', len(dfFilSorRes))
 
     def filterSortOnExCAicMulQua(self, schemeId, lang, sightRate=95, nBestAIC=2, nBestQua=1,
                                  whichBestQua=[CLGrpOrdClTrChi2KSDCv, CLGrpOrdClTrDCv, CLGrpOrdClTrQuaBal1,
                                                CLGrpOrdClTrQuaChi2, CLGrpOrdClTrQuaKS, CLGrpOrdClTrQuaDCv],
-                                 nFinalRes=10, whichFinalQua=CLGrpOrdClTrQuaBal1,
+                                 nFinalRes=10, whichFinalQua=CLCmbQuaBal3, ascFinalQua=False,
                                  dupSubset=LDupSubsetDef, dDupRounds=DDupRoundsDef):
 
         """Filter and sort scheme for selecting best results with respect to a set of quality indicators,
@@ -1799,14 +1834,17 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         Details:
         1. Same filtering as filterSortOnExecCode
-        2. Per sample and group of IDENTICAL truncation params (left & right distance + nb of fitting cuts),
-           keep only the nBestAIC best AIC values (and then best Chi2, KS, DCv, NObs, CodEx if same AIC ... etc)
+        2. Per sample and group of IDENTICAL left and right truncation distances,
+           keep only the results with CLGrpOrdSmTrAic < nBestAIC ;
+           Note: this is generally close to: the nBestAIC best AIC values
+            (and if equal, the best Chi2, KS, DCv, NObs, CodEx ... etc)
+           but may actually give more than nBestAIC rows per sample and group of ...
         3. Per sample and group of close truncation distances (see _postComputeTruncationGroups),
-           keep the nBestQua indicator values for the whichBestQua selection of quality indicators,
-           all considered at the same priority
-        4. Eliminate sighting rates below sightRate %,
+           keep only the results with a least one of the whichBestQua indicator orders < nBestQua ;
+           Note: this will probably give more than nBestQua rows par sample and group of ...
+        4. Eliminate sighting rates < sightRate,
         5. Keep only the nFinalRes best results, with respect to whichFinalQua indicator
-           (through a dichotomous adaptive threshold algorithm: see filterDichotScheme)
+           (ascendFinalQua=True meaning that lower values are better)
         6. Finally, sort by truncation distances (no truncation first, shorter distances first, ... simpler first)
            and by best whichFinalQua indicator values
 
@@ -1826,6 +1864,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                               the specified indicators)
         :param nFinalRes: Final nb of best whichFinalQua results to keep per sample
         :param whichFinalQua: Quality indicator order column to use for final "best results per sample" selection
+        :param ascFinalQua: if True, lower whichFinalQua indicator values are better
         :param dupSubset: Subset of (3-level multi-index) columns for detecting duplicates (as a list of tuples)
                           Warning: self.sampleIndCol is automatically prepended to this list if not already inside
         :param dDupRounds: {col: nb decimals} => number of decimals to keep (after rounding)
@@ -1834,18 +1873,17 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         :return: tuple(index of selected and sorted results, log of filter & sort steps accomplished)
         """
 
-        cls = self
-
         logger.debug(f'Filter and sort scheme "{schemeId}": Applying.')
 
-        filSorSteps = _FilterSortSteps(schemeId, lang)
+        filSorSteps = _FilterSortSteps(schemeId, resultsSet=self, lang=lang)
 
         # 0. Retrieve results to filter and sort.
         dfFilSorRes = self.getData(copy=True)
         filSorSteps.append('before', 'results', len(dfFilSorRes))
 
         # 1. Filter-out results with some computation error, and also duplicates based on same truncation params.
-        self._filterOnExecCode(dfFilSorRes, filSorSteps, dupSubset, dDupRounds)
+        self._filterOnExecCode(dfFilSorRes, filSorSteps, sampleIndCol=self.sampleIndCol,
+                               dupSubset=dupSubset, dDupRounds=dDupRounds)
 
         # 2. Filter-out results with poorest AIC, per groups of same sample and IDENTICAL truncation distances.
         # 3. Filter-out results with poorest values of specified quality indicators,
@@ -1854,16 +1892,18 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         #    (due to a small sample or truncations params).
         # 5. Filter-out eventually too numerous results, keeping only the N best ones
         #    with respect to the specified quality indicator.
-        self._filterOnAicMultiQua(dfFilSorRes, filSorSteps, sightRate, nBestAIC, nBestQua, whichBestQua,
-                                  nFinalRes, whichFinalQua)
+        self._filterOnAicMultiQua(dfFilSorRes, filSorSteps, sampleIndCol=self.sampleIndCol,
+                                  minSightRate=sightRate, nBestAicOrd=nBestAIC,
+                                  nBestMQuaOrd=nBestQua, whichBestMQuaOrd=whichBestQua,
+                                  nFinalQua=nFinalRes, whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua)
 
-        # 6. Final sorting : increasing order for truncation distances & final quality indicator.
-        sortCols = [cls.CLParTruncLeft, cls.CLParTruncRight, whichFinalQua]
-        dfFilSorRes.sort_values(by=[self.sampleIndCol] + sortCols, ascending=True, na_position='first', inplace=True)
-        filSorSteps.append('sorting (ascending)', 'columns',
-                           ', '.join(self.transColumn(miCol, lang) for miCol in sortCols))
+        # 6. Final sorting : increasing order for truncation distances (and final quality indicator if needed).
+        self._sortOnQua(dfFilSorRes, filSorSteps, sampleIndCol=self.sampleIndCol,
+                        whichQua=whichFinalQua, ascendQua=ascFinalQua)
 
         # Done.
+        filSorSteps.append('after', 'results', len(dfFilSorRes))
+
         return dfFilSorRes.index, filSorSteps
 
     def _addPreselColumns(self, dfFilSorRes, filSorSteps,
@@ -1882,6 +1922,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                              (=> nan in target column), for each column (list[number]), or all (single number)
 
         """
+
+        cls = self
 
         if isinstance(preselAscend, bool):
             preselAscend = [preselAscend] * len(preselCols)
@@ -1903,30 +1945,32 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             tgtPreSelCol, dTgtPreSelColTrans = self.preselectionColumn(srcCol)
             self.addColumnsTrans({tgtPreSelCol: dTgtPreSelColTrans})
 
+            filSorSteps.append('auto-preselection', 'pre-selection column', srcCol, transColumns=True)
+            filSorSteps.append('auto-preselection', 'lower is better ?', srcColAscend)
+            filSorSteps.append('auto-preselection', 'eliminating threshold', srcColThresh)
+
             # Compute contents and add to table
+            # a. Rank all results
             dfFilSorRes.insert(dfFilSorRes.columns.get_loc(srcCol), tgtPreSelCol,
                                dfFilSorRes.groupby(self.miSampleCols.to_list())[[srcCol]]
                                           .transform(lambda s: s.rank(ascending=srcColAscend,
                                                                       method='dense', na_option='keep'))[srcCol])
 
+            # b. Nullify too big ranks and "under" threshold values
             sbKillOnThresh = dfFilSorRes[srcCol] > srcColThresh if srcColAscend else dfFilSorRes[srcCol] < srcColThresh
             sbKillOnNumber = dfFilSorRes[tgtPreSelCol] > nSamplePreSels
             dfFilSorRes.loc[sbKillOnThresh | sbKillOnNumber, tgtPreSelCol] = np.nan
 
-            filSorSteps.append('auto-preselection', 'pre-selection column', self.transColumn(srcCol, filSorSteps.lang))
-            filSorSteps.append('auto-preselection', 'lower is better ?', srcColAscend)
-            filSorSteps.append('auto-preselection', 'eliminating threshold', srcColThresh)
-
         # Create final empty selection column (for the user to self-decide at the end)
         # (right before the first added pre-selection column, no choice)
         if len(preselCols) > 0:
-            dfFilSorRes.insert(dfFilSorRes.columns.get_loc(preselCols[0]) - 1, self.CLFinalSelection, np.nan)
+            dfFilSorRes.insert(dfFilSorRes.columns.get_loc(preselCols[0]) - 1, cls.CLFinalSelection, np.nan)
 
         return dfFilSorRes
 
     def dfFilSorData(self, scheme=dict(nameFmt='ExecCode', method=filterSortOnExecCode,
-                                       filterSort=dict(whichFinalQua=CLGrpOrdClTrQuaBal1),
-                                       preselCols=[CLCmbQuaBal1], preselAscs=False, preselThrhs=[0.2],
+                                       filterSort=dict(whichFinalQua=CLCmbQuaBal3, ascFinalQua=False),
+                                       preselCols=[CLCmbQuaBal3], preselAscs=False, preselThrhs=[0.2],
                                        preselNum=5),
                      columns=None, lang=None, rebuild=False):
 
@@ -1953,7 +1997,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                       default: 5)
                  examples: dict(nameFmt='ExecCode', => format string to generate the name of the report
                                 method=R.filterSortOnExecCode,
-                                filterSort=dict(whichFinalQua=CLGrpOrdClTrQuaBal1),
+                                filterSort=dict(whichFinalQua=CLCmbQuaBal3, ascFinalQua=False),
                                 preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False,
                                 preselThrhs=0.2, preselNum=5),
                            dict(nameFmt='AicCKCvQua-r{sightRate:.1f}d{nFinalRes}', 
@@ -1966,8 +2010,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                                 whichBestQua=[R.CLGrpOrdClTrChi2KSDCv, R.CLGrpOrdClTrDCv,
                                                               R.CLGrpOrdClTrQuaBal1, R.CLGrpOrdClTrQuaChi2,
                                                               R.CLGrpOrdClTrQuaKS, R.CLGrpOrdClTrQuaDCv],
-                                                nFinalRes=12, whichFinalQua=R.CLGrpOrdClTrQuaBal1),
-                                preselCols=[R.CLCmbQuaBal1, R.R.CLDCv], preselAscs=[False, True],
+                                                nFinalRes=12, whichFinalQua=R.CLCmbQuaBal1, ascFinalQua=False),
+                                preselCols=[R.CLCmbQuaBal1, R.CLDCv], preselAscs=[False, True],
                                 preselThrhs=[0.2, 0.5], preselNum=3)
         :param columns: Subset and order of columns to keep at the end (before translation) (None = [] = all)
                         Warning: No need to specify here pre-selection and final selection columns,
@@ -2384,7 +2428,7 @@ class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
     def postComputeColumns(self):
         
         self._postComputeChi2()
-        self._postComputeDeltaAicDcv()
+        self._postComputeDeltaAicDCv()
         self._postComputeQualityIndicators()
 
 
