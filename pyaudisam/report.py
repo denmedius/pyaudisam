@@ -683,7 +683,7 @@ class DSResultsDistanceReport(ResultsReport):
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(synthesis=dfsSyn.render(),  # escape=False, index=False),
                            details=dfsDet.render(),  # escape=False, index=False),
-                           traceability={trcName: dfTrcTable.to_html(escape=False)
+                           traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
@@ -1628,7 +1628,7 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         tmpl = self.getTemplateEnv().get_template('mcds/pretop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
-                           traceability={trcName: dfTrcTable.to_html(escape=False)
+                           traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
@@ -1840,7 +1840,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
                            synthesis=dfsSyn.render(),  # escape=False, index=False),
                            details=dfsDet.render(),  # escape=False, index=False),
-                           traceability={trcName: dfTrcTable.to_html(escape=False)
+                           traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle,
                            description=self.description, keywords=self.keywords,
