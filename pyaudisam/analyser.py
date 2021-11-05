@@ -778,6 +778,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     
     # Shortcut to already existing and useful columns names.
     CLRunStatus = MCDSAnalysis.CLRunStatus
+    CLParEstKeyFn = MCDSAnalysis.CLParEstKeyFn
+    CLParEstAdjSer = MCDSAnalysis.CLParEstAdjSer
+    CLParEstSelCrit = MCDSAnalysis.CLParEstSelCrit
+    CLParEstCVInt = MCDSAnalysis.CLParEstCVInt
     CLParTruncLeft = MCDSAnalysis.CLParTruncLeft
     CLParTruncRight = MCDSAnalysis.CLParTruncRight
     CLParModFitDistCuts = MCDSAnalysis.CLParModFitDistCuts
@@ -787,13 +791,23 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLPDetec = ('detection probability', 'probability of detection (Pw)', 'Value')
     CLPDetecMin = ('detection probability', 'probability of detection (Pw)', 'Lcl')
     CLPDetecMax = ('detection probability', 'probability of detection (Pw)', 'Ucl')
+    CLPDetecCv = ('detection probability', 'probability of detection (Pw)', 'Cv')
+    CLPDetecDf = ('detection probability', 'probability of detection (Pw)', 'Df')
     CLEswEdr = ('detection probability', 'effective strip width (ESW) or effective detection radius (EDR)', 'Value')
+    CLEswEdrMin = ('detection probability', 'effective strip width (ESW) or effective detection radius (EDR)', 'Lcl')
+    CLEswEdrMax = ('detection probability', 'effective strip width (ESW) or effective detection radius (EDR)', 'Ucl')
+    CLEswEdrCv = ('detection probability', 'effective strip width (ESW) or effective detection radius (EDR)', 'Cv')
+    CLEswEdrDf = ('detection probability', 'effective strip width (ESW) or effective detection radius (EDR)', 'Df')
     CLDensity = ('density/abundance', 'density of animals', 'Value')
     CLDensityMin = ('density/abundance', 'density of animals', 'Lcl')
     CLDensityMax = ('density/abundance', 'density of animals', 'Ucl')
+    CLDensityCv = ('density/abundance', 'density of animals', 'Cv')
+    CLDensityDf = ('density/abundance', 'density of animals', 'Df')
     CLNumber = ('density/abundance', 'number of animals, if survey area is specified', 'Value')
     CLNumberMin = ('density/abundance', 'number of animals, if survey area is specified', 'Lcl')
     CLNumberMax = ('density/abundance', 'number of animals, if survey area is specified', 'Ucl')
+    CLNumberCv = ('density/abundance', 'number of animals, if survey area is specified', 'Cv')
+    CLNumberDf = ('density/abundance', 'number of animals, if survey area is specified', 'Df')
 
     DCLParTruncDist = dict(left=CLParTruncLeft, right=CLParTruncRight)
 
@@ -1040,7 +1054,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     # Post-computations : Delta AIC/DCv per sampleCols + truncation param. cols group => AIC - min(group).
     CLAic = ('detection probability', 'AIC value', 'Value')
-    CLDCv = ('density/abundance', 'density of animals', 'Cv')
+    CLDCv = CLDensityCv
     CLsTruncDist = [('encounter rate', 'left truncation distance', 'Value'),
                     ('encounter rate', 'right truncation distance (w)', 'Value')]
 
@@ -1068,6 +1082,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     # Post computations : Useful columns for quality indicators.
     CLNObs = ('encounter rate', 'number of observations (n)', 'Value')
     CLNTotObs = MCDSEngine.MIStatSampCols[0]
+    CLMinObsDist = MCDSEngine.MIStatSampCols[1]
+    CLMaxObsDist = MCDSEngine.MIStatSampCols[2]
     CLKeyFn = ('detection probability', 'key function type', 'Value')
     CLNTotPars = ('detection probability', 'total number of parameters (m)', 'Value')
     CLNAdjPars = ('detection probability', 'number of adjustment term parameters (NAP)', 'Value')
@@ -1555,10 +1571,15 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         return dfRes[~sb2keep].index
 
-    MainSchSpecNames = ['nameFmt', 'method', 'deduplicate', 'filterSort',
+    # Constants for filSorSchemeId
+    MainSchSpecNames = ['method', 'deduplicate', 'filterSort',
                         'preselCols', 'preselAscs', 'preselThrhs', 'preselNum']
+    FinalQuaShortNames = {CLChi2: 'k2', CLKS: 'ks', CLCvMUw: 'cu', CLCvMCw: 'cw',
+                          CLDCv: 'dc', CLSightRate: 'sr',
+                          CLCmbQuaBal1: 'q1', CLCmbQuaBal2: 'q2', CLCmbQuaBal3: 'q3',
+                          CLCmbQuaChi2: 'qk2', CLCmbQuaKS: 'qks', CLCmbQuaDCv: 'qdc'}
 
-    def filterSortSchemeId(self, scheme=None, nameFmt=None, **filterSort):
+    def filSorSchemeId(self, scheme):
 
         """Human readable but unique identification of a filter and sort scheme
         
@@ -1567,12 +1588,11 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         Definition: 2 equal schemes (dict ==) have the same Id
 
         Parameters:
-        :param scheme: the scheme to identify ; if not None, other parameters are ignored (except for unique)
-                       as a dict(nameFmt= format string for generating the name part of the Id of the report
-                                 method= filterSortOnXXX method to use,
+        :param scheme: the scheme to identify
+                       as a dict(method= filterSortOnXXX method to use,
                                  deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
                                      (if not or partially given, see filterSortOnXXX defaults)
-                                 filterSort= dict of other <method> params,
+                                 filterSort= dict of other <method> params (see filterSortOnXXX methods),
                                  preselCols= target columns for generating auto-preselection ones,
                                              containing [1, preselNum] ranks ; default: []
                                  preselAscs= Rank direction to use for each column (list),
@@ -1582,40 +1602,41 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                               or all (single number) ; default: 0.2
                                               (eliminated above if preselAscs True, below otherwise)
                                  preselNum= number of (best) pre-selections to keep for each sample) ;
-                                      default: 5
-        :param nameFmt: naming part (human readable) of the Id (ignored if scheme is not None)
-        :param filterSort: actual filter and sort parameters of the scheme (ignored if scheme is not None)
+                                            default: 5
 
         :return: the unique Id.
         """
 
-        # Check scheme specification (1st level properties: presence of mandatory ones, authorised list, ...)
-        mandProps = list()
-        if scheme:
-            props = scheme.keys()
-            mandProps.append('nameFmt')
-        else:
-            props = filterSort.keys()
-        mandProps.append('method')
+        cls = self
 
+        # Check scheme specification (1st level properties: presence of mandatory ones, authorised list, ...)
+        props = scheme.keys()
         assert all(prop in self.MainSchSpecNames for prop in props), \
                'Unknown filter and sort scheme property/ies: {}' \
                .format(', '.join(prop for prop in props if prop not in self.MainSchSpecNames))
+        mandProps = ['method']
         assert all(prop in props for prop in mandProps), \
                'Missing filter and sort scheme mandatory property/ies: {}' \
                .format(', '.join(prop for prop in mandProps if prop not in props))
-
-        nameFmt = scheme['nameFmt'] if scheme else nameFmt
-        assert nameFmt, 'Filter and sort scheme name format must not be None or empty'
-        method = scheme['method'] if scheme else filterSort['method']
+        method = scheme['method']
         assert callable(method), 'Filter and sort scheme method must be callable'
+        assert method is MCDSAnalysisResultsSet.filterSortOnExecCode \
+               or method is MCDSAnalysisResultsSet.filterSortOnExCAicMulQua, \
+               'Unsupported filter and sort scheme method: ' + str(method)
 
-        # Compute the name part of the Id
-        if scheme:
-            schemeId = scheme['nameFmt'].format_map(scheme.get('filterSort', {}))
-        else:
-            schemeId = nameFmt.format_map(filterSort)
-        schemeId = schemeId.replace('.', '')
+        # Compute the heading "name" part of the Id
+        schemeId = 'ExCode' if method is MCDSAnalysisResultsSet.filterSortOnExecCode else 'ExAicMQua'
+        methArgs = scheme.get('filterSort', {})
+        if 'sightRate' in methArgs:
+            schemeId += '-r{:.1f}'.format(methArgs['sightRate']).replace('.', '')
+        if 'whichBestQua' in methArgs:
+            schemeId += 'm{}'.format(len(methArgs['whichBestQua']))
+        if 'whichFinalQua' in methArgs and method is not MCDSAnalysisResultsSet.filterSortOnExecCode:
+            assert methArgs['whichFinalQua'] in cls.FinalQuaShortNames, \
+                   'Unsupported quality indicator for filtering: ' + str(methArgs['whichFinalQua'])
+            schemeId += cls.FinalQuaShortNames[methArgs['whichFinalQua']]
+        if 'nFinalRes' in methArgs:
+            schemeId += 'd{}'.format(methArgs['nFinalRes'])
 
         # The Id must be unique: enforce it through a uniqueness suffix only if needed
         if schemeId in self.dFilSorSchemes:  # Seems there's a possible collision ...
@@ -2026,7 +2047,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         # Check (1/2) if need for applying scheme : needed if rebuild requested or post-computation needed.
         isApplySchemeNeeded = rebuild or not self.postComputed
-        filSorSchId = self.filterSortSchemeId(scheme)
+        filSorSchId = self.filSorSchemeId(scheme)
 
         # If not needed, check (2/2) also if same scheme have been applied yet
         if not isApplySchemeNeeded:

@@ -176,15 +176,17 @@ class MCDSAnalysis(DSAnalysis):
         self.discrDistCuts = discrDistCuts
     
     # Run columns for output : analysis params + root engine output (3-level multi-index)
+    CLParEstKeyFn = ('parameters', 'estimator key function', 'Value')
+    CLParEstAdjSer = ('parameters', 'estimator adjustment series', 'Value')
+    CLParEstSelCrit = ('parameters', 'estimator selection criterion', 'Value')
+    CLParEstCVInt = ('parameters', 'CV interval', 'Value')
     CLParTruncLeft = ('parameters', 'left truncation distance', 'Value')
     CLParTruncRight = ('parameters', 'right truncation distance', 'Value')
     CLParModFitDistCuts = ('parameters', 'model fitting distance cut points', 'Value')
     CLParModDiscrDistCuts = ('parameters', 'distance discretisation cut points', 'Value')
 
-    MIRunColumns = pd.MultiIndex.from_tuples([('parameters', 'estimator key function', 'Value'),
-                                              ('parameters', 'estimator adjustment series', 'Value'),
-                                              ('parameters', 'estimator selection criterion', 'Value'),
-                                              ('parameters', 'CV interval', 'Value'),
+    MIRunColumns = pd.MultiIndex.from_tuples([CLParEstKeyFn, CLParEstAdjSer,
+                                              CLParEstSelCrit, CLParEstCVInt,
                                               CLParTruncLeft, CLParTruncRight,
                                               CLParModFitDistCuts, CLParModDiscrDistCuts]
                                              + DSAnalysis.RunRunColumns)

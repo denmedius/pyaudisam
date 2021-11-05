@@ -2006,7 +2006,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
             for scheme in self.filSorSchemes:
 
                 logger.info1('* filter & sort "{}" scheme ...'
-                             .format(self.resultsSet.filterSortSchemeId(scheme)))
+                             .format(self.resultsSet.filSorSchemeId(scheme)))
 
                 # Apply it
                 filSorSchId, dfFilSorRes, filSorSteps = \
@@ -2188,7 +2188,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
 
         # 8. Write top HTML to file.
-        filSorSchId = self.resultsSet.filterSortSchemeId(filSorScheme)
+        filSorSchId = self.resultsSet.filSorSchemeId(filSorScheme)
         htmlPathName = self.targetFilePathName(suffix=f'.{filSorSchId}.html')
         with codecs.open(htmlPathName, mode='w', encoding='utf-8-sig') as tgtFile:
             tgtFile.write(html)
