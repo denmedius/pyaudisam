@@ -405,7 +405,10 @@ class DataSet(object):
 
         :return: the diagnostic DataFrame.
         """
-        
+
+        if dfLeft.empty and dfRight.empty:
+            return pd.DataFrame()
+
         # Make copies : we need to change the frames.
         dfLeft = dfLeft.copy()
         dfRight = dfRight.copy()
