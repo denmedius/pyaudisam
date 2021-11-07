@@ -1230,8 +1230,103 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         logger.debug1('* Balanced quality DCv+')
         self._dfData[cls.CLCmbQuaDCv] = dfCompData.apply(cls._combinedQualityMoreDCv, axis='columns')
         
-    # List result samples
+    # Post computations : Truncations groups.
+    @staticmethod
+    def _groupingIntervals(sValues, minDist, maxLen, epsilon=1e-6):
+
+        """Build a list of value grouping intervals from a series of values
+        taking care of min distance and max length constraints
+
+        Parameters:
+        :param sValues: pd.Series of values to group
+        :param minDist: minimal distance between consecutive intervals (left.max - right.min > minIntrvDist)
+        :param maxLen: max length of intervals (but ... see below)
+
+        TODO: Fix current implementation that actually does not produce intervals of max length maxLen, but 1.5*maxLen !
+
+        :return: pd.DataFrame of left-closed and right-open resulting intervals (columns = vmin, vsup)
+        """
+
+        # Cleanup and sort (ascending) distance series first
+        # (+ for some reason, need for enforcing float dtype ... otherwise dtype='O' !?)
+        sValues = sValues.dropna().astype(float).sort_values()
+
+        # If not a single cleaned up distance to examine, stop here.
+        if sValues.empty:
+            return pd.DataFrame()
+
+        # List non-null differences between consecutive sorted distances
+        dfIntrvs = pd.DataFrame(dict(v=sValues.values))
+        dfIntrvs['vdelta'] = dfIntrvs.v.diff()
+        dfIntrvs.loc[dfIntrvs.v.idxmin(), 'vdelta'] = np.inf
+        dfIntrvs.dropna(inplace=True)
+        dfIntrvs = dfIntrvs[dfIntrvs.vdelta > 0].copy()
+
+        # Deduce start (min) and end (sup) for each such interval (left-closed, right-open)
+        dfIntrvs['vmin'] = dfIntrvs.loc[dfIntrvs.vdelta > minDist, 'v']
+        dfIntrvs['vsup'] = dfIntrvs.loc[dfIntrvs.vdelta > minDist, 'v'].shift(-1).dropna()
+        dfIntrvs.loc[dfIntrvs['vmin'].idxmax(), 'vsup'] = np.inf
+        dfIntrvs.dropna(inplace=True)
+        dfIntrvs['vsup'] = dfIntrvs['vsup'].apply(lambda vs: sValues[sValues < vs].max() + epsilon)
+        dfIntrvs = dfIntrvs[['vmin', 'vsup']].reset_index(drop=True)
+
+        # If these intervals are two wide, cut them up in equal sub-intervals and make them new intervals
+        lsNewIntrvs = list()
+        for _, sIntrv in dfIntrvs.iterrows():
+
+            if sIntrv.vsup - sIntrv.vmin > maxLen:
+                # TODO: Well, this actually does not produce intervals of max length maxLen, but 1.5*maxLen !
+                nSubIntrvs = round((sIntrv.vsup - sIntrv.vmin) / maxLen)
+                subIntrvLen = (sIntrv.vsup - sIntrv.vmin) / nSubIntrvs
+                lsNewIntrvs += [pd.Series(dict(vmin=sIntrv.vmin + nInd * subIntrvLen,
+                                               vsup=min(sIntrv.vmin + (nInd + 1) * subIntrvLen,
+                                                        sIntrv.vsup)))
+                                for nInd in range(nSubIntrvs)]
+            else:
+                lsNewIntrvs.append(sIntrv)
+
+        dfIntrvs = pd.DataFrame(lsNewIntrvs).reset_index(drop=True)
+        dfIntrvs.sort_values(by='vmin', inplace=True)
+
+        return dfIntrvs
+
+    @staticmethod
+    def _intervalIndex(value, dfIntervals):
+        """Compute the index of the interval to which a value belongs, if any
+        :return: 0 for NaN values, -1 for values that belong to no interval, from-1 interval index otherwise
+        """
+        if pd.isnull(value):
+            return 0
+        dfWhere = dfIntervals[(dfIntervals.vmin <= value) & (dfIntervals.vsup > value)]
+        if dfWhere.empty:
+            return -1
+        return 1 + dfWhere.index[0]
+
+    @classmethod
+    def _sampleDistTruncGroups(cls, dfSampRes, ldIntrvSpecs, intrvEpsilon=1e-6):
+
+        """Compute distance truncation groups for 1 sample, for each target distance truncation column"""
+
+        # For each truncation "method" (left or right)
+        dTruncGroups = dict()
+        for dIntrvSpecs in ldIntrvSpecs:
+
+            truncCol = cls.DCLParTruncDist[dIntrvSpecs['col']]
+            logger.debug3(f'  - {truncCol[1]}')
+
+            # Compute distance grouping intervals
+            dfIntrvs = cls._groupingIntervals(sValues=dfSampRes[truncCol], minDist=dIntrvSpecs['minDist'],
+                                              maxLen=dIntrvSpecs['maxLen'], epsilon=intrvEpsilon)
+
+            # Deduce index of belonging interval for each distance
+            # (special case when no truncation: num=0 if NaN truncation distance)
+            dTruncGroups[dIntrvSpecs['col']] = dfSampRes[truncCol].apply(cls._intervalIndex, dfIntervals=dfIntrvs)
+
+        return dTruncGroups
+
     def listSamples(self, rebuild=False):
+
+        """List result samples (if really needed of specified)"""
 
         if rebuild or self.dfSamples is None:
 
@@ -1246,80 +1341,41 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         return self.dfSamples
 
-    # Post computations : Quality indicators.
-    def _postComputeTruncationGroups(self):
-        
-        logger.debug('Post-computing Truncation Groups (WARNING: not tested)')
+    def _distTruncGroups(self):
+
+        """Compute distance truncation groups for all samples, for each target distance truncation column"""
 
         # For each sample,
+        dTruncGroups = dict()  # key=ldIntrvSpecs[*]['col'], value=list(Series of group nums)
         for lblSamp, sSamp in self.listSamples().iterrows():
-            
-            # Select sample results
-            dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp]
-            logger.debug1('#{} {} : {} rows '
+
+            # Select sample rows
+            dfSampRes = self._dfData.loc[self._dfData[self.sampleIndCol] == lblSamp]
+            logger.debug1('#{} {} : {} rows'
                           .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
 
-            # For each truncation "method" (left or right)
-            for dTrunc in self.ldTruncIntrvSpecs:
+            # Compute truncation groups for this sample
+            dSampTruncGroups = self._sampleDistTruncGroups(dfSampRes, ldIntrvSpecs=self.ldTruncIntrvSpecs,
+                                                           intrvEpsilon=self.truncIntrvEpsilon)
 
-                truncCol = self.DCLParTruncDist[dTrunc['col']]
-                minIntrvDist = dTrunc['minDist']
-                maxIntrvLen = dTrunc['maxLen']
+            # Store them for later concatenation
+            for colAlias, sGrpNums in dSampTruncGroups.items():
+                if colAlias not in dTruncGroups:
+                    dTruncGroups[colAlias] = list()
+                dTruncGroups[colAlias].append(sGrpNums)
 
-                logger.debug3(f'  - {truncCol[1]}')
+        # Concat series of computed group nums (opt or not) for each target distance column to group
+        return {colAlias: pd.concat(lsGrpNums) for colAlias, lsGrpNums in dTruncGroups.items()}
 
-                # For some reason, need for enforcing float dtype ... otherwise dtype='O' !?
-                sSelDist = dfSampRes[truncCol].dropna().astype(float).sort_values()
+    DCLGroupTruncDist = dict(left=CLGroupTruncLeft, right=CLGroupTruncRight)
 
-                # List non-null differences between consecutive sorted distances
-                dfIntrv = pd.DataFrame(dict(dist=sSelDist.values))
-                if not dfIntrv.empty:
+    def _postComputeTruncationGroups(self):
 
-                    dfIntrv['deltaDist'] = dfIntrv.dist.diff()
-                    dfIntrv.loc[dfIntrv.dist.idxmin(), 'deltaDist'] = np.inf
-                    dfIntrv.dropna(inplace=True)
-                    dfIntrv = dfIntrv[dfIntrv.deltaDist > 0].copy()
+        # Compute distance truncation groups for all samples, for each target distance truncation column
+        # and update result table.
+        for colAlias, sGrpNums in self._distTruncGroups().items():
+            self._dfData[self.DCLGroupTruncDist[colAlias]] = sGrpNums
 
-                    # Deduce start (min) and end (sup) for each such interval (left-closed, right-open)
-                    dfIntrv['dMin'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist']
-                    dfIntrv['dSup'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist'].shift(-1).dropna()
-                    dfIntrv.loc[dfIntrv['dMin'].idxmax(), 'dSup'] = np.inf
-                    dfIntrv.dropna(inplace=True)
-
-                    dfIntrv['dSup'] = \
-                        dfIntrv['dSup'].apply(lambda supV: sSelDist[sSelDist < supV].max() + self.truncIntrvEpsilon)
-
-                    dfIntrv = dfIntrv[['dMin', 'dSup']].reset_index(drop=True)
-
-                    # If these intervals are two wide, cut them up in equal sub-intervals and make them new intervals
-                    lsNewIntrvs = list()
-                    for _, sIntrv in dfIntrv.iterrows():
-
-                        if sIntrv.dSup - sIntrv.dMin > maxIntrvLen:
-                            nSubIntrvs = (sIntrv.dSup - sIntrv.dMin) / maxIntrvLen
-                            nSubIntrvs = int(nSubIntrvs) if nSubIntrvs - int(nSubIntrvs) < 0.5 else int(nSubIntrvs) + 1
-                            subIntrvLen = (sIntrv.dSup - sIntrv.dMin) / nSubIntrvs
-                            lsNewIntrvs += [pd.Series(dict(dMin=sIntrv.dMin + nInd * subIntrvLen, 
-                                                           dSup=min(sIntrv.dMin + (nInd + 1) * subIntrvLen,
-                                                                    sIntrv.dSup)))
-                                            for nInd in range(nSubIntrvs)]
-                        else:
-                            lsNewIntrvs.append(sIntrv)
-
-                    dfIntrv = pd.DataFrame(lsNewIntrvs).reset_index(drop=True)
-                    dfIntrv.sort_values(by='dMin', inplace=True)
-
-                # Update result table : Assign positive interval = "truncation group" number
-                # to each truncation distance (special case when no truncation: num=0 if NaN truncation distance)
-                sb = (self._dfData[self.sampleIndCol] == lblSamp)
-
-                def truncationIntervalNumber(d):
-                    return 0 if pd.isnull(d) else 1 + dfIntrv[(dfIntrv.dMin <= d) & (dfIntrv.dSup > d)].index[0]
-                self._dfData.loc[sb, (self.CLCAutoFilSor, truncCol[1], self.CLTTruncGroup)] = \
-                    self._dfData.loc[sb, truncCol].apply(truncationIntervalNumber) 
-
-            logger.debug1(f'  => {len(dfSampRes)} rows')
-        
     # Post computations : filtering and sorting.
     # a. Column Labels for computed group and sort orders
     #    N.B. "close truncations" means "identical = same truncations" here (but see MCDSOptanalyserResultsSet)

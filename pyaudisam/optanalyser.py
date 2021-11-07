@@ -82,91 +82,30 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
         return clone
     
     # Post computations : Truncations groups.
-    def _postComputeTruncationGroups(self):
-        
-        logger.debug('Post-computing Truncation Groups')
+    @classmethod
+    def _sampleDistTruncGroups(cls, dfSampRes, ldIntrvSpecs, intrvEpsilon=1e-6):
 
-        # For each sample,
-        for lblSamp, sSamp in self.listSamples().iterrows():
-            
-            # Select sample results
-            dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp]
-            logger.debug1('#{} {} : {} rows '
-                          .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
+        """Compute distance truncation groups for 1 sample, for each target distance truncation column"""
 
-            # For each truncation type (optimised or not),
-            for isOpt in sorted(dfSampRes[self.CLOptimTruncFlag].unique()):
-                
-                logger.debug2('* {}optimised'.format('' if isOpt else 'un').title())
+        # For each optimised or not case,
+        dTruncGroups = dict()  # key=ldIntrvSpecs[*]['col'], value=list(Series of group nums)
+        for isOpt in sorted(dfSampRes[cls.CLOptimTruncFlag].unique()):
 
-                # Select results for this truncation type
-                dfSampResPerOpt = dfSampRes[dfSampRes[self.CLOptimTruncFlag] == isOpt]
+            logger.debug2('* {}optimised'.format('' if isOpt else 'un').title())
 
-                # For each truncation "method" (left or right)
-                for dTrunc in self.ldTruncIntrvSpecs:
+            # Compute truncation groups for this case and sample
+            dOptTruncGroups = \
+                super()._sampleDistTruncGroups(dfSampRes=dfSampRes[dfSampRes[cls.CLOptimTruncFlag] == isOpt],
+                                               ldIntrvSpecs=ldIntrvSpecs, intrvEpsilon=intrvEpsilon)
 
-                    truncCol = self.DCLParTruncDist[dTrunc['col']]
-                    minIntrvDist = dTrunc['minDist']
-                    maxIntrvLen = dTrunc['maxLen']
+            # Store them for later concatenation
+            for colAlias, sGrpNums in dOptTruncGroups.items():
+                if colAlias not in dTruncGroups:
+                    dTruncGroups[colAlias] = list()
+                dTruncGroups[colAlias].append(sGrpNums)
 
-                    logger.debug3(f'  - {truncCol[1]}')
-
-                    # For some reason, need for enforcing float dtype ... otherwise dtype='O' !?
-                    sSelDist = dfSampResPerOpt[truncCol].dropna().astype(float).sort_values()
-
-                    # List non-null differences between consecutive sorted distances
-                    dfIntrv = pd.DataFrame(dict(dist=sSelDist.values))
-                    if not dfIntrv.empty:
-
-                        dfIntrv['deltaDist'] = dfIntrv.dist.diff()
-                        dfIntrv.loc[dfIntrv.dist.idxmin(), 'deltaDist'] = np.inf
-                        dfIntrv.dropna(inplace=True)
-                        dfIntrv = dfIntrv[dfIntrv.deltaDist > 0].copy()
-
-                        # Deduce start (min) and end (sup) for each such interval (left-closed, right-open)
-                        dfIntrv['dMin'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist']
-                        dfIntrv['dSup'] = dfIntrv.loc[dfIntrv.deltaDist > minIntrvDist, 'dist'].shift(-1).dropna()
-                        dfIntrv.loc[dfIntrv['dMin'].idxmax(), 'dSup'] = np.inf
-                        dfIntrv.dropna(inplace=True)
-
-                        dfIntrv['dSup'] = \
-                            dfIntrv['dSup'].apply(lambda supV: sSelDist[sSelDist < supV].max() + self.truncIntrvEpsilon)
-
-                        dfIntrv = dfIntrv[['dMin', 'dSup']].reset_index(drop=True)
-
-                        # If these intervals are two wide, cut them up in equal sub-intervals
-                        # and make them new intervals
-                        lsNewIntrvs = list()
-                        for _, sIntrv in dfIntrv.iterrows():
-
-                            if sIntrv.dSup - sIntrv.dMin > maxIntrvLen:
-                                nSubIntrvs = (sIntrv.dSup - sIntrv.dMin) / maxIntrvLen
-                                nSubIntrvs = \
-                                    int(nSubIntrvs) if nSubIntrvs - int(nSubIntrvs) < 0.5 else int(nSubIntrvs) + 1
-                                subIntrvLen = (sIntrv.dSup - sIntrv.dMin) / nSubIntrvs
-                                lsNewIntrvs += [pd.Series(dict(dMin=sIntrv.dMin + nInd * subIntrvLen, 
-                                                               dSup=min(sIntrv.dMin + (nInd + 1) * subIntrvLen,
-                                                                        sIntrv.dSup)))
-                                                for nInd in range(nSubIntrvs)]
-                            else:
-                                lsNewIntrvs.append(sIntrv)
-
-                        dfIntrv = pd.DataFrame(lsNewIntrvs).reset_index(drop=True)
-                        dfIntrv.sort_values(by='dMin', inplace=True)
-
-                        logger.debug4(f'  => intervals: {dfIntrv}')
-
-                    # Update result table : Assign positive interval = "truncation group" number
-                    # to each truncation distance (special case when no truncation: num=0 if NaN truncation distance)
-                    sb = (self._dfData[self.sampleIndCol] == lblSamp) & (self._dfData[self.CLOptimTruncFlag] == isOpt)
-
-                    def truncationIntervalNumber(d):
-                        return 0 if pd.isnull(d) else 1 + dfIntrv[(dfIntrv.dMin <= d) & (dfIntrv.dSup > d)].index[0]
-
-                    self._dfData.loc[sb, (self.CLCAutoFilSor, truncCol[1], self.CLTTruncGroup)] = \
-                        self._dfData.loc[sb, truncCol].apply(truncationIntervalNumber) 
-
-                logger.debug1(f'  => {len(dfSampResPerOpt)} rows')
+        # Concat series of computed group nums (opt or not) for each target distance column to group
+        return {colAlias: pd.concat(lsGrpNums) for colAlias, lsGrpNums in dTruncGroups.items()}
 
     # Post computations : Schemes for computing filtering and sorting keys (see inherited _postComputeFilterSortKeys).
     AutoFilSorKeySchemes = \
