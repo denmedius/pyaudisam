@@ -925,12 +925,15 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                  surveyType='Point', distanceType='Radial', clustering=False,
                  ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
                                     dict(col='right', minDist=25.0, maxLen=25.0)],
-                 truncIntrvEpsilon=1e-6):
+                 truncIntrvEpsilon=1e-6, ldFilSorKeySchemes=None):
         
-        """
+        """Ctor
+
         Parameters:
         :param miSampleCols: columns to use for grouping by sample ; defaults to miCustomCols if None
         :param sampleIndCol: multi-column index for the sample Id column ; no default, must be there !
+        :param ldFilSorKeySchemes: Replacement for predefined filter-sort key schemes
+                                   None => use predefined ones AutoFilSorKeySchemes.
         """
 
         assert all(len(self.DfComputedColTrans[lang].dropna()) == len(self.DComputedCols)
@@ -965,6 +968,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # Parameters for truncation group intervals post-computations
         self.ldTruncIntrvSpecs = ldTruncIntrvSpecs
         self.truncIntrvEpsilon = truncIntrvEpsilon
+
+        # Parameters for filter and sort key generation schemes
+        self.ldFilSorKeySchemes = ldFilSorKeySchemes
 
         # Short (but unique) Ids for already seen "filter and sort" schemes,
         # based on the scheme name and an additional int suffix when needed ;
@@ -1312,7 +1318,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         for dIntrvSpecs in ldIntrvSpecs:
 
             truncCol = cls.DCLParTruncDist[dIntrvSpecs['col']]
-            logger.debug3(f'  - {truncCol[1]}')
+            logger.debug4(f'  - {truncCol[1]}')
 
             # Compute distance grouping intervals
             dfIntrvs = cls._groupingIntervals(sValues=dfSampRes[truncCol], minDist=dIntrvSpecs['minDist'],
@@ -1351,7 +1357,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
             # Select sample rows
             dfSampRes = self._dfData.loc[self._dfData[self.sampleIndCol] == lblSamp]
-            logger.debug1('#{} {} : {} rows'
+            logger.debug2('#{} {} : {} rows'
                           .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
 
             # Compute truncation groups for this sample
@@ -1370,6 +1376,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     DCLGroupTruncDist = dict(left=CLGroupTruncLeft, right=CLGroupTruncRight)
 
     def _postComputeTruncationGroups(self):
+
+        """Compute and add truncation group columns for later filtering and sorting"""
+
+        logger.debug('Post-computing Truncation Groups')
 
         # Compute distance truncation groups for all samples, for each target distance truncation column
         # and update result table.
@@ -1510,63 +1520,103 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         {CLParModFitDistCuts: (CLParModFitDistCuts[0], CLParModFitDistCuts[1], 'Hashable'),
          CLParModDiscrDistCuts: (CLParModDiscrDistCuts[0], CLParModDiscrDistCuts[1], 'Hashable')}
 
-    def _postComputeFilterSortKeys(self):
-        
-        """Compute and add partial or global order columns for later filtering and sorting"""
+    @classmethod
+    def _sampleFilterSortKeys(cls, dfSampRes, ldFilSorKeySchemes):
 
-        cls = self
+        """Compute filter and sort keys for 1 sample, for each pre-defined scheme
+
+        Parameters:
+        :param ldFilSorKeySchemes: Filter-sort key generation schemes to use (ex. cls.AutoFilSorKeySchemes).
+        """
+
+        # Make a copy to avoid modifying source data.
+        dfSampRes = dfSampRes.copy()
+
+        # For each filter and sort scheme
+        dFilSorKeys = dict()
+        for scheme in ldFilSorKeySchemes:
+
+            logger.debug3('* scheme {}'.format(scheme))
+
+            # Workaround to-be-sorted problematic columns.
+            sortCols = list()
+            for col in scheme['sort']:
+                if col in cls.DCLUnsortableCols:
+                    wkrndSortCol = cls.DCLUnsortableCols[col]
+                    logger.debug3('{} => {}'.format(col, wkrndSortCol))
+                    dfSampRes[wkrndSortCol] = dfSampRes[col].apply(cls._toSortable)
+                    col = wkrndSortCol  # Will rather sort with this one !
+                sortCols.append(col)
+
+            # Sort results
+            dfSampRes.sort_values(by=sortCols, ascending=scheme['ascend'],
+                                  na_position=scheme.get('napos', 'last'), inplace=True)
+
+            # Compute order (target series is indexed like dfSampRes).
+            if 'group' in scheme:  # Partial = 'group' order.
+
+                # Workaround for to-be-grouped problematic columns.
+                groupCols = list()
+                for col in scheme['group']:
+                    if col in cls.DCLUnhashableCols:
+                        wkrndGroupCol = cls.DCLUnhashableCols[col]
+                        logger.debug3('{} => {}'.format(col, wkrndGroupCol))
+                        dfSampRes[wkrndGroupCol] = dfSampRes[col].apply(cls._toHashable)
+                        col = wkrndGroupCol  # Will rather group with this one !
+                    groupCols.append(col)
+
+                sSampOrder = dfSampRes.groupby(groupCols, dropna=False).cumcount()
+
+            else:  # Global order.
+                sSampOrder = pd.Series(data=range(len(dfSampRes)), index=dfSampRes.index)
+
+            # Done: next scheme.
+            dFilSorKeys[scheme['key']] = sSampOrder
+
+        return dFilSorKeys
+
+    def _filterSortKeySchemes(self):
+        """Select filter and sort keys schemes to apply (predefined if not overriden at ctor time)"""
+        return self.ldFilSorKeySchemes or self.AutoFilSorKeySchemes
+
+    def _filterSortKeys(self):
+
+        """Compute filter and sort keys for all samples, for each scheme target key column"""
+
+        # Retrieve filter and sort keys schemes to apply.
+        ldFilSorKeySchemes = self._filterSortKeySchemes()
+
+        # For each sample,
+        dFilSorKeys = dict()  # key=<target column for key>, value=<Series of key values>)
+        for lblSamp, sSamp in self.listSamples().iterrows():
+
+            # Select sample rows
+            dfSampRes = self._dfData.loc[self._dfData[self.sampleIndCol] == lblSamp]
+            logger.debug2('#{} {} : {} rows'
+                          .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
+
+            # Compute key values for all schemes for this sample
+            dSampKeys = self._sampleFilterSortKeys(dfSampRes, ldFilSorKeySchemes)
+
+            # Store them for later concatenation
+            for colLbl, sFSKeys in dSampKeys.items():
+                if colLbl not in dFilSorKeys:
+                    dFilSorKeys[colLbl] = list()  # list(Series)
+                dFilSorKeys[colLbl].append(sFSKeys)
+
+        # Concat series of computed group nums (opt or not) for each target distance column to group
+        return {colLbl: pd.concat(lsFSKeys) for colLbl, lsFSKeys in dFilSorKeys.items()}
+
+    def _postComputeFilterSortKeys(self):
+
+        """Compute and add partial or global order columns for later filtering and sorting"""
 
         logger.debug('Post-computing Filter and Sort keys')
 
-        for lblSamp, sSamp in self.listSamples().iterrows():
+        # Compute keys for each sample and add relevant columns to results.
+        for colLbl, sFSKeys in self._filterSortKeys().items():
+            self._dfData[colLbl] = sFSKeys
 
-            # Select sample data
-            dfSampRes = self._dfData[self._dfData[self.sampleIndCol] == lblSamp].copy()
-            logger.debug2('#{} {} : {} rows '
-                          .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
-
-            # Apply each filter and sort scheme
-            for scheme in cls.AutoFilSorKeySchemes:
-
-                logger.debug3('* scheme {}'.format(scheme))
-
-                # Workaround to-be-sorted problematic columns.
-                sortCols = list()
-                for col in scheme['sort']:
-                    if col in cls.DCLUnsortableCols:
-                        wkrndSortCol = cls.DCLUnsortableCols[col]
-                        logger.debug4('{} => {}'.format(col, wkrndSortCol))
-                        dfSampRes[wkrndSortCol] = dfSampRes[col].apply(cls._toSortable)
-                        col = wkrndSortCol  # Will rather sort with this one !
-                    sortCols.append(col)
-                # print(sortCols)
-
-                # Sort results
-                dfSampRes.sort_values(by=sortCols, ascending=scheme['ascend'], 
-                                      na_position=scheme.get('napos', 'last'), inplace=True)
-
-                # Compute order (target series is indexed like dfSampRes).
-                if 'group' in scheme:  # Partial = 'group' order.
-
-                    # Workaround to-be-grouped problematic columns.
-                    groupCols = list()
-                    for col in scheme['group']:
-                        if col in cls.DCLUnhashableCols:
-                            wkrndGroupCol = cls.DCLUnhashableCols[col]
-                            logger.debug4('{} => {}'.format(col, wkrndGroupCol))
-                            dfSampRes[wkrndGroupCol] = dfSampRes[col].apply(cls._toHashable)
-                            col = wkrndGroupCol  # Will rather group with this one !
-                        groupCols.append(col)
-                    # print(groupCols)
-
-                    sSampOrder = dfSampRes.groupby(groupCols, dropna=False).cumcount()
-
-                else:  # Global order.
-                    sSampOrder = pd.Series(data=range(len(dfSampRes)), index=dfSampRes.index)
-
-                # Update result table sample rows (new order column)
-                self._dfData.loc[self._dfData[self.sampleIndCol] == lblSamp, scheme['key']] = sSampOrder
-    
     # Post-computations : All of them.
     def postComputeColumns(self):
         
@@ -2304,9 +2354,13 @@ class MCDSAnalyser(DSAnalyser):
 
         return miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend
 
-    def setupResults(self):
+    def setupResults(self, ldFilSorKeySchemes=None):
     
         """Build an empty results objects.
+
+        Parameters:
+        :param ldFilSorKeySchemes: Replacement for MCDSAnalysisResultsSet predefined filter-sort key schemes
+                                   None => use predefined ones MCDSAnalysisResultsSet.AutoFilSorKeySchemes.
         """
     
         miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend = \
@@ -2319,7 +2373,8 @@ class MCDSAnalyser(DSAnalyser):
                                       surveyType=self.surveyType, distanceType=self.distanceType,
                                       clustering=self.clustering,
                                       ldTruncIntrvSpecs=self.ldTruncIntrvSpecs,
-                                      truncIntrvEpsilon=self.truncIntrvEpsilon)
+                                      truncIntrvEpsilon=self.truncIntrvEpsilon,
+                                      ldFilSorKeySchemes=ldFilSorKeySchemes)
     
     def _getResults(self, dAnlyses):
     

@@ -46,16 +46,22 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
                  surveyType='Point', distanceType='Radial', clustering=False,
                  ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
                                     dict(col='right', minDist=25.0, maxLen=25.0)],
-                 truncIntrvEpsilon=1e-6):
+                 truncIntrvEpsilon=1e-6, ldFilSorKeySchemes=None):
         
-        """
+        """Ctor
+
+        Parameters:
+        :param miSampleCols: columns to use for grouping by sample ; defaults to miCustomCols if None
+        :param sampleIndCol: multi-column index for the sample Id column ; no default, must be there !
+        :param ldFilSorKeySchemes: Replacement for predefined filter-sort key schemes
+                                   None => use predefined ones AutoFilSorKeySchemes.
         """
         super().__init__(miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
                          miSampleCols=miSampleCols, sampleIndCol=sampleIndCol,
                          sortCols=sortCols, sortAscend=sortAscend, distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
-                         ldTruncIntrvSpecs=ldTruncIntrvSpecs,
-                         truncIntrvEpsilon=truncIntrvEpsilon)
+                         ldTruncIntrvSpecs=ldTruncIntrvSpecs, truncIntrvEpsilon=truncIntrvEpsilon,
+                         ldFilSorKeySchemes=ldFilSorKeySchemes)
 
         assert self.CLOptimTruncFlag in self.miCustomCols
 
@@ -91,7 +97,7 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
         dTruncGroups = dict()  # key=ldIntrvSpecs[*]['col'], value=list(Series of group nums)
         for isOpt in sorted(dfSampRes[cls.CLOptimTruncFlag].unique()):
 
-            logger.debug2('* {}optimised'.format('' if isOpt else 'un').title())
+            logger.debug3('* {}optimised'.format('' if isOpt else 'un').title())
 
             # Compute truncation groups for this case and sample
             dOptTruncGroups = \
@@ -466,9 +472,13 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # Done.
         return dfExplParamSpecs
 
-    def setupResults(self):
+    def setupResults(self, ldFilSorKeySchemes=None):
     
         """Build an empty results objects.
+
+        Parameters:
+        :param ldFilSorKeySchemes: Replacement for MCDSTruncOptanalysisResultsSet predefined filter-sort key schemes
+                                   None => use predefined ones MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes.
         """
 
         miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend = \
@@ -481,7 +491,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                                               surveyType=self.surveyType, distanceType=self.distanceType,
                                               clustering=self.clustering,
                                               ldTruncIntrvSpecs=self.ldTruncIntrvSpecs,
-                                              truncIntrvEpsilon=self.truncIntrvEpsilon)
+                                              truncIntrvEpsilon=self.truncIntrvEpsilon,
+                                              ldFilSorKeySchemes=ldFilSorKeySchemes)
     
     def run(self, dfExplParamSpecs=None, implParamSpecs=None, threads=None, recoverOptims=False):
     
