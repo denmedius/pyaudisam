@@ -210,7 +210,7 @@ class ResultsReport(object):
 
         # Specs (no need to check if 'specs' in subset: we have nothing else than results specs here.
         for spName, dfSpData in self.resultsSet.specs2Tables().items():
-            logger.info1(f'* {spName}')
+            logger.info1(f'* {spName} ...')
             ddfWbk[self.tr(spName)] = (dfSpData, True)
 
         # Done
@@ -233,7 +233,10 @@ class ResultsReport(object):
         
         with pd.ExcelWriter(fileName, engine=engine) as xlsxWriter:
             for wstName, (dfWstData, wstIndex) in self.asWorkbook(rebuild=rebuild).items():
-                dfWstData.to_excel(xlsxWriter, sheet_name=wstName, index=wstIndex)            
+                dfWstData.to_excel(xlsxWriter, sheet_name=wstName, index=wstIndex)
+            logger.info(f'Writing report to {fileName} ...')
+
+        logger.info('... done.')
 
         return fileName
 

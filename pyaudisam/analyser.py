@@ -1860,6 +1860,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         # 0. Retrieve results to filter and sort.
         dfFilSorRes = self.getData(copy=True)
+        filSorSteps.append('before', 'datetime', pd.Timestamp.now())
         filSorSteps.append('before', 'results', len(dfFilSorRes))
 
         # 1&2. Filter-out results with some computation error, and also duplicates based on same truncation params.
@@ -2006,6 +2007,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         # 0. Retrieve results to filter and sort.
         dfFilSorRes = self.getData(copy=True)
+        filSorSteps.append('before', 'datetime', pd.Timestamp.now())
         filSorSteps.append('before', 'results', len(dfFilSorRes))
 
         # 1. Filter-out results with some computation error, and also duplicates based on same truncation params.
