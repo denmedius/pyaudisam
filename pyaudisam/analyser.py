@@ -1036,14 +1036,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLsChi2All = [('detection probability', 'chi-square test probability (distance set {})'.format(i), 'Value')
                   for i in range(MaxChi2Tests, 0, -1)]
     
-    # Pre-selection column label (from source column) and translation
-    def preselectionColumn(self, srcCol):
-        return ((srcCol[0], srcCol[1], self.CLTPreSelection),
-                dict(fr='Pré-sélection ' + self.transColumn(srcCol, 'fr'),
-                     en='Pre-selection ' + self.transColumn(srcCol, 'en')))
-
     @staticmethod
-    def determineChi2Value(sChi2AllDists):
+    def _determineChi2Value(sChi2AllDists):
         for chi2 in sChi2AllDists:
             if not np.isnan(chi2):
                 return chi2
@@ -1056,7 +1050,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # Last value of all the tests done.
         chi2AllColLbls = [col for col in self.CLsChi2All if col in self._dfData.columns]
         if chi2AllColLbls:
-            self._dfData[self.CLChi2] = self._dfData[chi2AllColLbls].apply(self.determineChi2Value, axis='columns')
+            self._dfData[self.CLChi2] = self._dfData[chi2AllColLbls].apply(self._determineChi2Value, axis='columns')
 
     # Post-computations : Delta AIC/DCv per sampleCols + truncation param. cols group => AIC - min(group).
     CLAic = ('detection probability', 'AIC value', 'Value')
@@ -1073,7 +1067,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         groupColLbls = self.miSampleCols.append(pd.MultiIndex.from_tuples(self.CLsTruncDist))
         groupColLbls = [col for col in groupColLbls
                         if col in self._dfData.columns and not self._dfData[col].isna().all()]
-        df2Join = self._dfData.groupby(groupColLbls)[[self.CLAic, self.CLDCv]].min()
+        df2Join = self._dfData.groupby(groupColLbls, dropna=False)[[self.CLAic, self.CLDCv]].min()
         
         # b. Rename computed columns to target 'Delta XXX'
         df2Join.columns = pd.MultiIndex.from_tuples([self.CLDeltaAic, self.CLDeltaDCv])
@@ -1193,6 +1187,14 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                 * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
                 * cls._normCVDens(sRes, a=63, b=2.8) ** 2 * cls._normKeyFn(sRes)) ** (1.0/9)
 
+    # Killer values for base MCDS indicators
+    KilrNObs = 0
+    KilrStaTest = 0
+    KilrDensCv = 1e5
+    KilrNPars = 1e3
+    KilrNTotObs = 1e9
+    KilrBalQua = 0
+
     def _postComputeQualityIndicators(self):
         
         cls = self
@@ -1204,22 +1206,30 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # Prepare data for computations
         logger.debug1('* Pre-processing source data')
 
-        # a. extract the useful columns
-        miCompCols = [cls.CLKeyFn, cls.CLNAdjPars, cls.CLNTotPars, cls.CLNObs, cls.CLNTotObs, 
+        # a. extract the useful columns, after adding them if not present
+        #    (NaN value, except for CLKeyFn, that MUST be there anyway)
+        miCompCols = [cls.CLNAdjPars, cls.CLNTotPars, cls.CLNObs, cls.CLNTotObs,
                       cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw, cls.CLDCv]
+        for miCol in miCompCols:
+            if miCol not in self._dfData.columns:
+                self._dfData[miCol] = np.nan
+        miCompCols = [cls.CLKeyFn] + miCompCols
         dfCompData = self._dfData[miCompCols].copy()
 
         # b. historical bal qua 1
         logger.debug1('* Balanced quality 1')
         self._dfData[cls.CLCmbQuaBal1] = dfCompData.apply(cls._combinedQualityBalanced1, axis='columns')
 
-        # c. NaN should kill down these following indicators => we have to enforce this !
-        for col in [cls.CLNObs, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]:
-            dfCompData[col].fillna(0, inplace=True)
-        dfCompData[cls.CLDCv].fillna(1e5, inplace=True)  # Usually considered good under 0.3 ...
-        dfCompData[cls.CLNTotObs].fillna(1e9, inplace=True)  # Should slap down _normObs whatever NObs ...
-        dfCompData[cls.CLNAdjPars].fillna(1e3, inplace=True)  # Should slap down _normNAdjPars whatever NObs ...
-        dfCompData[cls.CLNTotPars].fillna(1e3, inplace=True)  # Should slap down _normNTotPars whatever NObs ...
+        # c. newer quality indicators
+        #    (NaN value MUST kill down these indicators to compute => we have to enforce this)
+        dfCompData.fillna({cls.CLNObs: cls.KilrNObs,
+                           cls.CLChi2: cls.KilrStaTest, cls.CLKS: cls.KilrStaTest,
+                           cls.CLCvMUw: cls.KilrStaTest, cls.CLCvMCw: cls.KilrStaTest,
+                           cls.CLDCv: cls.KilrDensCv,  # Usually considered good under 0.3
+                           cls.CLNTotObs: cls.KilrNTotObs,  # Should slap down _normObs whatever NObs
+                           cls.CLNAdjPars: cls.KilrNPars,  # Should slap down _normNAdjPars whatever NObs
+                           cls.CLNTotPars: cls.KilrNPars},
+                          inplace=True)
 
         logger.debug1('* Balanced quality 2')
         self._dfData[cls.CLCmbQuaBal2] = dfCompData.apply(cls._combinedQualityBalanced2, axis='columns')
@@ -2035,6 +2045,12 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         return dfFilSorRes.index, filSorSteps
 
+    def _preselColumn(self, srcCol):
+        """Pre-selection column label (from source column) and translation"""
+        return ((srcCol[0], srcCol[1], self.CLTPreSelection),
+                dict(fr='Pré-sélection ' + self.transColumn(srcCol, 'fr'),
+                     en='Pre-selection ' + self.transColumn(srcCol, 'en')))
+
     def _addPreselColumns(self, dfFilSorRes, filSorSteps,
                           preselCols=[CLCmbQuaBal1], preselAscend=True, preselThresh=[0.2], nSamplePreSels=5):
 
@@ -2071,7 +2087,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         for srcCol, srcColAscend, srcColThresh in zip(preselCols, preselAscend, preselThresh):
 
             # Determine label and translation.
-            tgtPreSelCol, dTgtPreSelColTrans = self.preselectionColumn(srcCol)
+            tgtPreSelCol, dTgtPreSelColTrans = self._preselColumn(srcCol)
             self.addColumnsTrans({tgtPreSelCol: dTgtPreSelColTrans})
 
             filSorSteps.append('auto-preselection', 'pre-selection column', srcCol, transColumns=True)

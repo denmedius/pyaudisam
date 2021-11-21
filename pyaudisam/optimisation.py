@@ -261,10 +261,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
     # Names of possible solution dimensions (the truncation parameter values we are searching for).
     SolutionDimensionNames = ['minDist', 'maxDist', 'fitDistCuts', 'discrDistCuts']
     
-    def __init__(self, engine, sampleDataSet, name=None, executor=None, 
-                 distanceField='Distance', customData=None, 
+    def __init__(self, engine, sampleDataSet, name=None, executor=None,
+                 distanceField='Distance', customData=None,
                  logData=False, autoClean=True, error=None,
-                 estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef, 
+                 estimKeyFn=EngineClass.EstKeyFnDef, estimAdjustFn=EngineClass.EstAdjustFnDef,
                  estimCriterion=EngineClass.EstCriterionDef, cvInterval=EngineClass.EstCVIntervalDef,
                  minDist=None, maxDist=None, fitDistCutsFctr=None, discrDistCutsFctr=None,
                  fitDistCuts=None, discrDistCuts=None,
@@ -439,35 +439,68 @@ class MCDSTruncationOptimisation(DSOptimisation):
     @staticmethod
     def _postProcessAnalysisResults(sResults):
 
-        # Compute determined Chi2 test probability (last value of all the Chi2 tests done).
-        chi2AllColLbls = [col for col in MCDSAnalysisResultsSet.CLsChi2All if col in sResults.keys()]
-        
-        sResults[MCDSAnalysisResultsSet.CLChi2] = \
-            MCDSAnalysisResultsSet.determineChi2Value(sResults[chi2AllColLbls])
+        RSClass = MCDSAnalysisResultsSet
+
+        # Chi2 test probability.
+        chi2AllColLbls = [col for col in RSClass.CLsChi2All if col in sResults.keys()]
+        sResults[RSClass.CLChi2] = RSClass._determineChi2Value(sResults[chi2AllColLbls])
+
+        # Combined quality indicators
+        # a. Make sure requested columns are there, and add them if not (NaN value, except for CLKeyFn and CLChi2)
+        miCompCols = [RSClass.CLKeyFn, RSClass.CLNAdjPars, RSClass.CLNTotPars, RSClass.CLNObs, RSClass.CLNTotObs,
+                      RSClass.CLChi2, RSClass.CLKS, RSClass.CLCvMUw, RSClass.CLCvMCw, RSClass.CLDCv]
+        for miCol in miCompCols:
+            if miCol not in sResults.index and miCol not in [RSClass.CLKeyFn, RSClass.CLChi2]:
+                sResults[miCol] = np.nan
+
+        # b. NaN value MUST kill down the indicators to compute => we have to enforce this
+        sResults.fillna({RSClass.CLNObs: RSClass.KilrNObs,
+                         RSClass.CLChi2: RSClass.KilrStaTest, RSClass.CLKS: RSClass.KilrStaTest,
+                         RSClass.CLCvMUw: RSClass.KilrStaTest, RSClass.CLCvMCw: RSClass.KilrStaTest,
+                         RSClass.CLDCv: RSClass.KilrDensCv,  # Usually considered good under 0.3
+                         RSClass.CLNTotObs: RSClass.KilrNTotObs,  # Should slap down _normObs whatever NObs
+                         RSClass.CLNAdjPars: RSClass.KilrNPars,  # Should slap down _normNAdjPars whatever NObs
+                         RSClass.CLNTotPars: RSClass.KilrNPars},
+                        inplace=True)
+
+        # c. Compute indicators at last !
+        sCombQuaData = sResults[miCompCols]
+        sResults[RSClass.CLCmbQuaBal1] = RSClass._combinedQualityBalanced1(sCombQuaData)
+        sResults[RSClass.CLCmbQuaBal2] = RSClass._combinedQualityBalanced2(sCombQuaData)
+        sResults[RSClass.CLCmbQuaBal3] = RSClass._combinedQualityBalanced3(sCombQuaData)
+        sResults[RSClass.CLCmbQuaChi2] = RSClass._combinedQualityMoreChi2(sCombQuaData)
+        sResults[RSClass.CLCmbQuaKS] = RSClass._combinedQualityMoreKS(sCombQuaData)
+        sResults[RSClass.CLCmbQuaDCv] = RSClass._combinedQualityMoreDCv(sCombQuaData)
 
         return sResults
 
-    # Alias and name / index (in analysis results) of results values available for analysis value computation
+    # Alias and name / index (in analysis results) of results values available
+    # for use in analysis value computation expressions
     # And the worst possible value for each, for (bad) default value when not present in results for some reason.
-    # Warning: Don't use np.nan as these worst values : at least zoopt doesn't like it !
-    AnlysResultIndex = \
-        dict(chi2=(('detection probability', 'chi-square test probability determined', 'Value'), 0),
-             ks=(('detection probability', 'Kolmogorov-Smirnov test probability', 'Value'), 0),
-             cvmuw=(('detection probability', 'Cramér-von Mises (uniform weighting) test probability', 'Value'), 0),
-             cvmcw=(('detection probability', 'Cramér-von Mises (cosine weighting) test probability', 'Value'), 0))
+    # Warning: Don't use np.nan for these worst values : at least zoopt doesn't like it !
+    RSClass = MCDSAnalysisResultsSet
+    AnlysResultsIndex = \
+        dict(chi2=(RSClass.CLChi2, RSClass.KilrStaTest), ks=(RSClass.CLKS, RSClass.KilrStaTest),
+             cvmuw=(RSClass.CLCvMUw, RSClass.KilrStaTest), cvmcw=(RSClass.CLCvMCw, RSClass.KilrStaTest),
+             dcv=(RSClass.CLDCv, RSClass.KilrDensCv),
+             balq1=(RSClass.CLCmbQuaBal1, RSClass.KilrBalQua), balq2=(RSClass.CLCmbQuaBal2, RSClass.KilrBalQua),
+             balq3=(RSClass.CLCmbQuaBal3, RSClass.KilrBalQua),
+             balqc2=(RSClass.CLCmbQuaChi2, RSClass.KilrBalQua), balqks=(RSClass.CLCmbQuaKS, RSClass.KilrBalQua),
+             balqcv=(RSClass.CLCmbQuaDCv, RSClass.KilrBalQua))
 
-    def _getAnalysisResultValue(self, resultExpr, sResults):
+    @classmethod
+    def _getAnalysisResultValue(cls, resultExpr, sResults, invalidValue):
         
-        dLocals = {alias: sResults.get(name, worst) for alias, (name, worst) in self.AnlysResultIndex.items()}
+        dLocals = {alias: sResults.get(name, worst) for alias, (name, worst) in cls.AnlysResultsIndex.items()}
                                           
-        logger.debug3('_getAnalysisResultValue: locals={}'.format(dLocals))
+        #logger.debug3('_getAnalysisResultValue: locals={}'.format(dLocals))
         
         try:
             value = eval(resultExpr, None, dLocals)
             if np.isnan(value):
-                value = self.invalidFuncValue
+                value = invalidValue
         except Exception as exc:
-            value = self.invalidFuncValue
+            value = invalidValue
             logger.warning('Failed to evaluate {} : {}'.format(resultExpr, exc))
         
         return value
@@ -479,7 +512,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         """Run one analysis (among many others in the optimisation process) and compute its values to optimise
            See MCDSAnalysis.__init__ for most parameters
            :param string valueExpr: Math. expression (python syntax) for computing analysis value
-               (using result names from AnlysResultIndex) (ex: chi2, chi2*ks, ...)
+               (using result names from AnlysResultsIndex) (ex: chi2, chi2*ks, ...)
         """
 
         # Run analysis (Submit, and wait for end of execution) : parallelism taken care elsewhere.
@@ -501,19 +534,20 @@ class MCDSTruncationOptimisation(DSOptimisation):
         anlys.submit()
         
         sResults = anlys.getResults(postCleanup=self.autoClean)
+        #logger.debug3('Analysis results: {}'.format(sResults.to_dict()))
 
         # Post-process results, and compute analysis values (_the_ values to optimise).
         if anlys.success() or anlys.warnings():
 
             sResults = self._postProcessAnalysisResults(sResults)
 
-            value = self._getAnalysisResultValue(valueExpr, sResults) 
+            value = self._getAnalysisResultValue(valueExpr, sResults, self.invalidFuncValue)
         
         else:
 
             value = self.invalidFuncValue
 
-        logger.debug1('Analysis result value : {} = {}'.format(valueExpr, value))
+        logger.debug1('Analysis result value: {} = {}'.format(valueExpr, value))
 
         # Store elapsed time for this analysis, for later stats
         self.elapsedTimes.append((pd.Timestamp.now() - startTime).total_seconds())
@@ -722,7 +756,8 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
                     logger.warning('zoopt.Opt.min retry #{} on {}'.format(maxTries - nTriesLeft, exc),
                                    exc_info=True)
                 else:
-                    logger.warning('zoopt.Opt.min failed after #{} tries on {}'.format(maxTries, exc))
+                    logger.warning('zoopt.Opt.min failed after #{} tries on {}'.format(maxTries, exc),
+                                   exc_info=True)
                     return None
 
     def _run(self, times=1, onlyBest=None, error=None, *args, **kwargs):
