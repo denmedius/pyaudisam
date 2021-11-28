@@ -439,7 +439,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
     @staticmethod
     def _postProcessAnalysisResults(sResults):
 
-        RSClass = MCDSAnalysisResultsSet
+        RSClass = MCDSAnalysisResultsSet  # ResultsSet class
 
         # Chi2 test probability.
         chi2AllColLbls = [col for col in RSClass.CLsChi2All if col in sResults.keys()]
@@ -447,8 +447,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
 
         # Combined quality indicators
         # a. Make sure requested columns are there, and add them if not (NaN value, except for CLKeyFn and CLChi2)
-        miCompCols = [RSClass.CLKeyFn, RSClass.CLNAdjPars, RSClass.CLNTotPars, RSClass.CLNObs, RSClass.CLNTotObs,
-                      RSClass.CLChi2, RSClass.CLKS, RSClass.CLCvMUw, RSClass.CLCvMCw, RSClass.CLDCv]
+        miCompCols = RSClass.CLsQuaIndicSources
         for miCol in miCompCols:
             if miCol not in sResults.index and miCol not in [RSClass.CLKeyFn, RSClass.CLChi2]:
                 sResults[miCol] = np.nan
@@ -464,13 +463,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
                         inplace=True)
 
         # c. Compute indicators at last !
-        sCombQuaData = sResults[miCompCols]
-        sResults[RSClass.CLCmbQuaBal1] = RSClass._combinedQualityBalanced1(sCombQuaData)
-        sResults[RSClass.CLCmbQuaBal2] = RSClass._combinedQualityBalanced2(sCombQuaData)
-        sResults[RSClass.CLCmbQuaBal3] = RSClass._combinedQualityBalanced3(sCombQuaData)
-        sResults[RSClass.CLCmbQuaChi2] = RSClass._combinedQualityMoreChi2(sCombQuaData)
-        sResults[RSClass.CLCmbQuaKS] = RSClass._combinedQualityMoreKS(sCombQuaData)
-        sResults[RSClass.CLCmbQuaDCv] = RSClass._combinedQualityMoreDCv(sCombQuaData)
+        aCombQuaData = np.expand_dims(sResults[miCompCols].values, axis=0)  # Series to 1 row results array.
+        sResults[RSClass.CLCmbQuaBal1] = RSClass._combinedQualityBalanced1(aCombQuaData)
+        for miCol, aIndic in zip(RSClass.CLsNewQuaIndics, RSClass._combinedQualityAll(aCombQuaData)):
+            sResults[miCol] = aIndic[0]
 
         return sResults
 

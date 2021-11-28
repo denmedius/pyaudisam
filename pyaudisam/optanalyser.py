@@ -382,8 +382,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         # b. Search for (possibly) optimisation specs with string data (const params are numbers or lists)
         def analysisNeedsOptimisationFirst(sAnlysSpec):
             return any(isinstance(v, str) for v in sAnlysSpec.values)
-        dfExplOptimParamSpecs = dfExplParamSpecs[dfExplParamSpecs[optimUserParamSpecCols]
-                                                    .apply(analysisNeedsOptimisationFirst, axis='columns')]
+        sbNeed4Opt1st = dfExplParamSpecs[optimUserParamSpecCols].apply(analysisNeedsOptimisationFirst, axis='columns')
+        dfExplOptimParamSpecs = dfExplParamSpecs[sbNeed4Opt1st]
          
         # 3. Run optimisations if needed and replace computed truncation params in analysis specs
         logger.info('Found {}/{} analysis specs implying some prior optimisation'

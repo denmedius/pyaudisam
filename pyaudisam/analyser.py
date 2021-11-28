@@ -1092,100 +1092,101 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLCvMCw = ('detection probability', 'Cramér-von Mises (cosine weighting) test probability', 'Value')
 
     # Post computations : Quality indicators.
-    @classmethod
-    def _normNObs(cls, sRes):
-        return sRes[cls.CLNObs] / sRes[cls.CLNTotObs]
+    CLsQuaIndicSources = [CLKeyFn, CLNAdjPars, CLNTotPars, CLNObs, CLNTotObs, CLChi2, CLKS, CLCvMUw, CLCvMCw, CLDCv]
 
-    DNormKeyFn = dict(HNORMAL=1.0, UNIFORM=0.9, HAZARD=0.6, NEXPON=0.1)
+    CIKeyFn = CLsQuaIndicSources.index(CLKeyFn)
+    CINAdjPars = CLsQuaIndicSources.index(CLNAdjPars)
+    CINTotPars = CLsQuaIndicSources.index(CLNTotPars)
+    CINObs = CLsQuaIndicSources.index(CLNObs)
+    CINTotObs = CLsQuaIndicSources.index(CLNTotObs)
+    CIChi2 = CLsQuaIndicSources.index(CLChi2)
+    CIKS = CLsQuaIndicSources.index(CLKS)
+    CICvMUw = CLsQuaIndicSources.index(CLCvMUw)
+    CICvMCw = CLsQuaIndicSources.index(CLCvMCw)
+    CIDCv = CLsQuaIndicSources.index(CLDCv)
+
+    @classmethod
+    def _combinedQualityBalanced1(cls, aRes):
+
+        """Historical QualBal1 indicator (March 2021), optimized through numpy
+
+        Returns:
+             np.array (shape: aRes rows, 1 column)
+        """
+
+        chi2KsCvMs = aRes[:, cls.CIChi2:cls.CICvMCw + 1].prod(axis=1)
+        normNObs = aRes[:, cls.CINObs].astype(float) / aRes[:, cls.CINTotObs].astype(float)
+        normNTotPars = 1 / (0.2 * np.maximum(2, aRes[:, cls.CINTotPars].astype(float)) + 0.6)
+        normCVDens = np.exp(-12 * np.square(aRes[:, cls.CIDCv].astype(float)))
+
+        return np.power(chi2KsCvMs * normNObs * normNTotPars * normCVDens, 1 / 7.0)  # shape: aRes rows, 1 column
+
+    # Raw key function indicator and relevant universal numpy function.
     # DNormKeyFn = dict(HNORMAL=1.00, UNIFORM=0.75, HAZARD=0.5, NEXPON=0.1)  # Not better
+    _ufnNormKeyFn = \
+        np.frompyfunc(lambda keyFn: dict(HNORMAL=1.0, UNIFORM=0.9, HAZARD=0.6, NEXPON=0.1).get(keyFn, 0.0), 1, 1)
+
+    CLsNewQuaIndics = [CLCmbQuaBal2, CLCmbQuaBal3, CLCmbQuaChi2, CLCmbQuaKS, CLCmbQuaDCv]
 
     @classmethod
-    def _normKeyFn(cls, sRes):
-        return cls.DNormKeyFn.get(sRes[cls.CLKeyFn], 0.0)
+    def _combinedQualityAll(cls, aRes):
 
-    @classmethod
-    def _normNTotPars(cls, sRes, a=0.2, b=0.6, c=2):  # , d=1):
-        return 1 / (a * max(c, sRes[cls.CLNTotPars]) + b)  # Mieux: a=0.2, b=0.6, c=2 / a=0.2, b=0.8, c=1
-        # return 1 / (a * max(c, sRes[cls.CLNTotPars])**d + b)  # Idem (d=1)
+        """New quality indicators (August, 2021 and later), optimized through numpy
+        (QualBal2, QualBal3, QualMoreChi2, QualMoreKS, QualMoreDCv)
 
-    @classmethod
-    def _normNAdjPars(cls, sRes, a=0.1):
-        return math.exp(-a * sRes[cls.CLNAdjPars] ** 2)
+        Returns:
+             tuple(np.array) (shape: aRes rows, 1 column each, order of cls.CLsNewQuaIndics)
+        """
 
-    @classmethod
-    def _normCVDens(cls, sRes, a=12, b=2):
-        # return max(0, 1 - a * sRes[cls.CLDCv])  # Pas très pénalisant: a=1
-        return math.exp(-a * sRes[cls.CLDCv] ** b)  # Mieux : déjà ~0.33 à 30% (a=12, b=2)
+        # Common computations (all times)
+        chi2 = aRes[:, cls.CIChi2].astype(float)
+        ks = aRes[:, cls.CIKS].astype(float)
+        dcv = aRes[:, cls.CIDCv].astype(float)
+        chi2KsCvMs = aRes[:, cls.CIChi2:cls.CICvMCw + 1].astype(float).prod(axis=1)
+        normNObs = aRes[:, cls.CINObs].astype(float) / aRes[:, cls.CINTotObs].astype(float)
 
-    @classmethod
-    def _combinedQualityBalanced1(cls, sRes):  # The one used for ACDC 2019 filtering & sorting in jan/feb 2021
-        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
-                * cls._normCVDens(sRes, a=12, b=2)) ** (1.0/7)
+        # Common computations (October 2021)
+        nAdjPars2 = np.square(aRes[:, cls.CINAdjPars]).astype(float)
+        normKeyFn = cls._ufnNormKeyFn(aRes[:, cls.CIKeyFn])
+        normChi2KsCvMsNObsKFn = chi2KsCvMs * normNObs * normKeyFn
 
-# August 2021
-#    @classmethod
-#    def _combinedQualityBalanced2(cls, sRes):  # A more devaluating version for NTotPars and CVDens
-#        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.8, c=1)
-#                * cls._normCVDens(sRes, a=16, b=2)) ** (1.0/7)
-#
-#    @classmethod
-#    def _combinedQualityBalanced3(cls, sRes):  # An even more devaluating version for NTotPars and CVDens
-#        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.3, b=0.7, c=1)
-#                * cls._normCVDens(sRes, a=20, b=2)) ** (1.0/7)
+        # QualBal2 (August 2021)
+        # normNTotPars2 = 1 / (0.2 * np.maximum(1, aRes[:, cls.CINTotPars].astype(float)) + 0.8)
+        # normCVDens2 = np.exp(-16 * np.square(dcv))
+        # normChi2KsCvMsNObsTotPDcv2 = chi2KsCvMs * normNObs * normNTotPars2 * normCVDens2
+        # quaBal2 = np.power(normChi2KsCvMsNObsTotPDcv2, 1 / 7.0)
 
-    # October 2021
-    @classmethod
-    def _combinedQualityBalanced2(cls, sRes):  # A more devaluating version for NAdjPars, CVDens + KeyFn
-        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.15)
-                * cls._normCVDens(sRes, a=20, b=2) * cls._normKeyFn(sRes)) ** (1.0/8)
+        # QualBal2 (October 2021): A more devaluating version for CVDens, using KeyFn, replacing NTotPars by NAdjPars
+        normNAdjPars2 = np.exp(-0.15 * nAdjPars2)
+        normCVDens2 = np.exp(-20 * np.square(dcv))
+        quaBal2 = np.power(normChi2KsCvMsNObsKFn * normNAdjPars2 * normCVDens2, 1 / 8.0)
 
-    @classmethod
-    def _combinedQualityBalanced3(cls, sRes):  # An even more devaluating version for NAdjPars, CVDens + KeyFn
-        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
-                * cls._normCVDens(sRes, a=63, b=2.8) * cls._normKeyFn(sRes)) ** (1.0/8)
+        # QualBal3 (August 2021)
+        # normNTotPars3 = 1 / (0.3 * np.maximum(1, aRes[:, cls.CINTotPars].astype(float)) + 0.7)
+        # normCVDens3 = np.exp(-20 * np.square(dcv))
+        # normChi2KsCvMsNObsTotPDcv3 = chi2KsCvMs * normNObs * normNTotPars3 * normCVDens3
+        # quaBal3 = np.power(normChi2KsCvMsNObsTotPDcv3, 1 / 7.0)
 
-# March 2021
-#    @classmethod
-#    def _combinedQualityMoreChi2(cls, sRes):
-#        return (sRes[[cls.CLChi2, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
-#                * cls._normCVDens(sRes, a=12, b=2)) ** (1.0/8)
-#
-#    @classmethod
-#    def _combinedQualityMoreKS(cls, sRes):
-#        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
-#                * cls._normCVDens(sRes, a=12, b=2)) ** (1.0/8)
-#
-#    @classmethod
-#    def _combinedQualityMoreDCv(cls, sRes):
-#        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-#                * cls._normNObs(sRes) * cls._normNTotPars(sRes, a=0.2, b=0.6)
-#                * cls._normCVDens(sRes, a=12, b=2) ** 2) ** (1.0/8)
+        # QualBal3 (October 2021): Same as QualBal2, but even more devaluating for CVDens
+        normNAdjPars3 = np.exp(-0.17 * nAdjPars2)
+        normCVDens3 = np.exp(-63 * np.power(dcv, 2.8))
+        normChi2KsCvMsNObsKFnAdjPDcv3 = normChi2KsCvMsNObsKFn * normNAdjPars3 * normCVDens3
+        quaBal3 = np.power(normChi2KsCvMsNObsKFnAdjPDcv3, 1 / 8.0)
 
-    # October 2021 : follow _combinedQualityBalanced3 update (were based on _combinedQualityBalanced1).
-    @classmethod
-    def _combinedQualityMoreChi2(cls, sRes):
-        return (sRes[[cls.CLChi2, cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
-                * cls._normCVDens(sRes, a=63, b=2.8) * cls._normKeyFn(sRes)) ** (1.0/9)
+        # QualMoreX (March 2021)
+        # normNTotParsM = 1 / (0.2 * np.maximum(2, aRes[:, cls.CINTotPars].astype(float)) + 0.6)
+        # normCVDensM = np.exp(-12 * np.square(dcv))
+        # normChi2KsCvMsNObsTotPDCvM = chi2KsCvMs * normNObs * normNTotParsM * normCVDensM
+        # moreChi2 = np.power(normChi2KsCvMsNObsTotPDCvM * chi2, 1 / 8.0)
+        # moreKS = np.power(normChi2KsCvMsNObsTotPDCvM * ks, 1 / 8.0)
+        # moreDCv = np.power(normChi2KsCvMsNObsTotPDCvM * normCVDensM, 1 / 8.0)
 
-    @classmethod
-    def _combinedQualityMoreKS(cls, sRes):
-        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
-                * cls._normCVDens(sRes, a=63, b=2.8) * cls._normKeyFn(sRes)) ** (1.0/9)
+        # QualMoreX (October 2021): Follow QualBal3 update (were based on historical QualBal1)
+        moreChi2 = np.power(normChi2KsCvMsNObsKFnAdjPDcv3 * chi2, 1 / 9.0)
+        moreKS = np.power(normChi2KsCvMsNObsKFnAdjPDcv3 * ks, 1 / 9.0)
+        moreDCv = np.power(normChi2KsCvMsNObsKFnAdjPDcv3 * normCVDens3, 1 / 9.0)
 
-    @classmethod
-    def _combinedQualityMoreDCv(cls, sRes):
-        return (sRes[[cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw]].prod()
-                * cls._normNObs(sRes) * cls._normNAdjPars(sRes, a=0.17)
-                * cls._normCVDens(sRes, a=63, b=2.8) ** 2 * cls._normKeyFn(sRes)) ** (1.0/9)
+        return quaBal2, quaBal3, moreChi2, moreKS, moreDCv
 
     # Killer values for base MCDS indicators
     KilrNObs = 0
@@ -1196,29 +1197,27 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     KilrBalQua = 0
 
     def _postComputeQualityIndicators(self):
-        
+
         cls = self
 
         logger.debug('Post-computing Quality Indicators')
 
-        self._dfData[self.CLSightRate] = 100 * self._dfData.apply(cls._normNObs, axis='columns')  # [0,1] => %
+        # Sighting rate (not 100% due to truncations).
+        self._dfData[cls.CLSightRate] = 100 * self._dfData[cls.CLNObs] / self._dfData[cls.CLNTotObs]  # [0,1] => %
 
         # Prepare data for computations
         logger.debug1('* Pre-processing source data')
 
         # a. extract the useful columns, after adding them if not present
         #    (NaN value, except for CLKeyFn, that MUST be there anyway)
-        miCompCols = [cls.CLNAdjPars, cls.CLNTotPars, cls.CLNObs, cls.CLNTotObs,
-                      cls.CLChi2, cls.CLKS, cls.CLCvMUw, cls.CLCvMCw, cls.CLDCv]
-        for miCol in miCompCols:
-            if miCol not in self._dfData.columns:
+        for miCol in cls.CLsQuaIndicSources:
+            if miCol not in self._dfData.columns and miCol != cls.CLKeyFn:
                 self._dfData[miCol] = np.nan
-        miCompCols = [cls.CLKeyFn] + miCompCols
-        dfCompData = self._dfData[miCompCols].copy()
+        dfCompData = self._dfData[cls.CLsQuaIndicSources].copy()
 
-        # b. historical bal qua 1
+        # b. historical bal quality  indicator 1
         logger.debug1('* Balanced quality 1')
-        self._dfData[cls.CLCmbQuaBal1] = dfCompData.apply(cls._combinedQualityBalanced1, axis='columns')
+        self._dfData[cls.CLCmbQuaBal1] = cls._combinedQualityBalanced1(dfCompData.values)
 
         # c. newer quality indicators
         #    (NaN value MUST kill down these indicators to compute => we have to enforce this)
@@ -1231,21 +1230,16 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                            cls.CLNTotPars: cls.KilrNPars},
                           inplace=True)
 
-        logger.debug1('* Balanced quality 2')
-        self._dfData[cls.CLCmbQuaBal2] = dfCompData.apply(cls._combinedQualityBalanced2, axis='columns')
+        logger.debug1('* Balanced quality 2, 3, Chi2+, KS+, DCv+')
+        for miCol, aIndic in zip(cls.CLsNewQuaIndics, cls._combinedQualityAll(dfCompData.values)):
+            self._dfData[miCol] = aIndic
 
-        logger.debug1('* Balanced quality 3')
-        self._dfData[cls.CLCmbQuaBal3] = dfCompData.apply(cls._combinedQualityBalanced3, axis='columns')
+        # For some unknown reason, the theorically better code below raises some odd exceptions like (depends):
+        # * index-join on non unique index not implemented
+        # * KeyError: None of <items of cls.CLsNewQuaIndics> exists in index
+        # whereas the same code works in devarchive2.ipynb/Development : Optimise _postComputeQualityIndicators).
+        # self._dfData[cls.CLsNewQuaIndics] = np.stack(cls._combinedQualityAll(dfCompData.values), axis=1)
 
-        logger.debug1('* Balanced quality Chi2+')
-        self._dfData[cls.CLCmbQuaChi2] = dfCompData.apply(cls._combinedQualityMoreChi2, axis='columns')
-
-        logger.debug1('* Balanced quality KS+')
-        self._dfData[cls.CLCmbQuaKS] = dfCompData.apply(cls._combinedQualityMoreKS, axis='columns')
-
-        logger.debug1('* Balanced quality DCv+')
-        self._dfData[cls.CLCmbQuaDCv] = dfCompData.apply(cls._combinedQualityMoreDCv, axis='columns')
-        
     # Post computations : Truncations groups.
     @staticmethod
     def _groupingIntervals(sValues, minDist, maxLen, epsilon=1e-6):
@@ -2473,8 +2467,7 @@ class MCDSAnalyser(DSAnalyser):
                                   clustering=self.clustering)
 
         # Custom columns for results.
-        customCols = \
-            self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
+        customCols = self.resultsHeadCols['before'] + self.resultsHeadCols['sample'] + self.resultsHeadCols['after']
         
         # Explicitate and complete analysis specs, and check for usability
         # (should be also done before calling run, to avoid failure).
