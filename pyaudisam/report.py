@@ -1180,10 +1180,11 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
             dColDecimals = {**{col: 4 for col in ['Delta CoefVar Density']},
                             **{col: 3 for col in ['Effort', 'PDetec', 'Min PDetec', 'Max PDetec']},
                             **{col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
+                                                  'Density', 'Min Density', 'Max Density',
                                                   'Qual Chi2+', 'Qual KS+', 'Qual DCv+']},
                             **{col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                                  'Density', 'Min Density',
-                                                  'Max Density', 'CoefVar Density', 'Obs Rate']},
+                                                  'Number', 'Min Number', 'Max Number',
+                                                  'CoefVar Density', 'CoefVar Number', 'Obs Rate']},
                             **{col: 0 for col in ['Left Trunc Dist', 'Right Trunc Dist',
                                                   'Left Trunc', 'Right Trunc']}}
                                                      
@@ -1547,10 +1548,11 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
             # a. Fixed list of columns: simply enumerate their English names.
             dColDecimals = {**{col: 3 for col in ['PDetec', 'Min PDetec', 'Max PDetec']},
                             **{col: 2 for col in ['Delta AIC', 'Chi2 P', 'KS P', 'CvM Uw P', 'CvM Cw P',
+                                                  'Density', 'Min Density', 'Max Density',
                                                   'Qual Chi2+', 'Qual KS+', 'Qual DCv+']},
                             **{col: 1 for col in ['AIC', 'EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW',
-                                                  'Density', 'Min Density', 'Max Density',
-                                                  'CoefVar Density', 'Obs Rate']},
+                                                  'Number', 'Min Number', 'Max Number',
+                                                  'CoefVar Density', 'CoefVar Number', 'Obs Rate']},
                             **{col: 0 for col in ['Left Trunc', 'Right Trunc']}}
             for col, dec in self.trEnColNames(dColDecimals).items():
                 if col in df.columns:
