@@ -39,11 +39,11 @@ class DSAnalysis(object):
     
     # Run columns for output : root engine output (3-level multi-index)
     CLRunStatus = ('run output', 'run status', 'Value')
+    CLRunStartTime = ('run output', 'start time', 'Value')
+    CLRunElapsedTime = ('run output', 'elapsed time', 'Value')
+    CLRunFolder = ('run output', 'run folder', 'Value')
 
-    RunRunColumns = [CLRunStatus,
-                     ('run output', 'start time', 'Value'),
-                     ('run output', 'elapsed time', 'Value'),
-                     ('run output', 'run folder', 'Value')]
+    RunRunColumns = [CLRunStatus, CLRunStartTime, CLRunElapsedTime, CLRunFolder]
     RunFolderColumn = next(iter(col for col in RunRunColumns if col[1] == 'run folder'))
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns

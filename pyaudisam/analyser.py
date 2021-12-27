@@ -20,7 +20,6 @@ import re
 import pathlib as pl
 from packaging import version
 
-import math
 import numpy as np
 import pandas as pd
 
@@ -772,12 +771,120 @@ class _FilterSortCache(object):
         return None, None
 
 
+class FilterSortSchemeIdManager(object):
+
+    """Filter and sort scheme Id generator"""
+
+    # Constants for schemeId()
+    MainSchSpecNames = ['method', 'deduplicate', 'filterSort',
+                        'preselCols', 'preselAscs', 'preselThrhs', 'preselNum']
+
+    def __init__(self):
+
+        """Ctor"""
+
+        # Constants for schemeId() (can't define as class variables: would need forward ref to MCDSAnalysisResultsSet)
+        RS = MCDSAnalysisResultsSet
+        self.FinalQuaShortNames = {RS.CLChi2: 'k2', RS.CLKS: 'ks', RS.CLCvMUw: 'cu', RS.CLCvMCw: 'cw',
+                                   RS.CLDCv: 'dc', RS.CLSightRate: 'sr',
+                                   RS.CLCmbQuaBal1: 'q1', RS.CLCmbQuaBal2: 'q2', RS.CLCmbQuaBal3: 'q3',
+                                   RS.CLCmbQuaChi2: 'qk2', RS.CLCmbQuaKS: 'qks', RS.CLCmbQuaDCv: 'qdc'}
+
+        # Short (but unique) Ids for already seen "filter and sort" schemes,
+        # based on the scheme name and an additional int suffix when needed ;
+        # Definition: 2 equal schemes (dict ==) have the same Id
+        self.dFilSorSchemes = dict()  # Unique Id => value
+
+    def copy(self):
+
+        clone = FilterSortSchemeIdManager()
+        clone.dFilSorSchemes = copy.deepcopy(self.dFilSorSchemes)
+
+    def clear(self):
+
+        self.dFilSorSchemes.clear()
+
+    def schemeId(self, scheme):
+
+        """Human readable but unique identification of a filter and sort scheme
+
+        Built on the scheme name format and an additional int suffix when needed.
+
+        Definition: 2 equal schemes (dict ==) have the same Id
+
+        Parameters:
+        :param scheme: the scheme to identify
+                       as a dict(method= filterSortOnXXX method to use,
+                                 deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
+                                     (if not or partially given, see filterSortOnXXX defaults)
+                                 filterSort= dict of other <method> params (see filterSortOnXXX methods),
+                                 preselCols= target columns for generating auto-preselection ones,
+                                             containing [1, preselNum] ranks ; default: []
+                                 preselAscs= Rank direction to use for each column (list),
+                                             or all (single bool) ; default: True
+                                             (True means that lower values are "better" ones)
+                                 preselThrhs= Eliminating threshold for each column (list),
+                                              or all (single number) ; default: 0.2
+                                              (eliminated above if preselAscs True, below otherwise)
+                                 preselNum= number of (best) pre-selections to keep for each sample) ;
+                                            default: 5
+
+        :return: the unique Id.
+        """
+
+        # Check scheme specification (1st level properties: presence of mandatory ones, authorised list, ...)
+        props = scheme.keys()
+        assert all(prop in self.MainSchSpecNames for prop in props), \
+               'Unknown filter and sort scheme property/ies: {}' \
+                .format(', '.join(prop for prop in props if prop not in self.MainSchSpecNames))
+        mandProps = ['method']
+        assert all(prop in props for prop in mandProps), \
+               'Missing filter and sort scheme mandatory property/ies: {}' \
+                .format(', '.join(prop for prop in mandProps if prop not in props))
+        method = scheme['method']
+        assert callable(method), 'Filter and sort scheme method must be callable'
+        assert method is MCDSAnalysisResultsSet.filterSortOnExecCode \
+               or method is MCDSAnalysisResultsSet.filterSortOnExCAicMulQua, \
+               'Unsupported filter and sort scheme method: ' + str(method)
+
+        # Compute the heading "name" part of the Id
+        schemeId = 'ExCode' if method is MCDSAnalysisResultsSet.filterSortOnExecCode else 'ExAicMQua'
+        methArgs = scheme.get('filterSort', {})
+        if 'sightRate' in methArgs:
+            schemeId += '-r{:.1f}'.format(methArgs['sightRate']).replace('.', '')
+        if 'whichBestQua' in methArgs:
+            schemeId += 'm{}'.format(len(methArgs['whichBestQua']))
+        if 'whichFinalQua' in methArgs and method is not MCDSAnalysisResultsSet.filterSortOnExecCode:
+            assert methArgs['whichFinalQua'] in self.FinalQuaShortNames, \
+                'Unsupported quality indicator for filtering: ' + str(methArgs['whichFinalQua'])
+            schemeId += self.FinalQuaShortNames[methArgs['whichFinalQua']]
+        if 'nFinalRes' in methArgs:
+            schemeId += 'd{}'.format(methArgs['nFinalRes'])
+
+        # The Id must be unique: enforce it through a uniqueness suffix only if needed
+        if schemeId in self.dFilSorSchemes:  # Seems there's a possible collision ...
+            closeSchemes = {schId: schVal for schId, schVal in self.dFilSorSchemes.items()
+                            if schId.startswith(schemeId)}
+            for schId, schVal in closeSchemes.items():  # Check if not simply an exact match
+                if scheme == schVal:
+                    return schId  # Bingo !
+            schemeId += '-' + str(len(closeSchemes) + 1)  # No exact match => new unused Id !
+
+        # Register new scheme and Id.
+        self.dFilSorSchemes[schemeId] = scheme
+
+        return schemeId
+
+
 class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     """A specialized results set for MCDS analyses, with extra. post-computed columns : Delta AIC, Chi2 P"""
     
     # Shortcut to already existing and useful columns names.
     CLRunStatus = MCDSAnalysis.CLRunStatus
+    CLRunStartTime = MCDSAnalysis.CLRunStartTime
+    CLRunElapsedTime = MCDSAnalysis.CLRunElapsedTime
+    CLRunFolder = MCDSAnalysis.CLRunFolder
     CLParEstKeyFn = MCDSAnalysis.CLParEstKeyFn
     CLParEstAdjSer = MCDSAnalysis.CLParEstAdjSer
     CLParEstSelCrit = MCDSAnalysis.CLParEstSelCrit
@@ -972,10 +1079,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # Parameters for filter and sort key generation schemes
         self.ldFilSorKeySchemes = ldFilSorKeySchemes
 
-        # Short (but unique) Ids for already seen "filter and sort" schemes,
-        # based on the scheme name and an additional int suffix when needed ;
-        # Definition: 2 equal schemes (dict ==) have the same Id
-        self.dFilSorSchemes = dict()  # Unique Id => value
+        # Ids manager for "filter and sort" schemes
+        self.filSorIdMgr = FilterSortSchemeIdManager()
 
         # Cache for results of filter and sort schemes
         self.filSorCache = _FilterSortCache()
@@ -1000,7 +1105,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             clone.rightColOrder = self.rightColOrder
             clone.postComputed = self.postComputed
             clone.dfSamples = None if self.dfSamples is None else self.dfSamples.copy()
-            clone.dFilSorSchemes = copy.deepcopy(self.dFilSorSchemes)
+            clone.filSorIdMgr = self.filSorIdMgr.copy()
             clone.filSorCache = self.filSorCache.copy()
 
         return clone
@@ -1011,7 +1116,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         but only when the calculus is coded in this class ; other calculi impacts taken care in base classes"""
 
         self.dfSamples = None
-        self.dFilSorSchemes = dict()
+        self.filSorIdMgr.clear()
         self.filSorCache.clear()
 
     def dropRows(self, sbSelRows):
@@ -1681,86 +1786,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         return dfRes[~sb2keep].index
 
-    # Constants for filSorSchemeId
-    MainSchSpecNames = ['method', 'deduplicate', 'filterSort',
-                        'preselCols', 'preselAscs', 'preselThrhs', 'preselNum']
-    FinalQuaShortNames = {CLChi2: 'k2', CLKS: 'ks', CLCvMUw: 'cu', CLCvMCw: 'cw',
-                          CLDCv: 'dc', CLSightRate: 'sr',
-                          CLCmbQuaBal1: 'q1', CLCmbQuaBal2: 'q2', CLCmbQuaBal3: 'q3',
-                          CLCmbQuaChi2: 'qk2', CLCmbQuaKS: 'qks', CLCmbQuaDCv: 'qdc'}
-
     def filSorSchemeId(self, scheme):
 
-        """Human readable but unique identification of a filter and sort scheme
-        
-        Built on the scheme name format and an additional int suffix when needed.
-        
-        Definition: 2 equal schemes (dict ==) have the same Id
-
-        Parameters:
-        :param scheme: the scheme to identify
-                       as a dict(method= filterSortOnXXX method to use,
-                                 deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
-                                     (if not or partially given, see filterSortOnXXX defaults)
-                                 filterSort= dict of other <method> params (see filterSortOnXXX methods),
-                                 preselCols= target columns for generating auto-preselection ones,
-                                             containing [1, preselNum] ranks ; default: []
-                                 preselAscs= Rank direction to use for each column (list),
-                                             or all (single bool) ; default: True
-                                             (True means that lower values are "better" ones)
-                                 preselThrhs= Eliminating threshold for each column (list),
-                                              or all (single number) ; default: 0.2
-                                              (eliminated above if preselAscs True, below otherwise)
-                                 preselNum= number of (best) pre-selections to keep for each sample) ;
-                                            default: 5
-
-        :return: the unique Id.
-        """
-
-        cls = self
-
-        # Check scheme specification (1st level properties: presence of mandatory ones, authorised list, ...)
-        props = scheme.keys()
-        assert all(prop in self.MainSchSpecNames for prop in props), \
-               'Unknown filter and sort scheme property/ies: {}' \
-               .format(', '.join(prop for prop in props if prop not in self.MainSchSpecNames))
-        mandProps = ['method']
-        assert all(prop in props for prop in mandProps), \
-               'Missing filter and sort scheme mandatory property/ies: {}' \
-               .format(', '.join(prop for prop in mandProps if prop not in props))
-        method = scheme['method']
-        assert callable(method), 'Filter and sort scheme method must be callable'
-        assert method is MCDSAnalysisResultsSet.filterSortOnExecCode \
-               or method is MCDSAnalysisResultsSet.filterSortOnExCAicMulQua, \
-               'Unsupported filter and sort scheme method: ' + str(method)
-
-        # Compute the heading "name" part of the Id
-        schemeId = 'ExCode' if method is MCDSAnalysisResultsSet.filterSortOnExecCode else 'ExAicMQua'
-        methArgs = scheme.get('filterSort', {})
-        if 'sightRate' in methArgs:
-            schemeId += '-r{:.1f}'.format(methArgs['sightRate']).replace('.', '')
-        if 'whichBestQua' in methArgs:
-            schemeId += 'm{}'.format(len(methArgs['whichBestQua']))
-        if 'whichFinalQua' in methArgs and method is not MCDSAnalysisResultsSet.filterSortOnExecCode:
-            assert methArgs['whichFinalQua'] in cls.FinalQuaShortNames, \
-                   'Unsupported quality indicator for filtering: ' + str(methArgs['whichFinalQua'])
-            schemeId += cls.FinalQuaShortNames[methArgs['whichFinalQua']]
-        if 'nFinalRes' in methArgs:
-            schemeId += 'd{}'.format(methArgs['nFinalRes'])
-
-        # The Id must be unique: enforce it through a uniqueness suffix only if needed
-        if schemeId in self.dFilSorSchemes:  # Seems there's a possible collision ...
-            closeSchemes = {schId: schVal for schId, schVal in self.dFilSorSchemes.items()
-                            if schId.startswith(schemeId)}
-            for schId, schVal in closeSchemes.items():  # Check if not simply an exact match
-                if scheme == schVal:
-                    return schId   # Bingo !
-            schemeId += '-' + str(len(closeSchemes) + 1)  # No exact match => new unused Id !
-
-        # Register new scheme and Id.
-        self.dFilSorSchemes[schemeId] = scheme
-        
-        return schemeId
+        return self.filSorIdMgr.schemeId(scheme)
 
     @classmethod
     def _filterOnExecCode(cls, dfFilSorRes, filSorSteps, sampleIndCol, dupSubset, dDupRounds):
@@ -2165,7 +2193,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         # Check (1/2) if need for applying scheme : needed if rebuild requested or post-computation needed.
         isApplySchemeNeeded = rebuild or not self.postComputed
-        filSorSchId = self.filSorSchemeId(scheme)
+        filSorSchId = self.filSorIdMgr.schemeId(scheme)
 
         # If not needed, check (2/2) also if same scheme have been applied yet
         if not isApplySchemeNeeded:
@@ -2757,10 +2785,3 @@ class MCDSPreAnalyser(MCDSAnalyser):
         self._engine.shutdown()
 
         logger.info(f'Done exporting.')
-
-
-if __name__ == '__main__':
-
-    import sys
-
-    sys.exit(0)

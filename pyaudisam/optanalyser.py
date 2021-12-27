@@ -56,6 +56,7 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
         :param ldFilSorKeySchemes: Replacement for predefined filter-sort key schemes
                                    None => use predefined ones AutoFilSorKeySchemes.
         """
+
         super().__init__(miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
                          miSampleCols=miSampleCols, sampleIndCol=sampleIndCol,
                          sortCols=sortCols, sortAscend=sortAscend, distanceUnit=distanceUnit, areaUnit=areaUnit,
