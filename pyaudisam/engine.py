@@ -29,7 +29,7 @@ import subprocess as sproc
 import numpy as np
 import pandas as pd
 
-from . import log
+from . import log, runtime
 
 logger = log.logger('ads.eng', level=log.INFO)  # Initial config (can be changed later)
 
@@ -66,7 +66,7 @@ class DSEngine(object):
     DistancePossInstPaths = map(pl.Path, ['C:/Program files (x86)', 'C:/Program files', 'C:/PortableApps', '.'])
 
     # Find given executable installation dir.
-    # Note: MCDS.exe is an autonomous executable : simply put it in a "Distance 7" subfolder
+    # Note: MCDS.exe is an autonomous executable : simply put it in a "Distance 7" sub-folder
     #       of this package's one, and it'll work ! Or else install Distance 7 (or later) the normal way :-)
     @staticmethod
     def findExecutable(exeFileName):
@@ -87,6 +87,8 @@ class DSEngine(object):
 
         if not exeFilePathName:
             raise Exception('Could not find {} ; please install Distance software (V6 or later)'.format(exeFileName))
+
+        runtime.update({exeFileName: exeFilePathName.as_posix()})
             
         return exeFilePathName
     
