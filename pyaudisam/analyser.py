@@ -217,7 +217,11 @@ class Analyser(object):
     
     @classmethod
     def _loadPartSpecsFromFile(cls, sourceFpn):
-        
+
+        """Load partial specs for a workbook file (Excel or ODF format)
+
+        :returns: dict(partial specs dataframes)"""
+
         if isinstance(sourceFpn, str):
             sourceFpn = pl.Path(sourceFpn)
     
@@ -228,13 +232,16 @@ class Analyser(object):
                'Unsupported source file type {}: not from {{{}}}' \
                .format(ext, ','.join(cls.SupportedFileExts))
         if ext in ['.xlsx']:
-            dfData = pd.read_excel(sourceFpn, sheet_name=None)
+            ddfData = pd.read_excel(sourceFpn, sheet_name=None)
         elif ext in ['.ods']:
-            dfData = pd.read_excel(sourceFpn, sheet_name=None, engine='odf' if ext in ['.ods'] else 'openpyxml')
+            ddfData = pd.read_excel(sourceFpn, sheet_name=None, engine='odf' if ext in ['.ods'] else 'openpyxml')
         else:
             raise NotImplementedError(f'Unsupported file extension {ext} for input partial specs file')
-            
-        return dfData
+
+        logger.debug('Loaded partial specs: {}\n{}'
+                     .format(', '.join(ddfData.keys()), '\n'.join(str(df) for df in ddfData.values())))
+
+        return ddfData
     
     @classmethod
     def explicitVariantSpecs(cls, partSpecs, keep=None, ignore=None,
@@ -337,6 +344,7 @@ class Analyser(object):
                 # Implicit specs case:
                 if '_impl' in psName:
 
+                    logger.debug1(f'Explicitating {psName}')
                     dfPartSpecs = cls.explicitPartialVariantSpecs(dfPartSpecs)
 
                 # Now, specs are explicit.
@@ -381,11 +389,15 @@ class Analyser(object):
         if varIndCol:
             dfExplSpecs.reset_index(drop=False, inplace=True)
             dfExplSpecs.rename(columns=dict(index=varIndCol), inplace=True)
-            
+
+        logger.debug(f'Explicit specs (before computing columns):\n{dfExplSpecs}')
+
         # Compute and add supplementary columns if any
         for colName, computeCol in computedCols.items():
             dfExplSpecs[colName] = dfExplSpecs.apply(computeCol, axis='columns')
                 
+        logger.debug(f'Explicit specs (after computing columns):\n{dfExplSpecs}')
+
         # Done.
         return dfExplSpecs
 
@@ -530,7 +542,7 @@ class DSAnalyser(Analyser):
                     logger.debug(f' * "{specName}" => Not found')
                     parNames.append(None)
 
-        logger.debug('... success{}.'.format('' if strict else ' but {} mismatches.'.format(parNames.count(None))))
+        logger.debug('... success{}.'.format('' if strict else ' but {} mismatches'.format(parNames.count(None))))
 
         return parNames
 
@@ -2135,7 +2147,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         return dfFilSorRes
 
-    def dfFilSorData(self, scheme=dict(nameFmt='ExecCode', method=filterSortOnExecCode,
+    def dfFilSorData(self, scheme=dict(method=filterSortOnExecCode,
                                        filterSort=dict(whichFinalQua=CLCmbQuaBal3, ascFinalQua=False),
                                        preselCols=[CLCmbQuaBal3], preselAscs=False, preselThrhs=[0.2],
                                        preselNum=5),
@@ -2147,8 +2159,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         
         Parameters:
         :param scheme: filter and sort scheme to apply
-                 as a dict(nameFmt= format string for generating the Id of the report
-                           method= ResClass.filterSortOnXXX method to use,
+                 as a dict(method= ResClass.filterSortOnXXX method to use,
                            deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
                                (if not or partially given, see RCLS.filterSortOnXXX defaults)
                            filterSort= dict of other <method> params,
@@ -2162,13 +2173,11 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                                         (eliminated above if preselAscs True, below otherwise)
                            preselNum= number of (best) pre-selections to keep for each sample) ;
                                       default: 5)
-                 examples: dict(nameFmt='ExecCode', => format string to generate the name of the report
-                                method=R.filterSortOnExecCode,
+                 examples: dict(method=R.filterSortOnExecCode,
                                 filterSort=dict(whichFinalQua=CLCmbQuaBal3, ascFinalQua=False),
                                 preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False,
                                 preselThrhs=0.2, preselNum=5),
-                           dict(nameFmt='AicCKCvQua-r{sightRate:.1f}d{nFinalRes}', 
-                                method=R.filterSortOnExCAicMulQua,
+                           dict(method=R.filterSortOnExCAicMulQua,
                                 deduplicate=dict(dupSubset=[R.CLNObs, R.CLEffort, R.CLDeltaAic, R.CLChi2,
                                                             R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv]),
                                                  dDupRounds={R.CLDeltaAic: 1, R.CLChi2: 2, R.CLKS: 2,
@@ -2553,7 +2562,10 @@ class MCDSAnalyser(DSAnalyser):
 class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
 
     """A specialized results set for MCDS pre-analyses
-    (simpler post-computations that base class MCDSAnalysisResultsSet)"""
+    (simpler post-computations that base class MCDSAnalysisResultsSet)
+
+    TODO: Should obviously rather be the base class for MCDSAnalysisResultsSet !
+    """
     
     # Computed columns specs (name translation + position).
     Super = MCDSAnalysisResultsSet
@@ -2595,9 +2607,30 @@ class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering)
 
-    # Post-computations.
+    def copy(self, withData=True):
+        """Clone function, with optional data copy"""
+
+        # Create new instance with same ctor params.
+        clone = MCDSPreAnalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
+                                          miSampleCols=self.miSampleCols, sampleIndCol=self.sampleIndCol,
+                                          sortCols=self.sortCols, sortAscend=self.sortAscend,
+                                          distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
+                                          surveyType=self.surveyType, distanceType=self.distanceType,
+                                          clustering=self.clustering)
+
+        # Copy data if needed.
+        if withData:
+            clone._dfData = self._dfData.copy()
+            clone.rightColOrder = self.rightColOrder
+            clone.postComputed = self.postComputed
+            clone.dfSamples = None if self.dfSamples is None else self.dfSamples.copy()
+            clone.filSorIdMgr = self.filSorIdMgr.copy()
+            clone.filSorCache = self.filSorCache.copy()
+
+        return clone
+
     def postComputeColumns(self):
-        
+        """Post-computation: no need for filter and sort stuff"""
         self._postComputeChi2()
         self._postComputeDeltaAicDCv()
         self._postComputeQualityIndicators()
@@ -2623,7 +2656,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                  surveyType='Point', distanceType='Radial', clustering=False,
                  resultsHeadCols=dict(before=['SampleNum'], after=['SampleAbbrev'], 
                                       sample=['Species', 'Pass', 'Adult', 'Duration']),
-                 workDir='.', runMethod='subprocess.run', runTimeOut=300, logProgressEvery=5):
+                 workDir='.', runMethod='subprocess.run', runTimeOut=300, logData=False, logProgressEvery=5):
 
         super().__init__(dfMonoCatObs=dfMonoCatObs, dfTransects=dfTransects,
                          effortConstVal=effortConstVal, dSurveyArea=dSurveyArea, 
@@ -2634,7 +2667,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          resultsHeadCols=resultsHeadCols, anlysIndCol=None, 
-                         workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut,
+                         workDir=workDir, runMethod=runMethod, runTimeOut=runTimeOut, logData=logData,
                          logProgressEvery=logProgressEvery)
 
         assert runTimeOut is None or runMethod != 'os.system', \
