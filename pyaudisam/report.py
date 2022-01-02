@@ -288,6 +288,7 @@ class DSResultsDistanceReport(ResultsReport):
                         'Click on analysis # for details': 'Click on analysis number to get to detailed report',
                         'Main results': 'Results: main figures',
                         'Detailed results': 'Results: all details',
+                        'Analysis': 'Analysis',
                         'Download Excel': 'Download as Excel(TM) file',
                         'Summary computation log': 'Summary computation log',
                         'Detailed computation log': 'Detailed computation log',
@@ -297,7 +298,7 @@ class DSResultsDistanceReport(ResultsReport):
                         'Real observations': 'Observations (sampled)',
                         'Fixed bin distance histograms': 'Fixed bin distance histograms',
                         'Distance': 'Distance', 'Number of observations': 'Number of observations',
-                        'Page generated': 'Page generated', 'with': 'with',
+                        'Page generated': 'Generated', 'with': 'with',
                         'with icons from': 'with icons from',
                         'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
                         'Point': 'Point transect', 'Line': 'Line transect',
@@ -320,6 +321,7 @@ class DSResultsDistanceReport(ResultsReport):
                           "Cliquer sur le numéro de l'analyse pour accéder au rapport détaillé",
                         'Main results': 'Résultats : indicateurs principaux',
                         'Detailed results': 'Résultats : tous les détails',
+                        'Analysis': 'Analyse',
                         'Download Excel': 'Télécharger le classeur Excel (TM)',
                         'Summary computation log': 'Résumé des calculs',
                         'Detailed computation log': 'Détail des calculs',
@@ -330,7 +332,7 @@ class DSResultsDistanceReport(ResultsReport):
                         'Fixed bin distance histograms': 'Fixed bin distance histograms',  # Idem
                         'Distance': 'Distance',  # Idem
                         'Number of observations': 'Number of observations',  # Idem
-                        'Page generated': 'Page générée', 'with': 'avec',
+                        'Page generated': 'Généré', 'with': 'avec',
                         'with icons from': 'avec les pictogrammes de',
                         'and': 'et', 'in': 'dans', 'sources': 'sources', 'on': 'le',
                         'Point': 'Point fixe', 'Line': 'Transect',
@@ -732,7 +734,7 @@ class DSResultsDistanceReport(ResultsReport):
 
         return dfSynthRes, dfDetRes, None
 
-    def toHtmlEachAnalysis(self, rebuild=False, generators=0, **kwargs):
+    def toHtmlEachAnalysis(self, rebuild=False, generators=0, topSuffix='.html', **kwargs):
         
         """Generate HTML page specific to each analysis
 
@@ -774,7 +776,7 @@ class DSResultsDistanceReport(ResultsReport):
             plt.ioff()
 
         # b. Generate analysis detailed HTML page, for each analysis, parallely.
-        topHtmlPathName = self.targetFilePathName(suffix='.html')
+        topHtmlPathName = self.targetFilePathName(suffix=topSuffix)
         trCustCols = [col for col in self.resultsSet.transCustomColumns(self.lang) if col in dfDetRes.columns]
         
         # i. Start generation of all pages in parallel (unless specified not)
@@ -846,7 +848,7 @@ class DSResultsDistanceReport(ResultsReport):
         
         # Generate analysis report page.
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-        subTitle = 'Analyse {} : {{}}'.format(idxFmt).format(lblRes, self.anlysSubTitle)
+        subTitle = '{} {} : {{}}'.format(self.tr('Analysis'), idxFmt).format(lblRes, self.anlysSubTitle)
         engineClass = self.resultsSet.engineClass
         anlysFolder = sDetRes[self.trRunFolderCol]
         tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
@@ -1900,7 +1902,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
     def __init__(self, resultsSet, title, subTitle, anlysSubTitle, description, keywords,
                  sampleCols, paramCols, resultCols, synthCols=None, sortCols=None, sortAscend=None,
                  dCustomTrans=None, lang='en',
-                 filSorSchemes=[dict(nameFmt='ExecCodeX', method=ResClass.filterSortOnExecCode)], 
+                 filSorSchemes=[dict(method=ResClass.filterSortOnExecCode)],
                  superSynthPlotsHeight=288, plotImgFormat='png', plotImgSize=(640, 400), plotImgQuality=90,
                  plotLineWidth=1, plotDotWidth=4, plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
                  pySources=[], tgtFolder='.', tgtPrefix='results'):
@@ -1931,8 +1933,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                              as a dict(fr=dict(src: fr-trans), en=dict(src: en-trans))
         :param lang: Target language for translation
         :param filSorSchemes: filter and sort schemes to apply in order to generate each sub-report
-                 as a list of dict(nameFmt= format string for generating the Id of the report
-                                   method= <results set class>.filterSortOnXXX method to use,
+                 as a list of dict(method= <results set class>.filterSortOnXXX method to use,
                                    deduplicate= dict(dupSubset=, dDupRounds=) of deduplication params
                                        (if not or partially given, see RCLS.filterSortOnXXX defaults)
                                    filterSort= dict of other <method>-specific params,
@@ -1946,12 +1947,10 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                                                 (eliminated above if preselAscs True, below otherwise)
                                    preselNum= number of (best) pre-selections to keep for each sample) ;
                                               default: 5
-                 example: [dict(nameFmt='ExecCode', => format string to generate the Id of the report
-                                method=R.filterSortOnExecCode,  # let R = MCDSTruncOptanalysisResultsSet
+                 example: [dict(method=R.filterSortOnExecCode,  # let R = MCDSTruncOptanalysisResultsSet
                                 preselCols=[R.CLCmbQuaBal1, R.CLCmbQuaBal2], preselAscs=False,
                                 preselThrhs=0.2, preselNum=5),
-                           dict(nameFmt='ExAicMQua-r{sightRate:.1f}d{nFinalRes}', 
-                                method=R.filterSortOnExCAicMulQua,
+                           dict(method=R.filterSortOnExCAicMulQua,
                                 deduplicate=dict(dupSubset=[R.CLNObs, R.CLEffort, R.CLDeltaAic, R.CLChi2,
                                                             R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv]),
                                                  dDupRounds={R.CLDeltaAic: 1, R.CLChi2: 2, R.CLKS: 2,
@@ -2042,7 +2041,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
 
         return ddfWbk
 
-    def getRawTransData(self, filSorScheme=dict(nameFmt='ExecCodeX', method=ResClass.filterSortOnExecCode),
+    def getRawTransData(self, filSorScheme=dict(method=ResClass.filterSortOnExecCode),
                         rebuild=False):
 
         """Retrieve input translated raw data to be formatted
@@ -2067,7 +2066,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
 
         return dfFilSorSynRes, dfFilSorDetRes, (filSorSchId, filSorSteps)
 
-    def toHtmlAllAnalyses(self, filSorScheme=dict(nameFmt='ExecCodeX', method=ResClass.filterSortOnExecCode),
+    def toHtmlAllAnalyses(self, filSorScheme=dict(method=ResClass.filterSortOnExecCode),
                           rebuild=False):
 
         """Top page for a given scheme.
@@ -2200,7 +2199,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
 
         return htmlPathName
 
-    def toHtml(self, filSorScheme=dict(nameFmt='ExecCodeX', method=ResClass.filterSortOnExecCode),
+    def toHtml(self, filSorScheme=dict(method=ResClass.filterSortOnExecCode),
                rebuild=False):
 
         """HTML report generation for a given scheme.
@@ -2223,7 +2222,9 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
             
         # Generate full report detailed pages (one for each analysis)
         # (done first to have plot image files generated for top report page generation right below).
-        self.toHtmlEachAnalysis(filSorScheme=filSorScheme, rebuild=rebuild, generators=generators)
+        filSorSchId = self.resultsSet.filSorSchemeId(filSorScheme)
+        self.toHtmlEachAnalysis(filSorScheme=filSorScheme, rebuild=rebuild, generators=generators,
+                                topSuffix=f'.{filSorSchId}.html')
         
         # Generate top = main report page (one for all analyses).
         topHtmlPathName = self.toHtmlAllAnalyses(filSorScheme=filSorScheme, rebuild=rebuild)
