@@ -30,15 +30,21 @@ from .optanalyser import MCDSTruncationOptanalyser
 from .report import MCDSResultsPreReport, MCDSResultsFullReport, MCDSResultsFilterSortReport
 
 
-class LogManager(object):
+class Logger(object):
 
-    """Logging manager, taking care of output log file at exit time"""
+    """Local logger, taking care of output log file at exit time"""
 
     DefLogNamePrefix = 'pyaudisam-main'
 
-    def __init__(self, runTimestamp):
+    def __init__(self, runTimestamp, level=log.INFO):
+
+        self.logger = log.logger(name='main')
+        for meth in dir(self.logger):
+            if any(meth.startswith(prefix) for prefix in ['critical', 'error', 'warning', 'info', 'debug']):
+                setattr(self, meth, getattr(self.logger, meth))
 
         self.runTimestamp = runTimestamp
+        self.dOprStart = dict()
 
         # Log to sys.stdout, and also to a temporary log file (unique folder).
         self.runLogFileName = f'{self.DefLogNamePrefix}.{runTimestamp}.log'
@@ -51,7 +57,7 @@ class LogManager(object):
                                # dict(name='ads.dat', level=log.DEBUG),
                                # dict(name='ads.rep', level=log.DEBUG),
                                dict(name='ads.anr', level=log.INFO1),
-                               dict(name='main', level=log.DEBUG1)])
+                               dict(name='main', level=level)])
 
         # Fallback final log file path-name as long as it is not specified : current folder, generic (timestamped) name.
         self.finalLogFileName = pl.Path('.') / self.runLogFileName.name
@@ -59,15 +65,11 @@ class LogManager(object):
         # Setup an atexit handler to move and rename the session log file in a user-friendly place if possible.
         atexit.register(self.giveBackLogFile)
 
-        self.logger().info1(f'Logging session to temporary {self.runLogFileName.as_posix()}')
+        self.info1(f'Logging session to temporary {self.runLogFileName.as_posix()}')
 
     def setFinalLogPathNamePrefix(self, prefix=None):
 
         self.finalLogFileName = None if prefix is None else pl.Path(prefix + f'.{self.runTimestamp}.log')
-
-    def logger(self):
-
-        return log.logger('main')
 
     def giveBackLogFile(self):
 
@@ -75,10 +77,10 @@ class LogManager(object):
             self.finalLogFileName = None # No need for a log file here !
 
         if self.finalLogFileName is not None:
-            self.logger().info1(f'Giving back session log to {self.finalLogFileName}')
+            self.info1(f'Giving back session log to {self.finalLogFileName}')
 
         # Release the log file
-        log.configure(handlers=[sys.stdout], reset=True, loggers=[dict(name='main', level=log.DEBUG)])
+        log.configure(handlers=[sys.stdout], reset=True, loggers=[dict(name='main', level=log.INFO)])
 
         # Actually move and rename the log file if it is needed, or delete it if not.
         if self.finalLogFileName is not None:
@@ -89,6 +91,27 @@ class LogManager(object):
 
         # Remove initial parent folder, now empty (was specially created for).
         self.runLogFileName.parent.rmdir()
+
+    def setRealRun(self, realRun=True):
+
+        if realRun:
+            self.info('This is a real run: requested operation will be actually run !')
+        else:
+            self.warning('Not a real run, only checking requested operations ...')
+
+        self.openOpr = 'Running' if realRun else 'Checking'
+        self.closeOpr = 'Done ' + self.openOpr.lower()
+
+    def openOperation(self, oprText):
+
+        self.info(f'{self.openOpr} {oprText} ...')
+        self.dOprStart[oprText] = pd.Timestamp.now()
+
+    def closeOperation(self, oprText):
+
+        elapsed = str(pd.Timestamp.now() - self.dOprStart[oprText]).replace('0 days ', '')
+        self.info(f'{self.closeOpr} {oprText} ({elapsed}).')
+        del self.dOprStart[oprText]
 
 
 def loadParameterModule(filePathName):
@@ -152,8 +175,7 @@ def decodeReportArg(repArg, repName='report'):
 # 0. Configure logging.
 runTimestamp = pd.Timestamp.now().strftime('%y%m%d-%H%M%S')  # Date+time of the run (for log file, ... etc).
 
-logMgr = LogManager(runTimestamp)
-logger = logMgr.logger()
+logger = Logger(runTimestamp, level=log.DEBUG1)
 
 logger.info(f'Computation platform: {runtime}')
 
@@ -167,7 +189,9 @@ argser = argparse.ArgumentParser(prog='pyaudisam', #usage='python -m pyaudisam',
                                         ' 1 if any other (unexpected) issue.')
 
 argser.add_argument('-u', '--run', dest='realRun', action='store_true', default=False,
-                    help='Actually run specified operation (not only run diagnosis of)')
+                    help='Actually run specified operation (not only run diagnosis of)'
+                         ' => as long as -u/--run is not there, you can try anything,'
+                         ' it wont start or write anything ... fell free, you are safe :-)')
 argser.add_argument('-p', '--parameters', dest='parameterFile', type=str, required=True,
                     help='Path-name of python file (.py assumed if no extension / suffix given) specifying'
                          ' export / (opt)analysis / report parameters')
@@ -175,7 +199,7 @@ argser.add_argument('-w', '--workdir', dest='workDir', type=str, default='.',
                     help='Work folder = where to store DS analyses sub-folders and output files'
                          ' (Note: a timestamp sub-folder YYMMDD-HHMMSS is auto-appended, if not already such)')
 argser.add_argument('-n', '--notimestamp', dest='noTimestamp', action='store_true', default=False,
-                    help='Inhibit work folder auto-timestamping')
+                    help='Inhibit auto-timestamped work sub-folder creation (under work folder)')
 argser.add_argument('-x', '--distexport', dest='distExport', action='store_true', default=False,
                     help='Export one Distance input file for each specified sample of the survey data'
                          ' (Note: a sample spec. file and a survey data file must be also specified, through -p)')
@@ -198,13 +222,13 @@ argser.add_argument('-r', '--reports', dest='reports', type=str, default='none',
                          ' for format="excel", and among {full, <filter-sort method regex search string>*}'
                          ' (at least one of) for format=html (case does not matter) ;'
                          ' note: available filter-sort methods are automatically listed'
-                         ' when "filsorReportStudyTitle" in parameters, so run command without -u first !'
+                         ' when auto-filtering parameters are specified, so run command without -u first !'
                          ' examples: none ; excel ; excel,html:full ; html:mqua92,html:full,excel,html:mqua950')
 argser.add_argument('-f', '--optreports', dest='optReports', type=str, default='none',
                     help='Which reports to generate from opt-analyses results (same mini-language as for -r)')
 argser.add_argument('-l', '--log', dest='logPathNamePrefix', type=str, default=None,
                     help='Target log file path-name prefix (will be postfixed by .<YYMMDD-HHMMSS timestamp>.log)'
-                         f" (Default: <work folder>/{LogManager.DefLogNamePrefix} if -u/--run, else 'none' ;"
+                         f" (Default: <work folder>/{logger.DefLogNamePrefix} if -u/--run, else 'none' ;"
                          "if special value 'none', no log saved)")
 argser.add_argument('-m', '--threads', dest='threads', type=int, default=0,
                     help='Number of parallel threads to use for (pre-)analyses / report generation'
@@ -228,16 +252,7 @@ args = argser.parse_args()
 logger.debug(f'Arguments: {args}')
 args.names = list(vars(args).keys())
 
-openOpr = 'Running' if args.realRun else 'Checking'
-dOperationStart = dict()
-def logOpenOperation(oprText):
-    logger.info(f'{openOpr} {oprText} ...')
-    dOperationStart[oprText] = pd.Timestamp.now()
-closeOpr = 'Done {}'.format(openOpr.lower())
-def logCloseOperation(oprText):
-    elapsed = str(pd.Timestamp.now() - dOperationStart[oprText]).replace('0 days ', '')
-    logger.info(f'{closeOpr} {oprText} ({elapsed}).')
-    del dOperationStart[oprText]
+logger.setRealRun(args.realRun)
 
 if args.threads == 1:
     args.threads = None  # No need for asynchronism: enforce sequential run.
@@ -245,11 +260,6 @@ if args.threads == 1:
 args.preReports = decodeReportArg(args.preReports, repName='pre-analysis report')
 args.reports = decodeReportArg(args.reports, repName='analysis report')
 args.optReports = decodeReportArg(args.optReports, repName='opt-analysis report')
-
-if args.realRun:
-    logger.info('This is a real run: requested operation will be actually run !')
-else:
-    logger.warning('Not a real run, only checking requested operations ...')
 
 # 2. Load parameter (module) file => parameters as members of the 'pars' module.
 parameterFile, pars = loadParameterModule(args.parameterFile)
@@ -261,7 +271,7 @@ logger.debug2('Parameters: ' + ', '.join(pars.names))
 # a. Check filter and sort report args
 if 'html' in args.reports or 'html' in args.optReports:
 
-    assert 'filsorReportStudyTitle' in pars.names
+    assert 'filsorReportSchemes' in pars.names
 
     filsorSchemeIdMgr = FilterSortSchemeIdManager()
     filsorReportSchemes = {filsorSchemeIdMgr.schemeId(sch): sch for sch in pars.filsorReportSchemes}
@@ -284,6 +294,9 @@ if 'html' in args.reports:
 
     filsorAnlysReportSchemes = {schId: schValue for schId, schValue in filsorReportSchemes.items()
                                 if schId in set(match for matches in filsorMatches.values() for match in matches)}
+    if not filsorAnlysReportSchemes:
+        logger.error('HTML analysis report: No filter & sort method specified')
+        sys.exit(2)
 
 if 'html' in args.optReports:
 
@@ -302,6 +315,9 @@ if 'html' in args.optReports:
 
     filsorOptAnlysReportSchemes = {schId: schValue for schId, schValue in filsorReportSchemes.items()
                                    if schId in set(match for matches in filsorMatches.values() for match in matches)}
+    if not filsorOptAnlysReportSchemes:
+        logger.error('HTML opt-analysis report: No filter & sort method specified')
+        sys.exit(2)
 
 # 4. Output folder for results, reports ... etc.
 #    (post-fixed with the run timestamp, if not already specified)
@@ -318,7 +334,7 @@ if args.logPathNamePrefix is None:
         args.logPathNamePrefix = workDir.as_posix() + f'/{pars.studyName}{pars.subStudyName}'
 elif args.logPathNamePrefix.lower() == 'none':
     args.logPathNamePrefix = None
-logMgr.setFinalLogPathNamePrefix(args.logPathNamePrefix)
+logger.setFinalLogPathNamePrefix(args.logPathNamePrefix)
 
 # 6. Really something to do ?
 emptyRun = not any([args.distExport, args.preAnalyses, 'none' not in args.preReports,
@@ -365,7 +381,7 @@ if args.distExport or args.preAnalyses:
 if args.distExport:
 
     oprText = 'export of input data files for Distance'
-    logOpenOperation(oprText)
+    logger.openOperation(oprText)
 
     # a. Create PreAnalyser object.
     preAnlysr = MCDSPreAnalyser(dfMonoCatObs, dfTransects=dfTransects, dSurveyArea=pars.studyAreaSpecs,
@@ -397,7 +413,7 @@ if args.distExport:
         preAnlysr.exportDSInputData(implSampleSpecs=sampleSpecFile, format='Distance')
     preAnlysr.shutdown()  # Not really needed actually.
 
-    logCloseOperation(oprText)
+    logger.closeOperation(oprText)
 
 # 9. Run pre-analyses (if specified to).
 PreAnalyser = MCDSPreAnalyser
@@ -406,7 +422,7 @@ presFileName = workDir / f'{pars.studyName}{pars.subStudyName}-preanalyses-{resu
 if args.preAnalyses:
 
     oprText = 'pre-analyses'
-    logOpenOperation(oprText)
+    logger.openOperation(oprText)
 
     # a. Create PreAnalyser object.
     preAnlysr = PreAnalyser(dfMonoCatObs, dfTransects=dfTransects, dSurveyArea=pars.studyAreaSpecs,
@@ -453,7 +469,7 @@ if args.preAnalyses:
     if args.realRun:
         preResults.toExcel(presFileName)
 
-    logCloseOperation(oprText)
+    logger.closeOperation(oprText)
 
 # 10. Generate pre-analysis reports (if specified to).
 PreReport = MCDSResultsPreReport
@@ -491,7 +507,7 @@ if 'none' not in args.preReports:
 
     # c. Generate specified reports
     oprText = 'generation of {} pre-analysis report(s)'.format(','.join(args.preReports))
-    logOpenOperation(oprText)
+    logger.openOperation(oprText)
 
     preRepPrfx = f'{pars.studyName}{pars.subStudyName}-preanalyses-{reportWord}'
     preReport = PreReport(resultsSet=preResults, lang=pars.studyLang,
@@ -518,7 +534,7 @@ if 'none' not in args.preReports:
         if args.realRun:
             preReport.toHtml(rebuild=False, generators=1 if args.threads is None else args.threads)
 
-    logCloseOperation(oprText)
+    logger.closeOperation(oprText)
 
 # 11. Run analyses (if specified to).
 Analyser = MCDSAnalyser
@@ -537,7 +553,7 @@ if args.analyses:
         sys.exit(2)
 
     oprText = 'analyses'
-    logOpenOperation(oprText)
+    logger.openOperation(oprText)
 
     # a. Create Analyser object.
     anlysr = Analyser(dfMonoCatObs, dfTransects=dfTransects, dSurveyArea=pars.studyAreaSpecs,
@@ -584,7 +600,7 @@ if args.analyses:
     if args.realRun:
         results.toExcel(resFileName)
 
-    logCloseOperation(oprText)
+    logger.closeOperation(oprText)
 
 # 12. Generate analysis reports (if specified to).
 FullReport = MCDSResultsFullReport
@@ -620,22 +636,24 @@ if 'none' not in args.reports:
 
     # b. Generate specified reports
     oprText = 'generation of {} analysis report(s)'.format(','.join(args.reports))
-    logOpenOperation(oprText)
+    logger.openOperation(oprText)
 
     repPrfx = f'{pars.studyName}{pars.subStudyName}-analyses-{reportWord}'
 
     # * Auto-filtered reports.
-    if ('excel' in args.reports and 'full' not in args.reports['excel'] and 'filsorReportStudyTitle' in pars.names) \
-       or ('html' in args.reports and filsorAnlysReportSchemes):
+    if ('excel' in args.reports
+        and 'full' not in args.reports['excel'] and 'filsorAnlysReportSchemes' in dir()) \
+       or ('html' in args.reports and 'filsorAnlysReportSchemes' in dir()):
 
         assert isinstance(pars.filsorReportSortAscend, bool) \
                or len(pars.filsorReportSortCols) == len(pars.filsorReportSortAscend)
 
         filsorReport = FilSorReport(resultsSet=results, lang=pars.studyLang,
-                                    title=pars.filsorReportStudyTitle, subTitle=pars.filsorReportStudySubTitle,
-                                    anlysSubTitle=pars.filsorReportAnlysSubTitle,
-                                    description=pars.filsorReportStudyDescr,
-                                    keywords=pars.filsorReportStudyKeywords, pySources=[parameterFile],
+                                    title=pars.anlysFilsorReportStudyTitle,
+                                    subTitle=pars.anlysFilsorReportStudySubTitle,
+                                    anlysSubTitle=pars.anlysFilsorReportAnlysSubTitle,
+                                    description=pars.anlysFilsorReportStudyDescr,
+                                    keywords=pars.anlysFilsorReportStudyKeywords, pySources=[parameterFile],
                                     sampleCols=pars.filsorReportSampleCols, paramCols=pars.filsorReportParamCols,
                                     resultCols=pars.filsorReportResultCols, synthCols=pars.filsorReportSynthCols,
                                     sortCols=pars.filsorReportSortCols, sortAscend=pars.filsorReportSortAscend,
@@ -643,12 +661,12 @@ if 'none' not in args.reports:
                                     tgtFolder=workDir, tgtPrefix=repPrfx,
                                     **pars.filsorReportPlotParams)
 
-        if 'excel' in args.reports and 'full' not in args.reports['excel'] and 'filsorReportStudyTitle' in pars.names:
+        if 'excel' in args.reports and 'full' not in args.reports['excel'] and 'filsorAnlysReportSchemes' in dir():
             logger.info1('* Auto-filtered Excel analysis report to be generated: all schemes')
             if args.realRun:
                 filsorReport.toExcel(rebuild=pars.filsorReportRebuild)
 
-        if 'html' in args.reports and filsorAnlysReportSchemes:
+        if 'html' in args.reports and 'filsorAnlysReportSchemes' in dir():
             logger.info1('* Auto-filtered HTML analysis report(s) to be generated: {}'
                          .format(', '.join(filsorAnlysReportSchemes.keys())))
             if args.realRun:
@@ -656,24 +674,27 @@ if 'none' not in args.reports:
                     filsorReport.toHtml(filSorScheme=scheme, rebuild=pars.filsorReportRebuild)
 
     # * Full reports.
-    if ('excel' in args.reports and ('full' in args.reports['excel'] or 'filsorReportStudyTitle' not in pars.names)) \
+    if ('excel' in args.reports
+        and ('full' in args.reports['excel'] or 'filsorAnlysReportSchemes' not in dir())) \
        or ('html' in args.reports and 'full' in args.reports['html']):
 
         assert isinstance(pars.fullReportSortAscend, bool) \
                or len(pars.fullReportSortCols) == len(pars.fullReportSortAscend)
 
         fullReport = FullReport(resultsSet=results, lang=pars.studyLang,
-                                title=pars.fullReportStudyTitle, subTitle=pars.fullReportStudySubTitle,
-                                anlysSubTitle=pars.fullReportAnlysSubTitle,
-                                description=pars.fullReportStudyDescr,
-                                keywords=pars.fullReportStudyKeywords, pySources=[parameterFile],
+                                title=pars.anlysFullReportStudyTitle,
+                                subTitle=pars.anlysFullReportStudySubTitle,
+                                anlysSubTitle=pars.anlysFullReportAnlysSubTitle,
+                                description=pars.anlysFullReportStudyDescr,
+                                keywords=pars.anlysFullReportStudyKeywords, pySources=[parameterFile],
                                 sampleCols=pars.fullReportSampleCols, paramCols=pars.fullReportParamCols,
                                 resultCols=pars.fullReportResultCols, synthCols=pars.fullReportSynthCols,
                                 sortCols=pars.fullReportSortCols, sortAscend=pars.fullReportSortAscend,
                                 tgtFolder=workDir, tgtPrefix=repPrfx,
                                 **pars.fullReportPlotParams)
 
-        if 'excel' in args.reports and ('full' in args.reports['excel'] or 'filsorReportStudyTitle' not in pars.names):
+        if 'excel' in args.reports \
+           and ('full' in args.reports['excel'] or 'filsorAnlysReportSchemes' not in dir()):
             logger.info1('* Full Excel analysis report to be generated')
             if args.realRun:
                 fullReport.toExcel(rebuild=pars.fullReportRebuild)
@@ -689,7 +710,7 @@ if 'none' not in args.reports:
         logger.error('Neither full nor filter & sort analysis report to be generated (whatever format)')
         sys.exit(2)
 
-    logCloseOperation(oprText)
+    logger.closeOperation(oprText)
 
 # 13. Run opt-analyses (if specified to).
 OptAnalyser = MCDSTruncationOptanalyser
@@ -708,7 +729,7 @@ if args.optAnalyses:
         sys.exit(2)
 
     oprText = 'opt-analyses'
-    logOpenOperation(oprText)
+    logger.openOperation(oprText)
 
     # a. Create OptAnalyser object.
     optAnlysr = OptAnalyser(dfMonoCatObs, dfTransects=dfTransects, dSurveyArea=pars.studyAreaSpecs,
@@ -767,7 +788,7 @@ if args.optAnalyses:
     if args.realRun:
         optResults.toExcel(oresFileName)
 
-    logCloseOperation(oprText)
+    logger.closeOperation(oprText)
 
 # 14. Generate opt-analysis reports (if specified to).
 if 'none' not in args.optReports:
@@ -803,23 +824,24 @@ if 'none' not in args.optReports:
            or len(pars.filsorReportSortCols) == len(pars.filsorReportSortAscend)
 
     oprText = 'generation of {} opt-analysis report(s)'.format(','.join(args.optReports))
-    logOpenOperation(oprText)
+    logger.openOperation(oprText)
 
     optRepPrfx = f'{pars.studyName}{pars.subStudyName}-optanalyses-{reportWord}'
 
     # * Auto-filtered reports.
-    if ('excel' in args.optReports and 'full' not in args.optReports['excel']
-        and 'filsorReportStudyTitle' in pars.names) \
-       or ('html' in args.optReports and filsorOptAnlysReportSchemes):
+    if ('excel' in args.optReports
+        and 'full' not in args.optReports['excel'] and 'filsorOptAnlysReportSchemes' in dir()) \
+       or ('html' in args.optReports and 'filsorOptAnlysReportSchemes' in dir()):
 
         assert isinstance(pars.filsorReportSortAscend, bool) \
                or len(pars.filsorReportSortCols) == len(pars.filsorReportSortAscend)
 
         filsorOptReport = FilSorReport(resultsSet=optResults, lang=pars.studyLang,
-                                       title=pars.filsorReportStudyTitle, subTitle=pars.filsorReportStudySubTitle,
-                                       anlysSubTitle=pars.filsorReportAnlysSubTitle,
-                                       description=pars.filsorReportStudyDescr,
-                                       keywords=pars.filsorReportStudyKeywords, pySources=[parameterFile],
+                                       title=pars.optAnlysFilsorReportStudyTitle,
+                                       subTitle=pars.optAnlysFilsorReportStudySubTitle,
+                                       anlysSubTitle=pars.optAnlysFilsorReportAnlysSubTitle,
+                                       description=pars.optAnlysFilsorReportStudyDescr,
+                                       keywords=pars.optAnlysFilsorReportStudyKeywords, pySources=[parameterFile],
                                        sampleCols=pars.filsorReportSampleCols, paramCols=pars.filsorReportParamCols,
                                        resultCols=pars.filsorReportResultCols, synthCols=pars.filsorReportSynthCols,
                                        sortCols=pars.filsorReportSortCols, sortAscend=pars.filsorReportSortAscend,
@@ -828,12 +850,12 @@ if 'none' not in args.optReports:
                                        **pars.filsorReportPlotParams)
 
         if 'excel' in args.optReports and 'full' not in args.optReports['excel'] \
-           and 'filsorReportStudyTitle' in pars.names:
+           and 'filsorOptAnlysReportSchemes' in dir():
             logger.info1('* Auto-filtered Excel opt-analysis report to be generated: all schemes')
             if args.realRun:
                 filsorOptReport.toExcel(rebuild=pars.filsorReportRebuild)
 
-        if 'html' in args.optReports and filsorOptAnlysReportSchemes:
+        if 'html' in args.optReports and 'filsorOptAnlysReportSchemes' in dir():
             logger.info1('* Auto-filtered HTML opt-analysis report(s) to be generated: {}'
                         .format(', '.join(filsorOptAnlysReportSchemes.keys())))
             if args.realRun:
@@ -842,17 +864,18 @@ if 'none' not in args.optReports:
 
     # * Full reports.
     if ('excel' in args.optReports
-        and ('full' in args.optReports['excel'] or 'filsorReportStudyTitle' not in pars.names)) \
+        and ('full' in args.optReports['excel'] or 'filsorOptAnlysReportSchemes' not in dir())) \
        or ('html' in args.optReports and 'full' in args.optReports['html']):
 
         assert isinstance(pars.fullReportSortAscend, bool) \
                or len(pars.fullReportSortCols) == len(pars.fullReportSortAscend)
 
         fullOptReport = FullReport(resultsSet=optResults, lang=pars.studyLang,
-                                   title=pars.fullReportStudyTitle, subTitle=pars.fullReportStudySubTitle,
-                                   anlysSubTitle=pars.fullReportAnlysSubTitle,
-                                   description=pars.fullReportStudyDescr,
-                                   keywords=pars.fullReportStudyKeywords, pySources=[parameterFile],
+                                   title=pars.optAnlysFullReportStudyTitle,
+                                   subTitle=pars.optAnlysFullReportStudySubTitle,
+                                   anlysSubTitle=pars.optAnlysFullReportAnlysSubTitle,
+                                   description=pars.optAnlysFullReportStudyDescr,
+                                   keywords=pars.optAnlysFullReportStudyKeywords, pySources=[parameterFile],
                                    sampleCols=pars.fullReportSampleCols, paramCols=pars.fullReportParamCols,
                                    resultCols=pars.fullReportResultCols, synthCols=pars.fullReportSynthCols,
                                    sortCols=pars.fullReportSortCols, sortAscend=pars.fullReportSortAscend,
@@ -860,7 +883,7 @@ if 'none' not in args.optReports:
                                    **pars.fullReportPlotParams)
 
         if 'excel' in args.optReports \
-           and ('full' in args.optReports['excel'] or 'filsorReportStudyTitle' not in pars.names):
+           and ('full' in args.optReports['excel'] or 'filsorOptAnlysReportSchemes' not in dir()):
             logger.info1('* Full Excel opt-analysis report to be generated')
             if args.realRun:
                 fullOptReport.toExcel(rebuild=pars.fullReportRebuild)
@@ -876,7 +899,7 @@ if 'none' not in args.optReports:
         logger.error('Neither full nor filter & sort opt-analysis report to be generated (whatever format)')
         sys.exit(2)
 
-    logCloseOperation(oprText)
+    logger.closeOperation(oprText)
 
 if not args.realRun and not emptyRun:
     logger.info('Checks done, seems you can now really run this, through -u / --realrun :-)')

@@ -191,16 +191,16 @@ preReportPlotParams = dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
                            plotLineWidth=1, plotDotWidth=4,
                            plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10))
 
-# Sélection des colonnes des différentes tables
-# a. Page principale HTML (super-synthèse) : Colonne 1 (haut), de description de l'échantillon
+# Column selection for the various report tables
+# a. Main HTML page (super-synthesis): Column 1 (top) for sample description
 preReportSampleCols = [('header (head)', sampleIndCol, 'Value')] \
                       + [('header (sample)', col, 'Value') for col in sampleSelCols] \
                       + [rs.CLNTotObs, rs.CLMinObsDist, rs.CLMaxObsDist]
 
-# b. Page principale HTML : Colonne 1 (bas), des paramètres du modèle d'analyse
+# b. Main HTML page (super-synthesis): Column 1 (bottom) for analysis model parameters
 preReportParamCols = [rs.CLParEstKeyFn, rs.CLParEstAdjSer]  # rs.CLParEstCVInt, rs.CLParEstSelCrit]
 
-# c. Page principale HTML (super-synthèse) : Colonne 2 et 3, des résultats (juste avant les 4, 5, et 6 avec les courbes)
+# c. Main HTML page (super-synthesis): Columns 2 & 3 for analysis results (columns 4, 5, & 6 for plots)
 preReportResultCols = [rs.CLRunStatus,
                        rs.CLNObs, rs.CLEffort,
                        rs.CLAic, rs.CLChi2, rs.CLKS, rs.CLDCv,
@@ -209,7 +209,7 @@ preReportResultCols = [rs.CLRunStatus,
                        rs.CLDensity, rs.CLDensityMin, rs.CLDensityMax,
                        rs.CLNumber, rs.CLNumberMin, rs.CLNumberMax]
 
-# d. Pages de détails HTML, feuille Excel de synthèse : Tableau de synthèse.
+# d. Detail HTML pages & Excel reports : Synthesis table
 preReportSynthCols = [('header (head)', sampleIndCol, 'Value')] \
                      + [('header (sample)', col, 'Value') for col in sampleSelCols] \
                      + [rs.CLParEstKeyFn, rs.CLParEstAdjSer,
@@ -222,38 +222,46 @@ preReportSynthCols = [('header (head)', sampleIndCol, 'Value')] \
                         rs.CLDensity, rs.CLDensityMin, rs.CLDensityMax,
                         rs.CLNumber, rs.CLNumberMin, rs.CLNumberMax]
 
-# e. Tableaux de super-synthèse, synthèse et détails, HTML ou Excel : paramètres de tri.
+# e. Excel & HTML super-synthesis, synthesis & details : Sorting parameters.
 preReportSortCols = [('header (head)', sampleIndCol, 'Value')]
 preReportSortAscend = True
 
 # Full reports ######################################################################
-fullReportStudyTitle = 'PyAuDiSam Validation: Analyses'
-fullReportStudySubTitle = 'Global analyses report'
-fullReportAnlysSubTitle = 'Detailed report'
-fullReportStudyDescr = "Easy and parallel run through MCDSAnalyser"
-fullReportStudyKeywords = 'pyaudisam, validation, analysis, report'
+# a. Specific to analysis reports
+anlysFullReportStudyTitle = 'PyAuDiSam Validation: Analyses'
+anlysFullReportStudySubTitle = 'Global analysis full report'
+anlysFullReportAnlysSubTitle = 'Detailed report'
+anlysFullReportStudyDescr = 'Easy and parallel run through MCDSAnalyser'
+anlysFullReportStudyKeywords = 'pyaudisam, validation, analysis, full, report'
 
+# b. Specific to opt-analysis reports
+optAnlysFullReportStudyTitle = 'PyAuDiSam Validation: Opt-analyses'
+optAnlysFullReportStudySubTitle = 'Global opt-analysis full report'
+optAnlysFullReportAnlysSubTitle = 'Detailed report'
+optAnlysFullReportStudyDescr = 'Easy and parallel run through MCDSTruncationOptAnalyser'
+optAnlysFullReportStudyKeywords = 'pyaudisam, validation, opt-analysis, full, report'
+
+# c. Common to analysis reports and opt-analysis reports
 fullReportPlotParams = \
     dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
          plotImgFormat='png', plotImgQuality=90,
          plotLineWidth=1, plotDotWidth=4,
          plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10))
 
-# Sélection des colonnes des différentes tables
-# a. Page principale HTML / super-synthèse : Colonne 1 (haut), de description de l'échantillon
+# Column selection for the various report tables
+# a. Main HTML page (super-synthesis): Column 1 (top) for sample description
 fullReportSampleCols = \
     [('header (head)', sampleIndCol, 'Value')] \
     + [('header (sample)', col, 'Value') for col in sampleSelCols] \
     + [rs.CLNTotObs, rs.CLMinObsDist, rs.CLMaxObsDist]
 
-# b. Page principale HTML / super-synthèse : Colonne 1 (bas), des paramètres du modèle d'analyse
+# b. Main HTML page (super-synthesis): Column 1 (bottom) for analysis model parameters
 fullReportParamCols = \
     [rs.CLParEstKeyFn, rs.CLParEstAdjSer,
      # rs.CLParEstCVInt, rs.CLParEstSelCrit,
      rs.CLParTruncLeft, rs.CLParTruncRight, rs.CLParModFitDistCuts]
 
-# c. Page principale HTML / super-synthèse :
-#    Colonne 2 et 3, des résultats (juste avant les 4, 5, et 6 avec les courbes)
+# c. Main HTML page (super-synthesis): Columns 2 & 3 for analysis results (columns 4, 5, & 6 for plots)
 fullReportResultCols = \
     [('header (head)', analysisIndCol, 'Value'),
      rs.CLRunStatus,
@@ -264,7 +272,7 @@ fullReportResultCols = \
      rs.CLNumber, rs.CLNumberMin, rs.CLNumberMax,
      rs.CLEswEdr, rs.CLPDetec]
 
-# d. Pages principale / Synthèse, pages de détails HTML, feuille Excel de synthèse : Tableau de synthèse.
+# d. Main & detail HTML pages & Excel reports : Synthesis table
 fullReportSynthCols = \
     [('header (head)', sampleIndCol, 'Value')] \
     + [('header (sample)', col, 'Value') for col in sampleSelCols] \
@@ -286,7 +294,7 @@ fullReportSynthCols = \
        rs.CLGblOrdDAicChi2KSDCv,
        rs.CLRunFolder]
 
-# e. Tableaux de super-synthèse, synthèse et détails, HTML ou Excel : paramètres de tri.
+# e. Excel & HTML super-synthesis, synthesis & details : Sorting parameters.
 fullReportSortCols = \
     [('header (head)', sampleIndCol, 'Value')] \
     + [rs.CLParTruncLeft, rs.CLParTruncRight,
@@ -296,18 +304,29 @@ fullReportSortAscend = [True] * (len(fullReportSortCols) - 1) + [False]
 fullReportRebuild = False
 
 # Auto-filtered reports ######################################################################
-filsorReportStudyTitle = 'PyAuDiSam Validation: Opt-analyses'
-filsorReportStudySubTitle = 'Global opt-analysis report'
-filsorReportAnlysSubTitle = 'Detailed report'
-filsorReportStudyDescr = "Easy and parallel run through MCDSTruncationOptanalyser"
-filsorReportStudyKeywords = 'pyaudisam, validation, opt-analysis, report'
+# a. Specific to analysis reports
+anlysFilsorReportStudyTitle = 'PyAuDiSam Validation: Analyses'
+anlysFilsorReportStudySubTitle = 'Global analysis auto-filtered report'
+anlysFilsorReportAnlysSubTitle = 'Detailed report'
+anlysFilsorReportStudyDescr = 'Automated filtering et sorting : method "{fsId}" ;' \
+                              ' after easy and parallel run through MCDSAnalyser'
+anlysFilsorReportStudyKeywords = 'pyaudisam, validation, analysis, auto-filter, report'
 
+# c. Specific to opt-analysis reports
+optAnlysFilsorReportStudyTitle = 'PyAuDiSam Validation: Opt-analyses'
+optAnlysFilsorReportStudySubTitle = 'Global opt-analysis auto-filtered report'
+optAnlysFilsorReportAnlysSubTitle = 'Detailed report'
+optAnlysFilsorReportStudyDescr = 'Automated filtering et sorting : method "{fsId}" ;' \
+                                 ' after easy and parallel run through MCDSTruncationOptAnalyser'
+optAnlysFilsorReportStudyKeywords = 'pyaudisam, validation, opt-analysis, auto-filter, report'
+
+# c. Common to analysis reports and opt-analysis reports
 filsorReportPlotParams = dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
                               plotImgFormat='png', plotImgQuality=90,
                               plotLineWidth=1, plotDotWidth=4,
                               plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10))
 
-# Schémas de filtrage-tri applicables
+# Available filter & sort schemes
 _whichFinalQua = rs.CLCmbQuaBal3
 _ascFinalQua = False
 
@@ -351,22 +370,21 @@ filsorReportSchemes = \
           preselCols=[rs.CLCmbQuaBal1, rs.CLCmbQuaBal2, rs.CLCmbQuaBal3],
           preselAscs=False, preselThrhs=0.2, preselNum=3)]
 
-# Sélection des colonnes des différentes tables
-# a. Page principale HTML / super-synthèse : Colonne 1 (haut), de description de l'échantillon
+# Column selection for the various report tables
+# a. Main HTML page (super-synthesis): Column 1 (top) for sample description
 filsorReportSampleCols = \
     [('header (head)', sampleIndCol, 'Value')] \
     + [('header (sample)', col, 'Value') for col in sampleSelCols] \
     + [rs.CLNTotObs, rs.CLMinObsDist, rs.CLMaxObsDist]
 
-# b. Page principale HTML / super-synthèse : Colonne 1 (bas), des paramètres du modèle d'analyse
+# b. Main HTML page (super-synthesis): Column 1 (bottom) for analysis model parameters
 filsorReportParamCols = \
     [('header (head)', analysisIndCol, 'Value'),
      rs.CLParEstKeyFn, rs.CLParEstAdjSer,
      # rs.CLParEstCVInt, rs.CLParEstSelCrit,
      rs.CLParTruncLeft, rs.CLParTruncRight, rs.CLParModFitDistCuts]
 
-# c. Page principale HTML / super-synthèse :
-#    Colonne 2 et 3, des résultats (juste avant les 4, 5, et 6 avec les courbes)
+# c. Main HTML page (super-synthesis): Columns 2 & 3 for analysis results (columns 4, 5, & 6 for plots)
 filsorReportResultCols = \
     [rs.CLRunStatus,
      rs.CLNObs, rs.CLEffort, rs.CLSightRate, rs.CLNAdjPars,
@@ -376,7 +394,7 @@ filsorReportResultCols = \
      rs.CLDensity, rs.CLDensityMin, rs.CLDensityMax,
      rs.CLNumber, rs.CLNumberMin, rs.CLNumberMax]
 
-# d. Page principale / Synthèse, pages de détails HTML, feuilles Excel : Tableaux auto-filtrés et de synthèse.
+# d. Main & detail HTML pages & Excel reports : Auto-filtered & synthesis tables
 filsorReportSynthCols = \
     [('header (head)', sampleIndCol, 'Value')] \
     + [('header (sample)', col, 'Value') for col in sampleSelCols] \
@@ -398,7 +416,7 @@ filsorReportSynthCols = \
        rs.CLGblOrdQuaChi2, rs.CLGblOrdQuaKS, rs.CLGblOrdQuaDCv,
        rs.CLGblOrdDAicChi2KSDCv]
 
-# e. Tableaux de super-synthèse, synthèse et détails, HTML ou Excel : paramètres de tri.
+# e. Excel & HTML super-synthesis, synthesis & details : Sorting parameters.
 filsorReportSortCols = [('header (head)', sampleIndCol, 'Value'), _whichFinalQua]
 filsorReportSortAscend = [True, False]
 
