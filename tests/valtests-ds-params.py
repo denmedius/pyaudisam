@@ -2,7 +2,11 @@
 
 """Parameter module for command line validation tests of pyaudisam (for -p option)
 
-(as far as possible same data and parameters than in valtests.ipynb)"""
+(as far as possible same data and parameters than in valtests.ipynb)
+
+Parameters (pass them through -k [key=value]* options to pyaudisam main command-line script):
+:param lang: report language, en or fr
+"""
 
 import pathlib as pl
 
@@ -128,12 +132,11 @@ logAnalysisData = False
 logAnalysisProgressEvery = 5
 
 # c. Analyses to run (reuse valtests notebook spec. file)
-ddfAnlysSpecs = pd.read_excel(instDir / 'refin/ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx', sheet_name=None)
+_ddfAnlysSpecs = pd.read_excel(instDir / 'refin/ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx', sheet_name=None)
 analysisSpecFile = instDir / 'tmp/ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx'
 with pd.ExcelWriter(analysisSpecFile) as xlWrtr:
     for sn in ['Echant1_impl', 'Echant2_impl', 'Modl_impl', 'Params1_expl', 'Params2_expl']:
-        ddfAnlysSpecs[sn].to_excel(xlWrtr, sheet_name=sn, index=False)
-del ddfAnlysSpecs
+        _ddfAnlysSpecs[sn].to_excel(xlWrtr, sheet_name=sn, index=False)
 
 # DS opt-analysis parameters ########################################################
 # a. Input / output data
@@ -177,7 +180,9 @@ optAnalysisSpecFile = instDir / 'refin/ACDC2019-Naturalist-ExtraitSpecsOptanalys
 
 
 # Reports (all types) ##############################################################
-studyLang = 'en'
+# Use pre-parameter 'lang' if available (you can pass it through -k lang=fr)
+studyLang = 'en' if 'lang' not in dir() else lang
+assert studyLang in ['en', 'fr']
 
 # Pre-reports ######################################################################
 preReportStudyTitle = 'PyAuDiSam Validation: Pre-analyses'

@@ -15,16 +15,16 @@
 
 # Package main script, for when pyaudisam is invoked through "python -m"
 import re
-from importlib import machinery as ilma, util as ilut
 import sys
 import atexit
 import tempfile
-import argparse
 import pathlib as pl
+import argparse
 
 import pandas as pd
 
 from . import log, runtime
+from .utils import loadPythonData
 from .analyser import MCDSAnalyser, MCDSPreAnalyser, FilterSortSchemeIdManager
 from .optanalyser import MCDSTruncationOptanalyser
 from .report import MCDSResultsPreReport, MCDSResultsFullReport, MCDSResultsFilterSortReport
@@ -44,6 +44,7 @@ class Logger(object):
                 setattr(self, meth, getattr(self.logger, meth))
 
         self.runTimestamp = runTimestamp
+        self.openOpr = 'Checking'
         self.dOprStart = dict()
 
         # Log to sys.stdout, and also to a temporary log file (unique folder).
@@ -74,7 +75,7 @@ class Logger(object):
     def giveBackLogFile(self):
 
         if any(arg in sys.argv for arg in ['-h', '--help']):
-            self.finalLogFileName = None # No need for a log file here !
+            self.finalLogFileName = None  # No need for a log file here !
 
         if self.finalLogFileName is not None:
             self.info1(f'Giving back session log to {self.finalLogFileName}')
@@ -97,10 +98,8 @@ class Logger(object):
         if realRun:
             self.info('This is a real run: requested operation will be actually run !')
         else:
+            self.openOpr = 'Checking'
             self.warning('Not a real run, only checking requested operations ...')
-
-        self.openOpr = 'Running' if realRun else 'Checking'
-        self.closeOpr = 'Done ' + self.openOpr.lower()
 
     def openOperation(self, oprText):
 
@@ -110,29 +109,8 @@ class Logger(object):
     def closeOperation(self, oprText):
 
         elapsed = str(pd.Timestamp.now() - self.dOprStart[oprText]).replace('0 days ', '')
-        self.info(f'{self.closeOpr} {oprText} ({elapsed}).')
+        self.info(f'Done {self.openOpr.lower()} {oprText} ({elapsed}).')
         del self.dOprStart[oprText]
-
-
-def loadParameterModule(filePathName):
-
-    """Load analysis parameters from the given python (module) file
-
-    :returns: tuple(explicit pl.Path of the module file, the loaded module)"""
-
-    fpnPar = pl.Path(filePathName)
-    if not fpnPar.suffix:
-        fpnPar = fpnPar.with_suffix('.py')
-    if not fpnPar.is_file():
-        logger.error(f'Could not find parameter file {filePathName}')
-        sys.exit(2)
-
-    loader = ilma.SourceFileLoader(fpnPar.stem, fpnPar.absolute().as_posix())
-    parModSpec = ilut.spec_from_loader(fpnPar.stem, loader)
-    parMod = ilut.module_from_spec(parModSpec)
-    loader.exec_module(parMod)
-
-    return fpnPar, parMod
 
 
 def decodeReportArg(repArg, repName='report'):
@@ -160,6 +138,8 @@ def decodeReportArg(repArg, repName='report'):
 
     # 'none' format kept iff alone
     repSpecs = {fmt: typs for fmt, typs in repSpecs.items() if fmt != 'none' or len(repSpecs) == 1}
+    if 'none' in repSpecs:
+        repSpecs.clear()
 
     # Check formats
     unsupRepFmts = [fmt for fmt in repSpecs if fmt not in ['none', 'html', 'excel']]
@@ -180,7 +160,7 @@ logger = Logger(runTimestamp, level=log.DEBUG1)
 logger.info(f'Computation platform: {runtime}')
 
 # 1. Parse, check and post-process command line args.
-argser = argparse.ArgumentParser(prog='pyaudisam', #usage='python -m pyaudisam',
+argser = argparse.ArgumentParser(prog='pyaudisam',  # usage='python -m pyaudisam',
                                  description='Prepare or run (and / or generate reports for) many distance'
                                              ' sampling (pre-)analyses using a DS engine from Distance software',
                                  epilog='Exit codes:'
@@ -195,6 +175,11 @@ argser.add_argument('-u', '--run', dest='realRun', action='store_true', default=
 argser.add_argument('-p', '--parameters', dest='parameterFile', type=str, required=True,
                     help='Path-name of python file (.py assumed if no extension / suffix given) specifying'
                          ' export / (opt)analysis / report parameters')
+argser.add_argument('-k', '--preparameters', dest='preParameters', type=str, default='',
+                    help='Comma-separated key=value items specifying "special" parameters'
+                         'defined before the parameter file is loaded, just as overridable built-in variables'
+                         ' (syntax and limitations: string-only values, with no space or ,;\'"$&! inside'
+                         ' => use it only for few and simple args like switches and simple names')
 argser.add_argument('-w', '--workdir', dest='workDir', type=str, default='.',
                     help='Work folder = where to store DS analyses sub-folders and output files'
                          ' (Note: a timestamp sub-folder YYMMDD-HHMMSS is auto-appended, if not already such)')
@@ -239,18 +224,9 @@ argser.add_argument('-g', '--engine', dest='engineType', type=str, default='MCDS
                     help='The Distance engine to use, among MCDS, ... and no other for the moment'
                          ' (insensitive to case)')
 
-# argser.add_argument('-s', '--samples', dest='sampleSpecFile', type=str, default=None,
-#                     help='Path-name of workbook file (XLSX or ODS format) containing'
-#                          ' sample specifications'
-#                          ' (Note: overloads any value given in parameter file through -p')
-# argser.add_argument('-d', '--surveydata', dest='surveyDataFile', type=str, default=None,
-#                     help='Path-name of workbook file (XLSX or ODS format) containing'
-#                          ' individualised sightings with distances (sheet #0) and point transect definitions'
-#                          ' (Note: overloads any value given in parameter file through -p')
-
 args = argser.parse_args()
 logger.debug(f'Arguments: {args}')
-args.names = list(vars(args).keys())
+args._names = list(vars(args).keys())
 
 logger.setRealRun(args.realRun)
 
@@ -261,27 +237,34 @@ args.preReports = decodeReportArg(args.preReports, repName='pre-analysis report'
 args.reports = decodeReportArg(args.reports, repName='analysis report')
 args.optReports = decodeReportArg(args.optReports, repName='opt-analysis report')
 
-# 2. Load parameter (module) file => parameters as members of the 'pars' module.
-parameterFile, pars = loadParameterModule(args.parameterFile)
-pars.names = [n for n in dir(pars) if n not in ['sys', 'pl', 'dt', 'pd', 'rs'] and not n.startswith('__')]
-logger.debug2('Parameters: ' + ', '.join(pars.names))
-#logger.debug('Parameters: ' + str({n: getattr(pars, n) for n in pars.names}))
+# 2. Load parameter python file, passing pre-parameters if any.
+preParamItems = args.preParameters.split(',') if args.preParameters else list()
+if any(item.count('=') != 1 for item in preParamItems):
+    logger.error(f'Syntax error in pre-parameters: "{args.preParameters}"'
+                 ' (should be "name1=value1,name2=value2,...")')
+    sys.exit(2)
+
+preParameters = dict([item.split('=') for item in preParamItems])
+parameterFile, pars = loadPythonData(path=args.parameterFile, **preParameters)
+if not pars:
+    logger.error(f'Failed to load parameter file {parameterFile.as_posix()}')
+    sys.exit(2)
+
+pars._names = list(pars.__dict__.keys())
+logger.debug2('Parameters: ' + ', '.join(pars._names))
 
 # 3. More checks on args and parameters.
 # a. Check filter and sort report args
-if 'html' in args.reports or 'html' in args.optReports:
-
-    assert 'filsorReportSchemes' in pars.names
-
+if 'filsorReportSchemes' in pars._names:
     filsorSchemeIdMgr = FilterSortSchemeIdManager()
     filsorReportSchemes = {filsorSchemeIdMgr.schemeId(sch): sch for sch in pars.filsorReportSchemes}
     logger.info('Available filter & sort report schemes: ' + ', '.join(filsorReportSchemes.keys()))
 
-if 'html' in args.reports:
+if 'html' in args.reports and not args.reports['html']:
+    logger.error('HTML analysis report: MUST specify type / filter & sort method')
+    sys.exit(2)
 
-    if not args.reports['html']:
-        logger.error('HTML analysis report: MUST specify type / filter & sort method')
-        sys.exit(2)
+if 'html' in args.reports and ('full' not in args.reports['html'] or len(args.reports['html']) > 1):
 
     filsorMatches = {reSchId: [schId for schId in filsorReportSchemes if re.search(reSchId, schId, flags=re.I)]
                      for reSchId in args.reports['html'] if reSchId != 'full'}
@@ -298,11 +281,11 @@ if 'html' in args.reports:
         logger.error('HTML analysis report: No filter & sort method specified')
         sys.exit(2)
 
-if 'html' in args.optReports:
+if 'html' in args.optReports and not args.optReports['html']:
+    logger.error('HTML opt-analysis report: MUST specify type / filter & sort method')
+    sys.exit(2)
 
-    if not args.optReports['html']:
-        logger.error('HTML opt-analysis report: MUST specify type / filter & sort method')
-        sys.exit(2)
+if 'html' in args.optReports and ('full' not in args.optReports['html'] or len(args.optReports['html']) > 1):
 
     filsorMatches = {reSchId: [schId for schId in filsorReportSchemes if re.search(reSchId, schId, flags=re.I)]
                      for reSchId in args.optReports['html'] if reSchId != 'full'}
@@ -321,11 +304,10 @@ if 'html' in args.optReports:
 
 # 4. Output folder for results, reports ... etc.
 #    (post-fixed with the run timestamp, if not already specified)
-workDir = args.workDir if 'workDir' in args.names else pars.workDir if 'workDir' in pars.names else '.'
+workDir = args.workDir if 'workDir' in args._names else pars.workDir if 'workDir' in pars._names else '.'
 workDir = pl.Path(workDir)
 if not(args.noTimestamp or re.match('.*[0-9]{6}-[0-9]{4,6}$', workDir.name)):
     workDir = workDir / runTimestamp
-#workDir.mkdir(exist_ok=True, parents=True)
 logger.info(f'Work folder: {workDir.as_posix()}')
 
 # 5. Now we can setup the final session log file path-name prefix !
@@ -337,8 +319,8 @@ elif args.logPathNamePrefix.lower() == 'none':
 logger.setFinalLogPathNamePrefix(args.logPathNamePrefix)
 
 # 6. Really something to do ?
-emptyRun = not any([args.distExport, args.preAnalyses, 'none' not in args.preReports,
-                    args.analyses, 'none' not in args.reports, args.optAnalyses, 'none' not in args.optReports])
+emptyRun = not any([args.distExport, args.preAnalyses, args.preReports,
+                    args.analyses, args.reports, args.optAnalyses, args.optReports])
 if emptyRun:
     logger.warning('No operation specified: nothing to do actually !')
 
@@ -348,12 +330,12 @@ if emptyRun:
 # * point transect definition
 if not emptyRun:
 
-    surveyDataFile = pars.surveyDataFile if 'surveyDataFile' in pars.names else None
+    surveyDataFile = pars.surveyDataFile if 'surveyDataFile' in pars._names else None
     if surveyDataFile:
         surveyDataFile = pl.Path(surveyDataFile)
         if surveyDataFile.is_file():
-            indivDistSheet = pars.indivDistDataSheet if 'indivDistDataSheet' in pars.names else 0
-            transectSheet = pars.transectsDataSheet if 'transectsDataSheet' in pars.names else 1
+            indivDistSheet = pars.indivDistDataSheet if 'indivDistDataSheet' in pars._names else 0
+            transectSheet = pars.transectsDataSheet if 'transectsDataSheet' in pars._names else 1
             with pd.ExcelFile(surveyDataFile) as xlInFile:
                 dfMonoCatObs = pd.read_excel(xlInFile, sheet_name=indivDistSheet)
                 dfTransects = pd.read_excel(xlInFile, sheet_name=transectSheet)
@@ -367,7 +349,7 @@ if not emptyRun:
 # 5.b. Sample specs
 if args.distExport or args.preAnalyses:
 
-    sampleSpecFile = pars.sampleSpecFile if 'sampleSpecFile' in pars.names else None
+    sampleSpecFile = pars.sampleSpecFile if 'sampleSpecFile' in pars._names else None
     if sampleSpecFile:
         sampleSpecFile = pl.Path(sampleSpecFile)
         if not sampleSpecFile.is_file():
@@ -474,7 +456,7 @@ if args.preAnalyses:
 # 10. Generate pre-analysis reports (if specified to).
 PreReport = MCDSResultsPreReport
 reportWord = 'rapport' if pars.studyLang == 'fr' else 'report'
-if 'none' not in args.preReports:
+if args.preReports:
 
     # a. Load pre-analyses results if not just computed
     if not args.preAnalyses:
@@ -520,10 +502,6 @@ if 'none' not in args.preReports:
                           tgtFolder=workDir, tgtPrefix=preRepPrfx,
                           **pars.preReportPlotParams)
 
-    if 'preReport' not in vars():
-        logger.error('No pre-analysis report to be generated (whatever format)')
-        sys.exit(2)
-
     if 'excel' in args.preReports:
         logger.info1('* Excel pre-analysis report to be generated')
         if args.realRun:
@@ -542,7 +520,7 @@ resFileName = workDir / f'{pars.studyName}{pars.subStudyName}-analyses-{resultsW
 if args.analyses:
 
     # Check analysis spec. file
-    analysisSpecFile = pars.analysisSpecFile if 'analysisSpecFile' in pars.names else None
+    analysisSpecFile = pars.analysisSpecFile if 'analysisSpecFile' in pars._names else None
     if analysisSpecFile:
         analysisSpecFile = pl.Path(analysisSpecFile)
         if not analysisSpecFile.is_file():
@@ -569,7 +547,7 @@ if args.analyses:
                       resultsHeadCols=pars.resultsHeadCols,
                       ldTruncIntrvSpecs=pars.ldTruncIntrvSpecs, truncIntrvEpsilon=pars.truncIntrvEpsilon,
                       workDir=workDir, runMethod=pars.runAnalysisMethod, runTimeOut=pars.runAnalysisTimeOut,
-                      logData=pars.logAnalysisData,logProgressEvery=pars.logAnalysisProgressEvery,
+                      logData=pars.logAnalysisData, logProgressEvery=pars.logAnalysisProgressEvery,
                       defEstimKeyFn=pars.defEstimKeyFn, defEstimAdjustFn=pars.defEstimAdjustFn,
                       defEstimCriterion=pars.defEstimCriterion, defCVInterval=pars.defCVInterval,
                       defMinDist=pars.defMinDist, defMaxDist=pars.defMaxDist,
@@ -606,7 +584,7 @@ if args.analyses:
 FullReport = MCDSResultsFullReport
 FilSorReport = MCDSResultsFilterSortReport
 
-if 'none' not in args.reports:
+if args.reports:
 
     # a. Load analysis results if not just computed
     if not args.analyses:
@@ -641,9 +619,8 @@ if 'none' not in args.reports:
     repPrfx = f'{pars.studyName}{pars.subStudyName}-analyses-{reportWord}'
 
     # * Auto-filtered reports.
-    if ('excel' in args.reports
-        and 'full' not in args.reports['excel'] and 'filsorAnlysReportSchemes' in dir()) \
-       or ('html' in args.reports and 'filsorAnlysReportSchemes' in dir()):
+    if ('excel' in args.reports and 'full' not in args.reports['excel'] and 'filsorReportSchemes' in dir()) \
+       or ('html' in args.reports and 'full' not in args.reports['html'] and 'filsorAnlysReportSchemes' in dir()):
 
         assert isinstance(pars.filsorReportSortAscend, bool) \
                or len(pars.filsorReportSortCols) == len(pars.filsorReportSortAscend)
@@ -661,12 +638,12 @@ if 'none' not in args.reports:
                                     tgtFolder=workDir, tgtPrefix=repPrfx,
                                     **pars.filsorReportPlotParams)
 
-        if 'excel' in args.reports and 'full' not in args.reports['excel'] and 'filsorAnlysReportSchemes' in dir():
+        if 'excel' in args.reports and 'full' not in args.reports['excel'] and 'filsorReportSchemes' in dir():
             logger.info1('* Auto-filtered Excel analysis report to be generated: all schemes')
             if args.realRun:
                 filsorReport.toExcel(rebuild=pars.filsorReportRebuild)
 
-        if 'html' in args.reports and 'filsorAnlysReportSchemes' in dir():
+        if 'html' in args.reports  and 'full' not in args.reports['html'] and 'filsorAnlysReportSchemes' in dir():
             logger.info1('* Auto-filtered HTML analysis report(s) to be generated: {}'
                          .format(', '.join(filsorAnlysReportSchemes.keys())))
             if args.realRun:
@@ -674,8 +651,7 @@ if 'none' not in args.reports:
                     filsorReport.toHtml(filSorScheme=scheme, rebuild=pars.filsorReportRebuild)
 
     # * Full reports.
-    if ('excel' in args.reports
-        and ('full' in args.reports['excel'] or 'filsorAnlysReportSchemes' not in dir())) \
+    if ('excel' in args.reports and ('full' in args.reports['excel'] or 'filsorReportSchemes' not in dir())) \
        or ('html' in args.reports and 'full' in args.reports['html']):
 
         assert isinstance(pars.fullReportSortAscend, bool) \
@@ -693,8 +669,7 @@ if 'none' not in args.reports:
                                 tgtFolder=workDir, tgtPrefix=repPrfx,
                                 **pars.fullReportPlotParams)
 
-        if 'excel' in args.reports \
-           and ('full' in args.reports['excel'] or 'filsorAnlysReportSchemes' not in dir()):
+        if 'excel' in args.reports and ('full' in args.reports['excel'] or 'filsorReportSchemes' not in dir()):
             logger.info1('* Full Excel analysis report to be generated')
             if args.realRun:
                 fullReport.toExcel(rebuild=pars.fullReportRebuild)
@@ -718,7 +693,7 @@ oresFileName = workDir / f'{pars.studyName}{pars.subStudyName}-optanalyses-{resu
 if args.optAnalyses:
 
     # Check analysis spec. file
-    optAnalysisSpecFile = pars.optAnalysisSpecFile if 'optAnalysisSpecFile' in pars.names else None
+    optAnalysisSpecFile = pars.optAnalysisSpecFile if 'optAnalysisSpecFile' in pars._names else None
     if optAnalysisSpecFile:
         optAnalysisSpecFile = pl.Path(optAnalysisSpecFile)
         if not optAnalysisSpecFile.is_file():
@@ -791,7 +766,7 @@ if args.optAnalyses:
     logger.closeOperation(oprText)
 
 # 14. Generate opt-analysis reports (if specified to).
-if 'none' not in args.optReports:
+if args.optReports:
 
     # a. Load analysis results if not just computed
     if not args.optAnalyses:
@@ -829,8 +804,7 @@ if 'none' not in args.optReports:
     optRepPrfx = f'{pars.studyName}{pars.subStudyName}-optanalyses-{reportWord}'
 
     # * Auto-filtered reports.
-    if ('excel' in args.optReports
-        and 'full' not in args.optReports['excel'] and 'filsorOptAnlysReportSchemes' in dir()) \
+    if ('excel' in args.optReports and 'full' not in args.optReports['excel'] and 'filsorReportSchemes' in dir()) \
        or ('html' in args.optReports and 'filsorOptAnlysReportSchemes' in dir()):
 
         assert isinstance(pars.filsorReportSortAscend, bool) \
@@ -849,22 +823,20 @@ if 'none' not in args.optReports:
                                        tgtFolder=workDir, tgtPrefix=optRepPrfx,
                                        **pars.filsorReportPlotParams)
 
-        if 'excel' in args.optReports and 'full' not in args.optReports['excel'] \
-           and 'filsorOptAnlysReportSchemes' in dir():
+        if 'excel' in args.optReports and 'full' not in args.optReports['excel'] and 'filsorReportSchemes' in dir():
             logger.info1('* Auto-filtered Excel opt-analysis report to be generated: all schemes')
             if args.realRun:
                 filsorOptReport.toExcel(rebuild=pars.filsorReportRebuild)
 
         if 'html' in args.optReports and 'filsorOptAnlysReportSchemes' in dir():
             logger.info1('* Auto-filtered HTML opt-analysis report(s) to be generated: {}'
-                        .format(', '.join(filsorOptAnlysReportSchemes.keys())))
+                         .format(', '.join(filsorOptAnlysReportSchemes.keys())))
             if args.realRun:
                 for scheme in filsorOptAnlysReportSchemes.values():
                     filsorOptReport.toHtml(filSorScheme=scheme, rebuild=pars.filsorReportRebuild)
 
     # * Full reports.
-    if ('excel' in args.optReports
-        and ('full' in args.optReports['excel'] or 'filsorOptAnlysReportSchemes' not in dir())) \
+    if ('excel' in args.optReports and ('full' in args.optReports['excel'] or 'filsorReportSchemes' not in dir())) \
        or ('html' in args.optReports and 'full' in args.optReports['html']):
 
         assert isinstance(pars.fullReportSortAscend, bool) \
@@ -883,7 +855,7 @@ if 'none' not in args.optReports:
                                    **pars.fullReportPlotParams)
 
         if 'excel' in args.optReports \
-           and ('full' in args.optReports['excel'] or 'filsorOptAnlysReportSchemes' not in dir()):
+           and ('full' in args.optReports['excel'] or 'filsorReportSchemes' not in dir()):
             logger.info1('* Full Excel opt-analysis report to be generated')
             if args.realRun:
                 fullOptReport.toExcel(rebuild=pars.fullReportRebuild)
