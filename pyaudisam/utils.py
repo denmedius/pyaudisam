@@ -24,7 +24,7 @@ def loadPythonData(path, **kwargs):
 
     """Load data from a python source file, as a types.SimpleNamespace for dot access to values by name
 
-    Note: Special names are cleaned up from loaded data (starting with a '_' and usual module names
+    Note: Special names are cleaned up from loaded data (starting with a '_' and usual module/variable names
 
     Parameters:
     :param path: Path to the python source file (if suffix omitted, .py is assumed)
@@ -42,7 +42,8 @@ def loadPythonData(path, **kwargs):
         return path, None
 
     # Load python source.
-    usualModules = ['sys', 'os', 'pl', 'pathlib', 'dt', 'datetime', 'pd', 'pandas', 'math', 'np', 'numpy', 'rs']
+    usualModules = ['sys', 'os', 'pl', 'pathlib', 'dt', 'datetime', 'pd', 'pandas',
+                    'math', 'np', 'numpy', 'rs', 'log', 'logger']
     data = {key: value for key, value in runpy.run_path(path.as_posix(), init_globals=kwargs).items()
             if not key.startswith('_') and key not in usualModules}
 

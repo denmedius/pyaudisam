@@ -350,6 +350,10 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         return self.zoptr4Specs.explicitParamSpecs(implParamSpecs=implParamSpecs, dfExplParamSpecs=dfExplParamSpecs,
                                                    dropDupes=dropDupes, check=check)
 
+    @staticmethod
+    def analysisNeedsOptimisationFirst(sAnlysSpec):
+        return any(isinstance(v, str) for v in sAnlysSpec.values)
+
     def computeUndeterminedParamSpecs(self, dfExplParamSpecs=None, implParamSpecs=None,
                                       threads=None, recover=False):
     
@@ -381,9 +385,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
             self.zoptr4Specs.optimisationParamSpecUserNames(userParamSpecCols, intParamSpecCols)
         
         # b. Search for (possibly) optimisation specs with string data (const params are numbers or lists)
-        def analysisNeedsOptimisationFirst(sAnlysSpec):
-            return any(isinstance(v, str) for v in sAnlysSpec.values)
-        sbNeed4Opt1st = dfExplParamSpecs[optimUserParamSpecCols].apply(analysisNeedsOptimisationFirst, axis='columns')
+        sbNeed4Opt1st = dfExplParamSpecs[optimUserParamSpecCols].apply(self.analysisNeedsOptimisationFirst,
+                                                                       axis='columns')
         dfExplOptimParamSpecs = dfExplParamSpecs[sbNeed4Opt1st]
          
         # 3. Run optimisations if needed and replace computed truncation params in analysis specs

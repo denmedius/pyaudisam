@@ -81,7 +81,7 @@ class ResultsReport(object):
         :param keywords: for HTML header <meta name="keywords" ...>
         :param dCustomTrans: custom translations to complete the report standard ones,
                              as a dict(fr=dict(src: fr-trans), en=dict(src: en-trans))
-        :param lang: Target language for translation
+        :param lang: Target language for translation (only 'en' and 'fr' supported)
         :param pySources: path-name of source files to copy in report folder and link in report
         :param tgtFolder: target folder for the report (for _all_ generated files)
         :param tgtPrefix: default target file name for the report
@@ -89,6 +89,7 @@ class ResultsReport(object):
 
         assert len(resultsSet) > 0, 'Can\'t build reports with nothing inside'
         assert os.path.isdir(tgtFolder), 'Target folder {} doesn\'t seem to exist ...'.format(tgtFolder)
+        assert lang in ['en', 'fr'], 'Only en and fr translation supported for the moment'
         
         self.resultsSet = resultsSet
         

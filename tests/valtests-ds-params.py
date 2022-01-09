@@ -4,8 +4,26 @@
 
 (as far as possible same data and parameters than in valtests.ipynb)
 
-Parameters (pass them through -k [key=value]* options to pyaudisam main command-line script):
+Parameters (pass them through -k key1=value1,key2=value2,... options to pyaudisam main command-line script):
 :param lang: report language, en or fr
+
+Usage (after cloning https://github.com/denmedius/pyaudisam to <pyaudisam dir>):
+* cd <pyaudisam dir>
+* python -m pyaudisam -p tests/valtests-ds-params -n -w tests/tmp/mcds-preanlr ...
+  * -x/--distexport : export input files for manual analyses in Distance 6+ software
+  * -e/--preanalyses : run pre-analyses for samples specified in this param file (see below)
+  * -t/prereports excel,html : generate english HTML and Excel reports of pre-analyses results
+  * -k lang=fr -/prereports html : generate french HTML report of pre-analyses results
+* python -m pyaudisam -p tests/valtests-ds-params -n -w tests/tmp/mcds-anlr ...
+  * -a/--analyses : run analyses specified in this param file (see below)
+  * -r/reports excel,html:mqua-r92 : generate auto-filtered Excel report (all filters)
+     and HTML report (ExAicMQua-r920m6q3d12 filter)... of analyses results
+* python -m pyaudisam -p tests/valtests-ds-params -n -w tests/tmp/mcds-optanlr ...
+  * -o/--optanalyses : run opt-analyses specified in this param file (see below)
+  * -f/optreports excel:full,html:r92,html:r96 : generate full Excel report and 2 HTML reports
+     (ExAicMQua-r920m6q3d12 and ExAicMQua-r960m6q3d8 filters) ... of opt-analyses results
+* Note: if -u option not present, nothing actually run, no file written, only checks and informations
+  listed about what should happen if ... useful before jumping, isn't it ?
 """
 
 import pathlib as pl
@@ -16,10 +34,13 @@ import pandas as pd
 from pyaudisam.optimisation import Interval
 from pyaudisam.optanalyser import MCDSTruncOptanalysisResultsSet as rs
 
+# Pas d'autres fichiers de paramètres inclus ici via pyaudisam.utils.loadPythonData.
+parameterFiles = []
 
-instDir = pl.Path(__file__).parent
 
 # Input data ##############################################
+
+instDir = pl.Path(__file__).parent
 
 studyName = 'valtests'
 subStudyName = ''
@@ -47,7 +68,7 @@ distanceType = 'Radial'
 
 clustering = False
 
-passEffort = 1  # Valeur d'effort constante = 1 par passage sur chaque point.
+passEffort = 1  # Constant effort value: 1 per pass over each transect = point.
 
 studyAreaSpecs = dict(Zone='ACDC', Surface='2400')  # ha
 
@@ -232,21 +253,22 @@ preReportSortCols = [('header (head)', sampleIndCol, 'Value')]
 preReportSortAscend = True
 
 # Full reports ######################################################################
-# a. Specific to analysis reports
+# 1. Specific to analysis reports
 anlysFullReportStudyTitle = 'PyAuDiSam Validation: Analyses'
 anlysFullReportStudySubTitle = 'Global analysis full report'
 anlysFullReportAnlysSubTitle = 'Detailed report'
 anlysFullReportStudyDescr = 'Easy and parallel run through MCDSAnalyser'
 anlysFullReportStudyKeywords = 'pyaudisam, validation, analysis, full, report'
 
-# b. Specific to opt-analysis reports
+# 2. Specific to opt-analysis reports
 optAnlysFullReportStudyTitle = 'PyAuDiSam Validation: Opt-analyses'
 optAnlysFullReportStudySubTitle = 'Global opt-analysis full report'
 optAnlysFullReportAnlysSubTitle = 'Detailed report'
 optAnlysFullReportStudyDescr = 'Easy and parallel run through MCDSTruncationOptAnalyser'
 optAnlysFullReportStudyKeywords = 'pyaudisam, validation, opt-analysis, full, report'
 
-# c. Common to analysis reports and opt-analysis reports
+# 3. Common to analysis reports and opt-analysis reports
+# Plot parameters
 fullReportPlotParams = \
     dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
          plotImgFormat='png', plotImgQuality=90,

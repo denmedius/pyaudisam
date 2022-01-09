@@ -147,7 +147,7 @@ def decodeReportArg(repArg, repName='report'):
         logger.error('Unsupported {} format(s) {}'.format(repName, ', '.join(unsupRepFmts)))
         sys.exit(2)
 
-    logger.debug2(f'{repName}: {repSpecs}')
+    logger.debug1(f'{repName}: {repSpecs}')
 
     return repSpecs
 
@@ -155,7 +155,7 @@ def decodeReportArg(repArg, repName='report'):
 # 0. Configure logging.
 runTimestamp = pd.Timestamp.now().strftime('%y%m%d-%H%M%S')  # Date+time of the run (for log file, ... etc).
 
-logger = Logger(runTimestamp, level=log.DEBUG1)
+logger = Logger(runTimestamp, level=log.DEBUG2 if '-v' in sys.argv or '--verbose' in sys.argv else log.INFO1)
 
 logger.info(f'Computation platform: {runtime}')
 
@@ -170,8 +170,11 @@ argser = argparse.ArgumentParser(prog='pyaudisam',  # usage='python -m pyaudisam
 
 argser.add_argument('-u', '--run', dest='realRun', action='store_true', default=False,
                     help='Actually run specified operation (not only run diagnosis of)'
-                         ' => as long as -u/--run is not there, you can try anything,'
+                         ' => as long as -u/--run is not there, you can try any option,'
                          ' it wont start or write anything ... fell free, you are safe :-)')
+argser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
+                    help='Display more infos about the work to be done and export sample / (opt-)analysis'
+                         ' spec. files when relevant in the current directory ;')
 argser.add_argument('-p', '--parameters', dest='parameterFile', type=str, required=True,
                     help='Path-name of python file (.py assumed if no extension / suffix given) specifying'
                          ' export / (opt)analysis / report parameters')
@@ -226,7 +229,6 @@ argser.add_argument('-g', '--engine', dest='engineType', type=str, default='MCDS
 
 args = argser.parse_args()
 logger.debug(f'Arguments: {args}')
-args._names = list(vars(args).keys())
 
 logger.setRealRun(args.realRun)
 
@@ -245,17 +247,19 @@ if any(item.count('=') != 1 for item in preParamItems):
     sys.exit(2)
 
 preParameters = dict([item.split('=') for item in preParamItems])
-parameterFile, pars = loadPythonData(path=args.parameterFile, **preParameters)
+paramFile, pars = loadPythonData(path=args.parameterFile, **preParameters)
 if not pars:
-    logger.error(f'Failed to load parameter file {parameterFile.as_posix()}')
+    logger.error(f'Failed to load parameter file {paramFile.as_posix()}')
     sys.exit(2)
+logger.debug1('Parameters: ' + ', '.join(vars(pars)))
 
-pars._names = list(pars.__dict__.keys())
-logger.debug2('Parameters: ' + ', '.join(pars._names))
+parameterFiles = [paramFile.as_posix()]
+if 'parameterFiles' in vars(pars):
+    parameterFiles += pars.parameterFiles
 
 # 3. More checks on args and parameters.
 # a. Check filter and sort report args
-if 'filsorReportSchemes' in pars._names:
+if 'filsorReportSchemes' in vars(pars):
     filsorSchemeIdMgr = FilterSortSchemeIdManager()
     filsorReportSchemes = {filsorSchemeIdMgr.schemeId(sch): sch for sch in pars.filsorReportSchemes}
     logger.info('Available filter & sort report schemes: ' + ', '.join(filsorReportSchemes.keys()))
@@ -304,7 +308,7 @@ if 'html' in args.optReports and ('full' not in args.optReports['html'] or len(a
 
 # 4. Output folder for results, reports ... etc.
 #    (post-fixed with the run timestamp, if not already specified)
-workDir = args.workDir if 'workDir' in args._names else pars.workDir if 'workDir' in pars._names else '.'
+workDir = args.workDir if 'workDir' in vars(args) else pars.workDir if 'workDir' in vars(pars) else '.'
 workDir = pl.Path(workDir)
 if not(args.noTimestamp or re.match('.*[0-9]{6}-[0-9]{4,6}$', workDir.name)):
     workDir = workDir / runTimestamp
@@ -330,12 +334,12 @@ if emptyRun:
 # * point transect definition
 if not emptyRun:
 
-    surveyDataFile = pars.surveyDataFile if 'surveyDataFile' in pars._names else None
+    surveyDataFile = pars.surveyDataFile if 'surveyDataFile' in vars(pars) else None
     if surveyDataFile:
         surveyDataFile = pl.Path(surveyDataFile)
         if surveyDataFile.is_file():
-            indivDistSheet = pars.indivDistDataSheet if 'indivDistDataSheet' in pars._names else 0
-            transectSheet = pars.transectsDataSheet if 'transectsDataSheet' in pars._names else 1
+            indivDistSheet = pars.indivDistDataSheet if 'indivDistDataSheet' in vars(pars) else 0
+            transectSheet = pars.transectsDataSheet if 'transectsDataSheet' in vars(pars) else 1
             with pd.ExcelFile(surveyDataFile) as xlInFile:
                 dfMonoCatObs = pd.read_excel(xlInFile, sheet_name=indivDistSheet)
                 dfTransects = pd.read_excel(xlInFile, sheet_name=transectSheet)
@@ -349,7 +353,7 @@ if not emptyRun:
 # 5.b. Sample specs
 if args.distExport or args.preAnalyses:
 
-    sampleSpecFile = pars.sampleSpecFile if 'sampleSpecFile' in pars._names else None
+    sampleSpecFile = pars.sampleSpecFile if 'sampleSpecFile' in vars(pars) else None
     if sampleSpecFile:
         sampleSpecFile = pl.Path(sampleSpecFile)
         if not sampleSpecFile.is_file():
@@ -387,12 +391,18 @@ if args.distExport:
     assert verdict
     assert not reasons
 
-    logger.info1(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
+    logger.info2(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
+    logger.info1(f'From sample specs, {len(dfExplSampleSpecs)} samples to export')
+    sampSpecFileName = f'{pars.studyName}{pars.subStudyName}-samples-explispecs.xlsx'
+    if args.verbose and not args.realRun:
+        dfExplSampleSpecs.to_excel(sampSpecFileName, index=False)
 
     # b. Export 1 Distance input data file for each specified sample.
     # dfSamples = Analyser.explicitVariantSpecs(partSpecs=sampSpecFile, varIndCol=pars.sampleIndCol)
     if args.realRun:
         preAnlysr.exportDSInputData(implSampleSpecs=sampleSpecFile, format='Distance')
+        sampSpecFileName = workDir / sampSpecFileName
+        dfExplSampleSpecs.to_excel(sampSpecFileName, index=False)
     preAnlysr.shutdown()  # Not really needed actually.
 
     logger.closeOperation(oprText)
@@ -430,8 +440,12 @@ if args.preAnalyses:
     assert verdict
     assert not reasons
 
-    logger.info1(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
     logger.info1(f'Pre-analysis model fallback strategy:\n{pd.DataFrame(pars.modelPreStrategy).to_string()}')
+    logger.info2(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
+    logger.info1(f'From sample specs, {len(dfExplSampleSpecs)} samples to pre-analyse')
+    sampSpecFileName = f'{pars.studyName}{pars.subStudyName}-samples-explispecs.xlsx'
+    if args.verbose and not args.realRun:
+        dfExplSampleSpecs.to_excel(sampSpecFileName, index=False)
 
     if any(col not in dfExplSampleSpecs.columns for col in pars.sampleSpecCustCols):
         logger.error('Missing custom (pass-through) column(s) in sample specs: {}'
@@ -443,6 +457,8 @@ if args.preAnalyses:
     if args.realRun:
         preResults = preAnlysr.run(implSampleSpecs=sampleSpecFile, dModelStrategy=pars.modelPreStrategy,
                                    threads=args.threads)
+        sampSpecFileName = workDir / sampSpecFileName
+        dfExplSampleSpecs.to_excel(sampSpecFileName, index=False)
     preAnlysr.shutdown()
 
     # d. Save results to disk.
@@ -495,7 +511,7 @@ if args.preReports:
     preReport = PreReport(resultsSet=preResults, lang=pars.studyLang,
                           title=pars.preReportStudyTitle, subTitle=pars.preReportStudySubTitle,
                           anlysSubTitle=pars.preReportAnlysSubTitle, description=pars.preReportStudyDescr,
-                          keywords=pars.preReportStudyKeywords, pySources=[parameterFile],
+                          keywords=pars.preReportStudyKeywords, pySources=parameterFiles,
                           sampleCols=pars.preReportSampleCols, paramCols=pars.preReportParamCols,
                           resultCols=pars.preReportResultCols, synthCols=pars.preReportSynthCols,
                           sortCols=pars.preReportSortCols, sortAscend=pars.preReportSortAscend,
@@ -520,7 +536,7 @@ resFileName = workDir / f'{pars.studyName}{pars.subStudyName}-analyses-{resultsW
 if args.analyses:
 
     # Check analysis spec. file
-    analysisSpecFile = pars.analysisSpecFile if 'analysisSpecFile' in pars._names else None
+    analysisSpecFile = pars.analysisSpecFile if 'analysisSpecFile' in vars(pars) else None
     if analysisSpecFile:
         analysisSpecFile = pl.Path(analysisSpecFile)
         if not analysisSpecFile.is_file():
@@ -561,7 +577,11 @@ if args.analyses:
     assert verdict
     assert not reasons
 
-    logger.info1(f'Explicit analysis specs:\n{dfExplAnlysSpecs.to_string()}')
+    logger.info2(f'Explicit analysis specs:\n{dfExplAnlysSpecs.to_string()}')
+    logger.info1(f'From analysis specs, {len(dfExplAnlysSpecs)} analyses to run')
+    anlysSpecFileName = f'{pars.studyName}{pars.subStudyName}-analyses-explispecs.xlsx'
+    if args.verbose and not args.realRun:
+        dfExplAnlysSpecs.to_excel(anlysSpecFileName, index=False)
 
     if any(col not in dfExplAnlysSpecs.columns for col in pars.analysisSpecCustCols):
         logger.error('Missing custom (pass-through) column(s) in analysis specs: {}'
@@ -572,6 +592,8 @@ if args.analyses:
     # c. Run analyses.
     if args.realRun:
         results = anlysr.run(implParamSpecs=analysisSpecFile, threads=args.threads)
+        anlysSpecFileName = workDir / anlysSpecFileName
+        dfExplAnlysSpecs.to_excel(anlysSpecFileName, index=False)
     anlysr.shutdown()
 
     # d. Save results to disk.
@@ -693,7 +715,7 @@ oresFileName = workDir / f'{pars.studyName}{pars.subStudyName}-optanalyses-{resu
 if args.optAnalyses:
 
     # Check analysis spec. file
-    optAnalysisSpecFile = pars.optAnalysisSpecFile if 'optAnalysisSpecFile' in pars._names else None
+    optAnalysisSpecFile = pars.optAnalysisSpecFile if 'optAnalysisSpecFile' in vars(pars) else None
     if optAnalysisSpecFile:
         optAnalysisSpecFile = pl.Path(optAnalysisSpecFile)
         if not optAnalysisSpecFile.is_file():
@@ -738,7 +760,7 @@ if args.optAnalyses:
                                                      algorithm=pars.defCoreAlgorithm,
                                                      maxRetries=pars.defCoreMaxRetries))
 
-    # b. Check analysis specs.
+    # b. Check opt-analysis specs.
     dfExplOptAnlysSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols, verdict, reasons = \
         optAnlysr.explicitParamSpecs(implParamSpecs=optAnalysisSpecFile, dropDupes=True, check=True)
 
@@ -746,7 +768,17 @@ if args.optAnalyses:
     assert verdict
     assert not reasons
 
-    logger.info1(f'Explicit opt-analysis specs:\n{dfExplOptAnlysSpecs.to_string()}')
+    logger.info2(f'Explicit opt-analysis specs:\n{dfExplOptAnlysSpecs.to_string()}')
+    optUserParamSpecCols = optAnlysr.zoptr4Specs.optimisationParamSpecUserNames(userParamSpecCols, intParamSpecCols)
+    sbAnlysNeedOpt = dfExplOptAnlysSpecs[optUserParamSpecCols].apply(optAnlysr.analysisNeedsOptimisationFirst,
+                                                                     axis='columns')
+    logger.info1('From opt-analysis specs, {} / {} opt-analyses to run with truncation optimisation first ...'
+                 .format(sbAnlysNeedOpt.sum(), len(dfExplOptAnlysSpecs)))
+    logger.info1('... implying possibly up to {} auto-analyses in the background if only full "auto" specs !'
+                 .format(sbAnlysNeedOpt.sum() * pars.defCoreMaxIters * pars.defSubmitTimes))
+    optAnlysSpecFileName = f'{pars.studyName}{pars.subStudyName}-optanalyses-explispecs.xlsx'
+    if args.verbose and not args.realRun:
+        dfExplOptAnlysSpecs.to_excel(optAnlysSpecFileName, index=False)
 
     if any(col not in dfExplOptAnlysSpecs.columns for col in pars.optAnalysisSpecCustCols):
         logger.error('Missing custom (pass-through) column(s) in opt-analysis specs: {}'
@@ -754,9 +786,11 @@ if args.optAnalyses:
                                        if col not in dfExplOptAnlysSpecs.columns)))
         sys.exit(2)
 
-    # c. Run analyses.
+    # c. Run opt-analyses.
     if args.realRun:
         optResults = optAnlysr.run(implParamSpecs=optAnalysisSpecFile, threads=args.threads)
+        optAnlysSpecFileName = workDir / optAnlysSpecFileName
+        dfExplOptAnlysSpecs.to_excel(optAnlysSpecFileName, index=False)
     optAnlysr.shutdown()
 
     # d. Save results to disk.
@@ -768,7 +802,7 @@ if args.optAnalyses:
 # 14. Generate opt-analysis reports (if specified to).
 if args.optReports:
 
-    # a. Load analysis results if not just computed
+    # a. Load opt-analysis results if not just computed
     if not args.optAnalyses:
 
         if not oresFileName.is_file():
