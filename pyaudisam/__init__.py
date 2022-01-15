@@ -16,12 +16,18 @@
 # Module version
 __version__ = '0.9.2rc1'
 
+import os
 import sys
+import platform
 
-# Infos about run-time (Python version, dependency library versions, ...)
-runtime = {'platform': sys.platform, sys.implementation.name: sys.version}  # Updated by sub-modules.
 
-# Sub-module exports
+# Infos about run-time (Python version, dependency library versions, ... + also updated by sub-modules)
+_osEdition = (' ' + platform.win32_edition()) if sys.platform.startswith('win32') else ''
+runtime = dict(os=f'{platform.system()}{_osEdition} {platform.version()} ({platform.architecture()[0]})',
+               processor=f'{platform.processor()}, {os.cpu_count()} CPUs',
+               python=f'{sys.implementation.name} ({sys.platform}) R{sys.version}')
+
+# Transparent sub-module exports (in order not to care about them, and only import the top = pyaudisam package one)
 from . import log
 from .log import logger, DEBUG, DEBUG0, DEBUG1, DEBUG2, DEBUG3, DEBUG4, \
                          INFO,  INFO0,  INFO1,  INFO2,  INFO3,  INFO4, \
@@ -48,3 +54,7 @@ from .optanalyser import MCDSTruncationOptanalyser, MCDSTruncOptanalysisResultsS
 from .report import MCDSResultsPreReport, MCDSResultsFullReport, MCDSResultsFilterSortReport
 
 from .utils import loadPythonData
+
+# Sort and update runtime last bits
+runtime.update(pyaudisam=f'{__version__}')
+runtime.update({'DS engine': runtime.pop('DS engine')})

@@ -27,7 +27,7 @@ import pandas as pd
 
 from . import log, runtime
 
-runtime.update(numpy=np.__version__, pandas=pd.__version__, pickle=pickle.format_version)
+runtime.update(numpy=np.__version__, pandas=pd.__version__)
 
 logger = log.logger('ads.dat')
 
