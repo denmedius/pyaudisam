@@ -252,6 +252,9 @@ preReportSynthCols = [('header (head)', sampleIndCol, 'Value')] \
 preReportSortCols = [('header (head)', sampleIndCol, 'Value')]
 preReportSortAscend = True
 
+preReportRebuild = False
+
+
 # Full reports ######################################################################
 # 1. Specific to analysis reports
 anlysFullReportStudyTitle = 'PyAuDiSam Validation: Analyses'
@@ -329,6 +332,7 @@ fullReportSortCols = \
 fullReportSortAscend = [True] * (len(fullReportSortCols) - 1) + [False]
 
 fullReportRebuild = False
+
 
 # Auto-filtered reports ######################################################################
 # a. Specific to analysis reports

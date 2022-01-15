@@ -66,7 +66,9 @@ class Logger(object):
         # Setup an atexit handler to move and rename the session log file in a user-friendly place if possible.
         atexit.register(self.giveBackLogFile)
 
-        self.info1(f'Logging session to temporary {self.runLogFileName.as_posix()}')
+        self.info1(f'Logging session to temporary ' + self.runLogFileName.as_posix())
+        self.info('Current folder: ' + pl.Path().absolute().as_posix())
+        self.info('Command line: {} {}'.format(pl.Path(sys.argv[0]).as_posix(), ' '.join(sys.argv[1:])))
 
     def setFinalLogPathNamePrefix(self, prefix=None):
 
@@ -96,6 +98,7 @@ class Logger(object):
     def setRealRun(self, realRun=True):
 
         if realRun:
+            self.openOpr = 'Running'
             self.info('This is a real run: requested operation will be actually run !')
         else:
             self.openOpr = 'Checking'
@@ -157,7 +160,9 @@ runTimestamp = pd.Timestamp.now().strftime('%y%m%d-%H%M%S')  # Date+time of the 
 
 logger = Logger(runTimestamp, level=log.DEBUG2 if '-v' in sys.argv or '--verbose' in sys.argv else log.INFO1)
 
-logger.info(f'Computation platform: {runtime}')
+logger.info('Computation platform:')
+for k, v in runtime.items():
+    logger.info(f'* {k}: {v}')
 
 # 1. Parse, check and post-process command line args.
 argser = argparse.ArgumentParser(prog='pyaudisam',  # usage='python -m pyaudisam',
@@ -440,8 +445,8 @@ if args.preAnalyses:
     assert verdict
     assert not reasons
 
-    logger.info1(f'Pre-analysis model fallback strategy:\n{pd.DataFrame(pars.modelPreStrategy).to_string()}')
     logger.info2(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
+    logger.info2(f'Pre-analysis model fallback strategy:\n{pd.DataFrame(pars.modelPreStrategy).to_string()}')
     logger.info1(f'From sample specs, {len(dfExplSampleSpecs)} samples to pre-analyse')
     sampSpecFileName = f'{pars.studyName}{pars.subStudyName}-samples-explispecs.xlsx'
     if args.verbose and not args.realRun:
@@ -521,12 +526,13 @@ if args.preReports:
     if 'excel' in args.preReports:
         logger.info1('* Excel pre-analysis report to be generated')
         if args.realRun:
-            preReport.toExcel(rebuild=False)
+            preReport.toExcel(rebuild=pars.preReportRebuild)
 
     if 'html' in args.preReports:
         logger.info1('* HTML pre-analysis report to be generated')
         if args.realRun:
-            preReport.toHtml(rebuild=False, generators=1 if args.threads is None else args.threads)
+            preReport.toHtml(rebuild=pars.preReportRebuild,
+                             generators=1 if args.threads is None else args.threads)
 
     logger.closeOperation(oprText)
 
@@ -652,7 +658,7 @@ if args.reports:
                                     subTitle=pars.anlysFilsorReportStudySubTitle,
                                     anlysSubTitle=pars.anlysFilsorReportAnlysSubTitle,
                                     description=pars.anlysFilsorReportStudyDescr,
-                                    keywords=pars.anlysFilsorReportStudyKeywords, pySources=[parameterFile],
+                                    keywords=pars.anlysFilsorReportStudyKeywords, pySources=parameterFiles,
                                     sampleCols=pars.filsorReportSampleCols, paramCols=pars.filsorReportParamCols,
                                     resultCols=pars.filsorReportResultCols, synthCols=pars.filsorReportSynthCols,
                                     sortCols=pars.filsorReportSortCols, sortAscend=pars.filsorReportSortAscend,
@@ -684,7 +690,7 @@ if args.reports:
                                 subTitle=pars.anlysFullReportStudySubTitle,
                                 anlysSubTitle=pars.anlysFullReportAnlysSubTitle,
                                 description=pars.anlysFullReportStudyDescr,
-                                keywords=pars.anlysFullReportStudyKeywords, pySources=[parameterFile],
+                                keywords=pars.anlysFullReportStudyKeywords, pySources=parameterFiles,
                                 sampleCols=pars.fullReportSampleCols, paramCols=pars.fullReportParamCols,
                                 resultCols=pars.fullReportResultCols, synthCols=pars.fullReportSynthCols,
                                 sortCols=pars.fullReportSortCols, sortAscend=pars.fullReportSortAscend,
@@ -774,7 +780,7 @@ if args.optAnalyses:
                                                                      axis='columns')
     logger.info1('From opt-analysis specs, {} / {} opt-analyses to run with truncation optimisation first ...'
                  .format(sbAnlysNeedOpt.sum(), len(dfExplOptAnlysSpecs)))
-    logger.info1('... implying possibly up to {} auto-analyses in the background if only full "auto" specs !'
+    logger.info1('... implying possibly up to {} auto-analyses in the background if only full "auto" specs'
                  .format(sbAnlysNeedOpt.sum() * pars.defCoreMaxIters * pars.defSubmitTimes))
     optAnlysSpecFileName = f'{pars.studyName}{pars.subStudyName}-optanalyses-explispecs.xlsx'
     if args.verbose and not args.realRun:
@@ -849,7 +855,7 @@ if args.optReports:
                                        subTitle=pars.optAnlysFilsorReportStudySubTitle,
                                        anlysSubTitle=pars.optAnlysFilsorReportAnlysSubTitle,
                                        description=pars.optAnlysFilsorReportStudyDescr,
-                                       keywords=pars.optAnlysFilsorReportStudyKeywords, pySources=[parameterFile],
+                                       keywords=pars.optAnlysFilsorReportStudyKeywords, pySources=parameterFiles,
                                        sampleCols=pars.filsorReportSampleCols, paramCols=pars.filsorReportParamCols,
                                        resultCols=pars.filsorReportResultCols, synthCols=pars.filsorReportSynthCols,
                                        sortCols=pars.filsorReportSortCols, sortAscend=pars.filsorReportSortAscend,
@@ -881,7 +887,7 @@ if args.optReports:
                                    subTitle=pars.optAnlysFullReportStudySubTitle,
                                    anlysSubTitle=pars.optAnlysFullReportAnlysSubTitle,
                                    description=pars.optAnlysFullReportStudyDescr,
-                                   keywords=pars.optAnlysFullReportStudyKeywords, pySources=[parameterFile],
+                                   keywords=pars.optAnlysFullReportStudyKeywords, pySources=parameterFiles,
                                    sampleCols=pars.fullReportSampleCols, paramCols=pars.fullReportParamCols,
                                    resultCols=pars.fullReportResultCols, synthCols=pars.fullReportSynthCols,
                                    sortCols=pars.fullReportSortCols, sortAscend=pars.fullReportSortAscend,
