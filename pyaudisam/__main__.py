@@ -72,7 +72,7 @@ class Logger(object):
         self.info('Current folder: ' + pl.Path().absolute().as_posix())
         self.info('Command line: {} {}'.format(pl.Path(sys.argv[0]).as_posix(), ' '.join(sys.argv[1:])))
 
-    def setFinalLogPathNamePrefix(self, prefix=None):
+    def setFinalLogPrefix(self, prefix=None):
 
         self.finalLogFileName = None if prefix is None else pl.Path(prefix + f'.{self.runTimestamp}.log')
 
@@ -182,13 +182,13 @@ argser.add_argument('-u', '--run', dest='realRun', action='store_true', default=
 argser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
                     help='Display more infos about the work to be done and export sample / (opt-)analysis'
                          ' spec. files when relevant in the current directory ;')
-argser.add_argument('-p', '--parameters', dest='parameterFile', type=str, required=True,
+argser.add_argument('-p', '--params', dest='paramFile', type=str, required=True,
                     help='Path-name of python file (.py assumed if no extension / suffix given) specifying'
                          ' export / (opt)analysis / report parameters')
-argser.add_argument('-k', '--preparameters', dest='preParameters', type=str, default='',
+argser.add_argument('-s', '--speparams', dest='speParams', type=str, default='',
                     help='Comma-separated key=value items specifying "special" parameters'
                          'defined before the parameter file is loaded, just as overridable built-in variables'
-                         ' (syntax and limitations: string-only values, with no space or ,;\'"$&! inside'
+                         r' (syntax and limitations: string-only values, with no space or ,;\'"$&! inside'
                          ' => use it only for few and simple args like switches and simple names')
 argser.add_argument('-w', '--workdir', dest='workDir', type=str, default='.',
                     help='Work folder = where to store DS analyses sub-folders and output files'
@@ -221,14 +221,14 @@ argser.add_argument('-r', '--reports', dest='reports', type=str, default='none',
                          ' examples: none ; excel ; excel,html:full ; html:mqua92,html:full,excel,html:mqua950')
 argser.add_argument('-f', '--optreports', dest='optReports', type=str, default='none',
                     help='Which reports to generate from opt-analyses results (same mini-language as for -r)')
-argser.add_argument('-l', '--log', dest='logPathNamePrefix', type=str, default=None,
+argser.add_argument('-l', '--logprefix', dest='logPrefix', type=str, default=None,
                     help='Target log file path-name prefix (will be postfixed by .<YYMMDD-HHMMSS timestamp>.log)'
                          f" (Default: <work folder>/{logger.DefLogNamePrefix} if -u/--run, else 'none' ;"
                          "if special value 'none', no log saved)")
 argser.add_argument('-m', '--threads', dest='threads', type=int, default=0,
-                    help='Number of parallel threads to use for (pre-)analyses / report generation'
-                         ' (default = 0 = a good auto-number, 1 for no parallelism, otherwise, check your actual '
-                         'CPU)')
+                    help='Number of parallel threads to use for (pre/opt-)analyses / report generation'
+                         ' (default: 0 => auto-determined actual number of parallel threads from CPU specs ;'
+                         ' 1 for no parallelism ; for any other choice, first check your actual CPU specs)')
 argser.add_argument('-g', '--engine', dest='engineType', type=str, default='MCDS',
                     choices=['MCDS'],
                     help='The Distance engine to use, among MCDS, ... and no other for the moment'
@@ -246,23 +246,27 @@ args.preReports = decodeReportArg(args.preReports, repName='pre-analysis report'
 args.reports = decodeReportArg(args.reports, repName='analysis report')
 args.optReports = decodeReportArg(args.optReports, repName='opt-analysis report')
 
-# 2. Load parameter python file, passing pre-parameters if any.
-preParamItems = args.preParameters.split(',') if args.preParameters else list()
-if any(item.count('=') != 1 for item in preParamItems):
-    logger.error(f'Syntax error in pre-parameters: "{args.preParameters}"'
+logger.info1('Arguments:')
+for k, v in vars(args).items():
+    logger.info1(f'* {k}: {v}')
+
+# 2. Load parameter python file, passing "special" parameters if any.
+speParamItems = args.speParams.split(',') if args.speParams else list()
+if any(item.count('=') != 1 for item in speParamItems):
+    logger.error(f'Syntax error in pre-parameters: "{args.speParams}"'
                  ' (should be "name1=value1,name2=value2,...")')
     sys.exit(2)
 
-preParameters = dict([item.split('=') for item in preParamItems])
-paramFile, pars = loadPythonData(path=args.parameterFile, **preParameters)
+speParams = dict([item.split('=') for item in speParamItems])
+paramFile, pars = loadPythonData(path=args.paramFile, **speParams)
 if not pars:
     logger.error(f'Failed to load parameter file {paramFile.as_posix()}')
     sys.exit(2)
 logger.debug1('Parameters: ' + ', '.join(vars(pars)))
 
-parameterFiles = [paramFile.as_posix()]
-if 'parameterFiles' in vars(pars):
-    parameterFiles += pars.parameterFiles
+paramFiles = [paramFile.as_posix()]
+if 'paramFiles' in vars(pars):
+    paramFiles += pars.paramFiles
 
 # 3. More checks on args and parameters.
 # a. Check filter and sort report args
@@ -322,12 +326,12 @@ if not(args.noTimestamp or re.match('.*[0-9]{6}-[0-9]{4,6}$', workDir.name)):
 logger.info(f'Work folder: {workDir.as_posix()}')
 
 # 5. Now we can setup the final session log file path-name prefix !
-if args.logPathNamePrefix is None:
+if args.logPrefix is None:
     if args.realRun:  # Default
-        args.logPathNamePrefix = workDir.as_posix() + f'/{pars.studyName}{pars.subStudyName}'
-elif args.logPathNamePrefix.lower() == 'none':
-    args.logPathNamePrefix = None
-logger.setFinalLogPathNamePrefix(args.logPathNamePrefix)
+        args.logPrefix = workDir.as_posix() + f'/{pars.studyName}{pars.subStudyName}'
+elif args.logPrefix.lower() == 'none':
+    args.logPrefix = None
+logger.setFinalLogPrefix(args.logPrefix)
 
 # 6. Really something to do ?
 emptyRun = not any([args.distExport, args.preAnalyses, args.preReports,
@@ -520,7 +524,7 @@ if args.preReports:
     preReport = PreReport(resultsSet=preResults, lang=pars.studyLang,
                           title=pars.preReportStudyTitle, subTitle=pars.preReportStudySubTitle,
                           anlysSubTitle=pars.preReportAnlysSubTitle, description=pars.preReportStudyDescr,
-                          keywords=pars.preReportStudyKeywords, pySources=parameterFiles,
+                          keywords=pars.preReportStudyKeywords, pySources=paramFiles,
                           sampleCols=pars.preReportSampleCols, paramCols=pars.preReportParamCols,
                           resultCols=pars.preReportResultCols, synthCols=pars.preReportSynthCols,
                           sortCols=pars.preReportSortCols, sortAscend=pars.preReportSortAscend,
@@ -662,7 +666,7 @@ if args.reports:
                                     subTitle=pars.anlysFilsorReportStudySubTitle,
                                     anlysSubTitle=pars.anlysFilsorReportAnlysSubTitle,
                                     description=pars.anlysFilsorReportStudyDescr,
-                                    keywords=pars.anlysFilsorReportStudyKeywords, pySources=parameterFiles,
+                                    keywords=pars.anlysFilsorReportStudyKeywords, pySources=paramFiles,
                                     sampleCols=pars.filsorReportSampleCols, paramCols=pars.filsorReportParamCols,
                                     resultCols=pars.filsorReportResultCols, synthCols=pars.filsorReportSynthCols,
                                     sortCols=pars.filsorReportSortCols, sortAscend=pars.filsorReportSortAscend,
@@ -694,7 +698,7 @@ if args.reports:
                                 subTitle=pars.anlysFullReportStudySubTitle,
                                 anlysSubTitle=pars.anlysFullReportAnlysSubTitle,
                                 description=pars.anlysFullReportStudyDescr,
-                                keywords=pars.anlysFullReportStudyKeywords, pySources=parameterFiles,
+                                keywords=pars.anlysFullReportStudyKeywords, pySources=paramFiles,
                                 sampleCols=pars.fullReportSampleCols, paramCols=pars.fullReportParamCols,
                                 resultCols=pars.fullReportResultCols, synthCols=pars.fullReportSynthCols,
                                 sortCols=pars.fullReportSortCols, sortAscend=pars.fullReportSortAscend,
@@ -859,7 +863,7 @@ if args.optReports:
                                        subTitle=pars.optAnlysFilsorReportStudySubTitle,
                                        anlysSubTitle=pars.optAnlysFilsorReportAnlysSubTitle,
                                        description=pars.optAnlysFilsorReportStudyDescr,
-                                       keywords=pars.optAnlysFilsorReportStudyKeywords, pySources=parameterFiles,
+                                       keywords=pars.optAnlysFilsorReportStudyKeywords, pySources=paramFiles,
                                        sampleCols=pars.filsorReportSampleCols, paramCols=pars.filsorReportParamCols,
                                        resultCols=pars.filsorReportResultCols, synthCols=pars.filsorReportSynthCols,
                                        sortCols=pars.filsorReportSortCols, sortAscend=pars.filsorReportSortAscend,
@@ -891,7 +895,7 @@ if args.optReports:
                                    subTitle=pars.optAnlysFullReportStudySubTitle,
                                    anlysSubTitle=pars.optAnlysFullReportAnlysSubTitle,
                                    description=pars.optAnlysFullReportStudyDescr,
-                                   keywords=pars.optAnlysFullReportStudyKeywords, pySources=parameterFiles,
+                                   keywords=pars.optAnlysFullReportStudyKeywords, pySources=paramFiles,
                                    sampleCols=pars.fullReportSampleCols, paramCols=pars.fullReportParamCols,
                                    resultCols=pars.fullReportResultCols, synthCols=pars.fullReportSynthCols,
                                    sortCols=pars.fullReportSortCols, sortAscend=pars.fullReportSortAscend,

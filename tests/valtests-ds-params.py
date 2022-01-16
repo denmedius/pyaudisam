@@ -12,17 +12,17 @@ Usage (after cloning https://github.com/denmedius/pyaudisam to <pyaudisam dir>):
 * python -m pyaudisam -p tests/valtests-ds-params -n -w tests/tmp/mcds-preanlr ...
   * -x/--distexport : export input files for manual analyses in Distance 6+ software
   * -e/--preanalyses : run pre-analyses for samples specified in this param file (see below)
-  * -t/prereports excel,html : generate english HTML and Excel reports of pre-analyses results
-  * -k lang=fr -/prereports html : generate french HTML report of pre-analyses results
+  * -t/--prereports excel,html : generate english HTML and Excel reports of pre-analyses results
+  * -s/--speparams lang=fr -t/--prereports html : generate french HTML report of pre-analyses results
 * python -m pyaudisam -p tests/valtests-ds-params -n -w tests/tmp/mcds-anlr ...
   * -a/--analyses : run analyses specified in this param file (see below)
-  * -r/reports excel,html:mqua-r92 : generate auto-filtered Excel report (all filters)
+  * -r/--reports excel,html:mqua-r92 : generate auto-filtered Excel report (all filters)
      and HTML report (ExAicMQua-r920m6q3d12 filter)... of analyses results
 * python -m pyaudisam -p tests/valtests-ds-params -n -w tests/tmp/mcds-optanlr ...
   * -o/--optanalyses : run opt-analyses specified in this param file (see below)
-  * -f/optreports excel:full,html:r92,html:r96 : generate full Excel report and 2 HTML reports
+  * -f/--optreports excel:full,html:r92,html:r96 : generate full Excel report and 2 HTML reports
      (ExAicMQua-r920m6q3d12 and ExAicMQua-r960m6q3d8 filters) ... of opt-analyses results
-* Note: if -u option not present, nothing actually run, no file written, only checks and informations
+* Note: if -u option not present, nothing actually run, no file written, only checks done and informations
   listed about what should happen if ... useful before jumping, isn't it ?
 """
 
