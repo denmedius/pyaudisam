@@ -38,11 +38,6 @@ class Logger(object):
 
     def __init__(self, runTimestamp, level=log.INFO):
 
-        self.logger = log.logger(name='main')
-        for meth in dir(self.logger):
-            if any(meth.startswith(prefix) for prefix in ['critical', 'error', 'warning', 'info', 'debug']):
-                setattr(self, meth, getattr(self.logger, meth))
-
         self.runTimestamp = runTimestamp
         self.openOpr = 'Checking'
         self.dOprStart = dict()
@@ -66,6 +61,13 @@ class Logger(object):
         # Setup an atexit handler to move and rename the session log file in a user-friendly place if possible.
         atexit.register(self.giveBackLogFile)
 
+        # Add logging methods to this logger
+        self.logger = log.logger(name='main')
+        for meth in dir(self.logger):
+            if any(meth.startswith(prefix) for prefix in ['critical', 'error', 'warning', 'info', 'debug']):
+                setattr(self, meth, getattr(self.logger, meth))
+
+        # Done.
         self.info1(f'Logging session to temporary ' + self.runLogFileName.as_posix())
         self.info('Current folder: ' + pl.Path().absolute().as_posix())
         self.info('Command line: {} {}'.format(pl.Path(sys.argv[0]).as_posix(), ' '.join(sys.argv[1:])))
@@ -345,9 +347,11 @@ if not emptyRun:
         if surveyDataFile.is_file():
             indivDistSheet = pars.indivDistDataSheet if 'indivDistDataSheet' in vars(pars) else 0
             transectSheet = pars.transectsDataSheet if 'transectsDataSheet' in vars(pars) else 1
+            logger.info1(f'Loading survey data and transects infos from file {surveyDataFile.as_posix()} ...')
             with pd.ExcelFile(surveyDataFile) as xlInFile:
                 dfMonoCatObs = pd.read_excel(xlInFile, sheet_name=indivDistSheet)
                 dfTransects = pd.read_excel(xlInFile, sheet_name=transectSheet)
+            logger.info1(f'... found {len(dfMonoCatObs)} mono-category sightings and {len(dfTransects)} transects')
         else:
             logger.error(f'Could not find survey data file {surveyDataFile.as_posix()}')
             sys.exit(2)
