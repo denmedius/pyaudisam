@@ -208,6 +208,11 @@ argser.add_argument('-o', '--optanalyses', dest='optAnalyses', action='store_tru
                     help='Run opt-analyses for the specified samples of the survey data'
                          ' (Note: an opt-analysis spec. file and a survey data file must be also specified,'
                          ' through -p)')
+argser.add_argument('-c', '--recoveropts', dest='recoverOpts', action='store_true', default=False,
+                    help='Restart optimisations at the point they were when interrupted (for any reason), from the'
+                         ' last usable recovery file found in the work folder (use in conjonction with -w & -n)'
+                         ' (Note: if no usable recovery file found, the restart will fail: no automatic restart from'
+                         ' scratch ; remove -c to do so)')
 argser.add_argument('-t', '--prereports', dest='preReports', type=str, default='none',
                     help='Which reports to generate from pre-analyses results, through comma-separated keywords'
                          ' among {excel, html, none} (case does not matter, none ignored if not alone)')
@@ -800,14 +805,22 @@ if args.optAnalyses:
                                        if col not in dfExplOptAnlysSpecs.columns)))
         sys.exit(2)
 
-    # c. Run opt-analyses.
+    # c. Check if recovery possible (not 100% reliable), if specified
+    if args.recoverOpts and not list(workDir.glob('optr-resbak-*.pickle.xz')):
+        logger.error('No optimisation backup file found, can\'t recover ; you must start from scratch')
+        sys.exit(2)
+    else:
+        logger.info('Backup files are there, recovery is very likely possible: let\'s try !')
+
+    # d. Run opt-analyses.
     if args.realRun:
-        optResults = optAnlysr.run(implParamSpecs=optAnalysisSpecFile, threads=args.threads)
+        optResults = optAnlysr.run(implParamSpecs=optAnalysisSpecFile,
+                                   threads=args.threads, recoverOptims=args.recoverOpts)
         optAnlysSpecFileName = workDir / optAnlysSpecFileName
         dfExplOptAnlysSpecs.to_excel(optAnlysSpecFileName, index=False)
     optAnlysr.shutdown()
 
-    # d. Save results to disk.
+    # e. Save results to disk.
     if args.realRun:
         optResults.toExcel(oresFileName)
 
