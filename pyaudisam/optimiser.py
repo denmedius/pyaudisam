@@ -1298,7 +1298,8 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         recoveredOptims = [] if self.results.empty else list(self.results.dfRawData[self.anlysIndCol].unique())
 
         # For each optimisation to run :
-        runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
+        exptdWorkers = self._executor.expectedWorkers()
+        runHow = 'in sequence' if exptdWorkers <= 1 else f'at most {exptdWorkers} parallel threads'
         logger.info('Running MCDS truncation optimisations for {} analyses specs ({}) ...'
                     .format(len(dfExplParamSpecs), runHow))
         if recoveredOptims:

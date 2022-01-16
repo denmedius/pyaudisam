@@ -2513,7 +2513,8 @@ class MCDSAnalyser(DSAnalyser):
         assert checkVerdict, 'Analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each analysis to run :
-        runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
+        exptdWorkers = self._executor.expectedWorkers()
+        runHow = 'in sequence' if exptdWorkers <= 1 else f'at most {exptdWorkers} parallel threads'
         logger.info('Running {} MCDS analyses ({}) ...'.format(len(dfExplParamSpecs), runHow))
         dAnlyses = dict()
         for anInd, sAnSpec in dfExplParamSpecs.iterrows():
@@ -2707,8 +2708,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         self._executor = Executor(threads=threads)
 
         # MCDS analysis engine (a sequential one: 'cause MCDSPreAnalysis does the parallel stuff itself).
-
-        # Failed try: Seems we can't stack ThreadPoolExecutors, as optimisations get run sequentially
+        # Failed try: Seems we can't stack ThreadPoolExecutors, as pre-analyses get run sequentially
         #             when using an Executor(threads=1) (means async) for self._engine ... 
         # engineExor = None if self.runMethod != 'os.system' or self.runTimeOut is None else Executor(threads=1)
         self._engine = MCDSEngine(workDir=self.workDir,  # executor=engineExor,
@@ -2728,7 +2728,8 @@ class MCDSPreAnalyser(MCDSAnalyser):
         assert checkVerdict, 'Pre-analysis params check failed: {}'.format('; '.join(checkErrors))
         
         # For each sample to analyse :
-        runHow = 'in sequence' if threads <= 1 else f'{threads} parallel threads'
+        exptdWorkers = self._executor.expectedWorkers()
+        runHow = 'in sequence' if exptdWorkers <= 1 else f'at most {exptdWorkers} parallel threads'
         logger.info('Running {} MCDS pre-analyses ({}) ...'.format(len(dfExplSampleSpecs), runHow))
         
         dAnlyses = dict()
