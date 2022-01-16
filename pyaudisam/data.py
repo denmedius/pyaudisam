@@ -78,11 +78,9 @@ class DataSet(object):
                     dfData = self._fromDataFile(source, sheet=sheet, decimalFields=importDecFields,
                                                 skipRows=skipRows, headerRows=headerRows, indexCols=indexCols,
                                                 separator=separator, encoding=encoding)
-                    logger.info1('Loaded {} rows from file {}'
-                                 .format(len(dfData), source if isinstance(source, str) else source.as_posix()))
                 elif isinstance(source, pd.DataFrame):
                     dfData = self._fromDataFrame(source)
-                    logger.info1('Loaded {} rows from data frame'.format(len(dfData)))
+                    logger.info1('Loaded {} rows x {} columns from data frame'.format(len(dfData), len(dfData.columns)))
                 else:
                     raise Exception('source for DataSet must be a pandas.DataFrame or an existing file')
                 ldfData.append(dfData)
@@ -94,7 +92,7 @@ class DataSet(object):
             logger.warning('No data in source data set')
             return
             
-        logger.info(f'Loaded {len(self)} total rows in data set ...')
+        logger.info(f'Loaded {len(self)} x {len(self.columns)} total rows x columns in data set ...')
         logger.info('... found columns: [{}]'.format('|'.join(str(c) for c in self.columns)))
         
         # Rename columns if requested.
@@ -142,6 +140,9 @@ class DataSet(object):
         ext = sourceFpn.suffix.lower()
         assert ext in cls.SupportedFileExts, \
                'Unsupported source file type {}: not from {{{}}}'.format(ext, ','.join(cls.SupportedFileExts))
+
+        logger.info1('Loading set from file {} ...'.format(sourceFpn.as_posix()))
+
         if ext in ['.xlsx', '.xls', '.ods']:
             dfData = pd.read_excel(sourceFpn, sheet_name=sheet or 0,
                                    skiprows=skipRows, header=headerRows, index_col=indexCols)
@@ -150,7 +151,9 @@ class DataSet(object):
                                  skipRows=skipRows, headerRows=headerRows, indexCols=indexCols)
         else:
             raise NotImplementedError(f'Unsupported DataSet file input format {ext}')
-            
+
+        logger.info1('... loaded {} rows x {} columns'.format(len(dfData), len(dfData.columns)))
+
         return dfData
     
     @classmethod
