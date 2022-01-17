@@ -428,14 +428,22 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
             # b. Run optimisations
             optimResults = self.zoptr.run(dfExplOptimParamSpecs, threads=threads, recover=recover)
             self.zoptr.shutdown()
-            
+
             # c. Merge optimisation results into param. specs.
             # * Extract computed (= optimised) analysis params.
             dfOptimRes = \
                 optimResults.dfSubData(columns=[self.anlysIndCol] + optimResults.optimisationTargetColumns())
             dfOptimRes.set_index(self.anlysIndCol, inplace=True)
             dfOptimRes.sort_index(inplace=True)
-            
+
+            # Debug code for 2021-01-16 PM exception on np.repeat (l451 below) :
+            # ValueError: operands could not be broadcast together with shape (2520,) (2516,)
+            # Not reproduced after restart from last backup
+            optimResults.toExcel(self.workDir / 'optim-res.debug.xlsx')
+            dfOptimRes.to_excel(self.workDir / 'optim-res-opt.debug.xlsx')
+            dfExplOptimParamSpecs.to_excel(self.workDir / 'optim-specs.debug.xlsx')
+            # End debug.
+
             # * Replicate optimisation specs as much as there are associated results
             #   (optimisation may keep more than 1 "best" result row)
             dfExplCompdParamSpecs = dfExplOptimParamSpecs.copy()
