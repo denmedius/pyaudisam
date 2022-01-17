@@ -1326,9 +1326,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         logger.info3('* Pre-processing source data')
 
         # a. extract the useful columns, after adding them if not present
-        #    (NaN value, except for CLKeyFn, that MUST be there anyway)
         for miCol in cls.CLsQuaIndicSources:
-            if miCol not in self._dfData.columns and miCol != cls.CLKeyFn:
+            if miCol not in self._dfData.columns:
                 self._dfData[miCol] = np.nan
         dfCompData = self._dfData[cls.CLsQuaIndicSources].copy()
 

@@ -446,10 +446,10 @@ class MCDSTruncationOptimisation(DSOptimisation):
         sResults[RSClass.CLChi2] = RSClass._determineChi2Value(sResults[chi2AllColLbls])
 
         # Combined quality indicators
-        # a. Make sure requested columns are there, and add them if not (NaN value, except for CLKeyFn and CLChi2)
+        # a. Make sure requested columns are there, and add them if not (NaN value)
         miCompCols = RSClass.CLsQuaIndicSources
         for miCol in miCompCols:
-            if miCol not in sResults.index and miCol not in [RSClass.CLKeyFn, RSClass.CLChi2]:
+            if miCol not in sResults.index:
                 sResults[miCol] = np.nan
 
         # b. NaN value MUST kill down the indicators to compute => we have to enforce this
