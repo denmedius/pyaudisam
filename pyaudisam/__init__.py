@@ -29,8 +29,8 @@ runtime = dict(os=f'{platform.system()}{_osEdition} {platform.version()} ({platf
 
 # Transparent sub-module exports (in order not to care about them, and only import the top = pyaudisam package one)
 from . import log
-from .log import logger, DEBUG, DEBUG0, DEBUG1, DEBUG2, DEBUG3, DEBUG4, \
-                         INFO,  INFO0,  INFO1,  INFO2,  INFO3,  INFO4, \
+from .log import logger, DEBUG, DEBUG0, DEBUG1, DEBUG2, DEBUG3, DEBUG4, DEBUG5, DEBUG6, DEBUG7, DEBUG8, \
+                         INFO,  INFO0,  INFO1,  INFO2,  INFO3,  INFO4, INFO5,  INFO6,  INFO7,  INFO8, \
                          WARNING, ERROR, CRITICAL
 
 from .data import DataSet, FieldDataSet, MonoCategoryDataSet, SampleDataSet, ResultsSet

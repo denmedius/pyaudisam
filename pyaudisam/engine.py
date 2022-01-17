@@ -77,7 +77,7 @@ class DSEngine(object):
             for path in DSEngine.DistancePossInstPaths:
                 exeFN = path / DSEngine.DistanceInstDirNameFmt.format(majorVersion=ver) / exeFileName
                 if not exeFN.exists():
-                    logger.debug1('  Checking {} : No,'.format(exeFN))
+                    logger.info2('  Checking {} : No,'.format(exeFN))
                 else:
                     logger.info('Found {} here: {}.'.format(exeFileName, exeFN))
                     exeFilePathName = exeFN

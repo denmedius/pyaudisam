@@ -98,7 +98,7 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
         dTruncGroups = dict()  # key=ldIntrvSpecs[*]['col'], value=list(Series of group nums)
         for isOpt in sorted(dfSampRes[cls.CLOptimTruncFlag].unique()):
 
-            logger.debug3('* {}optimised'.format('' if isOpt else 'un').title())
+            logger.info4('* {}optimised'.format('' if isOpt else 'un').title())
 
             # Compute truncation groups for this case and sample
             dOptTruncGroups = \
@@ -530,10 +530,3 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
         self.zoptr4Specs.shutdown()
 
         super().shutdown()
-
-
-if __name__ == '__main__':
-
-    import sys
-
-    sys.exit(0)

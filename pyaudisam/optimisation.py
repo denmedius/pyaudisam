@@ -350,7 +350,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
             self.dConstParams['discrDistCuts'] = discrDistCuts
 
         if self.dConstParams:
-            logger.info(f'TrOptimisation({self.dConstParams})')
+            logger.info1(f'TrOptimisation({self.dConstParams})')
         
         if not (minDist is None or isinstance(minDist, (int, float)) or 0 <= minDist.min < minDist.max):
             moreError.append('Invalid left truncation distance {}'.format(minDist))
@@ -696,7 +696,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         
         assert all(name in self.SolutionDimensionNames for name in self.dVariantParams)
         
-        logger.info(f'ZOTrOptimisation({self.dVariantParams})')
+        logger.info1(f'ZOTrOptimisation({self.dVariantParams})')
         
         # Columns names for each optimisation result row (see _run).
         self.resultsCols = ['SetupStatus', 'SubmitStatus', 'NFunEvals', 'MeanFunElapd'] \
@@ -790,59 +790,3 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         return [dict(zip(self.resultsCols, [None, None, nMeanFunEvals, meanFunElapd]
                                            + sol.get_x() + [self.analysisValue(sol.get_value())]))
                 for sol in solutions]
-
-
-if __name__ == '__main__':
-
-    raise NotImplementedError()
-
-    from .data import SampleDataSet
-
-    # Parse command line args.
-    argser = argparse.ArgumentParser(description='Run a distance sampling analysis'
-                                                 ' using a DS engine from Distance software')
-
-    argser.add_argument('-g', '--debug', dest='debug', action='store_true', default=False, 
-                        help="Generate input data files, but don't run analysis")
-    argser.add_argument('-w', '--workdir', type=str, dest='workDir', default='.',
-                        help='Folder where to store DS analyses subfolders and output files')
-    argser.add_argument('-e', '--engine', type=str, dest='engineType', default='MCDS', choices=['MCDS'],
-                        help='The Distance engine to use, among MCDS, ... and no other for the moment')
-    argser.add_argument('-d', '--datafile', type=str, dest='dataFile',
-                        help='tabular data file path-name (XLSX or CSV/tab format)'
-                             ' with at least region, surface, point, effort and distance columns')
-    argser.add_argument('-k', '--keyfn', type=str, dest='keyFn', default='HNORMAL',
-                        choices=['UNIFORM', 'HNORMAL', 'HAZARD'],
-                        help='Model key function')
-    argser.add_argument('-a', '--adjustfn', type=str, dest='adjustFn', default='COSINE',
-                        choices=['COSINE', 'POLY', 'HERMITE'],
-                        help='Model adjustment function')
-    argser.add_argument('-c', '--criterion', type=str, dest='criterion', default='AIC',
-                        choices=['AIC', 'AICC', 'BIC', 'LR'],
-                        help='Criterion to use for selecting number of adjustment terms of the model')
-    argser.add_argument('-i', '--cvinter', type=int, dest='cvInterval', default=95,
-                        help='Confidence value for estimated values interval (%%)')
-
-    args = argser.parse_args()
-    
-    # Load data set.
-    sampleDataSet = SampleDataSet(source=args.dataFile)
-
-    # Create DS engine
-    engine = MCDSEngine(workDir=args.workDir,
-                        distanceUnit='Meter', areaUnit='Hectare',
-                        surveyType='Point', distanceType='Radial')
-
-    # Create and run analysis
-    optimion = MCDSOptimisation(engine=engine, sampleDataSet=sampleDataSet, name=args.engineType,
-                                estimKeyFn=args.keyFn, estimAdjustFn=args.adjustFn,
-                                estimCriterion=args.criterion, cvInterval=args.cvInterval)
-
-    dResults = optimion.submit(realRun=not args.debug)
-    
-    # Print results
-    logger.debug('Results:')
-    for k, v in dResults.items():
-        logger.debug('* {}: {}'.format(k, v))
-
-    sys.exit(analysis.runStatus)

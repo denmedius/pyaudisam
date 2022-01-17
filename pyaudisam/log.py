@@ -32,6 +32,14 @@ DEBUG3 = DEBUG - 3
 logging.addLevelName(DEBUG3, "DEBUG3")
 DEBUG4 = DEBUG - 4
 logging.addLevelName(DEBUG4, "DEBUG4")
+DEBUG5 = DEBUG - 5
+logging.addLevelName(DEBUG5, "DEBUG5")
+DEBUG6 = DEBUG - 6
+logging.addLevelName(DEBUG6, "DEBUG6")
+DEBUG7 = DEBUG - 7
+logging.addLevelName(DEBUG7, "DEBUG7")
+DEBUG8 = DEBUG - 8
+logging.addLevelName(DEBUG8, "DEBUG8")
 
 INFO0 = INFO
 logging.addLevelName(INFO0, "INFO0")
@@ -43,6 +51,14 @@ INFO3 = INFO - 3
 logging.addLevelName(INFO3, "INFO3")
 INFO4 = INFO - 4
 logging.addLevelName(INFO4, "INFO4")
+INFO5 = INFO - 5
+logging.addLevelName(INFO5, "INFO5")
+INFO6 = INFO - 6
+logging.addLevelName(INFO6, "INFO6")
+INFO7 = INFO - 7
+logging.addLevelName(INFO7, "INFO7")
+INFO8 = INFO - 8
+logging.addLevelName(INFO8, "INFO8")
 
 
 class Logger(logging.Logger):
@@ -69,6 +85,18 @@ class Logger(logging.Logger):
     def info4(self, msg, *args, **kwargs):
         self.log(INFO4, msg, *args, **kwargs)
 
+    def info5(self, msg, *args, **kwargs):
+        self.log(INFO5, msg, *args, **kwargs)
+
+    def info6(self, msg, *args, **kwargs):
+        self.log(INFO6, msg, *args, **kwargs)
+
+    def info7(self, msg, *args, **kwargs):
+        self.log(INFO7, msg, *args, **kwargs)
+
+    def info8(self, msg, *args, **kwargs):
+        self.log(INFO8, msg, *args, **kwargs)
+
     debug0 = logging.Logger.debug
     
     def debug1(self, msg, *args, **kwargs):
@@ -82,6 +110,18 @@ class Logger(logging.Logger):
 
     def debug4(self, msg, *args, **kwargs):
         self.log(DEBUG4, msg, *args, **kwargs)
+
+    def debug5(self, msg, *args, **kwargs):
+        self.log(DEBUG5, msg, *args, **kwargs)
+
+    def debug6(self, msg, *args, **kwargs):
+        self.log(DEBUG6, msg, *args, **kwargs)
+
+    def debug7(self, msg, *args, **kwargs):
+        self.log(DEBUG7, msg, *args, **kwargs)
+
+    def debug8(self, msg, *args, **kwargs):
+        self.log(DEBUG8, msg, *args, **kwargs)
 
     @staticmethod
     def _handlerId(hdlr):

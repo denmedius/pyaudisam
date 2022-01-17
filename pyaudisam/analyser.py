@@ -532,14 +532,14 @@ class DSAnalyser(Analyser):
                 parName = next(iter(parName for parName in int2UserSpecREs
                                     if any(re.search(pat, specName, flags=re.IGNORECASE)
                                            for pat in int2UserSpecREs[parName])))
-                logger.debug(f' * "{specName}" => {parName}')
+                logger.debug1(f' * "{specName}" => {parName}')
                 parNames.append(parName)
             except StopIteration:
                 if strict:
                     raise KeyError('Could not match user spec. column "{}" in sample data set columns [{}]'
                                    .format(specName, ', '.join(int2UserSpecREs.keys())))
                 else:
-                    logger.debug(f' * "{specName}" => Not found')
+                    logger.debug1(f' * "{specName}" => Not found')
                     parNames.append(None)
 
         logger.debug('... success{}.'.format('' if strict else ' but {} mismatches'.format(parNames.count(None))))
@@ -745,7 +745,7 @@ class _FilterSortSteps(object):
             return self.results.transColumn(columns, self.lang)
 
     def append(self, stepName, propName, propValue, transColumns=False):
-        """Append a step, property, value record in the log
+        """Append a (step, property, value) record in the filter & sort operation log
         (translate value as columns label(s) if specified: transColumns=True)"""
         logger.debug2(f'* {stepName}: {propName} = {propValue}')
         if transColumns:
@@ -1162,7 +1162,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     def _postComputeChi2(self):
         
-        logger.debug(f'Post-computing actual Chi2: {self.CLChi2}')
+        logger.info2(f'Post-computing actual Chi2: {self.CLChi2}')
         
         # Last value of all the tests done.
         chi2AllColLbls = [col for col in self.CLsChi2All if col in self._dfData.columns]
@@ -1177,7 +1177,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
     def _postComputeDeltaAicDCv(self):
         
-        logger.debug(f'Post-computing Delta AIC/DCv: {self.CLDeltaAic} / {self.CLDeltaDCv}')
+        logger.info2(f'Post-computing Delta AIC/DCv: {self.CLDeltaAic} / {self.CLDeltaDCv}')
         
         # a. Minimum AIC & DCv per group
         #    (drop all-NaN sample selection columns (sometimes, it happens) for a working groupby())
@@ -1317,13 +1317,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         cls = self
 
-        logger.debug('Post-computing Quality Indicators')
+        logger.info2('Post-computing Quality Indicators')
 
         # Sighting rate (not 100% due to truncations).
         self._dfData[cls.CLSightRate] = 100 * self._dfData[cls.CLNObs] / self._dfData[cls.CLNTotObs]  # [0,1] => %
 
         # Prepare data for computations
-        logger.debug1('* Pre-processing source data')
+        logger.info3('* Pre-processing source data')
 
         # a. extract the useful columns, after adding them if not present
         #    (NaN value, except for CLKeyFn, that MUST be there anyway)
@@ -1333,7 +1333,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         dfCompData = self._dfData[cls.CLsQuaIndicSources].copy()
 
         # b. historical bal quality  indicator 1
-        logger.debug1('* Balanced quality 1')
+        logger.info3('* Balanced quality 1')
         self._dfData[cls.CLCmbQuaBal1] = cls._combinedQualityBalanced1(dfCompData.values)
 
         # c. newer quality indicators
@@ -1347,7 +1347,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                            cls.CLNTotPars: cls.KilrNPars},
                           inplace=True)
 
-        logger.debug1('* Balanced quality 2, 3, Chi2+, KS+, DCv+')
+        logger.info3('* Balanced quality 2, 3, Chi2+, KS+, DCv+')
         for miCol, aIndic in zip(cls.CLsNewQuaIndics, cls._combinedQualityAll(dfCompData.values)):
             self._dfData[miCol] = aIndic
 
@@ -1439,7 +1439,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         for dIntrvSpecs in ldIntrvSpecs:
 
             truncCol = cls.DCLParTruncDist[dIntrvSpecs['col']]
-            logger.debug4(f'  - {truncCol[1]}')
+            logger.info5(f'  - {truncCol[1]}')
 
             # Compute distance grouping intervals
             dfIntrvs = cls._groupingIntervals(sValues=dfSampRes[truncCol], minDist=dIntrvSpecs['minDist'],
@@ -1478,7 +1478,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
             # Select sample rows
             dfSampRes = self._dfData.loc[self._dfData[self.sampleIndCol] == lblSamp]
-            logger.debug2('#{} {} : {} rows'
+            logger.info3('#{} {} : {} rows'
                           .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
 
             # Compute truncation groups for this sample
@@ -1500,7 +1500,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         """Compute and add truncation group columns for later filtering and sorting"""
 
-        logger.debug('Post-computing Truncation Groups')
+        logger.info2('Post-computing Truncation Groups')
 
         # Compute distance truncation groups for all samples, for each target distance truncation column
         # and update result table.
@@ -1657,14 +1657,14 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         dFilSorKeys = dict()
         for scheme in ldFilSorKeySchemes:
 
-            logger.debug3('* scheme {}'.format(scheme))
+            logger.info4('* scheme {}'.format(scheme))
 
             # Workaround to-be-sorted problematic columns.
             sortCols = list()
             for col in scheme['sort']:
                 if col in cls.DCLUnsortableCols:
                     wkrndSortCol = cls.DCLUnsortableCols[col]
-                    logger.debug3('{} => {}'.format(col, wkrndSortCol))
+                    logger.info5('{} => {}'.format(col, wkrndSortCol))
                     dfSampRes[wkrndSortCol] = dfSampRes[col].apply(cls._toSortable)
                     col = wkrndSortCol  # Will rather sort with this one !
                 sortCols.append(col)
@@ -1681,7 +1681,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                 for col in scheme['group']:
                     if col in cls.DCLUnhashableCols:
                         wkrndGroupCol = cls.DCLUnhashableCols[col]
-                        logger.debug3('{} => {}'.format(col, wkrndGroupCol))
+                        logger.info5('{} => {}'.format(col, wkrndGroupCol))
                         dfSampRes[wkrndGroupCol] = dfSampRes[col].apply(cls._toHashable)
                         col = wkrndGroupCol  # Will rather group with this one !
                     groupCols.append(col)
@@ -1713,8 +1713,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
             # Select sample rows
             dfSampRes = self._dfData.loc[self._dfData[self.sampleIndCol] == lblSamp]
-            logger.debug2('#{} {} : {} rows'
-                          .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
+            logger.info3('#{} {} : {} rows'
+                         .format(lblSamp, ', '.join([f'{k[1]}={v}' for k, v in sSamp.items()]), len(dfSampRes)))
 
             # Compute key values for all schemes for this sample
             dSampKeys = self._sampleFilterSortKeys(dfSampRes, ldFilSorKeySchemes)
@@ -1732,7 +1732,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         """Compute and add partial or global order columns for later filtering and sorting"""
 
-        logger.debug('Post-computing Filter and Sort keys')
+        logger.info2('Post-computing Filter and Sort keys')
 
         # Compute keys for each sample and add relevant columns to results.
         for colLbl, sFSKeys in self._filterSortKeys().items():
@@ -2519,7 +2519,7 @@ class MCDSAnalyser(DSAnalyser):
         dAnlyses = dict()
         for anInd, sAnSpec in dfExplParamSpecs.iterrows():
             
-            logger.info(f'#{anInd+1}/{len(dfExplParamSpecs)} : {sAnSpec[self.abbrevCol]}')
+            logger.info1(f'#{anInd+1}/{len(dfExplParamSpecs)} : {sAnSpec[self.abbrevCol]}')
 
             # Select data sample to process
             sds = self._mcDataSet.sampleDataSet(sAnSpec[self.sampleSelCols])
@@ -2735,7 +2735,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         dAnlyses = dict()
         for sampInd, sSampSpec in dfExplSampleSpecs.iterrows():
             
-            logger.info(f'#{sampInd+1}/{len(dfExplSampleSpecs)} : {sSampSpec[self.abbrevCol]}')
+            logger.info1(f'#{sampInd+1}/{len(dfExplSampleSpecs)} : {sSampSpec[self.abbrevCol]}')
 
             # Select data sample to process
             sds = self._mcDataSet.sampleDataSet(sSampSpec[self.sampleSelCols])
@@ -2813,7 +2813,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
             fpn = pl.Path(self.workDir) / '{}-dist.txt'.format(sSampSpec[self.abbrevCol])
             fpn = self._engine.buildDistanceDataFile(sds, tgtFilePathName=fpn)
 
-            logger.info('#{}/{} => {}'.format(sampInd+1, len(dfExplSampleSpecs), fpn.name))
+            logger.info1('#{}/{} => {}'.format(sampInd+1, len(dfExplSampleSpecs), fpn.name))
 
         # Done.
         self._engine.shutdown()

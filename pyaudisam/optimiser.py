@@ -848,7 +848,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             self._parseDistTruncationUserSpec(sAnIntSpec.get(self.IntSpecOutliersMethod, None),
                                               errIfNotA=[self.Auto, self.OutliersMethod])
 
-        logger.debug('OptimedParams specs:' + str(dict(minDist=minDistSpec, maxDist=maxDistSpec,
+        logger.info2('OptimedParams specs:' + str(dict(minDist=minDistSpec, maxDist=maxDistSpec,
                                                        fitDistCuts=fitDistCutsSpec, discrDistCuts=discrDistCutsSpec)))
 
         # Stop here if any parsing error.
@@ -997,7 +997,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             if msg:
                 finalErr.append(head='discrDistCuts', error=msg)
 
-        logger.debug(f'OptimedParams: {minDist=}, {maxDist=}, {fitDistCuts=}, {discrDistCuts=}')
+        logger.info2(f'OptimedParams: {minDist=}, {maxDist=}, {fitDistCuts=}, {discrDistCuts=}')
 
         return finalErr or None, \
                {self.IntSpec2SolDimOptimTargetParamNames[self.IntSpecMinDist]: minDist,
@@ -1309,12 +1309,12 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         dOptims = dict()
         for optimInd, (_, sOptimSpec) in enumerate(dfExplParamSpecs.iterrows()):
             
-            logger.info('#{}/{}: {} (Id {})'.format(optimInd+1, len(dfExplParamSpecs),
+            logger.info1('#{}/{}: {} (Id {})'.format(optimInd+1, len(dfExplParamSpecs),
                                                     sOptimSpec[self.abbrevCol], sOptimSpec[self.anlysIndCol]))
 
             # Skip optimisation if already in results (recovered).
             if sOptimSpec[self.anlysIndCol] in recoveredOptims:
-                logger.info('Skipping this one: already present in recovered results')
+                logger.info1('Skipping this one: already present in recovered results')
                 continue
 
             # Select data sample to process (and skip if empty)
@@ -1330,7 +1330,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                 self.getOptimisationSetupParams(sOptimIntSpec, sds.dfData[self.sampleDistCol])
             
             # Create optimisation object
-            logger.debug('Optim. params: ' + ', '.join(f'{k}: {v}' for k, v in dSetupParams.items()))
+            logger.info2('Optim. params: ' + ', '.join(f'{k}: {v}' for k, v in dSetupParams.items()))
             optim = self.setupOptimisation(sampleDataSet=sds, name=sOptimSpec[self.abbrevCol],
                                            customData=sOptimSpec[customCols].copy(),
                                            error=setupError, **dSetupParams)
@@ -1339,7 +1339,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             submitError, dSubmitParams = self.getOptimisationSubmitParams(sOptimIntSpec)
                                                
             # Submit optimisation (but don't wait for it's finished, go on with next, may run in parallel)
-            logger.debug('Submit params: ' + ', '.join([f'{k}: {v}' for k, v in dSubmitParams.items()]))
+            logger.info2('Submit params: ' + ', '.join([f'{k}: {v}' for k, v in dSubmitParams.items()]))
             optimFut = optim.submit(error=submitError, **dSubmitParams)
             
             # Store optimisation object and associated "future" for later use (should be running soon or later).
@@ -1407,12 +1407,3 @@ class MCDSZerothOrderTruncationOptimiser(MCDSTruncationOptimiser):
                          dDefOptimCoreParams=dict(core='zoopt', maxIters=defCoreMaxIters,
                                                   termExprValue=defCoreTermExprValue,
                                                   algorithm=defCoreAlgorithm, maxRetries=defCoreMaxRetries))
-                         
-
-if __name__ == '__main__':
-
-    import sys
-
-    print('Nothing done here.')
-    
-    sys.exit(0)

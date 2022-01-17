@@ -162,7 +162,7 @@ class MCDSAnalysis(DSAnalysis):
         # (but then, MCDS exe are not killed, only abandoned in "space")
         self.timeOut = engine.timeOut if engine.runMethod == 'os.system' else None
         if self.timeOut is not None:
-            logger.debug(f"Will take care of {self.timeOut}s time limit because engine can't do this")
+            logger.info2(f"Will take care of {self.timeOut}s time limit because engine can't do this")
 
         # Save params.
         self.logData = logData
@@ -267,7 +267,7 @@ class MCDSAnalysis(DSAnalysis):
             
                 # Take extra precautions before rm -fr :-) (at least 14 files inside after a report generation)
                 if not runDir.is_symlink() and len(list(runDir.rglob('*'))) < 15:
-                    logger.debug('Removing run folder "{}"'.format(runDir.as_posix()))
+                    logger.info3('Removing run folder "{}"'.format(runDir.as_posix()))
                     shutil.rmtree(runDir)
                 else:
                     logger.warning('Cowardly refused to remove suspect analysis run folder "{}"'.format(runDir))
@@ -384,58 +384,3 @@ class MCDSPreAnalysis(MCDSAnalysis):
             anlys.runStatus, anlys.startTime, anlys.elapsedTime, anlys.runDir
         
         return sResults
-
-
-if __name__ == '__main__':
-
-    from .data import SampleDataSet
-
-    # Parse command line args.
-    argser = argparse.ArgumentParser(description='Run a distance sampling analysis'
-                                                 ' using a DS engine from Distance software')
-
-    argser.add_argument('-g', '--debug', dest='debug', action='store_true', default=False, 
-                        help='Generate input data files, but don\'t run analysis')
-    argser.add_argument('-w', '--workdir', type=str, dest='workDir', default='.',
-                        help='Folder where to store DS analyses subfolders and output files')
-    argser.add_argument('-e', '--engine', type=str, dest='engineType', default='MCDS',
-                        choices=['MCDS'],
-                        help='The Distance engine to use, among MCDS, ... and no other for the moment')
-    argser.add_argument('-d', '--datafile', type=str, dest='dataFile',
-                        help='tabular data file path-name (XLSX or CSV/tab format)'
-                             ' with at least region, surface, point, effort and distance columns')
-    argser.add_argument('-k', '--keyfn', type=str, dest='keyFn', default='HNORMAL',
-                        choices=['UNIFORM', 'HNORMAL', 'HAZARD'],
-                        help='Model key function')
-    argser.add_argument('-a', '--adjustfn', type=str, dest='adjustFn', default='COSINE',
-                        choices=['COSINE', 'POLY', 'HERMITE'],
-                        help='Model adjustment function')
-    argser.add_argument('-c', '--criterion', type=str, dest='criterion', default='AIC',
-                        choices=['AIC', 'AICC', 'BIC', 'LR'],
-                        help='Criterion to use for selecting number of adjustment terms of the model')
-    argser.add_argument('-i', '--cvinter', type=int, dest='cvInterval', default=95,
-                        help='Confidence value for estimated values interval (%%)')
-
-    args = argser.parse_args()
-    
-    # Load data set.
-    sampleDataSet = SampleDataSet(source=args.dataFile)
-
-    # Create DS engine
-    engine = MCDSEngine(workDir=args.workDir,
-                        distanceUnit='Meter', areaUnit='Hectare',
-                        surveyType='Point', distanceType='Radial')
-
-    # Create and run analysis
-    analysis = MCDSAnalysis(engine=engine, sampleDataSet=sampleDataSet, name=args.engineType,
-                            estimKeyFn=args.keyFn, estimAdjustFn=args.adjustFn,
-                            estimCriterion=args.criterion, cvInterval=args.cvInterval)
-
-    dResults = analysis.submit(realRun=not args.debug)
-    
-    # Print results
-    logger.debug('Results:')
-    for k, v in dResults.items():
-        logger.debug('* {}: {}'.format(k, v))
-
-    sys.exit(analysis.runStatus)
