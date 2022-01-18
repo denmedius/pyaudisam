@@ -806,11 +806,12 @@ if args.optAnalyses:
         sys.exit(2)
 
     # c. Check if recovery possible (not 100% reliable), if specified
-    if args.recoverOpts and not list(workDir.glob('optr-resbak-*.pickle.xz')):
-        logger.error('No optimisation backup file found, can\'t recover ; you must start from scratch')
-        sys.exit(2)
-    else:
-        logger.info('Backup files are there, recovery is very likely possible: let\'s try !')
+    if args.recoverOpts:
+        if not list(workDir.glob('optr-resbak-*.pickle.xz')):
+            logger.error('No optimisation backup file found, can\'t recover ; you must start from scratch')
+            sys.exit(2)
+        else:
+            logger.info('Backup files are there, recovery is very likely possible: let\'s try !')
 
     # d. Run opt-analyses.
     if args.realRun:
