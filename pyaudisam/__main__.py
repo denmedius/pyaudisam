@@ -353,7 +353,7 @@ if not emptyRun:
     surveyDataFile = pars.surveyDataFile if 'surveyDataFile' in vars(pars) else None
     if surveyDataFile:
         surveyDataFile = pl.Path(surveyDataFile)
-        if surveyDataFile.is_file():
+        if surveyDataFile.exists():
             indivDistSheet = pars.indivDistDataSheet if 'indivDistDataSheet' in vars(pars) else 0
             transectSheet = pars.transectsDataSheet if 'transectsDataSheet' in vars(pars) else 1
             logger.info1(f'Loading survey data and transects infos from file {surveyDataFile.as_posix()} ...')
@@ -374,7 +374,7 @@ if args.distExport or args.preAnalyses:
     sampleSpecFile = pars.sampleSpecFile if 'sampleSpecFile' in vars(pars) else None
     if sampleSpecFile:
         sampleSpecFile = pl.Path(sampleSpecFile)
-        if not sampleSpecFile.is_file():
+        if not sampleSpecFile.exists():
             logger.error(f'Could not find sample spec. file {sampleSpecFile.as_posix()}')
             sys.exit(2)
     else:
@@ -382,6 +382,10 @@ if args.distExport or args.preAnalyses:
         sys.exit(2)
 
 # 8. Export input files for Distance software, for manual analyses (if specified to).
+sampExplSpecFilePath = workDir / f'{pars.studyName}{pars.subStudyName}-samples-explispecs.xlsx'
+if sampExplSpecFilePath.exists():
+    logger.info('Found sample explicit specs file ' + sampExplSpecFilePath.as_posix())
+
 if args.distExport:
 
     oprText = 'export of input data files for Distance'
@@ -411,24 +415,25 @@ if args.distExport:
 
     logger.info2(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
     logger.info1(f'From sample specs, {len(dfExplSampleSpecs)} samples to export')
-    sampSpecFileName = f'{pars.studyName}{pars.subStudyName}-samples-explispecs.xlsx'
     if args.verbose and not args.realRun:
-        dfExplSampleSpecs.to_excel(sampSpecFileName, index=False)
+        dfExplSampleSpecs.to_excel(sampExplSpecFilePath, index=False)
 
     # b. Export 1 Distance input data file for each specified sample.
     # dfSamples = Analyser.explicitVariantSpecs(partSpecs=sampSpecFile, varIndCol=pars.sampleIndCol)
     if args.realRun:
         preAnlysr.exportDSInputData(implSampleSpecs=sampleSpecFile, format='Distance')
-        sampSpecFileName = workDir / sampSpecFileName
-        dfExplSampleSpecs.to_excel(sampSpecFileName, index=False)
-    preAnlysr.shutdown()  # Not really needed actually.
+        dfExplSampleSpecs.to_excel(sampExplSpecFilePath, index=False)
+    preAnlysr.shutdown()  # Not really needed, actually.
 
     logger.closeOperation(oprText)
 
 # 9. Run pre-analyses (if specified to).
 PreAnalyser = MCDSPreAnalyser
 resultsWord = 'resultats' if pars.studyLang == 'fr' else 'results'
-presFileName = workDir / f'{pars.studyName}{pars.subStudyName}-preanalyses-{resultsWord}.xlsx'
+preAnlysResFilePath = workDir / f'{pars.studyName}{pars.subStudyName}-preanalyses-{resultsWord}.xlsx'
+if preAnlysResFilePath.exists():
+    logger.info('Found pre-analyses results file ' + preAnlysResFilePath.as_posix())
+
 if args.preAnalyses:
 
     oprText = 'pre-analyses'
@@ -461,9 +466,8 @@ if args.preAnalyses:
     logger.info2(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
     logger.info2(f'Pre-analysis model fallback strategy:\n{pd.DataFrame(pars.modelPreStrategy).to_string()}')
     logger.info1(f'From sample specs, {len(dfExplSampleSpecs)} samples to pre-analyse')
-    sampSpecFileName = f'{pars.studyName}{pars.subStudyName}-samples-explispecs.xlsx'
     if args.verbose and not args.realRun:
-        dfExplSampleSpecs.to_excel(sampSpecFileName, index=False)
+        dfExplSampleSpecs.to_excel(sampExplSpecFilePath, index=False)
 
     if any(col not in dfExplSampleSpecs.columns for col in pars.sampleSpecCustCols):
         logger.error('Missing custom (pass-through) column(s) in sample specs: {}'
@@ -475,15 +479,14 @@ if args.preAnalyses:
     if args.realRun:
         preResults = preAnlysr.run(implSampleSpecs=sampleSpecFile, dModelStrategy=pars.modelPreStrategy,
                                    threads=args.threads)
-        sampSpecFileName = workDir / sampSpecFileName
-        dfExplSampleSpecs.to_excel(sampSpecFileName, index=False)
+        dfExplSampleSpecs.to_excel(sampExplSpecFilePath, index=False)
     preAnlysr.shutdown()
 
     # d. Save results to disk.
     # if 'dfSampleStats' in dir(): # Qq specs supplémentaires
     #    preResults.updateSpecs(sampleStats=dfSampleStats)
     if args.realRun:
-        preResults.toExcel(presFileName)
+        preResults.toExcel(preAnlysResFilePath)
 
     logger.closeOperation(oprText)
 
@@ -495,11 +498,11 @@ if args.preReports:
     # a. Load pre-analyses results if not just computed
     if not args.preAnalyses:
 
-        if not presFileName.is_file():
-            logger.error(f'Cannot generate pre-analysis reports: results file not found {presFileName.as_posix()}')
+        if not preAnlysResFilePath.exists():
+            logger.error(f'Cannot generate pre-analysis reports: results file not found {preAnlysResFilePath.as_posix()}')
             sys.exit(2)
 
-        logger.info(f'Loading pre-analysis results from {presFileName.as_posix()}')
+        logger.info(f'Loading pre-analysis results from {preAnlysResFilePath.as_posix()}')
 
         preAnlysr = PreAnalyser(dfMonoCatObs, dfTransects=dfTransects, dSurveyArea=pars.studyAreaSpecs,
                                 effortConstVal=pars.passEffort, effortCol=pars.effortCol,
@@ -516,7 +519,7 @@ if args.preReports:
         preResults = preAnlysr.setupResults()
         preAnlysr.shutdown()  # Not really needed actually.
 
-        preResults.fromFile(presFileName)
+        preResults.fromFile(preAnlysResFilePath)
 
     # b. Check report generation parameters
     assert isinstance(pars.preReportSortAscend, bool) or len(pars.preReportSortCols) == len(pars.preReportSortAscend)
@@ -551,14 +554,20 @@ if args.preReports:
 
 # 11. Run analyses (if specified to).
 Analyser = MCDSAnalyser
-resFileName = workDir / f'{pars.studyName}{pars.subStudyName}-analyses-{resultsWord}.xlsx'
+anlysExplSpecFilePath = workDir / f'{pars.studyName}{pars.subStudyName}-analyses-explispecs.xlsx'
+if anlysExplSpecFilePath.exists():
+    logger.info('Found analyses explicit spec. file ' + anlysExplSpecFilePath.as_posix())
+anlysResFilePath = workDir / f'{pars.studyName}{pars.subStudyName}-analyses-{resultsWord}.xlsx'
+if anlysResFilePath.exists():
+    logger.info('Found analyses results file ' + anlysResFilePath.as_posix())
+
 if args.analyses:
 
     # Check analysis spec. file
     analysisSpecFile = pars.analysisSpecFile if 'analysisSpecFile' in vars(pars) else None
     if analysisSpecFile:
         analysisSpecFile = pl.Path(analysisSpecFile)
-        if not analysisSpecFile.is_file():
+        if not analysisSpecFile.exists():
             logger.error(f'Could not find analysis spec. file {analysisSpecFile.as_posix()}')
             sys.exit(2)
     else:
@@ -598,9 +607,8 @@ if args.analyses:
 
     logger.info2(f'Explicit analysis specs:\n{dfExplAnlysSpecs.to_string()}')
     logger.info1(f'From analysis specs, {len(dfExplAnlysSpecs)} analyses to run')
-    anlysSpecFileName = f'{pars.studyName}{pars.subStudyName}-analyses-explispecs.xlsx'
     if args.verbose and not args.realRun:
-        dfExplAnlysSpecs.to_excel(anlysSpecFileName, index=False)
+        dfExplAnlysSpecs.to_excel(anlysExplSpecFilePath, index=False)
 
     if any(col not in dfExplAnlysSpecs.columns for col in pars.analysisSpecCustCols):
         logger.error('Missing custom (pass-through) column(s) in analysis specs: {}'
@@ -611,13 +619,12 @@ if args.analyses:
     # c. Run analyses.
     if args.realRun:
         results = anlysr.run(implParamSpecs=analysisSpecFile, threads=args.threads)
-        anlysSpecFileName = workDir / anlysSpecFileName
-        dfExplAnlysSpecs.to_excel(anlysSpecFileName, index=False)
+        dfExplAnlysSpecs.to_excel(anlysExplSpecFilePath, index=False)
     anlysr.shutdown()
 
     # d. Save results to disk.
     if args.realRun:
-        results.toExcel(resFileName)
+        results.toExcel(anlysResFilePath)
 
     logger.closeOperation(oprText)
 
@@ -630,11 +637,11 @@ if args.reports:
     # a. Load analysis results if not just computed
     if not args.analyses:
 
-        if not resFileName.is_file():
-            logger.error(f'Cannot generate analysis reports: results file not found {resFileName.as_posix()}')
+        if not anlysResFilePath.exists():
+            logger.error(f'Cannot generate analysis reports: results file not found {anlysResFilePath.as_posix()}')
             sys.exit(2)
 
-        logger.info(f'Loading analysis results from {resFileName.as_posix()}')
+        logger.info(f'Loading analysis results from {anlysResFilePath.as_posix()}')
 
         anlysr = Analyser(dfMonoCatObs, dfTransects=dfTransects, dSurveyArea=pars.studyAreaSpecs,
                           effortConstVal=pars.passEffort, effortCol=pars.effortCol,
@@ -651,7 +658,7 @@ if args.reports:
         results = anlysr.setupResults()
         anlysr.shutdown()  # Not really needed actually.
 
-        results.fromFile(resFileName)
+        results.fromFile(anlysResFilePath)
 
     # b. Generate specified reports
     oprText = 'generation of {} analysis report(s)'.format(','.join(args.reports))
@@ -730,14 +737,19 @@ if args.reports:
 
 # 13. Run opt-analyses (if specified to).
 OptAnalyser = MCDSTruncationOptanalyser
-oresFileName = workDir / f'{pars.studyName}{pars.subStudyName}-optanalyses-{resultsWord}.xlsx'
+optAnlysExplSpecFilePath = workDir / f'{pars.studyName}{pars.subStudyName}-optanalyses-explispecs.xlsx'
+if optAnlysExplSpecFilePath.exists():
+    logger.info('Found opt-analyses explicit spec. file ' + optAnlysExplSpecFilePath.as_posix())
+optAnlysResFilePath = workDir / f'{pars.studyName}{pars.subStudyName}-optanalyses-{resultsWord}.xlsx'
+if optAnlysResFilePath.exists():
+    logger.info('Found opt-analyses results file ' + optAnlysResFilePath.as_posix())
 if args.optAnalyses:
 
     # Check analysis spec. file
     optAnalysisSpecFile = pars.optAnalysisSpecFile if 'optAnalysisSpecFile' in vars(pars) else None
     if optAnalysisSpecFile:
         optAnalysisSpecFile = pl.Path(optAnalysisSpecFile)
-        if not optAnalysisSpecFile.is_file():
+        if not optAnalysisSpecFile.exists():
             logger.error(f'Could not find opt-analysis spec. file {optAnalysisSpecFile.as_posix()}')
             sys.exit(2)
     else:
@@ -795,9 +807,8 @@ if args.optAnalyses:
                  .format(sbAnlysNeedOpt.sum(), len(dfExplOptAnlysSpecs)))
     logger.info1('... implying possibly up to {} auto-analyses in the background if only full "auto" specs'
                  .format(sbAnlysNeedOpt.sum() * pars.defCoreMaxIters * pars.defSubmitTimes))
-    optAnlysSpecFileName = f'{pars.studyName}{pars.subStudyName}-optanalyses-explispecs.xlsx'
     if args.verbose and not args.realRun:
-        dfExplOptAnlysSpecs.to_excel(optAnlysSpecFileName, index=False)
+        dfExplOptAnlysSpecs.to_excel(optAnlysExplSpecFilePath, index=False)
 
     if any(col not in dfExplOptAnlysSpecs.columns for col in pars.optAnalysisSpecCustCols):
         logger.error('Missing custom (pass-through) column(s) in opt-analysis specs: {}'
@@ -817,13 +828,12 @@ if args.optAnalyses:
     if args.realRun:
         optResults = optAnlysr.run(implParamSpecs=optAnalysisSpecFile,
                                    threads=args.threads, recoverOptims=args.recoverOpts)
-        optAnlysSpecFileName = workDir / optAnlysSpecFileName
-        dfExplOptAnlysSpecs.to_excel(optAnlysSpecFileName, index=False)
+        dfExplOptAnlysSpecs.to_excel(optAnlysExplSpecFilePath, index=False)
     optAnlysr.shutdown()
 
     # e. Save results to disk.
     if args.realRun:
-        optResults.toExcel(oresFileName)
+        optResults.toExcel(optAnlysResFilePath)
 
     logger.closeOperation(oprText)
 
@@ -833,11 +843,11 @@ if args.optReports:
     # a. Load opt-analysis results if not just computed
     if not args.optAnalyses:
 
-        if not oresFileName.is_file():
-            logger.error(f'Cannot generate opt-analysis reports: results file not found {oresFileName.as_posix()}')
+        if not optAnlysResFilePath.exists():
+            logger.error(f'Cannot generate opt-analysis reports: results file not found {optAnlysResFilePath.as_posix()}')
             sys.exit(2)
 
-        logger.info(f'Loading opt-analysis results from {oresFileName.as_posix()}')
+        logger.info(f'Loading opt-analysis results from {optAnlysResFilePath.as_posix()}')
 
         optAnlysr = OptAnalyser(dfMonoCatObs, dfTransects=dfTransects, dSurveyArea=pars.studyAreaSpecs,
                                 effortConstVal=pars.passEffort, effortCol=pars.effortCol,
@@ -854,7 +864,7 @@ if args.optReports:
         optResults = optAnlysr.setupResults()
         optAnlysr.shutdown()  # Not really needed actually.
 
-        optResults.fromFile(oresFileName)
+        optResults.fromFile(optAnlysResFilePath)
 
     # b. Generate specified reports
     assert isinstance(pars.filsorReportSortAscend, bool) \
