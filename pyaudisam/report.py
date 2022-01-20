@@ -111,7 +111,7 @@ class ResultsReport(object):
     
     @staticmethod
     def _libVersions():
-        return {'Python': runtime[sys.implementation.name].split()[0],
+        return {'Python':sys.version.split()[0],
                 'NumPy': runtime['numpy'],
                 'Pandas': runtime['pandas'],
                 'ZOOpt': runtime['zoopt'],

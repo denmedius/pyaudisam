@@ -934,8 +934,3 @@ class MCDSEngine(DSEngine):
         logger.debug('Data Distance-exported to {}.'.format(tgtFilePathName))
         
         return tgtFilePathName
-
-
-if __name__ == '__main__':
-
-    sys.exit(0)
