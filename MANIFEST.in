@@ -1,7 +1,6 @@
 include README.md
 include LICENSE.txt
 include requirements.txt
-include USAGE.txt
 
 include pyaudisam/mcds/*.htpl
 include pyaudisam/mcds/*.txt

@@ -19,8 +19,6 @@
 # ... or the old way (should also work out of the box):
 # $ python setup.py sdist bdist_wheel
 
-import sys
-import subprocess
 from setuptools import setup
 import pathlib as pl
 import re
@@ -39,11 +37,6 @@ with open(here / 'README.md') as file:
 # Retrieve install_requires from requirements.txt
 with open(here / 'requirements.txt') as file:
     requirements = file.read().splitlines()
-
-# Generate USAGE.txt file
-with open(here / 'USAGE.txt', 'w') as file:
-    usage = subprocess.run([sys.executable, '-m', 'pyaudisam', '-h'], cwd=here, text=True, capture_output=True).stdout
-    file.write(usage[usage.find('usage:'):])
 
 # This call to setup() does all the final work !
 setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaudisam',

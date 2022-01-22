@@ -31,7 +31,7 @@ The module itself:
 * jinja2 2.10+
 * zoopt 0.4+
 
-Tests also need:
+Tests:
 * pytest
 * plotly (sometimes)
 
@@ -53,7 +53,7 @@ As a python package, **pyaudisam** can be used through its API : for the moment,
 it by playing with the fully functional [jupyter notebook](https://jupyter.org/) 'tests/valtests.ipynb' (see below 
 Running tests for how to obtain and run it).
 
-But there's also a command-line interface: run it with the -h/--help option (or look at USAGE.txt) ...
+But there's also a command-line interface: run it with the -h/--help option ...
 
   <code>
   $ python -m pyaudisam --help
@@ -62,9 +62,9 @@ But there's also a command-line interface: run it with the -h/--help option (or 
 ## Documentation
 
 TODO:
+* a concrete quick-start guide with a real life use case and relevant data to play with,
 * a guide for building the module API documentation ([sphinx](https://www.sphinx-doc.org/) should work out of the box
   as [reStructured text](https://en.wikipedia.org/wiki/ReStructuredText) has been used in docstrings),
-* a quick-start guide with real life use case and relevant data to play with.
 
 ## Running tests
 
@@ -77,5 +77,5 @@ everything's in :
   $ pytest
   </code>
 
-* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/), waiting for someone to
-  fully automate them with pytest :-)
+* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) that you must run step by 
+  step (as long as no one has fully automated them :-)
