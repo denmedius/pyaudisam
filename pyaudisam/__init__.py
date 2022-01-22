@@ -14,7 +14,7 @@
 # If not, see https://www.gnu.org/licenses/.
 
 # Module version
-__version__ = '0.9.3rc'
+__version__ = '0.9.3rc0'
 
 import os
 import sys

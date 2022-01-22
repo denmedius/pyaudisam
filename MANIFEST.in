@@ -1,8 +1,23 @@
 include README.md
 include LICENSE.txt
 include requirements.txt
+include USAGE.txt
 
 include pyaudisam/mcds/*.htpl
 include pyaudisam/mcds/*.txt
 include pyaudisam/report/*.css
 include pyaudisam/report/*.svg
+
+include tests/*.py
+include tests/*.ipynb
+include tests/*.js
+
+include tests/refin/*.txt
+include tests/refin/*.xlsx
+include tests/refin/*.ods
+include tests/refin/*.odt
+
+include tests/refout/*.txt
+include tests/refout/*.xlsx
+include tests/refout/*.ods
+graft tests/refout/dist-order-sens-min

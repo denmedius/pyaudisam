@@ -13,9 +13,17 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see https://www.gnu.org/licenses/.
 
+# This script is for building the source and binary PyPI packages for pyaudisam:
+# you can use the official python way (after installing the 'build' package):
+# $ python -m build
+# ... or the old way (should also work out of the box):
+# $ python setup.py sdist bdist_wheel
+
+import sys
+import subprocess
+from setuptools import setup
 import pathlib as pl
 import re
-from setuptools import setup
 
 # The directory containing this file
 here = pl.Path(__file__).parent
@@ -32,7 +40,12 @@ with open(here / 'README.md') as file:
 with open(here / 'requirements.txt') as file:
     requirements = file.read().splitlines()
 
-# This call to setup() does all the work
+# Generate USAGE.txt file
+with open(here / 'USAGE.txt', 'w') as file:
+    usage = subprocess.run([sys.executable, '-m', 'pyaudisam', '-h'], cwd=here, text=True, capture_output=True).stdout
+    file.write(usage[usage.find('usage:'):])
+
+# This call to setup() does all the final work !
 setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaudisam',
       description='Distance Sampling automation through Distance sofware',
       long_description=long_desc, long_description_content_type='text/markdown',
