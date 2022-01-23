@@ -42,7 +42,7 @@ with open(here / 'requirements.txt') as file:
 setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaudisam',
       description='Distance Sampling automation through Distance sofware',
       long_description=long_desc, long_description_content_type='text/markdown',
-      author='Jean-Philippe Meuret', author_email='jpmeuret@e.email',
+      author='denmedius',
       license='GPLv3+',
       classifiers=['Topic :: Software Development :: Libraries',
                    'Topic :: Software Development :: Libraries :: Python Modules',

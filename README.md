@@ -15,12 +15,12 @@ As for now, only the Windows MCDS.exe engine and Point Transect analyses are sup
 
 ## Warning !
 
-This is **work-in-progress**,
+While now fully operational, this is still **work-in-progress**,
 * not yet usable without good python skills and Distance Sampling
   through [Distance software](http://distancesampling.org/) knowledge,
 * not yet documented (even if the code _is_), no real example available.
 
-So you'd better wait for version 1.0.0 that will come with more documentation and some real life examples :-)
+Version 1.0.0 will come soon with documentation and some real life examples :-)
 
 ## Requirements
 
@@ -51,7 +51,7 @@ TODO: Publish also on [Conda Forge](https://conda-forge.org/), probably followin
 
 As a python package, **pyaudisam** can be used through its API : for the moment, you can have an idea of how to use 
 it by playing with the fully functional [jupyter notebook](https://jupyter.org/) 'tests/valtests.ipynb' (see below 
-Running tests for how to obtain and run it).
+_Running tests_ for how to obtain and run it).
 
 But there's also a command-line interface: run it with the -h/--help option ...
 
@@ -69,7 +69,7 @@ TODO:
 ## Running tests
 
 You first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install
-a [source package](https://pypi.org/project/pyaudisam/#files): once done, look in the 'tests' sub-folder, 
+a [source package](https://pypi.org/project/pyaudisam/#files): once done, look in the _tests_ sub-folder, 
 everything's in :
 * some tests are fully automated : after installing pytest, simply run it:
 
@@ -77,5 +77,5 @@ everything's in :
   $ pytest
   </code>
 
-* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) that you must run step by 
-  step (as long as no one has fully automated them :-)
+* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see 'tests/unintests.ipynb'
+  and 'tests/valtests.ipynb')  that you must run step by step (as long as no one has fully automated them :-).
