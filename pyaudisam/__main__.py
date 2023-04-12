@@ -416,6 +416,8 @@ if args.distExport:
     logger.info2(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
     logger.info1(f'From sample specs, {len(dfExplSampleSpecs)} samples to export')
     if args.verbose and not args.realRun:
+        while not sampExplSpecFilePath.parent.exists():
+            sampExplSpecFilePath = sampExplSpecFilePath.parent.parent / sampExplSpecFilePath.name
         dfExplSampleSpecs.to_excel(sampExplSpecFilePath, index=False)
 
     # b. Export 1 Distance input data file for each specified sample.
@@ -467,6 +469,8 @@ if args.preAnalyses:
     logger.info2(f'Pre-analysis model fallback strategy:\n{pd.DataFrame(pars.modelPreStrategy).to_string()}')
     logger.info1(f'From sample specs, {len(dfExplSampleSpecs)} samples to pre-analyse')
     if args.verbose and not args.realRun:
+        while not sampExplSpecFilePath.parent.exists():
+            sampExplSpecFilePath = sampExplSpecFilePath.parent.parent / sampExplSpecFilePath.name
         dfExplSampleSpecs.to_excel(sampExplSpecFilePath, index=False)
 
     if any(col not in dfExplSampleSpecs.columns for col in pars.sampleSpecCustCols):
@@ -608,6 +612,8 @@ if args.analyses:
     logger.info2(f'Explicit analysis specs:\n{dfExplAnlysSpecs.to_string()}')
     logger.info1(f'From analysis specs, {len(dfExplAnlysSpecs)} analyses to run')
     if args.verbose and not args.realRun:
+        while not anlysExplSpecFilePath.parent.exists():
+            anlysExplSpecFilePath = anlysExplSpecFilePath.parent.parent / anlysExplSpecFilePath.name
         dfExplAnlysSpecs.to_excel(anlysExplSpecFilePath, index=False)
 
     if any(col not in dfExplAnlysSpecs.columns for col in pars.analysisSpecCustCols):
@@ -808,6 +814,8 @@ if args.optAnalyses:
     logger.info1('... implying possibly up to {} auto-analyses in the background if only full "auto" specs'
                  .format(sbAnlysNeedOpt.sum() * pars.defCoreMaxIters * pars.defSubmitTimes))
     if args.verbose and not args.realRun:
+        while not optAnlysExplSpecFilePath.parent.exists():
+            optAnlysExplSpecFilePath = optAnlysExplSpecFilePath.parent.parent / optAnlysExplSpecFilePath.name
         dfExplOptAnlysSpecs.to_excel(optAnlysExplSpecFilePath, index=False)
 
     if any(col not in dfExplOptAnlysSpecs.columns for col in pars.optAnalysisSpecCustCols):
