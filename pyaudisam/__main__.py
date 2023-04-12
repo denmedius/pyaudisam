@@ -178,7 +178,8 @@ argser = argparse.ArgumentParser(prog='pyaudisam',  # usage='python -m pyaudisam
 argser.add_argument('-u', '--run', dest='realRun', action='store_true', default=False,
                     help='Actually run specified operation (not only run diagnosis of)'
                          ' => as long as -u/--run is not there, you can try any option,'
-                         ' it wont start or write anything ... fell free, you are safe :-)')
+                         ' it wont start or write anything (or may be slightly when -v, but anyway)'
+                         ' ... feel free, you are safe :-)')
 argser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
                     help='Display more infos about the work to be done and export sample / (opt-)analysis'
                          ' spec. files when relevant in the current directory ;')
@@ -344,6 +345,9 @@ emptyRun = not any([args.distExport, args.preAnalyses, args.preReports,
 if emptyRun:
     logger.warning('No operation specified: nothing to do actually !')
 
+if args.realRun and not workDir.parent.exists():
+    workDir.parent.mkdir()  # pyaudisam create sub-dirs, but not parent
+
 # 7. Load input data if needed:
 # a. Survey data
 # * individualised data with distance from observer to observed "object",
@@ -368,7 +372,7 @@ if not emptyRun:
         logger.error('No survey data file specified, can\'t export Distance file or run any type of analysis')
         sys.exit(2)
 
-# 5.b. Sample specs
+# 7.b. Sample specs
 if args.distExport or args.preAnalyses:
 
     sampleSpecFile = pars.sampleSpecFile if 'sampleSpecFile' in vars(pars) else None
@@ -697,7 +701,7 @@ if args.reports:
             if args.realRun:
                 filsorReport.toExcel(rebuild=pars.filsorReportRebuild)
 
-        if 'html' in args.reports  and 'full' not in args.reports['html'] and 'filsorAnlysReportSchemes' in dir():
+        if 'html' in args.reports and 'full' not in args.reports['html'] and 'filsorAnlysReportSchemes' in dir():
             logger.info1('* Auto-filtered HTML analysis report(s) to be generated: {}'
                          .format(', '.join(filsorAnlysReportSchemes.keys())))
             if args.realRun:
