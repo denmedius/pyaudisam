@@ -20,3 +20,8 @@ include tests/refout/*.txt
 include tests/refout/*.xlsx
 include tests/refout/*.ods
 graft tests/refout/dist-order-sens-min
+
+include docs/howto-acdc19-nat/*.md
+include docs/howto-acdc19-nat/*.xlsx
+include docs/howto-acdc19-nat/*.py
+include docs/howto-acdc19-nat/*.kml

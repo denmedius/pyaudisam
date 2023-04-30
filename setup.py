@@ -40,9 +40,9 @@ with open(here / 'requirements.txt') as file:
 
 # This call to setup() does all the final work !
 setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaudisam',
-      description='Distance Sampling automation through Distance sofware',
+      description='Distance Sampling automation through python and Distance sofware',
       long_description=long_desc, long_description_content_type='text/markdown',
-      author='denmedius',
+      author='denmedius', author_email='fefeqe22.vucuqu82 (at) murena.io',
       license='GPLv3+',
       classifiers=['Topic :: Software Development :: Libraries',
                    'Topic :: Software Development :: Libraries :: Python Modules',
