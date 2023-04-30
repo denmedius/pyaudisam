@@ -30,7 +30,7 @@ from .optanalyser import MCDSTruncationOptanalyser
 from .report import MCDSResultsPreReport, MCDSResultsFullReport, MCDSResultsFilterSortReport
 
 
-class Logger(object):
+class Logger:
 
     """Local logger, taking care of output log file at exit time"""
 
@@ -58,7 +58,7 @@ class Logger(object):
         # Fallback final log file path-name as long as it is not specified : current folder, generic (timestamped) name.
         self.finalLogFileName = pl.Path('.') / self.runLogFileName.name
 
-        # Setup an atexit handler to move and rename the session log file in a user-friendly place if possible.
+        # Set up an atexit handler to move and rename the session log file in a user-friendly place if possible.
         atexit.register(self.giveBackLogFile)
 
         # Add logging methods to this logger
@@ -218,13 +218,14 @@ argser.add_argument('-t', '--prereports', dest='preReports', type=str, default='
                     help='Which reports to generate from pre-analyses results, through comma-separated keywords'
                          ' among {excel, html, none} (case does not matter, none ignored if not alone)')
 argser.add_argument('-r', '--reports', dest='reports', type=str, default='none',
-                    help='Which reports to generate from analyses results, through comma-separated format:type items'
-                         ' with format among {excel, html, none}, "none" ignored if not alone ; type ignored'
-                         ' for format="excel", and among {full, <filter-sort method regex search string>*}'
-                         ' (at least one of) for format=html (case does not matter) ;'
-                         ' note: available filter-sort methods are automatically listed'
-                         ' when auto-filtering parameters are specified, so run command without -u first !'
-                         ' examples: none ; excel ; excel,html:full ; html:mqua92,html:full,excel,html:mqua950')
+                    help='Which reports to generate from analyses results, through comma-separated format:type'
+                         ' case-insensitive items with format among {excel, html, none}, "none" ignored if not alone ;'
+                         ' type among {full, <empty>} for excel format (use full to prevent default filter-sort report'
+                         " when filter-sort methods are available in the '-p' / '--params' parameters),"
+                         ' and among {full, <filter-sort method regex search string>*} (at least one of) for html ;'
+                         ' note: available filter-sort methods are automatically listed when auto-filtering parameters'
+                         ' are specified, so run command without -u first !'
+                         ' examples: none ; excel ; excel:full,html:full ; html:mqua92,html:full,excel,html:mqua950')
 argser.add_argument('-f', '--optreports', dest='optReports', type=str, default='none',
                     help='Which reports to generate from opt-analyses results (same mini-language as for -r)')
 argser.add_argument('-l', '--logprefix', dest='logPrefix', type=str, default=None,
@@ -331,7 +332,7 @@ if not(args.noTimestamp or re.match('.*[0-9]{6}-[0-9]{4,6}$', workDir.name)):
     workDir = workDir / runTimestamp
 logger.info(f'Work folder: {workDir.as_posix()}')
 
-# 5. Now we can setup the final session log file path-name prefix !
+# 5. Now we can set up the final session log file path-name prefix !
 if args.logPrefix is None:
     if args.realRun:  # Default
         args.logPrefix = workDir.as_posix() + f'/{pars.studyName}{pars.subStudyName}'
@@ -507,7 +508,8 @@ if args.preReports:
     if not args.preAnalyses:
 
         if not preAnlysResFilePath.exists():
-            logger.error(f'Cannot generate pre-analysis reports: results file not found {preAnlysResFilePath.as_posix()}')
+            logger.error('Cannot generate pre-analysis reports:'
+                         f' results file not found {preAnlysResFilePath.as_posix()}')
             sys.exit(2)
 
         logger.info(f'Loading pre-analysis results from {preAnlysResFilePath.as_posix()}')
@@ -525,7 +527,7 @@ if args.preReports:
                                 resultsHeadCols=pars.preResultsHeadCols)
 
         preResults = preAnlysr.setupResults()
-        preAnlysr.shutdown()  # Not really needed actually.
+        preAnlysr.shutdown()  # Not really needed, actually.
 
         preResults.fromFile(preAnlysResFilePath)
 
@@ -666,7 +668,7 @@ if args.reports:
                           resultsHeadCols=pars.resultsHeadCols)
 
         results = anlysr.setupResults()
-        anlysr.shutdown()  # Not really needed actually.
+        anlysr.shutdown()  # Not really needed, actually.
 
         results.fromFile(anlysResFilePath)
 
@@ -856,7 +858,8 @@ if args.optReports:
     if not args.optAnalyses:
 
         if not optAnlysResFilePath.exists():
-            logger.error(f'Cannot generate opt-analysis reports: results file not found {optAnlysResFilePath.as_posix()}')
+            logger.error('Cannot generate opt-analysis reports:'
+                         f' results file not found {optAnlysResFilePath.as_posix()}')
             sys.exit(2)
 
         logger.info(f'Loading opt-analysis results from {optAnlysResFilePath.as_posix()}')
@@ -874,7 +877,7 @@ if args.optReports:
                                 resultsHeadCols=pars.optResultsHeadCols)
 
         optResults = optAnlysr.setupResults()
-        optAnlysr.shutdown()  # Not really needed actually.
+        optAnlysr.shutdown()  # Not really needed, actually.
 
         optResults.fromFile(optAnlysResFilePath)
 

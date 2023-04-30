@@ -62,8 +62,9 @@ def _mergeTransTables(base, update):
     return final
 
 
-# Base for results reports classes (abstract)
-class ResultsReport(object):
+class ResultsReport:
+
+    """Base for results reports classes (abstract)"""
 
     # Translation table for output documents (specialized in derived classes, merged with custom instance one).
     DTrans = dict(en={}, fr={})
@@ -278,8 +279,9 @@ class ResultsReport(object):
         return dfTrData.style  # Nothing done here, specialize in derived class if needed.
 
 
-# DS results reports class (Excel and HTML, targeting similar layout as in Distance 6+)
 class DSResultsDistanceReport(ResultsReport):
+
+    """DS results reports class (Excel and HTML, targeting similar layout as in Distance 6+)"""
 
     # Translation table.
     DTrans = _mergeTransTables(base=ResultsReport.DTrans,
@@ -969,8 +971,10 @@ class DSResultsDistanceReport(ResultsReport):
         return ddfWbk
  
 
-# A specialized report for MCDS analyses, targetting similar layout as in Distance 6+, with actual output formatting.
 class MCDSResultsDistanceReport(DSResultsDistanceReport):
+
+    """A specialized report for MCDS analyses, targeting similar layout as in Distance 6+,
+    with actual output formatting."""
 
     DTrans = _mergeTransTables(base=DSResultsDistanceReport.DTrans,
         update=dict(en={'Study type:': "<strong>Study type</strong>:",
@@ -1871,13 +1875,6 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         return htmlPathName
 
 
-# A specialized filtered and sorted report for MCDS analyses, with actual output formatting ...
-# and above all auto-filtered and sorted results aiming at showing the few best results to the user
-# among which s(he)'ll (manually) select THE best (for each sample)
-# (HTML mode gives a mix of Distance and PreReport main page layout,
-#  with a plots + super-synthesis table, a synthesis table, and a detailed table,
-#  but only showing the filtered part (rows) of the results set ;
-#  detailed pages unchanged from MCDSResultsDistanceReport).
 class MCDSResultsFilterSortReport(MCDSResultsFullReport):
 
     """A specialized filtered and sorted full report for MCDS analyses, with actual output formatting
