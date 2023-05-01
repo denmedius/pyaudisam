@@ -1,0 +1,402 @@
+﻿<!DOCTYPE HTML>
+
+<!-- PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
+
+     Copyright (C) 2021 Jean-Philippe Meuret
+
+     This program is free software: you can redistribute it and/or modify it under the terms
+     of the GNU General Public License as published by the Free Software Foundation,
+     either version 3 of the License, or (at your option) any later version.
+     This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+     See the GNU General Public License for more details.
+     You should have received a copy of the GNU General Public License along with this program.
+     If not, see https://www.gnu.org/licenses/.
+-->
+
+<head>
+
+  <meta charset="utf-8">
+  <meta name="author" content="Jean-Philippe Meuret"/>
+  <meta name="copyright" content="Jean-Philippe Meuret 2021"/>
+  <meta name="license" content="CC BY NC SA"/>
+  <meta name="description" content="ACDC 2019 Naturalist"/>
+  <meta name="keywords" content="distance, sampling, mcds, pre-analysis, ACDC, Cournols, Olloix, 2019, Distance Sampling, Naturalist, smartphone"/>
+  <meta name="datetime" content="16/04/2023 18:55:51"/>
+
+  <title>ACDC 2019 Naturalist</title>
+
+  <link rel="stylesheet" media="screen" type="text/css" href="../common/report.css">
+
+  <script>
+    // Back to top floating button managment
+    // When the user scrolls down 100 px from the top of the document, show the button
+    window.onscroll = function()
+    {
+    	if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100)
+    		document.getElementById("toTopBtn").style.display = "block";
+    	else
+    		document.getElementById("toTopBtn").style.display = "none";
+    }
+    // When the user clicks on the button, scroll to the top of the document
+    function scrollToTop()
+    {
+    	document.body.scrollTop = 0;
+    	document.documentElement.scrollTop = 0;
+    }
+  </script>
+
+</head>
+
+<body>
+
+  <table id="title">
+    <tr>
+      <td style="font-size: 480%; text-align: center">ACDC 2019 Naturalist</td>
+    </tr>
+    <tr>
+      <td style="font-size: 240%; text-align: center">Pre-analysis report (2 / 30 most numerous species)</td>
+    </tr>
+    <tr>
+      <td style="font-size: 120%; text-align: center">Estimation of common breeding bird populations on the Cournols - Olloix plateau - in 2019 though ~100 distance sampling point transects of 5 and 10mn (2 seasonal passes) ; using the Naturalist smartphone app. for field surveys</td>
+    </tr>
+    <tr>
+      <td style="font-size: 100%; text-align: center">Warning: This is only an extract of the actual report, limited to 2 species</td>
+    </tr>
+  </table>
+
+  <div style="margin-left: 10px">
+
+    <h4>
+      Table of contents
+    </h4>
+
+    <div class="chapter" style="margin-left: 10px">
+
+      <ul>
+        <li><a href="#super-synthesis">Results: the essence</a></li>
+        <li><a href="#traceability">Traceability</a></li>
+      </ul>
+
+    </div>
+
+    <h2 id="super-synthesis">
+      Results: the essence
+    </h2>
+
+    <div class="chapter" style="margin-left: 10px">
+
+      <p><strong>Study type</strong>: Point transect, Radial distance, No clustering.</p>
+      <p><strong>Units used</strong>: Meter for distances, Sq. Kilometer for areas.</p>
+      <p><strong>Confidence value interval</strong>: If not listed in table below, please
+ note that <strong>ALL</strong> analyses have been run with the same value: 95
+.
+      </p>
+      <p><strong>Adjustment term selection criterion</strong>: If not listed in table below, please
+ note that <strong>ALL</strong> analyses have been run with the same value: AIC
+.
+      </p>
+      <p><strong>Note</strong>: Most figures have been rounded for readability, but 'CoefVar Density' have been further modified : converted to %</p>
+      <p style='font-size: 80%'>Click on analysis number to get to detailed report</p>
+
+	  <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Sample & Model</th>
+      <th>Results (1/2)</th>
+      <th>Results (2/2)</th>
+      <th>Standard distance histogram</th>
+      <th>Detection probability density (PDF)</th>
+      <th>Detection probability</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th><a href="./SylvAtri-ab-10mn-m-haz-cos-fx8uk14r/index.html">02</a></th>
+      <td><table border="1" class="dataframe"><tbody><tr><th>Echant</th><td>1</td></tr><tr><th>Espèce</th><td>Sylvia atricapilla</td></tr><tr><th>Passage</th><td>a+b</td></tr><tr><th>Adulte</th><td>m</td></tr><tr><th>Durée</th><td>10mn</td></tr><tr><th>Mod Key Fn</th><td>HAZARD</td></tr><tr><th>Mod Adj Ser</th><td>COSINE</td></tr></tbody></table></td>
+      <td><table border="1" class="dataframe"><tbody><tr><th>ExCod</th><td>2</td></tr><tr><th>NObs</th><td>403</td></tr><tr><th>Max Dist</th><td>511.41</td></tr><tr><th>Effort</th><td>190</td></tr><tr><th>AIC</th><td>4526.8</td></tr><tr><th>Chi2 P</th><td>0</td></tr><tr><th>KS P</th><td>0.52</td></tr><tr><th>CoefVar Density</th><td>9.9</td></tr></tbody></table></td>
+      <td><table border="1" class="dataframe"><tbody><tr><th>PDetec</th><td>0.07</td></tr><tr><th>EDR/ESW</th><td>135.2</td></tr><tr><th>Density</th><td>36.95</td></tr><tr><th>Min Density</th><td>30.45</td></tr><tr><th>Max Density</th><td>44.85</td></tr><tr><th>Number</th><td>887</td></tr><tr><th>Min Number</th><td>731</td></tr><tr><th>Max Number</th><td>1076</td></tr></tbody></table></td>
+      <td><img src="./SylvAtri-ab-10mn-m-haz-cos-fx8uk14r/disthist.png" style="height: 288px" /></td>
+      <td><img src="./SylvAtri-ab-10mn-m-haz-cos-fx8uk14r/probdens3.png" style="height: 288px" /></td>
+      <td><img src="./SylvAtri-ab-10mn-m-haz-cos-fx8uk14r/detprob3.png" style="height: 288px" /></td>
+    </tr>
+    <tr>
+      <th><a href="./PrunModu-ab-10mn-m-uni-cos-f3smf1_a/index.html">04</a></th>
+      <td><table border="1" class="dataframe"><tbody><tr><th>Echant</th><td>3</td></tr><tr><th>Espèce</th><td>Prunella modularis</td></tr><tr><th>Passage</th><td>a+b</td></tr><tr><th>Adulte</th><td>m</td></tr><tr><th>Durée</th><td>10mn</td></tr><tr><th>Mod Key Fn</th><td>UNIFORM</td></tr><tr><th>Mod Adj Ser</th><td>COSINE</td></tr></tbody></table></td>
+      <td><table border="1" class="dataframe"><tbody><tr><th>ExCod</th><td>2</td></tr><tr><th>NObs</th><td>47</td></tr><tr><th>Max Dist</th><td>271.221</td></tr><tr><th>Effort</th><td>190</td></tr><tr><th>AIC</th><td>494.6</td></tr><tr><th>Chi2 P</th><td>0.21</td></tr><tr><th>KS P</th><td>0.47</td></tr><tr><th>CoefVar Density</th><td>24.2</td></tr></tbody></table></td>
+      <td><table border="1" class="dataframe"><tbody><tr><th>PDetec</th><td>0.172</td></tr><tr><th>EDR/ESW</th><td>112.4</td></tr><tr><th>Density</th><td>6.24</td></tr><tr><th>Min Density</th><td>3.89</td></tr><tr><th>Max Density</th><td>9.99</td></tr><tr><th>Number</th><td>150</td></tr><tr><th>Min Number</th><td>93</td></tr><tr><th>Max Number</th><td>240</td></tr></tbody></table></td>
+      <td><img src="./PrunModu-ab-10mn-m-uni-cos-f3smf1_a/disthist.png" style="height: 288px" /></td>
+      <td><img src="./PrunModu-ab-10mn-m-uni-cos-f3smf1_a/probdens3.png" style="height: 288px" /></td>
+      <td><img src="./PrunModu-ab-10mn-m-uni-cos-f3smf1_a/detprob3.png" style="height: 288px" /></td>
+    </tr>
+  </tbody>
+</table>
+
+    </div>
+
+    <img class="center" height="32" style="margin-top: 30px"
+         src="../common/fa-feather-alt.svg" alt="---" />
+
+    <h2 id="traceability">
+      Traceability
+    </h2>
+    <div class="chapter" style="margin-left: 10px">
+
+      <p></p>
+
+        <div style="margin-left: 10px">
+          <h3>Samples</h3>
+          <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Espèce</th>
+      <th>Passage</th>
+      <th>Adulte</th>
+      <th>Durée</th>
+      <th>Abrev. Echant</th>
+      <th>Echant</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>1</th>
+      <td>Sylvia atricapilla</td>
+      <td>a+b</td>
+      <td>m</td>
+      <td>10mn</td>
+      <td>SylvAtri-ab-10mn-m</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>Prunella modularis</td>
+      <td>a+b</td>
+      <td>m</td>
+      <td>10mn</td>
+      <td>PrunModu-ab-10mn-m</td>
+      <td>3</td>
+    </tr>
+  </tbody>
+</table>
+        </div>
+        <div style="margin-left: 10px">
+          <h3>Models</h3>
+          <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>keyFn</th>
+      <th>adjSr</th>
+      <th>estCrit</th>
+      <th>cvInt</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>HNORMAL</td>
+      <td>COSINE</td>
+      <td>AIC</td>
+      <td>95</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>UNIFORM</td>
+      <td>COSINE</td>
+      <td>AIC</td>
+      <td>95</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>HAZARD</td>
+      <td>COSINE</td>
+      <td>AIC</td>
+      <td>95</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>HNORMAL</td>
+      <td>POLY</td>
+      <td>AIC</td>
+      <td>95</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>UNIFORM</td>
+      <td>POLY</td>
+      <td>AIC</td>
+      <td>95</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>HAZARD</td>
+      <td>POLY</td>
+      <td>AIC</td>
+      <td>95</td>
+    </tr>
+  </tbody>
+</table>
+        </div>
+        <div style="margin-left: 10px">
+          <h3>Analyser</h3>
+          <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Zone</th>
+      <td>ACDC</td>
+    </tr>
+    <tr>
+      <th>Surface</th>
+      <td>24</td>
+    </tr>
+    <tr>
+      <th>distanceUnit</th>
+      <td>Meter</td>
+    </tr>
+    <tr>
+      <th>areaUnit</th>
+      <td>Sq. Kilometer</td>
+    </tr>
+    <tr>
+      <th>runMethod</th>
+      <td>subprocess.run</td>
+    </tr>
+    <tr>
+      <th>runTimeOut</th>
+      <td>300</td>
+    </tr>
+    <tr>
+      <th>surveyType</th>
+      <td>Point</td>
+    </tr>
+    <tr>
+      <th>distanceType</th>
+      <td>Radial</td>
+    </tr>
+    <tr>
+      <th>clustering</th>
+      <td>False</td>
+    </tr>
+    <tr>
+      <th>defEstimKeyFn</th>
+      <td>UNIFORM</td>
+    </tr>
+    <tr>
+      <th>defEstimAdjustFn</th>
+      <td>POLY</td>
+    </tr>
+    <tr>
+      <th>defEstimCriterion</th>
+      <td>AIC</td>
+    </tr>
+    <tr>
+      <th>defCVInterval</th>
+      <td>95</td>
+    </tr>
+    <tr>
+      <th>defMinDist</th>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>defMaxDist</th>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>defFitDistCuts</th>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>defDiscrDistCuts</th>
+      <td>None</td>
+    </tr>
+  </tbody>
+</table>
+        </div>
+        <div style="margin-left: 10px">
+          <h3>Computing platform</h3>
+          <table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Version</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>os</th>
+      <td>Windows Enterprise 10.0.19041 (64bit)</td>
+    </tr>
+    <tr>
+      <th>processor</th>
+      <td>Intel64 Family 6 Model 165 Stepping 2, GenuineIntel, 12 CPUs</td>
+    </tr>
+    <tr>
+      <th>python</th>
+      <td>cpython (win32) R3.8.2 | packaged by conda-forge | (default, Apr 24 2020, 07:34:03) [MSC v.1916 64 bit (AMD64)]</td>
+    </tr>
+    <tr>
+      <th>numpy</th>
+      <td>1.23.2</td>
+    </tr>
+    <tr>
+      <th>pandas</th>
+      <td>1.2.5</td>
+    </tr>
+    <tr>
+      <th>zoopt</th>
+      <td>0.4.0</td>
+    </tr>
+    <tr>
+      <th>matplotlib</th>
+      <td>3.4.2</td>
+    </tr>
+    <tr>
+      <th>jinja2</th>
+      <td>3.0.1</td>
+    </tr>
+    <tr>
+      <th>pyaudisam</th>
+      <td>1.0.0</td>
+    </tr>
+    <tr>
+      <th>DS engine</th>
+      <td>C:/PortableApps/Distance 7/MCDS.exe</td>
+    </tr>
+  </tbody>
+</table>
+        </div>
+
+    </div>
+
+    <h6 style="margin-bottom: 10px">
+      Generated on 16/04/2023 18:55:51
+      with <a href="https://www.python.org/" target="_blank">Python 3.8.2</a>,
+      <a href="https://numpy.org/" target="_blank">NumPy 1.23.2</a>,
+      <a href="https://pandas.pydata.org/" target="_blank">Pandas 1.2.5</a>,
+      <a href="https://github.com/polixir/ZOOpt/" target="_blank">ZOOpt 0.4.0</a>,
+      <a href="https://matplotlib.org/" target="_blank">Matplotlib 3.4.2</a>,
+      <a href="https://palletsprojects.com/p/jinja/" target="_blank">Jinja 3.0.1</a>
+      ... and
+      <a href="https://pypi.org/project/pyaudisam/" target="_blank">PyAuDiSam 1.0.0</a>,
+      with icons from <a href="https://fontawesome.com/" target="_blank">Font Awesome</a>
+        (sources :
+          <a href="./acdc-2019-nat-ds-params.py" target="_blank">acdc-2019-nat-ds-params.py</a>,
+)
+.
+    </h6>
+
+  </div>
+
+  <button onclick="scrollToTop()" id="toTopBtn" title="Haut de page">
+    <img width="64" height="64" src="../common/fa-angle-up.svg"/>
+  </button>
+
+</body>

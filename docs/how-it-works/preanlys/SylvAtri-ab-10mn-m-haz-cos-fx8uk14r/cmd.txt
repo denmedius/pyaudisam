@@ -1,0 +1,36 @@
+pranlys\SylvAtri-ab-10mn-m-haz-cos-fx8uk14r\output.txt
+pranlys\SylvAtri-ab-10mn-m-haz-cos-fx8uk14r\log.txt
+pranlys\SylvAtri-ab-10mn-m-haz-cos-fx8uk14r\stats.txt
+pranlys\SylvAtri-ab-10mn-m-haz-cos-fx8uk14r\plots.txt
+None
+None
+Options;
+Type=Point;
+Distance=Radial /Measure='Meter';
+Area /Units='Sq. Kilometer';
+Object=Single;
+SF=1;
+Selection=Sequential;
+Lookahead=1;
+Maxterms=5;
+Confidence=95;
+print=Selection;
+End;
+Data /Structure=Flat;
+Fields=STR_LABEL,STR_AREA,SMP_LABEL,SMP_EFFORT,DISTANCE;
+Infile=pranlys\SylvAtri-ab-10mn-m-haz-cos-fx8uk14r\data.txt /NoEcho;
+End;
+Estimate;
+Distance;
+Density=All;
+Encounter=All;
+Detection=All;
+Size=All;
+Estimator /Key=HAZARD /Adjust=COSINE /Criterion=AIC;
+Monotone=Strict;
+Pick=AIC;
+GOF;
+Cluster /Bias=GXLOG;
+VarN=Empirical;
+End;
+

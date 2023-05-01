@@ -1,0 +1,93 @@
+2023-04-16 18:03:10,978 14264 main INFO1	Logging session to temporary C:/Users/f270560/AppData/Local/Temp/pyaudisam57awg1cp/pyaudisam-main.230416-180310.log
+2023-04-16 18:03:10,979 14264 main INFO0	Current folder: C:/git/pyaudisam/docs/howto-acdc19-nat
+2023-04-16 18:03:10,979 14264 main INFO0	Command line: C:/PortableApps/MiniConda3/envs/py38/lib/site-packages/pyaudisam/__main__.py -p acdc-2019-nat-ds-params.py -w ./pranlys -e -u
+2023-04-16 18:03:10,979 14264 main INFO0	Computation platform:
+2023-04-16 18:03:10,979 14264 main INFO0	* os: Windows Enterprise 10.0.19041 (64bit)
+2023-04-16 18:03:10,985 14264 main INFO0	* processor: Intel64 Family 6 Model 165 Stepping 2, GenuineIntel, 12 CPUs
+2023-04-16 18:03:10,985 14264 main INFO0	* python: cpython (win32) R3.8.2 | packaged by conda-forge | (default, Apr 24 2020, 07:34:03) [MSC v.1916 64 bit (AMD64)]
+2023-04-16 18:03:10,985 14264 main INFO0	* numpy: 1.23.2
+2023-04-16 18:03:10,985 14264 main INFO0	* pandas: 1.2.5
+2023-04-16 18:03:10,985 14264 main INFO0	* zoopt: 0.4.0
+2023-04-16 18:03:10,985 14264 main INFO0	* matplotlib: 3.4.2
+2023-04-16 18:03:10,985 14264 main INFO0	* jinja2: 3.0.1
+2023-04-16 18:03:10,985 14264 main INFO0	* pyaudisam: 1.0.0
+2023-04-16 18:03:10,985 14264 main INFO0	* DS engine: C:/PortableApps/Distance 7/MCDS.exe
+2023-04-16 18:03:10,986 14264 main INFO0	This is a real run: requested operation will be actually run !
+2023-04-16 18:03:10,987 14264 main INFO1	Arguments:
+2023-04-16 18:03:10,987 14264 main INFO1	* realRun: True
+2023-04-16 18:03:10,987 14264 main INFO1	* verbose: False
+2023-04-16 18:03:10,987 14264 main INFO1	* paramFile: acdc-2019-nat-ds-params.py
+2023-04-16 18:03:10,987 14264 main INFO1	* speParams: 
+2023-04-16 18:03:10,987 14264 main INFO1	* workDir: ./pranlys
+2023-04-16 18:03:10,987 14264 main INFO1	* noTimestamp: False
+2023-04-16 18:03:10,987 14264 main INFO1	* distExport: False
+2023-04-16 18:03:10,987 14264 main INFO1	* preAnalyses: True
+2023-04-16 18:03:10,987 14264 main INFO1	* analyses: False
+2023-04-16 18:03:10,987 14264 main INFO1	* optAnalyses: False
+2023-04-16 18:03:10,987 14264 main INFO1	* recoverOpts: False
+2023-04-16 18:03:10,987 14264 main INFO1	* preReports: {}
+2023-04-16 18:03:10,987 14264 main INFO1	* reports: {}
+2023-04-16 18:03:10,987 14264 main INFO1	* optReports: {}
+2023-04-16 18:03:10,987 14264 main INFO1	* logPrefix: None
+2023-04-16 18:03:10,987 14264 main INFO1	* threads: 0
+2023-04-16 18:03:10,987 14264 main INFO1	* engineType: MCDS
+2023-04-16 18:03:11,361 14264 main INFO0	Available filter & sort report schemes: ExAicMQua-r975m8q3d8, ExAicMQua-r950m8q3d10, ExAicMQua-r925m8q3d12, ExCode
+2023-04-16 18:03:11,361 14264 main INFO0	Work folder: pranlys/230416-180310
+2023-04-16 18:03:11,362 14264 main INFO1	Loading survey data and transects infos from file ACDC2019-Nat-ObsIndivDist.xlsx ...
+2023-04-16 18:03:12,581 14264 main INFO1	... found 874 mono-category sightings and 190 transects
+2023-04-16 18:03:12,581 14264 main INFO0	Running pre-analyses ...
+2023-04-16 18:03:12,582 14264 ads.dat INFO0	Loaded 874 x 11 total rows x columns in data set ...
+2023-04-16 18:03:12,582 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire]
+2023-04-16 18:03:12,582 14264 ads.dat INFO0	Individuals data : 874 sightings, 190 transects
+2023-04-16 18:03:12,636 14264 ads.anr INFO0	Dropped 0 last duplicate specs of 10, on [Espèce, Passage, Adulte, Durée] columns
+2023-04-16 18:03:12,640 14264 main INFO1	From sample specs, 10 samples to pre-analyse
+2023-04-16 18:03:12,677 14264 ads.eng INFO0	DSEngine work folder: C:/git/pyaudisam/docs/howto-acdc19-nat/pranlys/230416-180310
+2023-04-16 18:03:12,722 14264 ads.anr INFO0	Dropped 0 last duplicate specs of 10, on [Espèce, Passage, Adulte, Durée] columns
+2023-04-16 18:03:12,723 14264 ads.anr INFO0	Running 10 MCDS pre-analyses (at most 16 parallel threads) ...
+2023-04-16 18:03:12,723 14264 ads.anr INFO1	#1/10 : SylvAtri-ab-5mn-m
+2023-04-16 18:03:12,750 14264 ads.dat INFO0	Loaded 285 x 14 total rows x columns in data set ...
+2023-04-16 18:03:12,751 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:12,752 14264 ads.dat INFO0	Sample data : 285 sightings = 270 individuals + 15 absence rows
+2023-04-16 18:03:12,756 14264 ads.anr INFO1	#2/10 : SylvAtri-ab-10mn-m
+2023-04-16 18:03:12,776 14264 ads.dat INFO0	Loaded 408 x 14 total rows x columns in data set ...
+2023-04-16 18:03:12,776 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:12,778 14264 ads.dat INFO0	Sample data : 408 sightings = 403 individuals + 5 absence rows
+2023-04-16 18:03:12,784 14264 ads.anr INFO1	#3/10 : PrunModu-ab-5mn-m
+2023-04-16 18:03:12,809 14264 ads.dat INFO0	Loaded 101 x 14 total rows x columns in data set ...
+2023-04-16 18:03:12,810 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:12,811 14264 ads.dat INFO0	Sample data : 101 sightings = 21 individuals + 80 absence rows
+2023-04-16 18:03:12,815 14264 ads.anr INFO1	#4/10 : PrunModu-ab-10mn-m
+2023-04-16 18:03:12,835 14264 ads.dat INFO0	Loaded 109 x 14 total rows x columns in data set ...
+2023-04-16 18:03:12,836 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:12,837 14264 ads.dat INFO0	Sample data : 109 sightings = 47 individuals + 62 absence rows
+2023-04-16 18:03:12,841 14264 ads.anr INFO1	#5/10 : PhylBone-ab-5mn-m
+2023-04-16 18:03:12,873 14264 ads.dat INFO0	Loaded 107 x 14 total rows x columns in data set ...
+2023-04-16 18:03:12,874 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:12,875 14264 ads.dat INFO0	Sample data : 107 sightings = 29 individuals + 78 absence rows
+2023-04-16 18:03:12,880 14264 ads.anr INFO1	#6/10 : PhylBone-ab-10mn-m
+2023-04-16 18:03:12,917 14264 ads.dat INFO0	Loaded 114 x 14 total rows x columns in data set ...
+2023-04-16 18:03:12,917 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:12,919 14264 ads.dat INFO0	Sample data : 114 sightings = 37 individuals + 77 absence rows
+2023-04-16 18:03:12,924 14264 ads.anr INFO1	#7/10 : OrioOrio-b-5mn-m
+2023-04-16 18:03:12,963 14264 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-16 18:03:12,963 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:12,967 14264 ads.dat INFO0	Sample data : 94 sightings = 4 individuals + 90 absence rows
+2023-04-16 18:03:12,978 14264 ads.anr INFO1	#8/10 : OrioOrio-b-10mn-m
+2023-04-16 18:03:13,069 14264 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-16 18:03:13,073 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:13,119 14264 ads.dat INFO0	Sample data : 94 sightings = 11 individuals + 83 absence rows
+2023-04-16 18:03:13,129 14264 ads.anr INFO1	#9/10 : OrioOrio-b-5mn-ma
+2023-04-16 18:03:13,219 14264 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-16 18:03:13,219 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:13,247 14264 ads.dat INFO0	Sample data : 94 sightings = 4 individuals + 90 absence rows
+2023-04-16 18:03:13,254 14264 ads.anr INFO1	#10/10 : OrioOrio-b-10mn-ma
+2023-04-16 18:03:13,348 14264 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-16 18:03:13,351 14264 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-16 18:03:13,366 14264 ads.dat INFO0	Sample data : 94 sightings = 11 individuals + 83 absence rows
+2023-04-16 18:03:13,378 14264 ads.anr INFO0	All analyses started ; now waiting for their end, and results ...
+2023-04-16 18:03:15,281 14264 ads.anr INFO1	5/10 analyses in 00:00:02 (mean 0.380s): should end around 18:03:17.
+2023-04-16 18:03:15,740 14264 ads.anr INFO1	10/10 analyses in 00:00:02 (mean 0.236s): done.
+2023-04-16 18:03:15,742 14264 ads.anr INFO0	Analyses completed.
+2023-04-16 18:03:15,919 14264 ads.dat INFO0	10x85 results rows x columns and 4 specs saved to pranlys\230416-180310\ACDC2019-Nat-preanalyses-results.xlsx in 0.162s
+2023-04-16 18:03:15,919 14264 main INFO0	Done running pre-analyses (00:00:03.337270).
+2023-04-16 18:03:15,920 14264 main INFO1	Giving back session log to pranlys\230416-180310\ACDC2019-Nat.230416-180310.log

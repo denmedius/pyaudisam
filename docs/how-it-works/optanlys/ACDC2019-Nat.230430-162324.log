@@ -1,0 +1,202 @@
+2023-04-30 16:23:24,492 11652 main INFO1	Logging session to temporary C:/Users/f270560/AppData/Local/Temp/pyaudisam4ig_b58d/pyaudisam-main.230430-162324.log
+2023-04-30 16:23:24,492 11652 main INFO0	Current folder: C:/tmp/howto-acdc19-nat
+2023-04-30 16:23:24,492 11652 main INFO0	Command line: C:/PortableApps/MiniConda3/envs/py38/lib/site-packages/pyaudisam/__main__.py -p acdc-2019-nat-ds-params.py -w ./anlys/230430-153402 -f html:r925,excel -u
+2023-04-30 16:23:24,492 11652 main INFO0	Computation platform:
+2023-04-30 16:23:24,492 11652 main INFO0	* os: Windows Enterprise 10.0.19041 (64bit)
+2023-04-30 16:23:24,492 11652 main INFO0	* processor: Intel64 Family 6 Model 165 Stepping 2, GenuineIntel, 12 CPUs
+2023-04-30 16:23:24,493 11652 main INFO0	* python: cpython (win32) R3.8.2 | packaged by conda-forge | (default, Apr 24 2020, 07:34:03) [MSC v.1916 64 bit (AMD64)]
+2023-04-30 16:23:24,493 11652 main INFO0	* numpy: 1.23.2
+2023-04-30 16:23:24,493 11652 main INFO0	* pandas: 1.2.5
+2023-04-30 16:23:24,493 11652 main INFO0	* zoopt: 0.4.0
+2023-04-30 16:23:24,493 11652 main INFO0	* matplotlib: 3.4.2
+2023-04-30 16:23:24,493 11652 main INFO0	* jinja2: 3.0.1
+2023-04-30 16:23:24,493 11652 main INFO0	* pyaudisam: 1.0.0
+2023-04-30 16:23:24,493 11652 main INFO0	* DS engine: C:/PortableApps/Distance 7/MCDS.exe
+2023-04-30 16:23:24,494 11652 main INFO0	This is a real run: requested operation will be actually run !
+2023-04-30 16:23:24,495 11652 main INFO1	Arguments:
+2023-04-30 16:23:24,495 11652 main INFO1	* realRun: True
+2023-04-30 16:23:24,495 11652 main INFO1	* verbose: False
+2023-04-30 16:23:24,495 11652 main INFO1	* paramFile: acdc-2019-nat-ds-params.py
+2023-04-30 16:23:24,495 11652 main INFO1	* speParams: 
+2023-04-30 16:23:24,495 11652 main INFO1	* workDir: ./anlys/230430-153402
+2023-04-30 16:23:24,495 11652 main INFO1	* noTimestamp: False
+2023-04-30 16:23:24,495 11652 main INFO1	* distExport: False
+2023-04-30 16:23:24,495 11652 main INFO1	* preAnalyses: False
+2023-04-30 16:23:24,495 11652 main INFO1	* analyses: False
+2023-04-30 16:23:24,495 11652 main INFO1	* optAnalyses: False
+2023-04-30 16:23:24,495 11652 main INFO1	* recoverOpts: False
+2023-04-30 16:23:24,496 11652 main INFO1	* preReports: {}
+2023-04-30 16:23:24,496 11652 main INFO1	* reports: {}
+2023-04-30 16:23:24,496 11652 main INFO1	* optReports: {'html': ['r925'], 'excel': []}
+2023-04-30 16:23:24,496 11652 main INFO1	* logPrefix: None
+2023-04-30 16:23:24,496 11652 main INFO1	* threads: 0
+2023-04-30 16:23:24,496 11652 main INFO1	* engineType: MCDS
+2023-04-30 16:23:24,880 11652 main INFO0	Available filter & sort report schemes: ExAicMQua-r975m8q3d8, ExAicMQua-r950m8q3d10, ExAicMQua-r925m8q3d12, ExCode
+2023-04-30 16:23:24,880 11652 main INFO0	Work folder: anlys/230430-153402
+2023-04-30 16:23:24,880 11652 main INFO1	Loading survey data and transects infos from file ACDC2019-Nat-ObsIndivDist.xlsx ...
+2023-04-30 16:23:26,098 11652 main INFO1	... found 874 mono-category sightings and 190 transects
+2023-04-30 16:23:26,098 11652 main INFO0	Found opt-analyses explicit spec. file anlys/230430-153402/ACDC2019-Nat-optanalyses-explispecs.xlsx
+2023-04-30 16:23:26,098 11652 main INFO0	Found opt-analyses results file anlys/230430-153402/ACDC2019-Nat-optanalyses-results.xlsx
+2023-04-30 16:23:26,098 11652 main INFO0	Loading opt-analysis results from anlys/230430-153402/ACDC2019-Nat-optanalyses-results.xlsx
+2023-04-30 16:23:26,099 11652 ads.dat INFO0	Loaded 874 x 11 total rows x columns in data set ...
+2023-04-30 16:23:26,099 11652 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire]
+2023-04-30 16:23:26,099 11652 ads.dat INFO0	Individuals data : 874 sightings, 190 transects
+2023-04-30 16:23:26,099 11652 ads.dat INFO0	Loaded 874 x 11 total rows x columns in data set ...
+2023-04-30 16:23:26,100 11652 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire]
+2023-04-30 16:23:26,100 11652 ads.dat INFO0	Individuals data : 874 sightings, 190 transects
+2023-04-30 16:23:26,128 11652 ads.dat INFO1	Loading anlys\230430-153402\ACDC2019-Nat-optanalyses-results.xlsx:
+2023-04-30 16:23:26,138 11652 ads.dat INFO2	* all-results ...
+2023-04-30 16:23:26,590 11652 ads.dat INFO2	* sp-analyses ...
+2023-04-30 16:23:26,662 11652 ads.dat INFO2	* sp-analyser ...
+2023-04-30 16:23:26,665 11652 ads.dat INFO2	* sp-runtime ...
+2023-04-30 16:23:26,667 11652 ads.dat INFO0	272x115 results rows x columns and 3 specs loaded from anlys\230430-153402\ACDC2019-Nat-optanalyses-results.xlsx in 0.539s
+2023-04-30 16:23:26,668 11652 main INFO0	Running generation of html,excel opt-analysis report(s) ...
+2023-04-30 16:23:26,668 11652 main INFO1	* Auto-filtered Excel opt-analysis report to be generated: all schemes
+2023-04-30 16:23:26,670 11652 ads.rep INFO0	Formatting FilterSort sub-reports as a workbook ...
+2023-04-30 16:23:26,670 11652 ads.rep INFO1	* filter & sort "ExAicMQua-r975m8q3d8" scheme ...
+2023-04-30 16:23:28,176 11652 ads.rep INFO1	* filter & sort "ExAicMQua-r950m8q3d10" scheme ...
+2023-04-30 16:23:28,308 11652 ads.rep INFO1	* filter & sort "ExAicMQua-r925m8q3d12" scheme ...
+2023-04-30 16:23:28,440 11652 ads.rep INFO1	* filter & sort "ExCode" scheme ...
+2023-04-30 16:23:28,561 11652 ads.rep INFO1	* filter & sort steps ...
+2023-04-30 16:23:28,562 11652 ads.rep INFO1	* synthesis ...
+2023-04-30 16:23:28,642 11652 ads.rep INFO1	* details ...
+2023-04-30 16:23:28,711 11652 ads.rep INFO1	* analyses ...
+2023-04-30 16:23:28,711 11652 ads.rep INFO1	* analyser ...
+2023-04-30 16:23:28,711 11652 ads.rep INFO1	* runtime ...
+2023-04-30 16:23:28,711 11652 ads.rep INFO1	* samples ...
+2023-04-30 16:23:28,715 11652 ads.rep INFO0	... done.
+2023-04-30 16:23:32,567 11652 ads.rep INFO0	Writing report to anlys\230430-153402\ACDC2019-Nat-optanalyses-report.xlsx ...
+2023-04-30 16:23:33,296 11652 ads.rep INFO0	... done.
+2023-04-30 16:23:33,297 11652 main INFO1	* Auto-filtered HTML opt-analysis report(s) to be generated: ExAicMQua-r925m8q3d12
+2023-04-30 16:23:33,307 11652 ads.anr INFO1	Filter and sort scheme "ExAicMQua-r925m8q3d12" found in cache.
+2023-04-30 16:23:33,381 11652 ads.anr INFO1	Filter and sort scheme "ExAicMQua-r925m8q3d12" found in cache.
+2023-04-30 16:23:34,044 11652 ads.rep INFO0	Analyses pages (97) ...
+2023-04-30 16:23:34,054 11652 ads.rep INFO1	#1/97: Analyse=19 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=12.18575364412747 TrDrte=nan NbTrchMod=13.0 Abrev. Analyse=SylvAtri-ab-5mn-m-haz-pol-la-ma OptimTrunc=1
+2023-04-30 16:23:36,090 11652 ads.rep INFO1	#2/97: Analyse=21 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=23.22534765457019 TrDrte=377.2227677367845 NbTrchMod=17.0 Abrev. Analyse=SylvAtri-ab-5mn-m-haz-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:23:37,782 11652 ads.rep INFO1	#3/97: Analyse=17 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=375.3655098785 NbTrchMod=18.0 Abrev. Analyse=SylvAtri-ab-5mn-m-haz-pol-ra-ma OptimTrunc=1
+2023-04-30 16:23:39,444 11652 ads.rep INFO1	#4/97: Analyse=15 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=17.0 Abrev. Analyse=SylvAtri-ab-5mn-m-haz-pol-ma OptimTrunc=1
+2023-04-30 16:23:41,059 11652 ads.rep INFO1	#5/97: Analyse=20 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=15.7514758867449 TrDrte=261.6581427922172 NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-5mn-m-haz-pol-la-ra OptimTrunc=1
+2023-04-30 16:23:43,747 11652 ads.rep INFO1	#6/97: Analyse=16 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=319.8722210671719 NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-5mn-m-haz-pol-ra OptimTrunc=1
+2023-04-30 16:23:46,593 11652 ads.rep INFO1	#7/97: Analyse=18 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=11.86173337682975 TrDrte=nan NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-5mn-m-haz-pol-la OptimTrunc=1
+2023-04-30 16:23:49,216 11652 ads.rep INFO1	#8/97: Analyse=6 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=19.04900275776897 TrDrte=235.7810918640849 NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-5mn-m-hno-pol-la-ra OptimTrunc=1
+2023-04-30 16:23:51,822 11652 ads.rep INFO1	#9/97: Analyse=7 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=15.90867682235415 TrDrte=367.0693040704977 NbTrchMod=15.0 Abrev. Analyse=SylvAtri-ab-5mn-m-hno-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:23:53,524 11652 ads.rep INFO1	#10/97: Analyse=3 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=315.500903969655 NbTrchMod=15.0 Abrev. Analyse=SylvAtri-ab-5mn-m-hno-pol-ra-ma OptimTrunc=1
+2023-04-30 16:23:55,178 11652 ads.rep INFO1	#11/97: Analyse=2 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=319.4278886906082 NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-5mn-m-hno-pol-ra OptimTrunc=1
+2023-04-30 16:23:58,003 11652 ads.rep INFO1	#12/97: Analyse=25 Echant=0 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-5mn-m-haz-pol-l20 OptimTrunc=0
+2023-04-30 16:24:00,690 11652 ads.rep INFO1	#13/97: Analyse=49 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=4.553959641354886 TrDrte=492.3283159838322 NbTrchMod=13.0 Abrev. Analyse=SylvAtri-ab-10mn-m-haz-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:24:02,307 11652 ads.rep INFO1	#14/97: Analyse=43 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=13.0 Abrev. Analyse=SylvAtri-ab-10mn-m-haz-pol-ma OptimTrunc=1
+2023-04-30 16:24:03,955 11652 ads.rep INFO1	#15/97: Analyse=47 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=6.391710018107661 TrDrte=nan NbTrchMod=25.0 Abrev. Analyse=SylvAtri-ab-10mn-m-haz-pol-la-ma OptimTrunc=1
+2023-04-30 16:24:05,554 11652 ads.rep INFO1	#16/97: Analyse=45 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=278.0036317770612 NbTrchMod=25.0 Abrev. Analyse=SylvAtri-ab-10mn-m-haz-pol-ra-ma OptimTrunc=1
+2023-04-30 16:24:07,213 11652 ads.rep INFO1	#17/97: Analyse=44 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=356.6315512324471 NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-10mn-m-haz-pol-ra OptimTrunc=1
+2023-04-30 16:24:10,142 11652 ads.rep INFO1	#18/97: Analyse=34 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=16.27002665534494 TrDrte=310.1984947836591 NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-10mn-m-hno-pol-la-ra OptimTrunc=1
+2023-04-30 16:24:12,947 11652 ads.rep INFO1	#19/97: Analyse=35 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=22.01868753575665 TrDrte=295.1204112350394 NbTrchMod=13.0 Abrev. Analyse=SylvAtri-ab-10mn-m-hno-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:24:14,635 11652 ads.rep INFO1	#20/97: Analyse=30 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=304.2520392944627 NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-10mn-m-hno-pol-ra OptimTrunc=1
+2023-04-30 16:24:17,450 11652 ads.rep INFO1	#21/97: Analyse=31 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=348.5219595181352 NbTrchMod=13.0 Abrev. Analyse=SylvAtri-ab-10mn-m-hno-pol-ra-ma OptimTrunc=1
+2023-04-30 16:24:19,153 11652 ads.rep INFO1	#22/97: Analyse=46 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=1.394174439319107 TrDrte=nan NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-10mn-m-haz-pol-la OptimTrunc=1
+2023-04-30 16:24:21,840 11652 ads.rep INFO1	#23/97: Analyse=42 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-10mn-m-haz-pol OptimTrunc=0
+2023-04-30 16:24:24,557 11652 ads.rep INFO1	#24/97: Analyse=53 Echant=1 Espèce=Sylvia atricapilla Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=SylvAtri-ab-10mn-m-haz-pol-l20 OptimTrunc=0
+2023-04-30 16:24:27,239 11652 ads.rep INFO1	#25/97: Analyse=57 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=4.0 Abrev. Analyse=PrunModu-ab-5mn-m-hno-pol-ma OptimTrunc=1
+2023-04-30 16:24:29,009 11652 ads.rep INFO1	#26/97: Analyse=61 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=11.93994734434171 TrDrte=nan NbTrchMod=4.0 Abrev. Analyse=PrunModu-ab-5mn-m-hno-pol-la-ma OptimTrunc=1
+2023-04-30 16:24:30,669 11652 ads.rep INFO1	#27/97: Analyse=81 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=200.0 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-5mn-m-haz-pol-r200 OptimTrunc=0
+2023-04-30 16:24:33,739 11652 ads.rep INFO1	#28/97: Analyse=59 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=156.2941801345967 NbTrchMod=4.0 Abrev. Analyse=PrunModu-ab-5mn-m-hno-pol-ra-ma OptimTrunc=1
+2023-04-30 16:24:35,447 11652 ads.rep INFO1	#29/97: Analyse=56 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=PrunModu-ab-5mn-m-hno-pol OptimTrunc=0
+2023-04-30 16:24:38,534 11652 ads.rep INFO1	#30/97: Analyse=60 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=24.97559221156294 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PrunModu-ab-5mn-m-hno-pol-la OptimTrunc=1
+2023-04-30 16:24:41,441 11652 ads.rep INFO1	#31/97: Analyse=58 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=151.3846980289072 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-5mn-m-hno-pol-ra OptimTrunc=1
+2023-04-30 16:24:44,386 11652 ads.rep INFO1	#32/97: Analyse=74 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=159.7295019584809 NbTrchMod=4.0 Abrev. Analyse=PrunModu-ab-5mn-m-haz-pol-ra-ma OptimTrunc=1
+2023-04-30 16:24:46,082 11652 ads.rep INFO1	#33/97: Analyse=84 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=20.0 TrDrte=200.0 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-5mn-m-haz-pol-l20-r200 OptimTrunc=0
+2023-04-30 16:24:49,197 11652 ads.rep INFO1	#34/97: Analyse=73 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=159.5533502590467 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-5mn-m-haz-pol-ra OptimTrunc=1
+2023-04-30 16:24:52,217 11652 ads.rep INFO1	#35/97: Analyse=67 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PrunModu-ab-5mn-m-hno-pol-l20 OptimTrunc=0
+2023-04-30 16:24:55,154 11652 ads.rep INFO1	#36/97: Analyse=66 Echant=2 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=200.0 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-5mn-m-hno-pol-r200 OptimTrunc=0
+2023-04-30 16:24:58,182 11652 ads.rep INFO1	#37/97: Analyse=89 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=177.2588103165699 NbTrchMod=7.0 Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol-ra-ma OptimTrunc=1
+2023-04-30 16:24:59,938 11652 ads.rep INFO1	#38/97: Analyse=91 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=22.45614522024664 TrDrte=nan NbTrchMod=5.0 Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol-la-ma OptimTrunc=1
+2023-04-30 16:25:01,533 11652 ads.rep INFO1	#39/97: Analyse=88 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=176.6101324537052 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol-ra OptimTrunc=1
+2023-04-30 16:25:04,632 11652 ads.rep INFO1	#40/97: Analyse=87 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=7.0 Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol-ma OptimTrunc=1
+2023-04-30 16:25:06,287 11652 ads.rep INFO1	#41/97: Analyse=93 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=20.59197284686253 TrDrte=182.1982226040456 NbTrchMod=6.0 Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:25:07,934 11652 ads.rep INFO1	#42/97: Analyse=90 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=28.78459916325228 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol-la OptimTrunc=1
+2023-04-30 16:25:10,682 11652 ads.rep INFO1	#43/97: Analyse=92 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=25.04255390479987 TrDrte=180.678740112737 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol-la-ra OptimTrunc=1
+2023-04-30 16:25:13,612 11652 ads.rep INFO1	#44/97: Analyse=106 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=14.73523514944339 TrDrte=nan NbTrchMod=8.0 Abrev. Analyse=PrunModu-ab-10mn-m-haz-pol-la-ma OptimTrunc=1
+2023-04-30 16:25:15,223 11652 ads.rep INFO1	#45/97: Analyse=108 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=11.95515862138099 TrDrte=221.8577607431577 NbTrchMod=6.0 Abrev. Analyse=PrunModu-ab-10mn-m-haz-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:25:16,965 11652 ads.rep INFO1	#46/97: Analyse=96 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=200.0 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol-r200 OptimTrunc=0
+2023-04-30 16:25:19,914 11652 ads.rep INFO1	#47/97: Analyse=107 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=10.62704092606604 TrDrte=196.9023328932084 NbTrchMod=nan Abrev. Analyse=PrunModu-ab-10mn-m-haz-pol-la-ra OptimTrunc=1
+2023-04-30 16:25:22,929 11652 ads.rep INFO1	#48/97: Analyse=86 Echant=3 Espèce=Prunella modularis Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=PrunModu-ab-10mn-m-hno-pol OptimTrunc=0
+2023-04-30 16:25:25,782 11652 ads.rep INFO1	#49/97: Analyse=117 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=5.0 Abrev. Analyse=PhylBone-ab-5mn-m-hno-pol-ma OptimTrunc=1
+2023-04-30 16:25:27,400 11652 ads.rep INFO1	#50/97: Analyse=127 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-5mn-m-hno-pol-l20 OptimTrunc=0
+2023-04-30 16:25:30,276 11652 ads.rep INFO1	#51/97: Analyse=116 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-5mn-m-hno-pol OptimTrunc=0
+2023-04-30 16:25:33,020 11652 ads.rep INFO1	#52/97: Analyse=133 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=272.47095463685 NbTrchMod=6.0 Abrev. Analyse=PhylBone-ab-5mn-m-haz-pol-ra-ma OptimTrunc=1
+2023-04-30 16:25:34,637 11652 ads.rep INFO1	#53/97: Analyse=119 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=280.676487020713 NbTrchMod=5.0 Abrev. Analyse=PhylBone-ab-5mn-m-hno-pol-ra-ma OptimTrunc=1
+2023-04-30 16:25:36,230 11652 ads.rep INFO1	#54/97: Analyse=118 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=282.2462136828399 NbTrchMod=nan Abrev. Analyse=PhylBone-ab-5mn-m-hno-pol-ra OptimTrunc=1
+2023-04-30 16:25:39,049 11652 ads.rep INFO1	#55/97: Analyse=121 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=22.77921842729778 TrDrte=nan NbTrchMod=8.0 Abrev. Analyse=PhylBone-ab-5mn-m-hno-pol-la-ma OptimTrunc=1
+2023-04-30 16:25:40,637 11652 ads.rep INFO1	#56/97: Analyse=120 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=22.77905816943529 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-5mn-m-hno-pol-la OptimTrunc=1
+2023-04-30 16:25:43,497 11652 ads.rep INFO1	#57/97: Analyse=132 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=287.5860169178777 NbTrchMod=nan Abrev. Analyse=PhylBone-ab-5mn-m-haz-pol-ra OptimTrunc=1
+2023-04-30 16:25:46,367 11652 ads.rep INFO1	#58/97: Analyse=137 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=22.84126343092983 TrDrte=287.5862491797154 NbTrchMod=8.0 Abrev. Analyse=PhylBone-ab-5mn-m-haz-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:25:48,009 11652 ads.rep INFO1	#59/97: Analyse=136 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=22.78004977033122 TrDrte=287.5854226130068 NbTrchMod=nan Abrev. Analyse=PhylBone-ab-5mn-m-haz-pol-la-ra OptimTrunc=1
+2023-04-30 16:25:50,799 11652 ads.rep INFO1	#60/97: Analyse=123 Echant=4 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=22.80726038941319 TrDrte=280.0501882939004 NbTrchMod=8.0 Abrev. Analyse=PhylBone-ab-5mn-m-hno-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:25:52,425 11652 ads.rep INFO1	#61/97: Analyse=144 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-hno-pol OptimTrunc=0
+2023-04-30 16:25:55,257 11652 ads.rep INFO1	#62/97: Analyse=160 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=283.8761871388165 NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-haz-pol-ra OptimTrunc=1
+2023-04-30 16:25:57,975 11652 ads.rep INFO1	#63/97: Analyse=162 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=28.7979898757714 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-haz-pol-la OptimTrunc=1
+2023-04-30 16:26:00,752 11652 ads.rep INFO1	#64/97: Analyse=163 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=29.04285385347511 TrDrte=nan NbTrchMod=8.0 Abrev. Analyse=PhylBone-ab-10mn-m-haz-pol-la-ma OptimTrunc=1
+2023-04-30 16:26:02,370 11652 ads.rep INFO1	#65/97: Analyse=146 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=275.0329294573732 NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-hno-pol-ra OptimTrunc=1
+2023-04-30 16:26:05,074 11652 ads.rep INFO1	#66/97: Analyse=149 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=26.71480654523855 TrDrte=nan NbTrchMod=8.0 Abrev. Analyse=PhylBone-ab-10mn-m-hno-pol-la-ma OptimTrunc=1
+2023-04-30 16:26:06,736 11652 ads.rep INFO1	#67/97: Analyse=158 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-haz-pol OptimTrunc=0
+2023-04-30 16:26:09,601 11652 ads.rep INFO1	#68/97: Analyse=151 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=24.51650568433719 TrDrte=274.384786075306 NbTrchMod=5.0 Abrev. Analyse=PhylBone-ab-10mn-m-hno-pol-la-ra-ma OptimTrunc=1
+2023-04-30 16:26:11,158 11652 ads.rep INFO1	#69/97: Analyse=150 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=26.90254559466912 TrDrte=275.1191685429182 NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-hno-pol-la-ra OptimTrunc=1
+2023-04-30 16:26:13,904 11652 ads.rep INFO1	#70/97: Analyse=148 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=30.4816612985635 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-hno-pol-la OptimTrunc=1
+2023-04-30 16:26:16,672 11652 ads.rep INFO1	#71/97: Analyse=155 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-hno-pol-l20 OptimTrunc=0
+2023-04-30 16:26:19,444 11652 ads.rep INFO1	#72/97: Analyse=169 Echant=5 Espèce=Phylloscopus bonelli Passage=a+b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=PhylBone-ab-10mn-m-haz-pol-l20 OptimTrunc=0
+2023-04-30 16:26:22,292 11652 ads.rep INFO1	#73/97: Analyse=172 Echant=6 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-m-hno-pol OptimTrunc=0
+2023-04-30 16:26:24,046 11652 ads.rep INFO1	#74/97: Analyse=173 Echant=6 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=3.0 Abrev. Analyse=OrioOrio-b-5mn-m-hno-pol-ma OptimTrunc=1
+2023-04-30 16:26:25,724 11652 ads.rep INFO1	#75/97: Analyse=187 Echant=6 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-m-haz-pol OptimTrunc=0
+2023-04-30 16:26:27,534 11652 ads.rep INFO1	#76/97: Analyse=186 Echant=6 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=400.0 NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-m-hno-pol-r400 OptimTrunc=0
+2023-04-30 16:26:29,265 11652 ads.rep INFO1	#77/97: Analyse=201 Echant=6 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=400.0 NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-m-haz-pol-r400 OptimTrunc=0
+2023-04-30 16:26:31,091 11652 ads.rep INFO1	#78/97: Analyse=183 Echant=6 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-m-hno-pol-l20 OptimTrunc=0
+2023-04-30 16:26:32,851 11652 ads.rep INFO1	#79/97: Analyse=198 Echant=6 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-m-haz-pol-l20 OptimTrunc=0
+2023-04-30 16:26:34,662 11652 ads.rep INFO1	#80/97: Analyse=203 Echant=7 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=5.0 Abrev. Analyse=OrioOrio-b-10mn-m-hno-pol-ma OptimTrunc=1
+2023-04-30 16:26:36,328 11652 ads.rep INFO1	#81/97: Analyse=213 Echant=7 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-10mn-m-hno-pol-l20 OptimTrunc=0
+2023-04-30 16:26:39,012 11652 ads.rep INFO1	#82/97: Analyse=202 Echant=7 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-10mn-m-hno-pol OptimTrunc=0
+2023-04-30 16:26:41,721 11652 ads.rep INFO1	#83/97: Analyse=218 Echant=7 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=5.0 Abrev. Analyse=OrioOrio-b-10mn-m-haz-pol-ma OptimTrunc=1
+2023-04-30 16:26:43,302 11652 ads.rep INFO1	#84/97: Analyse=217 Echant=7 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-10mn-m-haz-pol OptimTrunc=0
+2023-04-30 16:26:45,973 11652 ads.rep INFO1	#85/97: Analyse=228 Echant=7 Espèce=Oriolus oriolus Passage=b Adulte=m Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-10mn-m-haz-pol-l20 OptimTrunc=0
+2023-04-30 16:26:48,597 11652 ads.rep INFO1	#86/97: Analyse=232 Echant=8 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-ma-hno-pol OptimTrunc=0
+2023-04-30 16:26:50,271 11652 ads.rep INFO1	#87/97: Analyse=247 Echant=8 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-ma-haz-pol OptimTrunc=0
+2023-04-30 16:26:52,065 11652 ads.rep INFO1	#88/97: Analyse=246 Echant=8 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=400.0 NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-ma-hno-pol-r400 OptimTrunc=0
+2023-04-30 16:26:53,751 11652 ads.rep INFO1	#89/97: Analyse=261 Echant=8 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=400.0 NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-ma-haz-pol-r400 OptimTrunc=0
+2023-04-30 16:26:55,580 11652 ads.rep INFO1	#90/97: Analyse=243 Echant=8 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=5mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-ma-hno-pol-l20 OptimTrunc=0
+2023-04-30 16:26:57,376 11652 ads.rep INFO1	#91/97: Analyse=258 Echant=8 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=5mn FonctionClé=HAZARD SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-5mn-ma-haz-pol-l20 OptimTrunc=0
+2023-04-30 16:26:59,215 11652 ads.rep INFO1	#92/97: Analyse=263 Echant=9 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=5.0 Abrev. Analyse=OrioOrio-b-10mn-ma-hno-pol-ma OptimTrunc=1
+2023-04-30 16:27:00,981 11652 ads.rep INFO1	#93/97: Analyse=273 Echant=9 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-10mn-ma-hno-pol-l20 OptimTrunc=0
+2023-04-30 16:27:03,846 11652 ads.rep INFO1	#94/97: Analyse=262 Echant=9 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=10mn FonctionClé=HNORMAL SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-10mn-ma-hno-pol OptimTrunc=0
+2023-04-30 16:27:06,656 11652 ads.rep INFO1	#95/97: Analyse=278 Echant=9 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=5.0 Abrev. Analyse=OrioOrio-b-10mn-ma-haz-pol-ma OptimTrunc=1
+2023-04-30 16:27:08,248 11652 ads.rep INFO1	#96/97: Analyse=277 Echant=9 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=nan TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-10mn-ma-haz-pol OptimTrunc=0
+2023-04-30 16:27:10,953 11652 ads.rep INFO1	#97/97: Analyse=288 Echant=9 Espèce=Oriolus oriolus Passage=b Adulte=m+a Durée=10mn FonctionClé=HAZARD SérieAjust=POLY TrGche=20.0 TrDrte=nan NbTrchMod=nan Abrev. Analyse=OrioOrio-b-10mn-ma-haz-pol-l20 OptimTrunc=0
+2023-04-30 16:27:13,605 11652 ads.rep INFO1	5/97 pages in 00:03:40 (mean 43.91s): should end around 17:34:33
+2023-04-30 16:27:13,606 11652 ads.rep INFO1	10/97 pages in 00:03:40 (mean 21.96s): should end around 16:59:03
+2023-04-30 16:27:13,606 11652 ads.rep INFO1	15/97 pages in 00:03:40 (mean 14.64s): should end around 16:47:13
+2023-04-30 16:27:13,606 11652 ads.rep INFO1	20/97 pages in 00:03:40 (mean 10.98s): should end around 16:41:18
+2023-04-30 16:27:13,606 11652 ads.rep INFO1	25/97 pages in 00:03:40 (mean 8.78s): should end around 16:37:45
+2023-04-30 16:27:13,607 11652 ads.rep INFO1	30/97 pages in 00:03:40 (mean 7.32s): should end around 16:35:23
+2023-04-30 16:27:13,607 11652 ads.rep INFO1	35/97 pages in 00:03:40 (mean 6.27s): should end around 16:33:42
+2023-04-30 16:27:13,607 11652 ads.rep INFO1	40/97 pages in 00:03:40 (mean 5.49s): should end around 16:32:26
+2023-04-30 16:27:13,607 11652 ads.rep INFO1	45/97 pages in 00:03:40 (mean 4.88s): should end around 16:31:27
+2023-04-30 16:27:13,608 11652 ads.rep INFO1	50/97 pages in 00:03:40 (mean 4.39s): should end around 16:30:39
+2023-04-30 16:27:13,608 11652 ads.rep INFO1	55/97 pages in 00:03:40 (mean 3.99s): should end around 16:30:01
+2023-04-30 16:27:13,608 11652 ads.rep INFO1	60/97 pages in 00:03:40 (mean 3.66s): should end around 16:29:29
+2023-04-30 16:27:13,608 11652 ads.rep INFO1	65/97 pages in 00:03:40 (mean 3.38s): should end around 16:29:01
+2023-04-30 16:27:13,608 11652 ads.rep INFO1	70/97 pages in 00:03:40 (mean 3.14s): should end around 16:28:38
+2023-04-30 16:27:13,609 11652 ads.rep INFO1	75/97 pages in 00:03:40 (mean 2.93s): should end around 16:28:18
+2023-04-30 16:27:13,609 11652 ads.rep INFO1	80/97 pages in 00:03:40 (mean 2.74s): should end around 16:28:00
+2023-04-30 16:27:13,609 11652 ads.rep INFO1	85/97 pages in 00:03:40 (mean 2.58s): should end around 16:27:44
+2023-04-30 16:27:13,609 11652 ads.rep INFO1	90/97 pages in 00:03:40 (mean 2.44s): should end around 16:27:30
+2023-04-30 16:27:13,610 11652 ads.rep INFO1	95/97 pages in 00:03:40 (mean 2.31s): should end around 16:27:18
+2023-04-30 16:27:13,610 11652 ads.rep INFO1	97/97 pages in 00:03:40 (mean 2.26s): done.
+2023-04-30 16:27:13,610 11652 ads.rep INFO0	Top page ...
+2023-04-30 16:27:13,610 11652 ads.anr INFO1	Filter and sort scheme "ExAicMQua-r925m8q3d12" found in cache.
+2023-04-30 16:27:13,683 11652 ads.anr INFO1	Filter and sort scheme "ExAicMQua-r925m8q3d12" found in cache.
+2023-04-30 16:27:14,798 11652 ads.rep INFO0	Formatting FilterSort sub-reports as a workbook ...
+2023-04-30 16:27:14,798 11652 ads.rep INFO1	* analyses ...
+2023-04-30 16:27:14,798 11652 ads.rep INFO1	* analyser ...
+2023-04-30 16:27:14,798 11652 ads.rep INFO1	* runtime ...
+2023-04-30 16:27:14,798 11652 ads.rep INFO1	* samples ...
+2023-04-30 16:27:14,801 11652 ads.rep INFO0	... done.
+2023-04-30 16:27:16,306 11652 ads.rep INFO0	... done.
+2023-04-30 16:27:16,306 11652 main INFO0	Done running generation of html,excel opt-analysis report(s) (00:03:49.637956).
+2023-04-30 16:27:16,306 11652 main INFO1	Giving back session log to anlys\230430-153402\ACDC2019-Nat.230430-162324.log

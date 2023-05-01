@@ -1,0 +1,32 @@
+ This is mcds.exe version 6.2.0     
+ Options;                                                                      
+ Type=Point;                                                                   
+ Distance=Radial /Measure='Meter';                                             
+ Area /Units='Sq. Kilometer';                                                  
+ Object=Single;                                                                
+ SF=1;                                                                         
+ Selection=Sequential;                                                         
+ Lookahead=1;                                                                  
+ Maxterms=5;                                                                   
+ Confidence=95;                                                                
+ print=Selection;                                                              
+ End;                                                                          
+ Data /Structure=Flat;                                                         
+ Fields=STR_LABEL,STR_AREA,SMP_LABEL,SMP_EFFORT,DISTANCE;                      
+ Infile=optanlys\SylvAtri-ab-10mn-m-haz-pol-la-ma-7ak3cu9l\data.txt /NoEcho;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+ Data will be input from file - [...]AZ-POL-LA-MA-7AK3CU9L\DATA.TXT
+ End;                                                                          
+ Dataset has been stored.
+ Estimate;                                                                     
+ Distance /Left=6.39171;                                                       
+ Density=All;                                                                  
+ Encounter=All;                                                                
+ Detection=All;                                                                
+ Size=All;                                                                     
+ Estimator /Key=HAZARD /Adjust=POLY /Criterion=AIC;                            
+ Monotone=Strict;                                                              
+ Pick=AIC;                                                                     
+ GOF /NClass=25;                                                               
+ Cluster /Bias=GXLOG;                                                          
+ VarN=Empirical;                                                               
+ End;                                                                          

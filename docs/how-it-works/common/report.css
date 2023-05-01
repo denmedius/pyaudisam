@@ -1,0 +1,259 @@
+/* PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
+
+   Copyright (C) 2021 Jean-Philippe Meuret
+   
+   This program is free software: you can redistribute it and/or modify it under the terms
+   of the GNU General Public License as published by the Free Software Foundation,
+   either version 3 of the License, or (at your option) any later version.
+   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+   without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+   See the GNU General Public License for more details.
+   You should have received a copy of the GNU General Public License along with this program.
+   If not, see https://www.gnu.org/licenses/.
+*/
+
+html, body  {
+ /* font-family: Arial, Helvetica, sans-serif;*/
+ font-family: "Liberation Serif", Georgia, serif
+ margin: 0;
+ padding: 0;
+ width: 100%;
+}
+div {
+ margin: 0;
+ padding: 0;
+}
+body {
+ background-color: #e8efd1;
+ font-size: 100%;
+}
+h1 {
+ font-size: 480%;
+ color: #244c0c;
+ text-align: center;
+}
+h2 {
+ font-size: 240%;
+ color: #244c0c;
+ margin-bottom: 20px;
+}
+h3 {
+ font-size: 160%;
+ color: #244c0c;
+ margin-bottom: 10px;
+}
+h4 {
+ font-size: 120%;
+ color: #244c0c;
+ margin-bottom: 0;
+}
+h5 {
+ font-size: 100%;
+ color: #244c0c;
+ margin-bottom: 0;
+}
+h6 {
+ font-size: 80%;
+ color: #244c0c;
+ margin-bottom: 0;
+}
+p {
+ color: #244c0c;
+}
+ul,ol,li,td {
+ color: #244c0c;
+}
+a:link {
+ color: #2f7404;
+ font-weight: bold;
+ text-decoration:underline;
+}
+a:visited {
+ color: #379000;
+ font-weight:bold;
+ text-decoration:underline;
+}
+a:active,
+a:hover {
+ color: #bd5a35;
+ text-decoration:underline;
+}
+
+table a:link {
+ color: #244c0c;
+ font-weight: bold;
+ text-decoration:none;
+}
+table a:visited {
+ color: #546122;
+ font-weight:bold;
+ text-decoration:none;
+}
+table a:active,
+table a:hover {
+ color: #bd5a35;
+ text-decoration:underline;
+}
+
+table {
+ color:#244c0c;
+ text-shadow: 1px 1px 0px #fff;
+ margin: 8px 4px 0 4px;
+ border: #ccc 1px solid;
+
+ -moz-border-radius:3px;
+ -webkit-border-radius:3px;
+ border-radius:3px;
+
+ -moz-box-shadow: 0 1px 2px #d1d1d1;
+ -webkit-box-shadow: 0 1px 2px #d1d1d1;
+ box-shadow: 0 1px 2px #d1d1d1;
+ 
+ white-space: nowrap;
+}
+table th {
+ text-align: left;
+ padding: 4px 4px 2px 5px;
+ border-top: 1px solid #f9fbf3;
+ border-bottom: 1px solid #dee5ca;
+
+ background: #bcc380;
+ background: -webkit-gradient(linear, left top, left bottom, from(#bcc380), to(#e4eac8));
+ background: -moz-linear-gradient(top, #bcc380, #e4eac8);
+
+ white-space: normal;
+}
+table th:first-child {
+ text-align: left;
+ padding-left: 5px;
+}
+table tr:first-child th:first-child {
+ -moz-border-radius-topleft:3px;
+ -webkit-border-top-left-radius:3px;
+ border-top-left-radius:3px;
+}
+table tr:first-child th:last-child {
+ -moz-border-radius-topright:3px;
+ -webkit-border-top-right-radius:3px;
+ border-top-right-radius:3px;
+}
+table tr {
+ padding: 0 5px 0 0;
+ }
+table td:first-child {
+ border-left: 0;
+}
+table td {
+ text-align: right;
+ padding: 4px 4px 2px 5px;
+ border-top: 1px solid #ffffff;
+ border-bottom: 1px solid #dee5ca;
+ border-left: 1px solid #dee5ca;
+ vertical-align: top;
+}
+table tr.even td {
+ background: #f6f6f6;
+ background: -webkit-gradient(linear, left top, left bottom, from(#f8f8f8), to(#f6f6f6));
+ background: -moz-linear-gradient(top,  #f8f8f8,  #f6f6f6);
+}
+/*table tr:last-child td {
+ border-bottom:0;
+}*/
+table tr:last-child td:first-child {
+ -moz-border-radius-bottomleft:3px;
+ -webkit-border-bottom-left-radius:3px;
+ border-bottom-left-radius:3px;
+}
+table tr:last-child td:last-child {
+ -moz-border-radius-bottomright:3px;
+ -webkit-border-bottom-right-radius:3px;
+ border-bottom-right-radius:3px;
+}
+table tr:hover td {
+ border-top: 1px solid #e8efd1;
+ border-bottom: 1px solid #99b484;
+ border-left: 1px solid #99b484;
+}
+
+/* Tables embedded in tables */
+table td table {
+ all: initial;
+}
+table td table th {
+ all: initial;
+ font-weight: bold;
+}
+
+#toTopBtn {
+  display: none;
+  position: fixed;
+  bottom: 15px;
+  right: 15px;
+  z-index: 99;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  opacity: .25;
+  background-color: white;
+  cursor: pointer;
+}
+#toTopBtn:hover {
+  opacity: .75;
+}
+
+div.chapter {
+  -moz-border-radius:8px;
+  -webkit-border-radius:8px;
+  border-radius:8px;
+  padding: 1px 5px 1px 5px;
+}
+div.chapter:hover {
+ background:#e3eac9;
+}
+
+.top-vert-align {
+  vertical-align: top;
+}
+
+.center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.shrinkable {
+  max-width: 100%;
+}
+
+.audio-player {
+ min-width: 384px;
+ max-width: 100%;
+}
+
+#title {
+ all: initial;
+ display: table;
+ margin-left: auto;
+ margin-right: auto;
+ text-shadow: 1px 1px 0px #fff;
+}
+#title tbody {
+ all: initial;
+}
+#title th {
+ all: initial;
+ display: table-cell;
+}
+#title tr {
+ all: initial;
+ display: table-row;
+ color: #244c0c
+}
+#title td {
+ all: initial;
+ /* font-family: Arial, Helvetica, sans-serif;*/
+ font-family: "Liberation Serif", Georgia, serif;
+ display: table-cell;
+ padding-bottom: 15px;
+ color: #244c0c
+}

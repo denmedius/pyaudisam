@@ -1,0 +1,1274 @@
+2023-04-30 15:34:02,110 4472 main INFO1	Logging session to temporary C:/Users/f270560/AppData/Local/Temp/pyaudisamfl9tqqil/pyaudisam-main.230430-153402.log
+2023-04-30 15:34:02,111 4472 main INFO0	Current folder: C:/tmp/howto-acdc19-nat
+2023-04-30 15:34:02,111 4472 main INFO0	Command line: C:/PortableApps/MiniConda3/envs/py38/lib/site-packages/pyaudisam/__main__.py -p acdc-2019-nat-ds-params.py -w ./anlys -o -u
+2023-04-30 15:34:02,111 4472 main INFO0	Computation platform:
+2023-04-30 15:34:02,111 4472 main INFO0	* os: Windows Enterprise 10.0.19041 (64bit)
+2023-04-30 15:34:02,114 4472 main INFO0	* processor: Intel64 Family 6 Model 165 Stepping 2, GenuineIntel, 12 CPUs
+2023-04-30 15:34:02,114 4472 main INFO0	* python: cpython (win32) R3.8.2 | packaged by conda-forge | (default, Apr 24 2020, 07:34:03) [MSC v.1916 64 bit (AMD64)]
+2023-04-30 15:34:02,114 4472 main INFO0	* numpy: 1.23.2
+2023-04-30 15:34:02,114 4472 main INFO0	* pandas: 1.2.5
+2023-04-30 15:34:02,115 4472 main INFO0	* zoopt: 0.4.0
+2023-04-30 15:34:02,115 4472 main INFO0	* matplotlib: 3.4.2
+2023-04-30 15:34:02,115 4472 main INFO0	* jinja2: 3.0.1
+2023-04-30 15:34:02,115 4472 main INFO0	* pyaudisam: 1.0.0
+2023-04-30 15:34:02,116 4472 main INFO0	* DS engine: C:/PortableApps/Distance 7/MCDS.exe
+2023-04-30 15:34:02,119 4472 main INFO0	This is a real run: requested operation will be actually run !
+2023-04-30 15:34:02,119 4472 main INFO1	Arguments:
+2023-04-30 15:34:02,119 4472 main INFO1	* realRun: True
+2023-04-30 15:34:02,120 4472 main INFO1	* verbose: False
+2023-04-30 15:34:02,120 4472 main INFO1	* paramFile: acdc-2019-nat-ds-params.py
+2023-04-30 15:34:02,120 4472 main INFO1	* speParams: 
+2023-04-30 15:34:02,120 4472 main INFO1	* workDir: ./anlys
+2023-04-30 15:34:02,121 4472 main INFO1	* noTimestamp: False
+2023-04-30 15:34:02,121 4472 main INFO1	* distExport: False
+2023-04-30 15:34:02,121 4472 main INFO1	* preAnalyses: False
+2023-04-30 15:34:02,121 4472 main INFO1	* analyses: False
+2023-04-30 15:34:02,121 4472 main INFO1	* optAnalyses: True
+2023-04-30 15:34:02,121 4472 main INFO1	* recoverOpts: False
+2023-04-30 15:34:02,122 4472 main INFO1	* preReports: {}
+2023-04-30 15:34:02,122 4472 main INFO1	* reports: {}
+2023-04-30 15:34:02,122 4472 main INFO1	* optReports: {}
+2023-04-30 15:34:02,122 4472 main INFO1	* logPrefix: None
+2023-04-30 15:34:02,122 4472 main INFO1	* threads: 0
+2023-04-30 15:34:02,122 4472 main INFO1	* engineType: MCDS
+2023-04-30 15:34:02,946 4472 main INFO0	Available filter & sort report schemes: ExAicMQua-r975m8q3d8, ExAicMQua-r950m8q3d10, ExAicMQua-r925m8q3d12, ExCode
+2023-04-30 15:34:02,947 4472 main INFO0	Work folder: anlys/230430-153402
+2023-04-30 15:34:02,948 4472 main INFO1	Loading survey data and transects infos from file ACDC2019-Nat-ObsIndivDist.xlsx ...
+2023-04-30 15:34:04,724 4472 main INFO1	... found 874 mono-category sightings and 190 transects
+2023-04-30 15:34:04,725 4472 main INFO0	Running opt-analyses ...
+2023-04-30 15:34:04,725 4472 ads.dat INFO0	Loaded 874 x 11 total rows x columns in data set ...
+2023-04-30 15:34:04,725 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire]
+2023-04-30 15:34:04,726 4472 ads.dat INFO0	Individuals data : 874 sightings, 190 transects
+2023-04-30 15:34:04,726 4472 ads.dat INFO0	Loaded 874 x 11 total rows x columns in data set ...
+2023-04-30 15:34:04,727 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire]
+2023-04-30 15:34:04,727 4472 ads.dat INFO0	Individuals data : 874 sightings, 190 transects
+2023-04-30 15:34:04,922 4472 ads.anr INFO0	Dropped 20 last duplicate specs of 292, on [Espèce, Passage, Adulte, Durée, FonctionClé, SérieAjust, TrGche, TrDrte, NbTrchMod] columns
+2023-04-30 15:34:04,951 4472 main INFO1	From opt-analysis specs, 140 / 272 opt-analyses to run with truncation optimisation first ...
+2023-04-30 15:34:04,952 4472 main INFO1	... implying possibly up to 21000 auto-analyses in the background if only full "auto" specs
+2023-04-30 15:34:05,127 4472 ads.anr INFO0	Dropped 20 last duplicate specs of 292, on [Espèce, Passage, Adulte, Durée, FonctionClé, SérieAjust, TrGche, TrDrte, NbTrchMod] columns
+2023-04-30 15:34:05,131 4472 ads.onr INFO0	Found 140/272 analysis specs implying some prior optimisation
+2023-04-30 15:34:05,131 4472 ads.dat INFO0	Loaded 874 x 11 total rows x columns in data set ...
+2023-04-30 15:34:05,131 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire]
+2023-04-30 15:34:05,131 4472 ads.dat INFO0	Individuals data : 874 sightings, 190 transects
+2023-04-30 15:34:05,145 4472 ads.eng INFO0	DSEngine work folder: C:/tmp/howto-acdc19-nat/anlys/230430-153402
+2023-04-30 15:34:05,149 4472 ads.anr INFO0	Dropped 0 last duplicate specs of 140, on [Espèce, Passage, Adulte, Durée, FonctionClé, SérieAjust, TrGche, TrDrte, NbTrchMod] columns
+2023-04-30 15:34:05,151 4472 ads.opr INFO0	Running MCDS truncation optimisations for 140 analyses specs (at most 16 parallel threads) ...
+2023-04-30 15:34:05,151 4472 ads.opr INFO1	#1/140: SylvAtri-ab-5mn-m-hno-pol-ma (Id 1)
+2023-04-30 15:34:05,173 4472 ads.dat INFO0	Loaded 285 x 14 total rows x columns in data set ...
+2023-04-30 15:34:05,173 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:05,175 4472 ads.dat INFO0	Sample data : 285 sightings = 270 individuals + 15 absence rows
+2023-04-30 15:34:05,176 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,176 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[11, 25], discrDistCuts=None
+2023-04-30 15:34:05,176 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [11, 25], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,177 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[11, 25], continuous=False, ordered=True)})
+2023-04-30 15:34:05,177 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,185 4472 ads.opr INFO1	#2/140: SylvAtri-ab-5mn-m-hno-pol-ra (Id 2)
+2023-04-30 15:34:05,189 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:05,191 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[234.0330814949917, 488.187599344441], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:05,191 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [234.0330814949917, 488.187599344441], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,192 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[234.0330814949917, 488.187599344441], continuous=True, ordered=True)})
+2023-04-30 15:34:05,192 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,196 4472 ads.opr INFO1	#3/140: SylvAtri-ab-5mn-m-hno-pol-ra-ma (Id 3)
+2023-04-30 15:34:05,202 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,203 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[234.0330814949917, 488.187599344441], fitDistCuts=[11, 25], discrDistCuts=None
+2023-04-30 15:34:05,203 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [234.0330814949917, 488.187599344441], fitDistCuts: [11, 25], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,206 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[234.0330814949917, 488.187599344441], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[11, 25], continuous=False, ordered=True)})
+2023-04-30 15:34:05,206 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,210 4472 ads.opr INFO1	#4/140: SylvAtri-ab-5mn-m-hno-pol-la (Id 4)
+2023-04-30 15:34:05,212 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:05,213 4472 ads.opr INFO2	OptimedParams: minDist=[10.843323181859, 27.839177853414427], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:05,216 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.843323181859, 27.839177853414427], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,217 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.843323181859, 27.839177853414427], continuous=True, ordered=True)})
+2023-04-30 15:34:05,217 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,225 4472 ads.opr INFO1	#5/140: SylvAtri-ab-5mn-m-hno-pol-la-ma (Id 5)
+2023-04-30 15:34:05,226 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,228 4472 ads.opr INFO2	OptimedParams: minDist=[10.843323181859, 27.839177853414427], maxDist=None, fitDistCuts=[11, 25], discrDistCuts=None
+2023-04-30 15:34:05,230 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.843323181859, 27.839177853414427], maxDist: None, fitDistCuts: [11, 25], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,231 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.843323181859, 27.839177853414427], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[11, 25], continuous=False, ordered=True)})
+2023-04-30 15:34:05,232 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,235 4472 ads.opr INFO1	#6/140: SylvAtri-ab-5mn-m-hno-pol-la-ra (Id 6)
+2023-04-30 15:34:05,240 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:05,246 4472 ads.opr INFO2	OptimedParams: minDist=[10.843323181859, 27.839177853414427], maxDist=[234.0330814949917, 488.187599344441], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:05,247 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.843323181859, 27.839177853414427], maxDist: [234.0330814949917, 488.187599344441], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,249 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.843323181859, 27.839177853414427], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[234.0330814949917, 488.187599344441], continuous=True, ordered=True)})
+2023-04-30 15:34:05,250 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,257 4472 ads.opr INFO1	#7/140: SylvAtri-ab-5mn-m-hno-pol-la-ra-ma (Id 7)
+2023-04-30 15:34:05,260 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,269 4472 ads.opr INFO2	OptimedParams: minDist=[10.843323181859, 27.839177853414427], maxDist=[234.0330814949917, 488.187599344441], fitDistCuts=[11, 25], discrDistCuts=None
+2023-04-30 15:34:05,270 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.843323181859, 27.839177853414427], maxDist: [234.0330814949917, 488.187599344441], fitDistCuts: [11, 25], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,272 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.843323181859, 27.839177853414427], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[234.0330814949917, 488.187599344441], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[11, 25], continuous=False, ordered=True)})
+2023-04-30 15:34:05,272 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,279 4472 ads.opr INFO1	#8/140: SylvAtri-ab-5mn-m-haz-pol-ma (Id 15)
+2023-04-30 15:34:05,284 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,291 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[11, 25], discrDistCuts=None
+2023-04-30 15:34:05,293 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [11, 25], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,294 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[11, 25], continuous=False, ordered=True)})
+2023-04-30 15:34:05,297 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,304 4472 ads.opr INFO1	#9/140: SylvAtri-ab-5mn-m-haz-pol-ra (Id 16)
+2023-04-30 15:34:05,319 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:05,322 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[234.0330814949917, 488.187599344441], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:05,323 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [234.0330814949917, 488.187599344441], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,325 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[234.0330814949917, 488.187599344441], continuous=True, ordered=True)})
+2023-04-30 15:34:05,325 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,331 4472 ads.opr INFO1	#10/140: SylvAtri-ab-5mn-m-haz-pol-ra-ma (Id 17)
+2023-04-30 15:34:05,336 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,345 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[234.0330814949917, 488.187599344441], fitDistCuts=[11, 25], discrDistCuts=None
+2023-04-30 15:34:05,345 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [234.0330814949917, 488.187599344441], fitDistCuts: [11, 25], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,349 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[234.0330814949917, 488.187599344441], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[11, 25], continuous=False, ordered=True)})
+2023-04-30 15:34:05,350 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,360 4472 ads.opr INFO1	#11/140: SylvAtri-ab-5mn-m-haz-pol-la (Id 18)
+2023-04-30 15:34:05,371 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:05,373 4472 ads.opr INFO2	OptimedParams: minDist=[10.843323181859, 27.839177853414427], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:05,375 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.843323181859, 27.839177853414427], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,378 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.843323181859, 27.839177853414427], continuous=True, ordered=True)})
+2023-04-30 15:34:05,379 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,389 4472 ads.opr INFO1	#12/140: SylvAtri-ab-5mn-m-haz-pol-la-ma (Id 19)
+2023-04-30 15:34:05,393 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,403 4472 ads.opr INFO2	OptimedParams: minDist=[10.843323181859, 27.839177853414427], maxDist=None, fitDistCuts=[11, 25], discrDistCuts=None
+2023-04-30 15:34:05,403 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.843323181859, 27.839177853414427], maxDist: None, fitDistCuts: [11, 25], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,405 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.843323181859, 27.839177853414427], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[11, 25], continuous=False, ordered=True)})
+2023-04-30 15:34:05,405 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,413 4472 ads.opr INFO1	#13/140: SylvAtri-ab-5mn-m-haz-pol-la-ra (Id 20)
+2023-04-30 15:34:05,415 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:05,428 4472 ads.opr INFO2	OptimedParams: minDist=[10.843323181859, 27.839177853414427], maxDist=[234.0330814949917, 488.187599344441], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:05,429 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.843323181859, 27.839177853414427], maxDist: [234.0330814949917, 488.187599344441], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,432 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.843323181859, 27.839177853414427], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[234.0330814949917, 488.187599344441], continuous=True, ordered=True)})
+2023-04-30 15:34:05,432 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,451 4472 ads.opr INFO1	#14/140: SylvAtri-ab-5mn-m-haz-pol-la-ra-ma (Id 21)
+2023-04-30 15:34:05,458 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,463 4472 ads.opr INFO2	OptimedParams: minDist=[10.843323181859, 27.839177853414427], maxDist=[234.0330814949917, 488.187599344441], fitDistCuts=[11, 25], discrDistCuts=None
+2023-04-30 15:34:05,463 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.843323181859, 27.839177853414427], maxDist: [234.0330814949917, 488.187599344441], fitDistCuts: [11, 25], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,465 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.843323181859, 27.839177853414427], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[234.0330814949917, 488.187599344441], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[11, 25], continuous=False, ordered=True)})
+2023-04-30 15:34:05,465 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,471 4472 ads.opr INFO1	#15/140: SylvAtri-ab-10mn-m-hno-pol-ma (Id 29)
+2023-04-30 15:34:05,599 4472 ads.dat INFO0	Loaded 408 x 14 total rows x columns in data set ...
+2023-04-30 15:34:05,615 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:05,736 4472 ads.dat INFO0	Sample data : 408 sightings = 403 individuals + 5 absence rows
+2023-04-30 15:34:05,781 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,792 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[13, 30], discrDistCuts=None
+2023-04-30 15:34:05,806 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [13, 30], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,834 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[13, 30], continuous=False, ordered=True)})
+2023-04-30 15:34:05,859 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,898 4472 ads.opr INFO1	#16/140: SylvAtri-ab-10mn-m-hno-pol-ra (Id 30)
+2023-04-30 15:34:05,902 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:05,903 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[263.41842916705735, 511.409745300912], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:05,914 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [263.41842916705735, 511.409745300912], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,914 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[263.41842916705735, 511.409745300912], continuous=True, ordered=True)})
+2023-04-30 15:34:05,917 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,931 4472 ads.opr INFO1	#17/140: SylvAtri-ab-10mn-m-hno-pol-ra-ma (Id 31)
+2023-04-30 15:34:05,935 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:05,960 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[263.41842916705735, 511.409745300912], fitDistCuts=[13, 30], discrDistCuts=None
+2023-04-30 15:34:05,960 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [263.41842916705735, 511.409745300912], fitDistCuts: [13, 30], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:05,961 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[263.41842916705735, 511.409745300912], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[13, 30], continuous=False, ordered=True)})
+2023-04-30 15:34:05,979 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:05,980 4472 ads.opr INFO1	#18/140: SylvAtri-ab-10mn-m-hno-pol-la (Id 32)
+2023-04-30 15:34:06,026 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:06,030 4472 ads.opr INFO2	OptimedParams: minDist=[1.21209447400735, 26.134271086050532], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:06,048 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [1.21209447400735, 26.134271086050532], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,048 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[1.21209447400735, 26.134271086050532], continuous=True, ordered=True)})
+2023-04-30 15:34:06,056 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,063 4472 ads.opr INFO1	#19/140: SylvAtri-ab-10mn-m-hno-pol-la-ma (Id 33)
+2023-04-30 15:34:06,068 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:06,069 4472 ads.opr INFO2	OptimedParams: minDist=[1.21209447400735, 26.134271086050532], maxDist=None, fitDistCuts=[13, 30], discrDistCuts=None
+2023-04-30 15:34:06,080 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [1.21209447400735, 26.134271086050532], maxDist: None, fitDistCuts: [13, 30], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,088 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[1.21209447400735, 26.134271086050532], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[13, 30], continuous=False, ordered=True)})
+2023-04-30 15:34:06,108 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,117 4472 ads.opr INFO1	#20/140: SylvAtri-ab-10mn-m-hno-pol-la-ra (Id 34)
+2023-04-30 15:34:06,134 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:06,179 4472 ads.opr INFO2	OptimedParams: minDist=[1.21209447400735, 26.134271086050532], maxDist=[263.41842916705735, 511.409745300912], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:06,180 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [1.21209447400735, 26.134271086050532], maxDist: [263.41842916705735, 511.409745300912], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,180 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[1.21209447400735, 26.134271086050532], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[263.41842916705735, 511.409745300912], continuous=True, ordered=True)})
+2023-04-30 15:34:06,182 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,183 4472 ads.opr INFO1	#21/140: SylvAtri-ab-10mn-m-hno-pol-la-ra-ma (Id 35)
+2023-04-30 15:34:06,193 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:06,238 4472 ads.opr INFO2	OptimedParams: minDist=[1.21209447400735, 26.134271086050532], maxDist=[263.41842916705735, 511.409745300912], fitDistCuts=[13, 30], discrDistCuts=None
+2023-04-30 15:34:06,238 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [1.21209447400735, 26.134271086050532], maxDist: [263.41842916705735, 511.409745300912], fitDistCuts: [13, 30], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,239 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[1.21209447400735, 26.134271086050532], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[263.41842916705735, 511.409745300912], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[13, 30], continuous=False, ordered=True)})
+2023-04-30 15:34:06,240 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,240 4472 ads.opr INFO1	#22/140: SylvAtri-ab-10mn-m-haz-pol-ma (Id 43)
+2023-04-30 15:34:06,241 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:06,246 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[13, 30], discrDistCuts=None
+2023-04-30 15:34:06,246 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [13, 30], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,250 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[13, 30], continuous=False, ordered=True)})
+2023-04-30 15:34:06,250 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,250 4472 ads.opr INFO1	#23/140: SylvAtri-ab-10mn-m-haz-pol-ra (Id 44)
+2023-04-30 15:34:06,252 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:06,257 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[263.41842916705735, 511.409745300912], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:06,258 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [263.41842916705735, 511.409745300912], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,258 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[263.41842916705735, 511.409745300912], continuous=True, ordered=True)})
+2023-04-30 15:34:06,259 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,259 4472 ads.opr INFO1	#24/140: SylvAtri-ab-10mn-m-haz-pol-ra-ma (Id 45)
+2023-04-30 15:34:06,261 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:06,280 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[263.41842916705735, 511.409745300912], fitDistCuts=[13, 30], discrDistCuts=None
+2023-04-30 15:34:06,280 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [263.41842916705735, 511.409745300912], fitDistCuts: [13, 30], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,285 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[263.41842916705735, 511.409745300912], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[13, 30], continuous=False, ordered=True)})
+2023-04-30 15:34:06,289 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,296 4472 ads.opr INFO1	#25/140: SylvAtri-ab-10mn-m-haz-pol-la (Id 46)
+2023-04-30 15:34:06,302 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:06,322 4472 ads.opr INFO2	OptimedParams: minDist=[1.21209447400735, 26.134271086050532], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:06,328 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [1.21209447400735, 26.134271086050532], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,368 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[1.21209447400735, 26.134271086050532], continuous=True, ordered=True)})
+2023-04-30 15:34:06,389 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,393 4472 ads.opr INFO1	#26/140: SylvAtri-ab-10mn-m-haz-pol-la-ma (Id 47)
+2023-04-30 15:34:06,397 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:06,432 4472 ads.opr INFO2	OptimedParams: minDist=[1.21209447400735, 26.134271086050532], maxDist=None, fitDistCuts=[13, 30], discrDistCuts=None
+2023-04-30 15:34:06,432 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [1.21209447400735, 26.134271086050532], maxDist: None, fitDistCuts: [13, 30], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,433 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[1.21209447400735, 26.134271086050532], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[13, 30], continuous=False, ordered=True)})
+2023-04-30 15:34:06,452 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,468 4472 ads.opr INFO1	#27/140: SylvAtri-ab-10mn-m-haz-pol-la-ra (Id 48)
+2023-04-30 15:34:06,525 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:06,587 4472 ads.opr INFO2	OptimedParams: minDist=[1.21209447400735, 26.134271086050532], maxDist=[263.41842916705735, 511.409745300912], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:06,614 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [1.21209447400735, 26.134271086050532], maxDist: [263.41842916705735, 511.409745300912], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,622 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[1.21209447400735, 26.134271086050532], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[263.41842916705735, 511.409745300912], continuous=True, ordered=True)})
+2023-04-30 15:34:06,622 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,622 4472 ads.opr INFO1	#28/140: SylvAtri-ab-10mn-m-haz-pol-la-ra-ma (Id 49)
+2023-04-30 15:34:06,624 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:06,662 4472 ads.opr INFO2	OptimedParams: minDist=[1.21209447400735, 26.134271086050532], maxDist=[263.41842916705735, 511.409745300912], fitDistCuts=[13, 30], discrDistCuts=None
+2023-04-30 15:34:06,663 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [1.21209447400735, 26.134271086050532], maxDist: [263.41842916705735, 511.409745300912], fitDistCuts: [13, 30], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:06,674 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[1.21209447400735, 26.134271086050532], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[263.41842916705735, 511.409745300912], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[13, 30], continuous=False, ordered=True)})
+2023-04-30 15:34:06,674 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:06,674 4472 ads.opr INFO1	#29/140: PrunModu-ab-5mn-m-hno-pol-ma (Id 57)
+2023-04-30 15:34:07,008 4472 ads.dat INFO0	Loaded 101 x 14 total rows x columns in data set ...
+2023-04-30 15:34:07,012 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:07,207 4472 ads.dat INFO0	Sample data : 101 sightings = 21 individuals + 80 absence rows
+2023-04-30 15:34:07,243 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:07,249 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[3, 7], discrDistCuts=None
+2023-04-30 15:34:07,258 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [3, 7], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:07,272 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[3, 7], continuous=False, ordered=True)})
+2023-04-30 15:34:07,274 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:07,287 4472 ads.opr INFO1	#30/140: PrunModu-ab-5mn-m-hno-pol-ra (Id 58)
+2023-04-30 15:34:07,313 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:07,350 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[147.958094471765, 159.730018883386], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:07,368 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [147.958094471765, 159.730018883386], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:07,380 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[147.958094471765, 159.730018883386], continuous=True, ordered=True)})
+2023-04-30 15:34:07,389 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:07,393 4472 ads.opr INFO1	#31/140: PrunModu-ab-5mn-m-hno-pol-ra-ma (Id 59)
+2023-04-30 15:34:07,416 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:07,456 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[147.958094471765, 159.730018883386], fitDistCuts=[3, 7], discrDistCuts=None
+2023-04-30 15:34:07,506 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [147.958094471765, 159.730018883386], fitDistCuts: [3, 7], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:07,527 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[147.958094471765, 159.730018883386], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[3, 7], continuous=False, ordered=True)})
+2023-04-30 15:34:07,542 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:07,545 4472 ads.opr INFO1	#32/140: PrunModu-ab-5mn-m-hno-pol-la (Id 60)
+2023-04-30 15:34:07,554 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:07,581 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 36.238608618858], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:07,615 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 36.238608618858], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:07,630 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 36.238608618858], continuous=True, ordered=True)})
+2023-04-30 15:34:07,659 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:07,662 4472 ads.opr INFO1	#33/140: PrunModu-ab-5mn-m-hno-pol-la-ma (Id 61)
+2023-04-30 15:34:07,665 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:07,671 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 36.238608618858], maxDist=None, fitDistCuts=[3, 7], discrDistCuts=None
+2023-04-30 15:34:07,677 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 36.238608618858], maxDist: None, fitDistCuts: [3, 7], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:07,686 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 36.238608618858], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[3, 7], continuous=False, ordered=True)})
+2023-04-30 15:34:07,687 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:07,692 4472 ads.opr INFO1	#34/140: PrunModu-ab-5mn-m-hno-pol-la-ra (Id 62)
+2023-04-30 15:34:07,705 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:07,754 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 36.238608618858], maxDist=[147.958094471765, 159.730018883386], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:07,755 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 36.238608618858], maxDist: [147.958094471765, 159.730018883386], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:07,760 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 36.238608618858], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[147.958094471765, 159.730018883386], continuous=True, ordered=True)})
+2023-04-30 15:34:07,777 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:07,780 4472 ads.opr INFO1	#35/140: PrunModu-ab-5mn-m-hno-pol-la-ra-ma (Id 63)
+2023-04-30 15:34:07,786 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:07,836 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 36.238608618858], maxDist=[147.958094471765, 159.730018883386], fitDistCuts=[3, 7], discrDistCuts=None
+2023-04-30 15:34:07,836 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 36.238608618858], maxDist: [147.958094471765, 159.730018883386], fitDistCuts: [3, 7], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:07,845 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 36.238608618858], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[147.958094471765, 159.730018883386], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[3, 7], continuous=False, ordered=True)})
+2023-04-30 15:34:07,864 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:07,866 4472 ads.opr INFO1	#36/140: PrunModu-ab-5mn-m-haz-pol-ma (Id 72)
+2023-04-30 15:34:07,873 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:07,876 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[3, 7], discrDistCuts=None
+2023-04-30 15:34:07,915 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [3, 7], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:07,924 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[3, 7], continuous=False, ordered=True)})
+2023-04-30 15:34:07,933 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:07,971 4472 ads.opr INFO1	#37/140: PrunModu-ab-5mn-m-haz-pol-ra (Id 73)
+2023-04-30 15:34:07,972 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:07,999 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[147.958094471765, 159.730018883386], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:08,013 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [147.958094471765, 159.730018883386], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:08,017 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[147.958094471765, 159.730018883386], continuous=True, ordered=True)})
+2023-04-30 15:34:08,017 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:08,017 4472 ads.opr INFO1	#38/140: PrunModu-ab-5mn-m-haz-pol-ra-ma (Id 74)
+2023-04-30 15:34:08,019 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:08,040 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[147.958094471765, 159.730018883386], fitDistCuts=[3, 7], discrDistCuts=None
+2023-04-30 15:34:08,040 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [147.958094471765, 159.730018883386], fitDistCuts: [3, 7], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:08,041 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[147.958094471765, 159.730018883386], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[3, 7], continuous=False, ordered=True)})
+2023-04-30 15:34:08,041 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:08,041 4472 ads.opr INFO1	#39/140: PrunModu-ab-5mn-m-haz-pol-la (Id 75)
+2023-04-30 15:34:08,054 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:08,067 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 36.238608618858], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:08,083 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 36.238608618858], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:08,094 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 36.238608618858], continuous=True, ordered=True)})
+2023-04-30 15:34:08,098 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:08,123 4472 ads.opr INFO1	#40/140: PrunModu-ab-5mn-m-haz-pol-la-ma (Id 76)
+2023-04-30 15:34:08,147 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:08,200 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 36.238608618858], maxDist=None, fitDistCuts=[3, 7], discrDistCuts=None
+2023-04-30 15:34:08,204 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 36.238608618858], maxDist: None, fitDistCuts: [3, 7], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:08,219 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 36.238608618858], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[3, 7], continuous=False, ordered=True)})
+2023-04-30 15:34:08,239 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:08,242 4472 ads.opr INFO1	#41/140: PrunModu-ab-5mn-m-haz-pol-la-ra (Id 77)
+2023-04-30 15:34:08,248 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:08,281 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 36.238608618858], maxDist=[147.958094471765, 159.730018883386], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:08,284 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 36.238608618858], maxDist: [147.958094471765, 159.730018883386], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:08,310 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 36.238608618858], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[147.958094471765, 159.730018883386], continuous=True, ordered=True)})
+2023-04-30 15:34:08,310 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:08,311 4472 ads.opr INFO1	#42/140: PrunModu-ab-5mn-m-haz-pol-la-ra-ma (Id 78)
+2023-04-30 15:34:08,331 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:08,370 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 36.238608618858], maxDist=[147.958094471765, 159.730018883386], fitDistCuts=[3, 7], discrDistCuts=None
+2023-04-30 15:34:08,371 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 36.238608618858], maxDist: [147.958094471765, 159.730018883386], fitDistCuts: [3, 7], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:08,372 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 36.238608618858], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[147.958094471765, 159.730018883386], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[3, 7], continuous=False, ordered=True)})
+2023-04-30 15:34:08,375 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:08,381 4472 ads.opr INFO1	#43/140: PrunModu-ab-10mn-m-hno-pol-ma (Id 87)
+2023-04-30 15:34:08,697 4472 ads.dat INFO0	Loaded 109 x 14 total rows x columns in data set ...
+2023-04-30 15:34:08,706 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:08,760 4472 ads.dat INFO0	Sample data : 109 sightings = 47 individuals + 62 absence rows
+2023-04-30 15:34:08,790 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:08,792 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[5, 10], discrDistCuts=None
+2023-04-30 15:34:08,806 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [5, 10], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:08,819 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[5, 10], continuous=False, ordered=True)})
+2023-04-30 15:34:08,856 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:08,871 4472 ads.opr INFO1	#44/140: PrunModu-ab-10mn-m-hno-pol-ra (Id 88)
+2023-04-30 15:34:08,873 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:08,896 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[170.91678099931042, 271.22109039805], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:08,928 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [170.91678099931042, 271.22109039805], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:08,932 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[170.91678099931042, 271.22109039805], continuous=True, ordered=True)})
+2023-04-30 15:34:08,950 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:08,950 4472 ads.opr INFO1	#45/140: PrunModu-ab-10mn-m-hno-pol-ra-ma (Id 89)
+2023-04-30 15:34:08,952 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:08,989 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[170.91678099931042, 271.22109039805], fitDistCuts=[5, 10], discrDistCuts=None
+2023-04-30 15:34:08,993 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [170.91678099931042, 271.22109039805], fitDistCuts: [5, 10], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,029 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[170.91678099931042, 271.22109039805], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[5, 10], continuous=False, ordered=True)})
+2023-04-30 15:34:09,034 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,048 4472 ads.opr INFO1	#46/140: PrunModu-ab-10mn-m-hno-pol-la (Id 90)
+2023-04-30 15:34:09,061 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:09,107 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 33.893867076483026], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:09,150 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 33.893867076483026], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,157 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 33.893867076483026], continuous=True, ordered=True)})
+2023-04-30 15:34:09,184 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,194 4472 ads.opr INFO1	#47/140: PrunModu-ab-10mn-m-hno-pol-la-ma (Id 91)
+2023-04-30 15:34:09,200 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:09,218 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 33.893867076483026], maxDist=None, fitDistCuts=[5, 10], discrDistCuts=None
+2023-04-30 15:34:09,218 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 33.893867076483026], maxDist: None, fitDistCuts: [5, 10], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,220 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 33.893867076483026], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[5, 10], continuous=False, ordered=True)})
+2023-04-30 15:34:09,238 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,243 4472 ads.opr INFO1	#48/140: PrunModu-ab-10mn-m-hno-pol-la-ra (Id 92)
+2023-04-30 15:34:09,254 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:09,286 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 33.893867076483026], maxDist=[170.91678099931042, 271.22109039805], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:09,292 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 33.893867076483026], maxDist: [170.91678099931042, 271.22109039805], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,304 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 33.893867076483026], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[170.91678099931042, 271.22109039805], continuous=True, ordered=True)})
+2023-04-30 15:34:09,304 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,335 4472 ads.opr INFO1	#49/140: PrunModu-ab-10mn-m-hno-pol-la-ra-ma (Id 93)
+2023-04-30 15:34:09,368 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:09,438 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 33.893867076483026], maxDist=[170.91678099931042, 271.22109039805], fitDistCuts=[5, 10], discrDistCuts=None
+2023-04-30 15:34:09,446 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 33.893867076483026], maxDist: [170.91678099931042, 271.22109039805], fitDistCuts: [5, 10], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,466 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 33.893867076483026], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[170.91678099931042, 271.22109039805], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[5, 10], continuous=False, ordered=True)})
+2023-04-30 15:34:09,466 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,467 4472 ads.opr INFO1	#50/140: PrunModu-ab-10mn-m-haz-pol-ma (Id 102)
+2023-04-30 15:34:09,468 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:09,470 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[5, 10], discrDistCuts=None
+2023-04-30 15:34:09,485 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [5, 10], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,487 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[5, 10], continuous=False, ordered=True)})
+2023-04-30 15:34:09,515 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,548 4472 ads.opr INFO1	#51/140: PrunModu-ab-10mn-m-haz-pol-ra (Id 103)
+2023-04-30 15:34:09,556 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:09,579 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[170.91678099931042, 271.22109039805], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:09,602 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [170.91678099931042, 271.22109039805], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,610 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[170.91678099931042, 271.22109039805], continuous=True, ordered=True)})
+2023-04-30 15:34:09,622 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,646 4472 ads.opr INFO1	#52/140: PrunModu-ab-10mn-m-haz-pol-ra-ma (Id 104)
+2023-04-30 15:34:09,650 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:09,672 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[170.91678099931042, 271.22109039805], fitDistCuts=[5, 10], discrDistCuts=None
+2023-04-30 15:34:09,681 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [170.91678099931042, 271.22109039805], fitDistCuts: [5, 10], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,697 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[170.91678099931042, 271.22109039805], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[5, 10], continuous=False, ordered=True)})
+2023-04-30 15:34:09,744 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,756 4472 ads.opr INFO1	#53/140: PrunModu-ab-10mn-m-haz-pol-la (Id 105)
+2023-04-30 15:34:09,763 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:09,778 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 33.893867076483026], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:09,779 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 33.893867076483026], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,780 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 33.893867076483026], continuous=True, ordered=True)})
+2023-04-30 15:34:09,791 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,791 4472 ads.opr INFO1	#54/140: PrunModu-ab-10mn-m-haz-pol-la-ma (Id 106)
+2023-04-30 15:34:09,807 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:09,826 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 33.893867076483026], maxDist=None, fitDistCuts=[5, 10], discrDistCuts=None
+2023-04-30 15:34:09,832 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 33.893867076483026], maxDist: None, fitDistCuts: [5, 10], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,840 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 33.893867076483026], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[5, 10], continuous=False, ordered=True)})
+2023-04-30 15:34:09,844 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,847 4472 ads.opr INFO1	#55/140: PrunModu-ab-10mn-m-haz-pol-la-ra (Id 107)
+2023-04-30 15:34:09,865 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:09,899 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 33.893867076483026], maxDist=[170.91678099931042, 271.22109039805], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:09,932 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 33.893867076483026], maxDist: [170.91678099931042, 271.22109039805], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:09,934 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 33.893867076483026], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[170.91678099931042, 271.22109039805], continuous=True, ordered=True)})
+2023-04-30 15:34:09,970 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:09,985 4472 ads.opr INFO1	#56/140: PrunModu-ab-10mn-m-haz-pol-la-ra-ma (Id 108)
+2023-04-30 15:34:09,999 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:10,051 4472 ads.opr INFO2	OptimedParams: minDist=[10.1768391053626, 33.893867076483026], maxDist=[170.91678099931042, 271.22109039805], fitDistCuts=[5, 10], discrDistCuts=None
+2023-04-30 15:34:10,051 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [10.1768391053626, 33.893867076483026], maxDist: [170.91678099931042, 271.22109039805], fitDistCuts: [5, 10], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:10,054 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[10.1768391053626, 33.893867076483026], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[170.91678099931042, 271.22109039805], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[5, 10], continuous=False, ordered=True)})
+2023-04-30 15:34:10,060 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:10,088 4472 ads.opr INFO1	#57/140: PhylBone-ab-5mn-m-hno-pol-ma (Id 117)
+2023-04-30 15:34:10,396 4472 ads.dat INFO0	Loaded 107 x 14 total rows x columns in data set ...
+2023-04-30 15:34:10,397 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:10,485 4472 ads.dat INFO0	Sample data : 107 sightings = 29 individuals + 78 absence rows
+2023-04-30 15:34:10,488 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:10,489 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[4, 8], discrDistCuts=None
+2023-04-30 15:34:10,489 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [4, 8], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:10,490 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 8], continuous=False, ordered=True)})
+2023-04-30 15:34:10,490 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:10,493 4472 ads.opr INFO1	#58/140: PhylBone-ab-5mn-m-hno-pol-ra (Id 118)
+2023-04-30 15:34:10,503 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:10,543 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[269.69155028843517, 287.586762257787], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:10,543 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [269.69155028843517, 287.586762257787], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:10,549 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[269.69155028843517, 287.586762257787], continuous=True, ordered=True)})
+2023-04-30 15:34:10,585 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:10,596 4472 ads.opr INFO1	#59/140: PhylBone-ab-5mn-m-hno-pol-ra-ma (Id 119)
+2023-04-30 15:34:10,611 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:10,669 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[269.69155028843517, 287.586762257787], fitDistCuts=[4, 8], discrDistCuts=None
+2023-04-30 15:34:10,669 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [269.69155028843517, 287.586762257787], fitDistCuts: [4, 8], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:10,700 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[269.69155028843517, 287.586762257787], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 8], continuous=False, ordered=True)})
+2023-04-30 15:34:10,706 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:10,712 4472 ads.opr INFO1	#60/140: PhylBone-ab-5mn-m-hno-pol-la (Id 120)
+2023-04-30 15:34:10,722 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:10,789 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 32.92194900470012], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:10,790 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 32.92194900470012], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:10,798 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 32.92194900470012], continuous=True, ordered=True)})
+2023-04-30 15:34:10,800 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:10,804 4472 ads.opr INFO1	#61/140: PhylBone-ab-5mn-m-hno-pol-la-ma (Id 121)
+2023-04-30 15:34:10,815 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:10,824 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 32.92194900470012], maxDist=None, fitDistCuts=[4, 8], discrDistCuts=None
+2023-04-30 15:34:10,827 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 32.92194900470012], maxDist: None, fitDistCuts: [4, 8], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:10,855 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 32.92194900470012], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 8], continuous=False, ordered=True)})
+2023-04-30 15:34:10,868 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:10,869 4472 ads.opr INFO1	#62/140: PhylBone-ab-5mn-m-hno-pol-la-ra (Id 122)
+2023-04-30 15:34:10,873 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:10,912 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 32.92194900470012], maxDist=[269.69155028843517, 287.586762257787], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:10,930 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 32.92194900470012], maxDist: [269.69155028843517, 287.586762257787], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:10,947 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 32.92194900470012], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[269.69155028843517, 287.586762257787], continuous=True, ordered=True)})
+2023-04-30 15:34:10,948 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:10,961 4472 ads.opr INFO1	#63/140: PhylBone-ab-5mn-m-hno-pol-la-ra-ma (Id 123)
+2023-04-30 15:34:10,966 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:11,004 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 32.92194900470012], maxDist=[269.69155028843517, 287.586762257787], fitDistCuts=[4, 8], discrDistCuts=None
+2023-04-30 15:34:11,034 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 32.92194900470012], maxDist: [269.69155028843517, 287.586762257787], fitDistCuts: [4, 8], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:11,040 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 32.92194900470012], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[269.69155028843517, 287.586762257787], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 8], continuous=False, ordered=True)})
+2023-04-30 15:34:11,058 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:11,059 4472 ads.opr INFO1	#64/140: PhylBone-ab-5mn-m-haz-pol-ma (Id 131)
+2023-04-30 15:34:11,062 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:11,084 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[4, 8], discrDistCuts=None
+2023-04-30 15:34:11,108 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [4, 8], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:11,156 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 8], continuous=False, ordered=True)})
+2023-04-30 15:34:11,215 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:11,232 4472 ads.opr INFO1	#65/140: PhylBone-ab-5mn-m-haz-pol-ra (Id 132)
+2023-04-30 15:34:11,267 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:11,288 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[269.69155028843517, 287.586762257787], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:11,291 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [269.69155028843517, 287.586762257787], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:11,303 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[269.69155028843517, 287.586762257787], continuous=True, ordered=True)})
+2023-04-30 15:34:11,310 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:11,311 4472 ads.opr INFO1	#66/140: PhylBone-ab-5mn-m-haz-pol-ra-ma (Id 133)
+2023-04-30 15:34:11,327 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:11,336 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[269.69155028843517, 287.586762257787], fitDistCuts=[4, 8], discrDistCuts=None
+2023-04-30 15:34:11,336 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [269.69155028843517, 287.586762257787], fitDistCuts: [4, 8], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:11,337 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[269.69155028843517, 287.586762257787], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 8], continuous=False, ordered=True)})
+2023-04-30 15:34:11,350 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:11,350 4472 ads.opr INFO1	#67/140: PhylBone-ab-5mn-m-haz-pol-la (Id 134)
+2023-04-30 15:34:11,351 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:11,363 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 32.92194900470012], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:11,386 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 32.92194900470012], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:11,407 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 32.92194900470012], continuous=True, ordered=True)})
+2023-04-30 15:34:11,408 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:11,422 4472 ads.opr INFO1	#68/140: PhylBone-ab-5mn-m-haz-pol-la-ma (Id 135)
+2023-04-30 15:34:11,434 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:11,459 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 32.92194900470012], maxDist=None, fitDistCuts=[4, 8], discrDistCuts=None
+2023-04-30 15:34:11,459 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 32.92194900470012], maxDist: None, fitDistCuts: [4, 8], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:11,470 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 32.92194900470012], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 8], continuous=False, ordered=True)})
+2023-04-30 15:34:11,470 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:11,479 4472 ads.opr INFO1	#69/140: PhylBone-ab-5mn-m-haz-pol-la-ra (Id 136)
+2023-04-30 15:34:11,480 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:11,482 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 32.92194900470012], maxDist=[269.69155028843517, 287.586762257787], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:11,505 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 32.92194900470012], maxDist: [269.69155028843517, 287.586762257787], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:11,506 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 32.92194900470012], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[269.69155028843517, 287.586762257787], continuous=True, ordered=True)})
+2023-04-30 15:34:11,507 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:11,520 4472 ads.opr INFO1	#70/140: PhylBone-ab-5mn-m-haz-pol-la-ra-ma (Id 137)
+2023-04-30 15:34:11,525 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:11,555 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 32.92194900470012], maxDist=[269.69155028843517, 287.586762257787], fitDistCuts=[4, 8], discrDistCuts=None
+2023-04-30 15:34:11,599 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 32.92194900470012], maxDist: [269.69155028843517, 287.586762257787], fitDistCuts: [4, 8], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:11,617 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 32.92194900470012], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[269.69155028843517, 287.586762257787], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 8], continuous=False, ordered=True)})
+2023-04-30 15:34:11,628 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:11,632 4472 ads.opr INFO1	#71/140: PhylBone-ab-10mn-m-hno-pol-ma (Id 145)
+2023-04-30 15:34:11,943 4472 ads.dat INFO0	Loaded 114 x 14 total rows x columns in data set ...
+2023-04-30 15:34:11,948 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:11,994 4472 ads.dat INFO0	Sample data : 114 sightings = 37 individuals + 77 absence rows
+2023-04-30 15:34:12,036 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:12,053 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[4, 9], discrDistCuts=None
+2023-04-30 15:34:12,101 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [4, 9], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,141 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 9], continuous=False, ordered=True)})
+2023-04-30 15:34:12,149 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,164 4472 ads.opr INFO1	#72/140: PhylBone-ab-10mn-m-hno-pol-ra (Id 146)
+2023-04-30 15:34:12,175 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:12,214 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[266.2602697030704, 287.586762257787], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:12,247 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [266.2602697030704, 287.586762257787], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,252 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[266.2602697030704, 287.586762257787], continuous=True, ordered=True)})
+2023-04-30 15:34:12,274 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,278 4472 ads.opr INFO1	#73/140: PhylBone-ab-10mn-m-hno-pol-ra-ma (Id 147)
+2023-04-30 15:34:12,290 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:12,313 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[266.2602697030704, 287.586762257787], fitDistCuts=[4, 9], discrDistCuts=None
+2023-04-30 15:34:12,325 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [266.2602697030704, 287.586762257787], fitDistCuts: [4, 9], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,331 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[266.2602697030704, 287.586762257787], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 9], continuous=False, ordered=True)})
+2023-04-30 15:34:12,362 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,381 4472 ads.opr INFO1	#74/140: PhylBone-ab-10mn-m-hno-pol-la (Id 148)
+2023-04-30 15:34:12,408 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:12,417 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 33.1121282827264], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:12,417 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 33.1121282827264], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,418 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 33.1121282827264], continuous=True, ordered=True)})
+2023-04-30 15:34:12,479 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,480 4472 ads.opr INFO1	#75/140: PhylBone-ab-10mn-m-hno-pol-la-ma (Id 149)
+2023-04-30 15:34:12,484 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:12,497 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 33.1121282827264], maxDist=None, fitDistCuts=[4, 9], discrDistCuts=None
+2023-04-30 15:34:12,517 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 33.1121282827264], maxDist: None, fitDistCuts: [4, 9], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,540 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 33.1121282827264], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 9], continuous=False, ordered=True)})
+2023-04-30 15:34:12,540 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,552 4472 ads.opr INFO1	#76/140: PhylBone-ab-10mn-m-hno-pol-la-ra (Id 150)
+2023-04-30 15:34:12,559 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:12,589 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 33.1121282827264], maxDist=[266.2602697030704, 287.586762257787], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:12,589 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 33.1121282827264], maxDist: [266.2602697030704, 287.586762257787], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,590 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 33.1121282827264], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[266.2602697030704, 287.586762257787], continuous=True, ordered=True)})
+2023-04-30 15:34:12,590 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,591 4472 ads.opr INFO1	#77/140: PhylBone-ab-10mn-m-hno-pol-la-ra-ma (Id 151)
+2023-04-30 15:34:12,593 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:12,619 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 33.1121282827264], maxDist=[266.2602697030704, 287.586762257787], fitDistCuts=[4, 9], discrDistCuts=None
+2023-04-30 15:34:12,619 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 33.1121282827264], maxDist: [266.2602697030704, 287.586762257787], fitDistCuts: [4, 9], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,621 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 33.1121282827264], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[266.2602697030704, 287.586762257787], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 9], continuous=False, ordered=True)})
+2023-04-30 15:34:12,630 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,637 4472 ads.opr INFO1	#78/140: PhylBone-ab-10mn-m-haz-pol-ma (Id 159)
+2023-04-30 15:34:12,639 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:12,640 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[4, 9], discrDistCuts=None
+2023-04-30 15:34:12,640 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [4, 9], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,646 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 9], continuous=False, ordered=True)})
+2023-04-30 15:34:12,650 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,650 4472 ads.opr INFO1	#79/140: PhylBone-ab-10mn-m-haz-pol-ra (Id 160)
+2023-04-30 15:34:12,654 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:12,699 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[266.2602697030704, 287.586762257787], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:12,699 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [266.2602697030704, 287.586762257787], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,700 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[266.2602697030704, 287.586762257787], continuous=True, ordered=True)})
+2023-04-30 15:34:12,711 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,727 4472 ads.opr INFO1	#80/140: PhylBone-ab-10mn-m-haz-pol-ra-ma (Id 161)
+2023-04-30 15:34:12,732 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:12,733 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[266.2602697030704, 287.586762257787], fitDistCuts=[4, 9], discrDistCuts=None
+2023-04-30 15:34:12,734 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [266.2602697030704, 287.586762257787], fitDistCuts: [4, 9], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,736 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[266.2602697030704, 287.586762257787], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 9], continuous=False, ordered=True)})
+2023-04-30 15:34:12,736 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,737 4472 ads.opr INFO1	#81/140: PhylBone-ab-10mn-m-haz-pol-la (Id 162)
+2023-04-30 15:34:12,763 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:12,767 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 33.1121282827264], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:12,771 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 33.1121282827264], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,772 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 33.1121282827264], continuous=True, ordered=True)})
+2023-04-30 15:34:12,818 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,819 4472 ads.opr INFO1	#82/140: PhylBone-ab-10mn-m-haz-pol-la-ma (Id 163)
+2023-04-30 15:34:12,821 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:12,857 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 33.1121282827264], maxDist=None, fitDistCuts=[4, 9], discrDistCuts=None
+2023-04-30 15:34:12,858 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 33.1121282827264], maxDist: None, fitDistCuts: [4, 9], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,860 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 33.1121282827264], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 9], continuous=False, ordered=True)})
+2023-04-30 15:34:12,862 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,882 4472 ads.opr INFO1	#83/140: PhylBone-ab-10mn-m-haz-pol-la-ra (Id 164)
+2023-04-30 15:34:12,888 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:12,926 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 33.1121282827264], maxDist=[266.2602697030704, 287.586762257787], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:12,926 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 33.1121282827264], maxDist: [266.2602697030704, 287.586762257787], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:12,951 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 33.1121282827264], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[266.2602697030704, 287.586762257787], continuous=True, ordered=True)})
+2023-04-30 15:34:12,951 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:12,995 4472 ads.opr INFO1	#84/140: PhylBone-ab-10mn-m-haz-pol-la-ra-ma (Id 165)
+2023-04-30 15:34:13,037 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:13,086 4472 ads.opr INFO2	OptimedParams: minDist=[22.7789395359074, 33.1121282827264], maxDist=[266.2602697030704, 287.586762257787], fitDistCuts=[4, 9], discrDistCuts=None
+2023-04-30 15:34:13,096 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [22.7789395359074, 33.1121282827264], maxDist: [266.2602697030704, 287.586762257787], fitDistCuts: [4, 9], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:13,111 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[22.7789395359074, 33.1121282827264], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[266.2602697030704, 287.586762257787], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[4, 9], continuous=False, ordered=True)})
+2023-04-30 15:34:13,111 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:13,119 4472 ads.opr INFO1	#85/140: OrioOrio-b-5mn-m-hno-pol-ma (Id 173)
+2023-04-30 15:34:13,460 4472 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-30 15:34:13,460 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:13,497 4472 ads.dat INFO0	Sample data : 94 sightings = 4 individuals + 90 absence rows
+2023-04-30 15:34:13,499 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:13,499 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:13,504 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:13,508 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:13,556 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:13,570 4472 ads.opr INFO1	#86/140: OrioOrio-b-5mn-m-hno-pol-ra (Id 174)
+2023-04-30 15:34:13,572 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:13,579 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:13,584 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:13,586 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True)})
+2023-04-30 15:34:13,588 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:13,602 4472 ads.opr INFO1	#87/140: OrioOrio-b-5mn-m-hno-pol-ra-ma (Id 175)
+2023-04-30 15:34:13,605 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:13,633 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:13,641 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:13,642 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:13,650 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:13,673 4472 ads.opr INFO1	#88/140: OrioOrio-b-5mn-m-hno-pol-la (Id 176)
+2023-04-30 15:34:13,688 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:13,690 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:13,692 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:13,695 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True)})
+2023-04-30 15:34:13,699 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:13,706 4472 ads.opr INFO1	#89/140: OrioOrio-b-5mn-m-hno-pol-la-ma (Id 177)
+2023-04-30 15:34:13,716 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:13,734 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=None, fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:13,748 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: None, fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:13,760 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:13,839 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:13,843 4472 ads.opr INFO1	#90/140: OrioOrio-b-5mn-m-hno-pol-la-ra (Id 178)
+2023-04-30 15:34:13,850 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:13,930 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:13,931 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:13,948 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True)})
+2023-04-30 15:34:13,965 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:13,972 4472 ads.opr INFO1	#91/140: OrioOrio-b-5mn-m-hno-pol-la-ra-ma (Id 179)
+2023-04-30 15:34:14,000 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:14,062 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:14,083 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:14,098 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:14,098 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:14,111 4472 ads.opr INFO1	#92/140: OrioOrio-b-5mn-m-haz-pol-ma (Id 188)
+2023-04-30 15:34:14,164 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:14,203 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:14,228 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:14,232 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:14,254 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:14,292 4472 ads.opr INFO1	#93/140: OrioOrio-b-5mn-m-haz-pol-ra (Id 189)
+2023-04-30 15:34:14,299 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:14,309 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:14,310 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:14,310 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True)})
+2023-04-30 15:34:14,316 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:14,317 4472 ads.opr INFO1	#94/140: OrioOrio-b-5mn-m-haz-pol-ra-ma (Id 190)
+2023-04-30 15:34:14,319 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:14,320 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:14,322 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:14,331 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:14,346 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:14,381 4472 ads.opr INFO1	#95/140: OrioOrio-b-5mn-m-haz-pol-la (Id 191)
+2023-04-30 15:34:14,396 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:14,410 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:14,440 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:14,444 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True)})
+2023-04-30 15:34:14,444 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:14,480 4472 ads.opr INFO1	#96/140: OrioOrio-b-5mn-m-haz-pol-la-ma (Id 192)
+2023-04-30 15:34:14,490 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:14,529 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=None, fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:14,536 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: None, fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:14,549 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:14,571 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:14,583 4472 ads.opr INFO1	#97/140: OrioOrio-b-5mn-m-haz-pol-la-ra (Id 193)
+2023-04-30 15:34:14,601 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:14,626 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:14,631 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:14,657 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True)})
+2023-04-30 15:34:14,669 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:14,686 4472 ads.opr INFO1	#98/140: OrioOrio-b-5mn-m-haz-pol-la-ra-ma (Id 194)
+2023-04-30 15:34:14,690 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:14,734 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:14,737 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:14,744 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:14,761 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:14,761 4472 ads.opr INFO1	#99/140: OrioOrio-b-10mn-m-hno-pol-ma (Id 203)
+2023-04-30 15:34:15,034 4472 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-30 15:34:15,045 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:15,309 4472 ads.dat INFO0	Sample data : 94 sightings = 11 individuals + 83 absence rows
+2023-04-30 15:34:15,400 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:15,428 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:15,431 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:15,444 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:15,452 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:15,455 4472 ads.opr INFO1	#100/140: OrioOrio-b-10mn-m-hno-pol-ra (Id 204)
+2023-04-30 15:34:15,467 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:15,475 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[645.372682896204, 902.361121603972], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:15,482 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [645.372682896204, 902.361121603972], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:15,501 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True)})
+2023-04-30 15:34:15,515 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:15,541 4472 ads.opr INFO1	#101/140: OrioOrio-b-10mn-m-hno-pol-ra-ma (Id 205)
+2023-04-30 15:34:15,546 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:15,589 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[645.372682896204, 902.361121603972], fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:15,595 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [645.372682896204, 902.361121603972], fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:15,596 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:15,597 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:15,603 4472 ads.opr INFO1	#102/140: OrioOrio-b-10mn-m-hno-pol-la (Id 206)
+2023-04-30 15:34:15,613 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:15,632 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:15,667 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:15,669 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True)})
+2023-04-30 15:34:15,683 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:15,685 4472 ads.opr INFO1	#103/140: OrioOrio-b-10mn-m-hno-pol-la-ma (Id 207)
+2023-04-30 15:34:15,691 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:15,698 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=None, fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:15,705 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: None, fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:15,724 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:15,724 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:15,724 4472 ads.opr INFO1	#104/140: OrioOrio-b-10mn-m-hno-pol-la-ra (Id 208)
+2023-04-30 15:34:15,745 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:15,784 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=[645.372682896204, 902.361121603972], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:15,806 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: [645.372682896204, 902.361121603972], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:15,838 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True)})
+2023-04-30 15:34:15,841 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:15,847 4472 ads.opr INFO1	#105/140: OrioOrio-b-10mn-m-hno-pol-la-ra-ma (Id 209)
+2023-04-30 15:34:15,850 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:15,930 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=[645.372682896204, 902.361121603972], fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:15,970 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: [645.372682896204, 902.361121603972], fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:15,974 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:15,974 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:15,985 4472 ads.opr INFO1	#106/140: OrioOrio-b-10mn-m-haz-pol-ma (Id 218)
+2023-04-30 15:34:15,993 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:15,999 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:16,021 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,023 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:16,024 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,027 4472 ads.opr INFO1	#107/140: OrioOrio-b-10mn-m-haz-pol-ra (Id 219)
+2023-04-30 15:34:16,032 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:16,062 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[645.372682896204, 902.361121603972], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:16,076 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [645.372682896204, 902.361121603972], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,087 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True)})
+2023-04-30 15:34:16,087 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,088 4472 ads.opr INFO1	#108/140: OrioOrio-b-10mn-m-haz-pol-ra-ma (Id 220)
+2023-04-30 15:34:16,117 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:16,119 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[645.372682896204, 902.361121603972], fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:16,122 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [645.372682896204, 902.361121603972], fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,146 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:16,146 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,147 4472 ads.opr INFO1	#109/140: OrioOrio-b-10mn-m-haz-pol-la (Id 221)
+2023-04-30 15:34:16,159 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:16,193 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:16,199 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,200 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True)})
+2023-04-30 15:34:16,211 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,218 4472 ads.opr INFO1	#110/140: OrioOrio-b-10mn-m-haz-pol-la-ma (Id 222)
+2023-04-30 15:34:16,232 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:16,253 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=None, fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:16,279 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: None, fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,319 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:16,324 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,328 4472 ads.opr INFO1	#111/140: OrioOrio-b-10mn-m-haz-pol-la-ra (Id 223)
+2023-04-30 15:34:16,335 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:16,378 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=[645.372682896204, 902.361121603972], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:16,382 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: [645.372682896204, 902.361121603972], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,408 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True)})
+2023-04-30 15:34:16,426 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,450 4472 ads.opr INFO1	#112/140: OrioOrio-b-10mn-m-haz-pol-la-ra-ma (Id 224)
+2023-04-30 15:34:16,464 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:16,467 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=[645.372682896204, 902.361121603972], fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:16,492 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: [645.372682896204, 902.361121603972], fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,525 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:16,534 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,538 4472 ads.opr INFO1	#113/140: OrioOrio-b-5mn-ma-hno-pol-ma (Id 233)
+2023-04-30 15:34:16,717 4472 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-30 15:34:16,750 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:16,826 4472 ads.dat INFO0	Sample data : 94 sightings = 4 individuals + 90 absence rows
+2023-04-30 15:34:16,854 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:16,859 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:16,859 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,860 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:16,865 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,890 4472 ads.opr INFO1	#114/140: OrioOrio-b-5mn-ma-hno-pol-ra (Id 234)
+2023-04-30 15:34:16,899 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:16,920 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:16,922 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,923 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True)})
+2023-04-30 15:34:16,929 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,929 4472 ads.opr INFO1	#115/140: OrioOrio-b-5mn-ma-hno-pol-ra-ma (Id 235)
+2023-04-30 15:34:16,944 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:16,988 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:16,990 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:16,994 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:16,995 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:16,996 4472 ads.opr INFO1	#116/140: OrioOrio-b-5mn-ma-hno-pol-la (Id 236)
+2023-04-30 15:34:17,019 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:17,083 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:17,120 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,161 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True)})
+2023-04-30 15:34:17,185 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,185 4472 ads.opr INFO1	#117/140: OrioOrio-b-5mn-ma-hno-pol-la-ma (Id 237)
+2023-04-30 15:34:17,188 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:17,206 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=None, fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:17,206 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: None, fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,208 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:17,216 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,220 4472 ads.opr INFO1	#118/140: OrioOrio-b-5mn-ma-hno-pol-la-ra (Id 238)
+2023-04-30 15:34:17,222 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:17,237 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:17,251 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,252 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True)})
+2023-04-30 15:34:17,252 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,253 4472 ads.opr INFO1	#119/140: OrioOrio-b-5mn-ma-hno-pol-la-ra-ma (Id 239)
+2023-04-30 15:34:17,261 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:17,279 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:17,280 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,288 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:17,305 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,306 4472 ads.opr INFO1	#120/140: OrioOrio-b-5mn-ma-haz-pol-ma (Id 248)
+2023-04-30 15:34:17,311 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:17,321 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:17,321 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,324 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:17,325 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,338 4472 ads.opr INFO1	#121/140: OrioOrio-b-5mn-ma-haz-pol-ra (Id 249)
+2023-04-30 15:34:17,367 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:17,401 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:17,403 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,406 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True)})
+2023-04-30 15:34:17,406 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,414 4472 ads.opr INFO1	#122/140: OrioOrio-b-5mn-ma-haz-pol-ra-ma (Id 250)
+2023-04-30 15:34:17,424 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:17,435 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:17,450 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,452 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:17,460 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,477 4472 ads.opr INFO1	#123/140: OrioOrio-b-5mn-ma-haz-pol-la (Id 251)
+2023-04-30 15:34:17,498 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:17,518 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:17,551 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,568 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True)})
+2023-04-30 15:34:17,569 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,580 4472 ads.opr INFO1	#124/140: OrioOrio-b-5mn-ma-haz-pol-la-ma (Id 252)
+2023-04-30 15:34:17,599 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:17,628 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=None, fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:17,646 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: None, fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,647 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:17,666 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,687 4472 ads.opr INFO1	#125/140: OrioOrio-b-5mn-ma-haz-pol-la-ra (Id 253)
+2023-04-30 15:34:17,716 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:17,803 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:17,815 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,837 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True)})
+2023-04-30 15:34:17,860 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,876 4472 ads.opr INFO1	#126/140: OrioOrio-b-5mn-ma-haz-pol-la-ra-ma (Id 254)
+2023-04-30 15:34:17,886 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:17,931 4472 ads.opr INFO2	OptimedParams: minDist=[85.7398150053933, 86.05790810385938], maxDist=[199.34145333886934, 203.380021651143], fitDistCuts=[2, 3], discrDistCuts=None
+2023-04-30 15:34:17,941 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [85.7398150053933, 86.05790810385938], maxDist: [199.34145333886934, 203.380021651143], fitDistCuts: [2, 3], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:17,945 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[85.7398150053933, 86.05790810385938], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[199.34145333886934, 203.380021651143], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 3], continuous=False, ordered=True)})
+2023-04-30 15:34:17,947 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:17,975 4472 ads.opr INFO1	#127/140: OrioOrio-b-10mn-ma-hno-pol-ma (Id 263)
+2023-04-30 15:34:18,231 4472 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-30 15:34:18,242 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:34:18,340 4472 ads.dat INFO0	Sample data : 94 sightings = 11 individuals + 83 absence rows
+2023-04-30 15:34:18,360 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:18,396 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:18,399 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,411 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:18,456 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,459 4472 ads.opr INFO1	#128/140: OrioOrio-b-10mn-ma-hno-pol-ra (Id 264)
+2023-04-30 15:34:18,472 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:18,480 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[645.372682896204, 902.361121603972], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:18,481 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [645.372682896204, 902.361121603972], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,483 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True)})
+2023-04-30 15:34:18,483 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,496 4472 ads.opr INFO1	#129/140: OrioOrio-b-10mn-ma-hno-pol-ra-ma (Id 265)
+2023-04-30 15:34:18,525 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:18,574 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[645.372682896204, 902.361121603972], fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:18,581 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [645.372682896204, 902.361121603972], fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,582 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:18,592 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,593 4472 ads.opr INFO1	#130/140: OrioOrio-b-10mn-ma-hno-pol-la (Id 266)
+2023-04-30 15:34:18,599 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:18,651 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:18,658 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,659 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True)})
+2023-04-30 15:34:18,659 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,665 4472 ads.opr INFO1	#131/140: OrioOrio-b-10mn-ma-hno-pol-la-ma (Id 267)
+2023-04-30 15:34:18,666 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:18,709 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=None, fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:18,710 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: None, fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,713 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:18,737 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,737 4472 ads.opr INFO1	#132/140: OrioOrio-b-10mn-ma-hno-pol-la-ra (Id 268)
+2023-04-30 15:34:18,741 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:18,757 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=[645.372682896204, 902.361121603972], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:18,764 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: [645.372682896204, 902.361121603972], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,773 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True)})
+2023-04-30 15:34:18,774 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,778 4472 ads.opr INFO1	#133/140: OrioOrio-b-10mn-ma-hno-pol-la-ra-ma (Id 269)
+2023-04-30 15:34:18,802 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:18,830 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=[645.372682896204, 902.361121603972], fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:18,831 4472 ads.opr INFO2	Optim. params: estimKeyFn: HNORMAL, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: [645.372682896204, 902.361121603972], fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,831 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:18,851 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,852 4472 ads.opr INFO1	#134/140: OrioOrio-b-10mn-ma-haz-pol-ma (Id 278)
+2023-04-30 15:34:18,877 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:18,886 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=None, fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:18,890 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: None, fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,895 4472 ads.opn INFO1	ZOTrOptimisation({'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:18,927 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,948 4472 ads.opr INFO1	#135/140: OrioOrio-b-10mn-ma-haz-pol-ra (Id 279)
+2023-04-30 15:34:18,959 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:18,968 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[645.372682896204, 902.361121603972], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:18,971 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [645.372682896204, 902.361121603972], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:18,972 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True)})
+2023-04-30 15:34:18,992 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:18,992 4472 ads.opr INFO1	#136/140: OrioOrio-b-10mn-ma-haz-pol-ra-ma (Id 280)
+2023-04-30 15:34:18,997 4472 ads.opr INFO2	OptimedParams specs:{'minDist': None, 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:19,003 4472 ads.opr INFO2	OptimedParams: minDist=None, maxDist=[645.372682896204, 902.361121603972], fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:19,031 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: None, maxDist: [645.372682896204, 902.361121603972], fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:19,043 4472 ads.opn INFO1	ZOTrOptimisation({'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:19,043 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:19,043 4472 ads.opr INFO1	#137/140: OrioOrio-b-10mn-ma-haz-pol-la (Id 281)
+2023-04-30 15:34:19,047 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:19,078 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=None, fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:19,078 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: None, fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:19,087 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True)})
+2023-04-30 15:34:19,107 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:19,109 4472 ads.opr INFO1	#138/140: OrioOrio-b-10mn-ma-haz-pol-la-ma (Id 282)
+2023-04-30 15:34:19,116 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': None, 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:19,117 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=None, fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:19,119 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: None, fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:19,140 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:19,143 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:19,143 4472 ads.opr INFO1	#139/140: OrioOrio-b-10mn-ma-haz-pol-la-ra (Id 283)
+2023-04-30 15:34:19,157 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': None, 'discrDistCuts': None}
+2023-04-30 15:34:19,269 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=[645.372682896204, 902.361121603972], fitDistCuts=None, discrDistCuts=None
+2023-04-30 15:34:19,278 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: [645.372682896204, 902.361121603972], fitDistCuts: None, discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:19,289 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True)})
+2023-04-30 15:34:19,291 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:19,325 4472 ads.opr INFO1	#140/140: OrioOrio-b-10mn-ma-haz-pol-la-ra-ma (Id 284)
+2023-04-30 15:34:19,329 4472 ads.opr INFO2	OptimedParams specs:{'minDist': Auto(), 'maxDist': Auto(), 'fitDistCuts': Auto(), 'discrDistCuts': None}
+2023-04-30 15:34:19,394 4472 ads.opr INFO2	OptimedParams: minDist=[80.3374005132602, 83.03860775932675], maxDist=[645.372682896204, 902.361121603972], fitDistCuts=[2, 5], discrDistCuts=None
+2023-04-30 15:34:19,399 4472 ads.opr INFO2	Optim. params: estimKeyFn: HAZARD, estimAdjustFn: POLY, estimCriterion: AIC, cvInterval: 95, expr2Optimise: balq3, minimiseExpr: False, minDist: [80.3374005132602, 83.03860775932675], maxDist: [645.372682896204, 902.361121603972], fitDistCuts: [2, 5], discrDistCuts: None, core: zoopt, maxIters: 150, termExprValue: None, algorithm: racos, maxRetries: 0
+2023-04-30 15:34:19,400 4472 ads.opn INFO1	ZOTrOptimisation({'minDist': Parameter(name='MinDist', interval=[80.3374005132602, 83.03860775932675], continuous=True, ordered=True), 'maxDist': Parameter(name='MaxDist', interval=[645.372682896204, 902.361121603972], continuous=True, ordered=True), 'fitDistCuts': Parameter(name='FitDistCuts', interval=[2, 5], continuous=False, ordered=True)})
+2023-04-30 15:34:19,406 4472 ads.opr INFO2	Submit params: times: 1, onlyBest: 1
+2023-04-30 15:34:19,409 4472 ads.opr INFO0	All optimisations started; now waiting for their end, and results ...
+2023-04-30 15:37:16,033 4472 ads.opr INFO1	5/140 optimisations in 00:02:57 (mean 35.32s): should end around 16:56:43.
+2023-04-30 15:37:21,914 4472 ads.opr INFO1	10/140 optimisations in 00:03:02 (mean 18.25s): should end around 16:16:53.
+2023-04-30 15:37:28,104 4472 ads.opr INFO1	15/140 optimisations in 00:03:09 (mean 12.58s): should end around 16:03:40.
+2023-04-30 15:37:32,354 4472 ads.opr INFO1	20/140 optimisations in 00:03:13 (mean 9.65s): should end around 15:56:49.
+2023-04-30 15:39:48,832 4472 ads.opr INFO1	25/140 optimisations in 00:05:29 (mean 13.18s): should end around 16:05:03.
+2023-04-30 15:40:10,026 4472 ads.opr INFO1	30/140 optimisations in 00:05:51 (mean 11.69s): should end around 16:01:35.
+2023-04-30 15:40:22,303 4472 ads.opr INFO1	35/140 optimisations in 00:06:03 (mean 10.37s): should end around 15:58:30.
+2023-04-30 15:40:53,920 4472 ads.opr INFO1	40/140 optimisations in 00:06:34 (mean 9.86s): should end around 15:57:20.
+2023-04-30 15:42:29,986 4472 ads.opr INFO1	45/140 optimisations in 00:08:11 (mean 10.90s): should end around 15:59:45.
+2023-04-30 15:42:44,048 4472 ads.dat INFO0	50x29 results rows x columns and 2 specs saved to anlys\230430-153402\optr-resbak-1.pickle.xz in 0.095s
+2023-04-30 15:42:44,055 4472 ads.opr INFO1	50/140 optimisations in 00:08:25 (mean 10.09s): should end around 15:57:52.
+2023-04-30 15:43:10,570 4472 ads.opr INFO1	55/140 optimisations in 00:08:51 (mean 9.66s): should end around 15:56:51.
+2023-04-30 15:44:46,865 4472 ads.opr INFO1	60/140 optimisations in 00:10:27 (mean 10.46s): should end around 15:58:43.
+2023-04-30 15:45:05,054 4472 ads.opr INFO1	65/140 optimisations in 00:10:46 (mean 9.93s): should end around 15:57:29.
+2023-04-30 15:45:21,721 4472 ads.opr INFO1	70/140 optimisations in 00:11:02 (mean 9.46s): should end around 15:56:23.
+2023-04-30 15:45:49,059 4472 ads.opr INFO1	75/140 optimisations in 00:11:30 (mean 9.19s): should end around 15:55:46.
+2023-04-30 15:47:27,104 4472 ads.opr INFO1	80/140 optimisations in 00:13:08 (mean 9.85s): should end around 15:57:17.
+2023-04-30 15:47:46,696 4472 ads.opr INFO1	85/140 optimisations in 00:13:27 (mean 9.50s): should end around 15:56:29.
+2023-04-30 15:47:51,037 4472 ads.opr INFO1	90/140 optimisations in 00:13:32 (mean 9.02s): should end around 15:55:21.
+2023-04-30 15:48:23,285 4472 ads.opr INFO1	95/140 optimisations in 00:14:04 (mean 8.88s): should end around 15:55:02.
+2023-04-30 15:50:04,377 4472 ads.dat INFO0	100x29 results rows x columns and 2 specs saved to anlys\230430-153402\optr-resbak-0.pickle.xz in 0.093s
+2023-04-30 15:50:04,382 4472 ads.opr INFO1	100/140 optimisations in 00:15:45 (mean 9.45s): should end around 15:56:22.
+2023-04-30 15:50:22,428 4472 ads.opr INFO1	105/140 optimisations in 00:16:03 (mean 9.17s): should end around 15:55:43.
+2023-04-30 15:50:45,413 4472 ads.opr INFO1	110/140 optimisations in 00:16:26 (mean 8.96s): should end around 15:55:14.
+2023-04-30 15:51:50,177 4472 ads.opr INFO1	115/140 optimisations in 00:17:31 (mean 9.14s): should end around 15:55:38.
+2023-04-30 15:52:51,724 4472 ads.opr INFO1	120/140 optimisations in 00:18:32 (mean 9.27s): should end around 15:55:57.
+2023-04-30 15:53:08,196 4472 ads.opr INFO1	125/140 optimisations in 00:18:49 (mean 9.03s): should end around 15:55:23.
+2023-04-30 15:53:44,779 4472 ads.opr INFO1	130/140 optimisations in 00:19:25 (mean 8.96s): should end around 15:55:14.
+2023-04-30 15:54:22,363 4472 ads.opr INFO1	135/140 optimisations in 00:20:03 (mean 8.91s): should end around 15:55:06.
+2023-04-30 15:55:01,154 4472 ads.opr INFO1	140/140 optimisations in 00:20:42 (mean 8.87s): done.
+2023-04-30 15:55:01,157 4472 ads.opr INFO0	Optimisations completed (18069 analyses => 140 results).
+2023-04-30 15:55:01,332 4472 ads.dat INFO0	140x29 results rows x columns and 2 specs saved to anlys\230430-153402\optim-res.debug.xlsx in 0.174s
+2023-04-30 15:55:01,423 4472 ads.eng INFO0	DSEngine work folder: C:/tmp/howto-acdc19-nat/anlys/230430-153402
+2023-04-30 15:55:01,426 4472 ads.anr INFO0	Dropped 0 last duplicate specs of 272, on [Espèce, Passage, Adulte, Durée, FonctionClé, SérieAjust, TrGche, TrDrte, NbTrchMod] columns
+2023-04-30 15:55:01,426 4472 ads.anr INFO0	Running 272 MCDS analyses (at most 16 parallel threads) ...
+2023-04-30 15:55:01,427 4472 ads.anr INFO1	#1/272 : SylvAtri-ab-5mn-m-hno-pol
+2023-04-30 15:55:01,443 4472 ads.dat INFO0	Loaded 285 x 14 total rows x columns in data set ...
+2023-04-30 15:55:01,443 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:01,444 4472 ads.dat INFO0	Sample data : 285 sightings = 270 individuals + 15 absence rows
+2023-04-30 15:55:01,447 4472 ads.anr INFO1	#2/272 : SylvAtri-ab-5mn-m-hno-pol-ma
+2023-04-30 15:55:01,453 4472 ads.anr INFO1	#3/272 : SylvAtri-ab-5mn-m-hno-pol-ra
+2023-04-30 15:55:01,460 4472 ads.anr INFO1	#4/272 : SylvAtri-ab-5mn-m-hno-pol-ra-ma
+2023-04-30 15:55:01,467 4472 ads.anr INFO1	#5/272 : SylvAtri-ab-5mn-m-hno-pol-la
+2023-04-30 15:55:01,476 4472 ads.anr INFO1	#6/272 : SylvAtri-ab-5mn-m-hno-pol-la-ma
+2023-04-30 15:55:01,484 4472 ads.anr INFO1	#7/272 : SylvAtri-ab-5mn-m-hno-pol-la-ra
+2023-04-30 15:55:01,498 4472 ads.anr INFO1	#8/272 : SylvAtri-ab-5mn-m-hno-pol-la-ra-ma
+2023-04-30 15:55:01,506 4472 ads.anr INFO1	#9/272 : SylvAtri-ab-5mn-m-hno-pol-r100
+2023-04-30 15:55:01,523 4472 ads.anr INFO1	#10/272 : SylvAtri-ab-5mn-m-hno-pol-r200
+2023-04-30 15:55:01,548 4472 ads.anr INFO1	#11/272 : SylvAtri-ab-5mn-m-hno-pol-l20
+2023-04-30 15:55:01,564 4472 ads.anr INFO1	#12/272 : SylvAtri-ab-5mn-m-hno-pol-l20-r100
+2023-04-30 15:55:01,587 4472 ads.anr INFO1	#13/272 : SylvAtri-ab-5mn-m-hno-pol-l20-r200
+2023-04-30 15:55:01,616 4472 ads.anr INFO1	#14/272 : SylvAtri-ab-5mn-m-haz-pol
+2023-04-30 15:55:01,624 4472 ads.anr INFO1	#15/272 : SylvAtri-ab-5mn-m-haz-pol-ma
+2023-04-30 15:55:01,636 4472 ads.anr INFO1	#16/272 : SylvAtri-ab-5mn-m-haz-pol-ra
+2023-04-30 15:55:01,679 4472 ads.anr INFO1	#17/272 : SylvAtri-ab-5mn-m-haz-pol-ra-ma
+2023-04-30 15:55:01,689 4472 ads.anr INFO1	#18/272 : SylvAtri-ab-5mn-m-haz-pol-la
+2023-04-30 15:55:01,698 4472 ads.anr INFO1	#19/272 : SylvAtri-ab-5mn-m-haz-pol-la-ma
+2023-04-30 15:55:01,709 4472 ads.anr INFO1	#20/272 : SylvAtri-ab-5mn-m-haz-pol-la-ra
+2023-04-30 15:55:01,715 4472 ads.anr INFO1	#21/272 : SylvAtri-ab-5mn-m-haz-pol-la-ra-ma
+2023-04-30 15:55:01,721 4472 ads.anr INFO1	#22/272 : SylvAtri-ab-5mn-m-haz-pol-r100
+2023-04-30 15:55:01,765 4472 ads.anr INFO1	#23/272 : SylvAtri-ab-5mn-m-haz-pol-r200
+2023-04-30 15:55:01,776 4472 ads.anr INFO1	#24/272 : SylvAtri-ab-5mn-m-haz-pol-l20
+2023-04-30 15:55:01,781 4472 ads.anr INFO1	#25/272 : SylvAtri-ab-5mn-m-haz-pol-l20-r100
+2023-04-30 15:55:01,840 4472 ads.anr INFO1	#26/272 : SylvAtri-ab-5mn-m-haz-pol-l20-r200
+2023-04-30 15:55:01,865 4472 ads.anr INFO1	#27/272 : SylvAtri-ab-10mn-m-hno-pol
+2023-04-30 15:55:02,205 4472 ads.dat INFO0	Loaded 408 x 14 total rows x columns in data set ...
+2023-04-30 15:55:02,214 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:02,268 4472 ads.dat INFO0	Sample data : 408 sightings = 403 individuals + 5 absence rows
+2023-04-30 15:55:02,280 4472 ads.anr INFO1	#28/272 : SylvAtri-ab-10mn-m-hno-pol-ma
+2023-04-30 15:55:02,295 4472 ads.anr INFO1	#29/272 : SylvAtri-ab-10mn-m-hno-pol-ra
+2023-04-30 15:55:02,299 4472 ads.anr INFO1	#30/272 : SylvAtri-ab-10mn-m-hno-pol-ra-ma
+2023-04-30 15:55:02,311 4472 ads.anr INFO1	#31/272 : SylvAtri-ab-10mn-m-hno-pol-la
+2023-04-30 15:55:02,322 4472 ads.anr INFO1	#32/272 : SylvAtri-ab-10mn-m-hno-pol-la-ma
+2023-04-30 15:55:02,339 4472 ads.anr INFO1	#33/272 : SylvAtri-ab-10mn-m-hno-pol-la-ra
+2023-04-30 15:55:02,342 4472 ads.anr INFO1	#34/272 : SylvAtri-ab-10mn-m-hno-pol-la-ra-ma
+2023-04-30 15:55:02,359 4472 ads.anr INFO1	#35/272 : SylvAtri-ab-10mn-m-hno-pol-r100
+2023-04-30 15:55:02,372 4472 ads.anr INFO1	#36/272 : SylvAtri-ab-10mn-m-hno-pol-r200
+2023-04-30 15:55:02,387 4472 ads.anr INFO1	#37/272 : SylvAtri-ab-10mn-m-hno-pol-l20
+2023-04-30 15:55:02,394 4472 ads.anr INFO1	#38/272 : SylvAtri-ab-10mn-m-hno-pol-l20-r100
+2023-04-30 15:55:02,404 4472 ads.anr INFO1	#39/272 : SylvAtri-ab-10mn-m-hno-pol-l20-r200
+2023-04-30 15:55:02,413 4472 ads.anr INFO1	#40/272 : SylvAtri-ab-10mn-m-haz-pol
+2023-04-30 15:55:02,442 4472 ads.anr INFO1	#41/272 : SylvAtri-ab-10mn-m-haz-pol-ma
+2023-04-30 15:55:02,452 4472 ads.anr INFO1	#42/272 : SylvAtri-ab-10mn-m-haz-pol-ra
+2023-04-30 15:55:02,480 4472 ads.anr INFO1	#43/272 : SylvAtri-ab-10mn-m-haz-pol-ra-ma
+2023-04-30 15:55:02,487 4472 ads.anr INFO1	#44/272 : SylvAtri-ab-10mn-m-haz-pol-la
+2023-04-30 15:55:02,493 4472 ads.anr INFO1	#45/272 : SylvAtri-ab-10mn-m-haz-pol-la-ma
+2023-04-30 15:55:02,499 4472 ads.anr INFO1	#46/272 : SylvAtri-ab-10mn-m-haz-pol-la-ra
+2023-04-30 15:55:02,533 4472 ads.anr INFO1	#47/272 : SylvAtri-ab-10mn-m-haz-pol-la-ra-ma
+2023-04-30 15:55:02,557 4472 ads.anr INFO1	#48/272 : SylvAtri-ab-10mn-m-haz-pol-r100
+2023-04-30 15:55:02,576 4472 ads.anr INFO1	#49/272 : SylvAtri-ab-10mn-m-haz-pol-r200
+2023-04-30 15:55:02,585 4472 ads.anr INFO1	#50/272 : SylvAtri-ab-10mn-m-haz-pol-l20
+2023-04-30 15:55:02,597 4472 ads.anr INFO1	#51/272 : SylvAtri-ab-10mn-m-haz-pol-l20-r100
+2023-04-30 15:55:02,634 4472 ads.anr INFO1	#52/272 : SylvAtri-ab-10mn-m-haz-pol-l20-r200
+2023-04-30 15:55:02,649 4472 ads.anr INFO1	#53/272 : PrunModu-ab-5mn-m-hno-pol
+2023-04-30 15:55:02,905 4472 ads.dat INFO0	Loaded 101 x 14 total rows x columns in data set ...
+2023-04-30 15:55:02,915 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:03,062 4472 ads.dat INFO0	Sample data : 101 sightings = 21 individuals + 80 absence rows
+2023-04-30 15:55:03,066 4472 ads.anr INFO1	#54/272 : PrunModu-ab-5mn-m-hno-pol-ma
+2023-04-30 15:55:03,081 4472 ads.anr INFO1	#55/272 : PrunModu-ab-5mn-m-hno-pol-ra
+2023-04-30 15:55:03,103 4472 ads.anr INFO1	#56/272 : PrunModu-ab-5mn-m-hno-pol-ra-ma
+2023-04-30 15:55:03,111 4472 ads.anr INFO1	#57/272 : PrunModu-ab-5mn-m-hno-pol-la
+2023-04-30 15:55:03,125 4472 ads.anr INFO1	#58/272 : PrunModu-ab-5mn-m-hno-pol-la-ma
+2023-04-30 15:55:03,132 4472 ads.anr INFO1	#59/272 : PrunModu-ab-5mn-m-hno-pol-la-ra
+2023-04-30 15:55:03,151 4472 ads.anr INFO1	#60/272 : PrunModu-ab-5mn-m-hno-pol-la-ra-ma
+2023-04-30 15:55:03,160 4472 ads.anr INFO1	#61/272 : PrunModu-ab-5mn-m-hno-pol-r100
+2023-04-30 15:55:03,164 4472 ads.anr INFO1	#62/272 : PrunModu-ab-5mn-m-hno-pol-r200
+2023-04-30 15:55:03,187 4472 ads.anr INFO1	#63/272 : PrunModu-ab-5mn-m-hno-pol-l20
+2023-04-30 15:55:03,197 4472 ads.anr INFO1	#64/272 : PrunModu-ab-5mn-m-hno-pol-l20-r100
+2023-04-30 15:55:03,202 4472 ads.anr INFO1	#65/272 : PrunModu-ab-5mn-m-hno-pol-l20-r200
+2023-04-30 15:55:03,208 4472 ads.anr INFO1	#66/272 : PrunModu-ab-5mn-m-hno-pol-l50
+2023-04-30 15:55:03,212 4472 ads.anr INFO1	#67/272 : PrunModu-ab-5mn-m-haz-pol
+2023-04-30 15:55:03,215 4472 ads.anr INFO1	#68/272 : PrunModu-ab-5mn-m-haz-pol-ma
+2023-04-30 15:55:03,226 4472 ads.anr INFO1	#69/272 : PrunModu-ab-5mn-m-haz-pol-ra
+2023-04-30 15:55:03,230 4472 ads.anr INFO1	#70/272 : PrunModu-ab-5mn-m-haz-pol-ra-ma
+2023-04-30 15:55:03,238 4472 ads.anr INFO1	#71/272 : PrunModu-ab-5mn-m-haz-pol-la
+2023-04-30 15:55:03,245 4472 ads.anr INFO1	#72/272 : PrunModu-ab-5mn-m-haz-pol-la-ma
+2023-04-30 15:55:03,252 4472 ads.anr INFO1	#73/272 : PrunModu-ab-5mn-m-haz-pol-la-ra
+2023-04-30 15:55:03,274 4472 ads.anr INFO1	#74/272 : PrunModu-ab-5mn-m-haz-pol-la-ra-ma
+2023-04-30 15:55:03,285 4472 ads.anr INFO1	#75/272 : PrunModu-ab-5mn-m-haz-pol-r100
+2023-04-30 15:55:03,295 4472 ads.anr INFO1	#76/272 : PrunModu-ab-5mn-m-haz-pol-r200
+2023-04-30 15:55:03,302 4472 ads.anr INFO1	#77/272 : PrunModu-ab-5mn-m-haz-pol-l20
+2023-04-30 15:55:03,307 4472 ads.anr INFO1	#78/272 : PrunModu-ab-5mn-m-haz-pol-l20-r100
+2023-04-30 15:55:03,314 4472 ads.anr INFO1	#79/272 : PrunModu-ab-5mn-m-haz-pol-l20-r200
+2023-04-30 15:55:03,344 4472 ads.anr INFO1	#80/272 : PrunModu-ab-5mn-m-haz-pol-l50
+2023-04-30 15:55:03,362 4472 ads.anr INFO1	#81/272 : PrunModu-ab-10mn-m-hno-pol
+2023-04-30 15:55:03,565 4472 ads.dat INFO0	Loaded 109 x 14 total rows x columns in data set ...
+2023-04-30 15:55:03,566 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:03,636 4472 ads.dat INFO0	Sample data : 109 sightings = 47 individuals + 62 absence rows
+2023-04-30 15:55:03,693 4472 ads.anr INFO1	#82/272 : PrunModu-ab-10mn-m-hno-pol-ma
+2023-04-30 15:55:03,702 4472 ads.anr INFO1	#83/272 : PrunModu-ab-10mn-m-hno-pol-ra
+2023-04-30 15:55:03,745 4472 ads.anr INFO1	#84/272 : PrunModu-ab-10mn-m-hno-pol-ra-ma
+2023-04-30 15:55:03,761 4472 ads.anr INFO1	#85/272 : PrunModu-ab-10mn-m-hno-pol-la
+2023-04-30 15:55:03,781 4472 ads.anr INFO1	#86/272 : PrunModu-ab-10mn-m-hno-pol-la-ma
+2023-04-30 15:55:03,798 4472 ads.anr INFO1	#87/272 : PrunModu-ab-10mn-m-hno-pol-la-ra
+2023-04-30 15:55:03,837 4472 ads.anr INFO1	#88/272 : PrunModu-ab-10mn-m-hno-pol-la-ra-ma
+2023-04-30 15:55:03,855 4472 ads.anr INFO1	#89/272 : PrunModu-ab-10mn-m-hno-pol-r100
+2023-04-30 15:55:03,861 4472 ads.anr INFO1	#90/272 : PrunModu-ab-10mn-m-hno-pol-r200
+2023-04-30 15:55:03,867 4472 ads.anr INFO1	#91/272 : PrunModu-ab-10mn-m-hno-pol-l20
+2023-04-30 15:55:03,878 4472 ads.anr INFO1	#92/272 : PrunModu-ab-10mn-m-hno-pol-l20-r100
+2023-04-30 15:55:03,889 4472 ads.anr INFO1	#93/272 : PrunModu-ab-10mn-m-hno-pol-l20-r200
+2023-04-30 15:55:03,896 4472 ads.anr INFO1	#94/272 : PrunModu-ab-10mn-m-hno-pol-l50
+2023-04-30 15:55:03,908 4472 ads.anr INFO1	#95/272 : PrunModu-ab-10mn-m-haz-pol
+2023-04-30 15:55:03,913 4472 ads.anr INFO1	#96/272 : PrunModu-ab-10mn-m-haz-pol-ma
+2023-04-30 15:55:03,940 4472 ads.anr INFO1	#97/272 : PrunModu-ab-10mn-m-haz-pol-ra
+2023-04-30 15:55:03,947 4472 ads.anr INFO1	#98/272 : PrunModu-ab-10mn-m-haz-pol-ra-ma
+2023-04-30 15:55:03,973 4472 ads.anr INFO1	#99/272 : PrunModu-ab-10mn-m-haz-pol-la
+2023-04-30 15:55:03,988 4472 ads.anr INFO1	#100/272 : PrunModu-ab-10mn-m-haz-pol-la-ma
+2023-04-30 15:55:04,000 4472 ads.anr INFO1	#101/272 : PrunModu-ab-10mn-m-haz-pol-la-ra
+2023-04-30 15:55:04,016 4472 ads.anr INFO1	#102/272 : PrunModu-ab-10mn-m-haz-pol-la-ra-ma
+2023-04-30 15:55:04,045 4472 ads.anr INFO1	#103/272 : PrunModu-ab-10mn-m-haz-pol-r100
+2023-04-30 15:55:04,058 4472 ads.anr INFO1	#104/272 : PrunModu-ab-10mn-m-haz-pol-r200
+2023-04-30 15:55:04,072 4472 ads.anr INFO1	#105/272 : PrunModu-ab-10mn-m-haz-pol-l20
+2023-04-30 15:55:04,079 4472 ads.anr INFO1	#106/272 : PrunModu-ab-10mn-m-haz-pol-l20-r100
+2023-04-30 15:55:04,089 4472 ads.anr INFO1	#107/272 : PrunModu-ab-10mn-m-haz-pol-l20-r200
+2023-04-30 15:55:04,120 4472 ads.anr INFO1	#108/272 : PrunModu-ab-10mn-m-haz-pol-l50
+2023-04-30 15:55:04,150 4472 ads.anr INFO1	#109/272 : PhylBone-ab-5mn-m-hno-pol
+2023-04-30 15:55:04,269 4472 ads.dat INFO0	Loaded 107 x 14 total rows x columns in data set ...
+2023-04-30 15:55:04,271 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:04,329 4472 ads.dat INFO0	Sample data : 107 sightings = 29 individuals + 78 absence rows
+2023-04-30 15:55:04,358 4472 ads.anr INFO1	#110/272 : PhylBone-ab-5mn-m-hno-pol-ma
+2023-04-30 15:55:04,365 4472 ads.anr INFO1	#111/272 : PhylBone-ab-5mn-m-hno-pol-ra
+2023-04-30 15:55:04,370 4472 ads.anr INFO1	#112/272 : PhylBone-ab-5mn-m-hno-pol-ra-ma
+2023-04-30 15:55:04,375 4472 ads.anr INFO1	#113/272 : PhylBone-ab-5mn-m-hno-pol-la
+2023-04-30 15:55:04,380 4472 ads.anr INFO1	#114/272 : PhylBone-ab-5mn-m-hno-pol-la-ma
+2023-04-30 15:55:04,386 4472 ads.anr INFO1	#115/272 : PhylBone-ab-5mn-m-hno-pol-la-ra
+2023-04-30 15:55:04,390 4472 ads.anr INFO1	#116/272 : PhylBone-ab-5mn-m-hno-pol-la-ra-ma
+2023-04-30 15:55:04,397 4472 ads.anr INFO1	#117/272 : PhylBone-ab-5mn-m-hno-pol-r100
+2023-04-30 15:55:04,414 4472 ads.anr INFO1	#118/272 : PhylBone-ab-5mn-m-hno-pol-r200
+2023-04-30 15:55:04,440 4472 ads.anr INFO1	#119/272 : PhylBone-ab-5mn-m-hno-pol-l20
+2023-04-30 15:55:04,472 4472 ads.anr INFO1	#120/272 : PhylBone-ab-5mn-m-hno-pol-l20-r100
+2023-04-30 15:55:04,483 4472 ads.anr INFO1	#121/272 : PhylBone-ab-5mn-m-hno-pol-l20-r200
+2023-04-30 15:55:04,509 4472 ads.anr INFO1	#122/272 : PhylBone-ab-5mn-m-haz-pol
+2023-04-30 15:55:04,533 4472 ads.anr INFO1	#123/272 : PhylBone-ab-5mn-m-haz-pol-ma
+2023-04-30 15:55:04,541 4472 ads.anr INFO1	#124/272 : PhylBone-ab-5mn-m-haz-pol-ra
+2023-04-30 15:55:04,569 4472 ads.anr INFO1	#125/272 : PhylBone-ab-5mn-m-haz-pol-ra-ma
+2023-04-30 15:55:04,585 4472 ads.anr INFO1	#126/272 : PhylBone-ab-5mn-m-haz-pol-la
+2023-04-30 15:55:04,606 4472 ads.anr INFO1	#127/272 : PhylBone-ab-5mn-m-haz-pol-la-ma
+2023-04-30 15:55:04,660 4472 ads.anr INFO1	#128/272 : PhylBone-ab-5mn-m-haz-pol-la-ra
+2023-04-30 15:55:04,692 4472 ads.anr INFO1	#129/272 : PhylBone-ab-5mn-m-haz-pol-la-ra-ma
+2023-04-30 15:55:04,706 4472 ads.anr INFO1	#130/272 : PhylBone-ab-5mn-m-haz-pol-r100
+2023-04-30 15:55:04,710 4472 ads.anr INFO1	#131/272 : PhylBone-ab-5mn-m-haz-pol-r200
+2023-04-30 15:55:04,718 4472 ads.anr INFO1	#132/272 : PhylBone-ab-5mn-m-haz-pol-l20
+2023-04-30 15:55:04,725 4472 ads.anr INFO1	#133/272 : PhylBone-ab-5mn-m-haz-pol-l20-r100
+2023-04-30 15:55:04,731 4472 ads.anr INFO1	#134/272 : PhylBone-ab-5mn-m-haz-pol-l20-r200
+2023-04-30 15:55:04,750 4472 ads.anr INFO1	#135/272 : PhylBone-ab-10mn-m-hno-pol
+2023-04-30 15:55:04,958 4472 ads.dat INFO0	Loaded 114 x 14 total rows x columns in data set ...
+2023-04-30 15:55:04,964 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:05,003 4472 ads.dat INFO0	Sample data : 114 sightings = 37 individuals + 77 absence rows
+2023-04-30 15:55:05,006 4472 ads.anr INFO1	#136/272 : PhylBone-ab-10mn-m-hno-pol-ma
+2023-04-30 15:55:05,010 4472 ads.anr INFO1	#137/272 : PhylBone-ab-10mn-m-hno-pol-ra
+2023-04-30 15:55:05,013 4472 ads.anr INFO1	#138/272 : PhylBone-ab-10mn-m-hno-pol-ra-ma
+2023-04-30 15:55:05,020 4472 ads.anr INFO1	#139/272 : PhylBone-ab-10mn-m-hno-pol-la
+2023-04-30 15:55:05,024 4472 ads.anr INFO1	#140/272 : PhylBone-ab-10mn-m-hno-pol-la-ma
+2023-04-30 15:55:05,027 4472 ads.anr INFO1	#141/272 : PhylBone-ab-10mn-m-hno-pol-la-ra
+2023-04-30 15:55:05,037 4472 ads.anr INFO1	#142/272 : PhylBone-ab-10mn-m-hno-pol-la-ra-ma
+2023-04-30 15:55:05,039 4472 ads.anr INFO1	#143/272 : PhylBone-ab-10mn-m-hno-pol-r100
+2023-04-30 15:55:05,043 4472 ads.anr INFO1	#144/272 : PhylBone-ab-10mn-m-hno-pol-r200
+2023-04-30 15:55:05,050 4472 ads.anr INFO1	#145/272 : PhylBone-ab-10mn-m-hno-pol-l20
+2023-04-30 15:55:05,075 4472 ads.anr INFO1	#146/272 : PhylBone-ab-10mn-m-hno-pol-l20-r100
+2023-04-30 15:55:05,103 4472 ads.anr INFO1	#147/272 : PhylBone-ab-10mn-m-hno-pol-l20-r200
+2023-04-30 15:55:05,128 4472 ads.anr INFO1	#148/272 : PhylBone-ab-10mn-m-haz-pol
+2023-04-30 15:55:05,135 4472 ads.anr INFO1	#149/272 : PhylBone-ab-10mn-m-haz-pol-ma
+2023-04-30 15:55:05,141 4472 ads.anr INFO1	#150/272 : PhylBone-ab-10mn-m-haz-pol-ra
+2023-04-30 15:55:05,149 4472 ads.anr INFO1	#151/272 : PhylBone-ab-10mn-m-haz-pol-ra-ma
+2023-04-30 15:55:05,161 4472 ads.anr INFO1	#152/272 : PhylBone-ab-10mn-m-haz-pol-la
+2023-04-30 15:55:05,174 4472 ads.anr INFO1	#153/272 : PhylBone-ab-10mn-m-haz-pol-la-ma
+2023-04-30 15:55:05,193 4472 ads.anr INFO1	#154/272 : PhylBone-ab-10mn-m-haz-pol-la-ra
+2023-04-30 15:55:05,202 4472 ads.anr INFO1	#155/272 : PhylBone-ab-10mn-m-haz-pol-la-ra-ma
+2023-04-30 15:55:05,210 4472 ads.anr INFO1	#156/272 : PhylBone-ab-10mn-m-haz-pol-r100
+2023-04-30 15:55:05,232 4472 ads.anr INFO1	#157/272 : PhylBone-ab-10mn-m-haz-pol-r200
+2023-04-30 15:55:05,265 4472 ads.anr INFO1	#158/272 : PhylBone-ab-10mn-m-haz-pol-l20
+2023-04-30 15:55:05,274 4472 ads.anr INFO1	#159/272 : PhylBone-ab-10mn-m-haz-pol-l20-r100
+2023-04-30 15:55:05,283 4472 ads.anr INFO1	#160/272 : PhylBone-ab-10mn-m-haz-pol-l20-r200
+2023-04-30 15:55:05,297 4472 ads.anr INFO1	#161/272 : OrioOrio-b-5mn-m-hno-pol
+2023-04-30 15:55:05,633 4472 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-30 15:55:05,641 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:05,694 4472 ads.dat INFO0	Sample data : 94 sightings = 4 individuals + 90 absence rows
+2023-04-30 15:55:05,737 4472 ads.anr INFO1	#162/272 : OrioOrio-b-5mn-m-hno-pol-ma
+2023-04-30 15:55:05,742 4472 ads.anr INFO1	#163/272 : OrioOrio-b-5mn-m-hno-pol-ra
+2023-04-30 15:55:05,767 4472 ads.anr INFO1	#164/272 : OrioOrio-b-5mn-m-hno-pol-ra-ma
+2023-04-30 15:55:05,770 4472 ads.anr INFO1	#165/272 : OrioOrio-b-5mn-m-hno-pol-la
+2023-04-30 15:55:05,773 4472 ads.anr INFO1	#166/272 : OrioOrio-b-5mn-m-hno-pol-la-ma
+2023-04-30 15:55:05,777 4472 ads.anr INFO1	#167/272 : OrioOrio-b-5mn-m-hno-pol-la-ra
+2023-04-30 15:55:05,784 4472 ads.anr INFO1	#168/272 : OrioOrio-b-5mn-m-hno-pol-la-ra-ma
+2023-04-30 15:55:05,789 4472 ads.anr INFO1	#169/272 : OrioOrio-b-5mn-m-hno-pol-r100
+2023-04-30 15:55:05,798 4472 ads.anr INFO1	#170/272 : OrioOrio-b-5mn-m-hno-pol-r200
+2023-04-30 15:55:05,804 4472 ads.anr INFO1	#171/272 : OrioOrio-b-5mn-m-hno-pol-l20
+2023-04-30 15:55:05,809 4472 ads.anr INFO1	#172/272 : OrioOrio-b-5mn-m-hno-pol-l20-r100
+2023-04-30 15:55:05,824 4472 ads.anr INFO1	#173/272 : OrioOrio-b-5mn-m-hno-pol-l20-r200
+2023-04-30 15:55:05,875 4472 ads.anr INFO1	#174/272 : OrioOrio-b-5mn-m-hno-pol-r400
+2023-04-30 15:55:05,880 4472 ads.anr INFO1	#175/272 : OrioOrio-b-5mn-m-haz-pol
+2023-04-30 15:55:05,895 4472 ads.anr INFO1	#176/272 : OrioOrio-b-5mn-m-haz-pol-ma
+2023-04-30 15:55:05,919 4472 ads.anr INFO1	#177/272 : OrioOrio-b-5mn-m-haz-pol-ra
+2023-04-30 15:55:05,929 4472 ads.anr INFO1	#178/272 : OrioOrio-b-5mn-m-haz-pol-ra-ma
+2023-04-30 15:55:05,935 4472 ads.anr INFO1	#179/272 : OrioOrio-b-5mn-m-haz-pol-la
+2023-04-30 15:55:05,942 4472 ads.anr INFO1	#180/272 : OrioOrio-b-5mn-m-haz-pol-la-ma
+2023-04-30 15:55:05,977 4472 ads.anr INFO1	#181/272 : OrioOrio-b-5mn-m-haz-pol-la-ra
+2023-04-30 15:55:06,009 4472 ads.anr INFO1	#182/272 : OrioOrio-b-5mn-m-haz-pol-la-ra-ma
+2023-04-30 15:55:06,026 4472 ads.anr INFO1	#183/272 : OrioOrio-b-5mn-m-haz-pol-r100
+2023-04-30 15:55:06,032 4472 ads.anr INFO1	#184/272 : OrioOrio-b-5mn-m-haz-pol-r200
+2023-04-30 15:55:06,038 4472 ads.anr INFO1	#185/272 : OrioOrio-b-5mn-m-haz-pol-l20
+2023-04-30 15:55:06,075 4472 ads.anr INFO1	#186/272 : OrioOrio-b-5mn-m-haz-pol-l20-r100
+2023-04-30 15:55:06,124 4472 ads.anr INFO1	#187/272 : OrioOrio-b-5mn-m-haz-pol-l20-r200
+2023-04-30 15:55:06,136 4472 ads.anr INFO1	#188/272 : OrioOrio-b-5mn-m-haz-pol-r400
+2023-04-30 15:55:06,173 4472 ads.anr INFO1	#189/272 : OrioOrio-b-10mn-m-hno-pol
+2023-04-30 15:55:06,396 4472 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-30 15:55:06,412 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:06,469 4472 ads.dat INFO0	Sample data : 94 sightings = 11 individuals + 83 absence rows
+2023-04-30 15:55:06,480 4472 ads.anr INFO1	#190/272 : OrioOrio-b-10mn-m-hno-pol-ma
+2023-04-30 15:55:06,487 4472 ads.anr INFO1	#191/272 : OrioOrio-b-10mn-m-hno-pol-ra
+2023-04-30 15:55:06,500 4472 ads.anr INFO1	#192/272 : OrioOrio-b-10mn-m-hno-pol-ra-ma
+2023-04-30 15:55:06,505 4472 ads.anr INFO1	#193/272 : OrioOrio-b-10mn-m-hno-pol-la
+2023-04-30 15:55:06,511 4472 ads.anr INFO1	#194/272 : OrioOrio-b-10mn-m-hno-pol-la-ma
+2023-04-30 15:55:06,520 4472 ads.anr INFO1	#195/272 : OrioOrio-b-10mn-m-hno-pol-la-ra
+2023-04-30 15:55:06,524 4472 ads.anr INFO1	#196/272 : OrioOrio-b-10mn-m-hno-pol-la-ra-ma
+2023-04-30 15:55:06,528 4472 ads.anr INFO1	#197/272 : OrioOrio-b-10mn-m-hno-pol-r100
+2023-04-30 15:55:06,532 4472 ads.anr INFO1	#198/272 : OrioOrio-b-10mn-m-hno-pol-r200
+2023-04-30 15:55:06,538 4472 ads.anr INFO1	#199/272 : OrioOrio-b-10mn-m-hno-pol-l20
+2023-04-30 15:55:06,554 4472 ads.anr INFO1	#200/272 : OrioOrio-b-10mn-m-hno-pol-l20-r100
+2023-04-30 15:55:06,563 4472 ads.anr INFO1	#201/272 : OrioOrio-b-10mn-m-hno-pol-l20-r200
+2023-04-30 15:55:06,575 4472 ads.anr INFO1	#202/272 : OrioOrio-b-10mn-m-hno-pol-r400
+2023-04-30 15:55:06,584 4472 ads.anr INFO1	#203/272 : OrioOrio-b-10mn-m-haz-pol
+2023-04-30 15:55:06,595 4472 ads.anr INFO1	#204/272 : OrioOrio-b-10mn-m-haz-pol-ma
+2023-04-30 15:55:06,604 4472 ads.anr INFO1	#205/272 : OrioOrio-b-10mn-m-haz-pol-ra
+2023-04-30 15:55:06,610 4472 ads.anr INFO1	#206/272 : OrioOrio-b-10mn-m-haz-pol-ra-ma
+2023-04-30 15:55:06,625 4472 ads.anr INFO1	#207/272 : OrioOrio-b-10mn-m-haz-pol-la
+2023-04-30 15:55:06,632 4472 ads.anr INFO1	#208/272 : OrioOrio-b-10mn-m-haz-pol-la-ma
+2023-04-30 15:55:06,663 4472 ads.anr INFO1	#209/272 : OrioOrio-b-10mn-m-haz-pol-la-ra
+2023-04-30 15:55:06,693 4472 ads.anr INFO1	#210/272 : OrioOrio-b-10mn-m-haz-pol-la-ra-ma
+2023-04-30 15:55:06,713 4472 ads.anr INFO1	#211/272 : OrioOrio-b-10mn-m-haz-pol-r100
+2023-04-30 15:55:06,744 4472 ads.anr INFO1	#212/272 : OrioOrio-b-10mn-m-haz-pol-r200
+2023-04-30 15:55:06,778 4472 ads.anr INFO1	#213/272 : OrioOrio-b-10mn-m-haz-pol-l20
+2023-04-30 15:55:06,824 4472 ads.anr INFO1	#214/272 : OrioOrio-b-10mn-m-haz-pol-l20-r100
+2023-04-30 15:55:06,858 4472 ads.anr INFO1	#215/272 : OrioOrio-b-10mn-m-haz-pol-l20-r200
+2023-04-30 15:55:06,869 4472 ads.anr INFO1	#216/272 : OrioOrio-b-10mn-m-haz-pol-r400
+2023-04-30 15:55:06,882 4472 ads.anr INFO1	#217/272 : OrioOrio-b-5mn-ma-hno-pol
+2023-04-30 15:55:07,171 4472 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-30 15:55:07,176 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:07,210 4472 ads.dat INFO0	Sample data : 94 sightings = 4 individuals + 90 absence rows
+2023-04-30 15:55:07,226 4472 ads.anr INFO1	#218/272 : OrioOrio-b-5mn-ma-hno-pol-ma
+2023-04-30 15:55:07,233 4472 ads.anr INFO1	#219/272 : OrioOrio-b-5mn-ma-hno-pol-ra
+2023-04-30 15:55:07,249 4472 ads.anr INFO1	#220/272 : OrioOrio-b-5mn-ma-hno-pol-ra-ma
+2023-04-30 15:55:07,256 4472 ads.anr INFO1	#221/272 : OrioOrio-b-5mn-ma-hno-pol-la
+2023-04-30 15:55:07,261 4472 ads.anr INFO1	#222/272 : OrioOrio-b-5mn-ma-hno-pol-la-ma
+2023-04-30 15:55:07,270 4472 ads.anr INFO1	#223/272 : OrioOrio-b-5mn-ma-hno-pol-la-ra
+2023-04-30 15:55:07,277 4472 ads.anr INFO1	#224/272 : OrioOrio-b-5mn-ma-hno-pol-la-ra-ma
+2023-04-30 15:55:07,313 4472 ads.anr INFO1	#225/272 : OrioOrio-b-5mn-ma-hno-pol-r100
+2023-04-30 15:55:07,337 4472 ads.anr INFO1	#226/272 : OrioOrio-b-5mn-ma-hno-pol-r200
+2023-04-30 15:55:07,355 4472 ads.anr INFO1	#227/272 : OrioOrio-b-5mn-ma-hno-pol-l20
+2023-04-30 15:55:07,389 4472 ads.anr INFO1	#228/272 : OrioOrio-b-5mn-ma-hno-pol-l20-r100
+2023-04-30 15:55:07,399 4472 ads.anr INFO1	#229/272 : OrioOrio-b-5mn-ma-hno-pol-l20-r200
+2023-04-30 15:55:07,449 4472 ads.anr INFO1	#230/272 : OrioOrio-b-5mn-ma-hno-pol-r400
+2023-04-30 15:55:07,461 4472 ads.anr INFO1	#231/272 : OrioOrio-b-5mn-ma-haz-pol
+2023-04-30 15:55:07,480 4472 ads.anr INFO1	#232/272 : OrioOrio-b-5mn-ma-haz-pol-ma
+2023-04-30 15:55:07,501 4472 ads.anr INFO1	#233/272 : OrioOrio-b-5mn-ma-haz-pol-ra
+2023-04-30 15:55:07,515 4472 ads.anr INFO1	#234/272 : OrioOrio-b-5mn-ma-haz-pol-ra-ma
+2023-04-30 15:55:07,556 4472 ads.anr INFO1	#235/272 : OrioOrio-b-5mn-ma-haz-pol-la
+2023-04-30 15:55:07,563 4472 ads.anr INFO1	#236/272 : OrioOrio-b-5mn-ma-haz-pol-la-ma
+2023-04-30 15:55:07,569 4472 ads.anr INFO1	#237/272 : OrioOrio-b-5mn-ma-haz-pol-la-ra
+2023-04-30 15:55:07,598 4472 ads.anr INFO1	#238/272 : OrioOrio-b-5mn-ma-haz-pol-la-ra-ma
+2023-04-30 15:55:07,610 4472 ads.anr INFO1	#239/272 : OrioOrio-b-5mn-ma-haz-pol-r100
+2023-04-30 15:55:07,648 4472 ads.anr INFO1	#240/272 : OrioOrio-b-5mn-ma-haz-pol-r200
+2023-04-30 15:55:07,662 4472 ads.anr INFO1	#241/272 : OrioOrio-b-5mn-ma-haz-pol-l20
+2023-04-30 15:55:07,687 4472 ads.anr INFO1	#242/272 : OrioOrio-b-5mn-ma-haz-pol-l20-r100
+2023-04-30 15:55:07,697 4472 ads.anr INFO1	#243/272 : OrioOrio-b-5mn-ma-haz-pol-l20-r200
+2023-04-30 15:55:07,718 4472 ads.anr INFO1	#244/272 : OrioOrio-b-5mn-ma-haz-pol-r400
+2023-04-30 15:55:07,726 4472 ads.anr INFO1	#245/272 : OrioOrio-b-10mn-ma-hno-pol
+2023-04-30 15:55:07,927 4472 ads.dat INFO0	Loaded 94 x 14 total rows x columns in data set ...
+2023-04-30 15:55:07,931 4472 ads.dat INFO0	... found columns: [Observateur|ID liste|Date|Passage|Durée|Point|Espèce|Adulte|Distance|Ref|Horaire|Effort|Zone|Surface]
+2023-04-30 15:55:07,978 4472 ads.dat INFO0	Sample data : 94 sightings = 11 individuals + 83 absence rows
+2023-04-30 15:55:07,992 4472 ads.anr INFO1	#246/272 : OrioOrio-b-10mn-ma-hno-pol-ma
+2023-04-30 15:55:08,009 4472 ads.anr INFO1	#247/272 : OrioOrio-b-10mn-ma-hno-pol-ra
+2023-04-30 15:55:08,019 4472 ads.anr INFO1	#248/272 : OrioOrio-b-10mn-ma-hno-pol-ra-ma
+2023-04-30 15:55:08,028 4472 ads.anr INFO1	#249/272 : OrioOrio-b-10mn-ma-hno-pol-la
+2023-04-30 15:55:08,044 4472 ads.anr INFO1	#250/272 : OrioOrio-b-10mn-ma-hno-pol-la-ma
+2023-04-30 15:55:08,060 4472 ads.anr INFO1	#251/272 : OrioOrio-b-10mn-ma-hno-pol-la-ra
+2023-04-30 15:55:08,066 4472 ads.anr INFO1	#252/272 : OrioOrio-b-10mn-ma-hno-pol-la-ra-ma
+2023-04-30 15:55:08,075 4472 ads.anr INFO1	#253/272 : OrioOrio-b-10mn-ma-hno-pol-r100
+2023-04-30 15:55:08,126 4472 ads.anr INFO1	#254/272 : OrioOrio-b-10mn-ma-hno-pol-r200
+2023-04-30 15:55:08,140 4472 ads.anr INFO1	#255/272 : OrioOrio-b-10mn-ma-hno-pol-l20
+2023-04-30 15:55:08,154 4472 ads.anr INFO1	#256/272 : OrioOrio-b-10mn-ma-hno-pol-l20-r100
+2023-04-30 15:55:08,189 4472 ads.anr INFO1	#257/272 : OrioOrio-b-10mn-ma-hno-pol-l20-r200
+2023-04-30 15:55:08,197 4472 ads.anr INFO1	#258/272 : OrioOrio-b-10mn-ma-hno-pol-r400
+2023-04-30 15:55:08,215 4472 ads.anr INFO1	#259/272 : OrioOrio-b-10mn-ma-haz-pol
+2023-04-30 15:55:08,236 4472 ads.anr INFO1	#260/272 : OrioOrio-b-10mn-ma-haz-pol-ma
+2023-04-30 15:55:08,263 4472 ads.anr INFO1	#261/272 : OrioOrio-b-10mn-ma-haz-pol-ra
+2023-04-30 15:55:08,272 4472 ads.anr INFO1	#262/272 : OrioOrio-b-10mn-ma-haz-pol-ra-ma
+2023-04-30 15:55:08,313 4472 ads.anr INFO1	#263/272 : OrioOrio-b-10mn-ma-haz-pol-la
+2023-04-30 15:55:08,326 4472 ads.anr INFO1	#264/272 : OrioOrio-b-10mn-ma-haz-pol-la-ma
+2023-04-30 15:55:08,337 4472 ads.anr INFO1	#265/272 : OrioOrio-b-10mn-ma-haz-pol-la-ra
+2023-04-30 15:55:08,382 4472 ads.anr INFO1	#266/272 : OrioOrio-b-10mn-ma-haz-pol-la-ra-ma
+2023-04-30 15:55:08,396 4472 ads.anr INFO1	#267/272 : OrioOrio-b-10mn-ma-haz-pol-r100
+2023-04-30 15:55:08,420 4472 ads.anr INFO1	#268/272 : OrioOrio-b-10mn-ma-haz-pol-r200
+2023-04-30 15:55:08,440 4472 ads.anr INFO1	#269/272 : OrioOrio-b-10mn-ma-haz-pol-l20
+2023-04-30 15:55:08,453 4472 ads.anr INFO1	#270/272 : OrioOrio-b-10mn-ma-haz-pol-l20-r100
+2023-04-30 15:55:08,480 4472 ads.anr INFO1	#271/272 : OrioOrio-b-10mn-ma-haz-pol-l20-r200
+2023-04-30 15:55:08,489 4472 ads.anr INFO1	#272/272 : OrioOrio-b-10mn-ma-haz-pol-r400
+2023-04-30 15:55:08,515 4472 ads.anr INFO0	All analyses started ; now waiting for their end, and results ...
+2023-04-30 15:55:13,832 4472 ads.anr INFO1	50/272 analyses in 00:00:05 (mean 0.106s): should end around 15:55:37.
+2023-04-30 15:55:14,907 4472 ads.anr INFO1	100/272 analyses in 00:00:06 (mean 0.064s): should end around 15:55:25.
+2023-04-30 15:55:15,922 4472 ads.anr INFO1	150/272 analyses in 00:00:07 (mean 0.049s): should end around 15:55:21.
+2023-04-30 15:55:16,936 4472 ads.anr INFO1	200/272 analyses in 00:00:08 (mean 0.042s): should end around 15:55:19.
+2023-04-30 15:55:17,940 4472 ads.anr INFO1	250/272 analyses in 00:00:09 (mean 0.038s): should end around 15:55:18.
+2023-04-30 15:55:18,384 4472 ads.anr INFO1	272/272 analyses in 00:00:10 (mean 0.036s): done.
+2023-04-30 15:55:18,385 4472 ads.anr INFO0	Analyses completed (272 results).
+2023-04-30 15:55:20,784 4472 ads.dat INFO0	272x115 results rows x columns and 3 specs saved to anlys\230430-153402\ACDC2019-Nat-optanalyses-results.xlsx in 2.321s
+2023-04-30 15:55:20,784 4472 main INFO0	Done running opt-analyses (00:21:16.059744).
+2023-04-30 15:55:20,784 4472 main INFO1	Giving back session log to anlys\230430-153402\ACDC2019-Nat.230430-153402.log

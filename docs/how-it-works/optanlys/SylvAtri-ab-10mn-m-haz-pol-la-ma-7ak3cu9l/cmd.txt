@@ -1,0 +1,36 @@
+optanlys\SylvAtri-ab-10mn-m-haz-pol-la-ma-7ak3cu9l\output.txt
+optanlys\SylvAtri-ab-10mn-m-haz-pol-la-ma-7ak3cu9l\log.txt
+optanlys\SylvAtri-ab-10mn-m-haz-pol-la-ma-7ak3cu9l\stats.txt
+optanlys\SylvAtri-ab-10mn-m-haz-pol-la-ma-7ak3cu9l\plots.txt
+None
+None
+Options;
+Type=Point;
+Distance=Radial /Measure='Meter';
+Area /Units='Sq. Kilometer';
+Object=Single;
+SF=1;
+Selection=Sequential;
+Lookahead=1;
+Maxterms=5;
+Confidence=95;
+print=Selection;
+End;
+Data /Structure=Flat;
+Fields=STR_LABEL,STR_AREA,SMP_LABEL,SMP_EFFORT,DISTANCE;
+Infile=optanlys\SylvAtri-ab-10mn-m-haz-pol-la-ma-7ak3cu9l\data.txt /NoEcho;
+End;
+Estimate;
+Distance /Left=6.39171;
+Density=All;
+Encounter=All;
+Detection=All;
+Size=All;
+Estimator /Key=HAZARD /Adjust=POLY /Criterion=AIC;
+Monotone=Strict;
+Pick=AIC;
+GOF /NClass=25;
+Cluster /Bias=GXLOG;
+VarN=Empirical;
+End;
+
