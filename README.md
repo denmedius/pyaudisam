@@ -64,9 +64,18 @@ everything's inside :
 
 * some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/unintests.ipynb](./tests/unintests.ipynb']) that you must run step by step (as long as no one has fully automated them :-).
 
+## Building
+
+To build pyaudisam pipy source and binary packages, you first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install a [source package](https://pypi.org/project/pyaudisam/#files): once done, it's as simple as:
+
+`python -m build`
+
+Note: Don't care about warnings about pyaudisam.mcds and pyaudisam.report being recognised as importable,
+ but being absent from setuptools' `packages` configuration ... these folders are simply pyaudisam config. and data files.
+
 ## To do list
 
-* finish tests automation (move [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/unintests.ipynb](./tests/unintests.ipynb'] notebooks code to pytest scripts),
+* finish tests automation (move [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/unintests.ipynb](./tests/unintests.ipynb') notebooks code to pytest scripts),
 * make pyaudisam work under Linux / Mac OS (all python: OK, but calling MCDS.exe):
     - or: through some kind of external client-server interface to MCDS.exe (that runs only under Windows),
     - or: by porting MCDS to Linux (closed Fortran source, but old, so might be obtained through a polite request ; BUT, needs an IMSL license, with is horribly expensive).
