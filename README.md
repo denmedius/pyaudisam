@@ -66,12 +66,13 @@ everything's inside :
 
 ## Building
 
-To build pyaudisam pipy source and binary packages, you first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install a [source package](https://pypi.org/project/pyaudisam/#files): once done, it's as simple as:
+To build pyaudisam [PyPI](https://pypi.org/project/pyaudisam/) source and binary packages, you first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install a [source package](https://pypi.org/project/pyaudisam/#files): once done, it's as simple as:
 
 `python -m build`
 
 Note: Don't care about warnings about pyaudisam.mcds and pyaudisam.report being recognised as importable,
- but being absent from setuptools' `packages` configuration ... these folders are simply pyaudisam config. and data files.
+ but being absent from setuptools' packages configuration ... these folders simply contain
+ pyaudisam config. and data files, no python code at all.
 
 ## To do list
 
