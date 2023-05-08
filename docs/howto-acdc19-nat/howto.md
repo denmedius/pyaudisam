@@ -5,6 +5,7 @@ Distance Sampling with pyaudisam
 * [pyaudisam@pipy.org](https://pypi.org/project/pyaudisam/)
 * Author: Jean-Philippe Meuret <fefeqe22.vucuqu82 (at) murena.io>
 
+
 # I. Purpose
 
 Show how to use **pyaudisam** for:
@@ -42,7 +43,7 @@ Here, we will demonstrate how to use pyaudisam in order to :
 
 And this demonstration will use pyaudisam in 2 ways:
 * as a **command line tool**, in a terminal,
-* as **python module**, through a python notebook.
+* as a **python module**, through a python notebook.
 
 Note: You can download the whole anonymised dataset of the ACDC 2019 study from [this place](https://sylbor63.pagesperso-orange.fr/ds/acdc19/materiau-public.zip):
 * with all the bird species this time (not only 4 of them),
@@ -50,6 +51,7 @@ Note: You can download the whole anonymised dataset of the ACDC 2019 study from 
 * with a concatenated dataset (Naturalist + Papyrus),
 * the instructions for using pyaudisam to do DS analyses for these 3 sub-datasets are in the `a-lire-dabord.md` file (French language),
 * the study settings python script is a bit more sophisticated, making use of the special parameter `-s` option.
+
 
 # II. Provided files
 
@@ -59,6 +61,7 @@ Note: You can download the whole anonymised dataset of the ACDC 2019 study from 
 * `ACDC2019-Samples.xlsx`: The specification of the set of samples to be pre-analysed (here, it's some kind of implicit specification, that needs to be explicitated by pyaudisam in order to get the full and explicit list of thus defined combinations ; the columns of each sheet are used as lists of possible values for the so-named "property" of the samples, and the explicitation process actually produces all the possible combinations listed ; pyaudisam also supports explicit specification sheets, and a mix of the 2 kinds also ; see below for the result of this explicitation)
 * `ACDC2019-OptAnalysesToDo.xlsx`: The specification of the set of DS analyses (with truncation distance parameters automatically computed for some analyses ; same implicit specification of analyses parameter combinations as for the samples just above, with also explicit specification for other combinations ... pyaudisam knows to explicitate it all ... see below for the result of this process)
 * `acdc-2019-nat-ds-params.py`: The set of pyaudisam parameters to use for running analyses (... etc) ; roughly speaking, if there were some kind of GUI for pyaudisam, part of these would be global settings with default values, and the remainder would be properties for some kind of "study" concept in this GUI (some related to the input data set, some to samples to analyse and some to the analyses to be run).
+
 
 # III. Now, let's go !
 
@@ -78,6 +81,7 @@ Warning: Only works under Windows (10 or newer, probably 7 and 8 also).
    (and also other technical informations)
 
     `python -m pyaudisam -h`
+
 
 ## B. pyaudisam as a command line tool
 
@@ -108,6 +112,7 @@ Note that this last case is useful for generating reports from the analysis resu
 
 Last: In order to get more details in the console during execution (will it be fake, without the `-u` flag option, or real, with it), use the `-v` flag option (verbose mode).
 
+
 ### 2. Run pre-analyses for checking samples
 
 As a first Distance Sampling study step, we'll start here by running **pre-analyses** on a designed set of **samples**, in order to get a first idea of which samples are eligible for real Distance Sampling analyses, or not (i.e. a first DS glance to the data set).
@@ -123,6 +128,7 @@ Before running the pre-analyses, you have to manually **design the list of sampl
 * but of course not unreasonably wide: more is much work to achieve for checking !
 
 Happily, the **ACDC2019-Samples.xlsx workbook** has been prepared for you, for a quick start (but you can tweak it as you like) as a specification of the samples to be pre-analysed (as explained above, it's using here "all-implicit" specification of the combinations, though its `*_impl` sheets, but you could add more explicit combinations through another sheet, not ending by `_impl` ; no written doc. for this for the moment, but you can explore ACDC2019-OptAnalysesToDo.xlsx to get an example of the mix of implicit and explict specification sheets ... here for analyses parameters, but it works the same).
+
 
 #### a. Run pre-analyses
 
@@ -140,6 +146,7 @@ Once finished (1 or 2 seconds), this run produces the following files in this fo
 * the workbook of 10 pre-analysis results (`all-results` sheet), + other sheets to recall computation specs (`samples`, `models`, pre-`analyser` setting) and `runtime` = Computing platform tech. info: `ACDC2019-Nat-preanalyses-results.xlsx`,
 * for each pre-analysis (1 by sample), one sub-folder with all files output by MCDS,
 * the execution log, for traceability.
+
 
 #### b. Report pre-analyses
 
@@ -183,6 +190,7 @@ As for the Excel workbook, it features multiple sheets:
 * "Details": all possible numerical results output by MCDS for each analysis
 * finally, some traceability sheets (actually matching with the last tables of the main HTML table `ACDC2019-Nat-preanalyses-report.hml` : Samples, Models, Analyser, Computing platform) to recall, if needed later, any detail about how these results were computed.
 
+
 #### c. Run and report in 1 command
 
 Of course, we can in one only command run the pre-analyses and generate the report(s) ; example, for the HTML report only here:
@@ -199,6 +207,7 @@ Last: Talking about sample selection for later in-depth analyses, let's say that
 After taking a first and quick glance to the usability of the data set and decided of the samples we'd like to study, it's time for running more serious DS analyses:
 * run analyses using multiple combinations of analysis parameters, possibly with automated left and right truncation distance determination (through an optimisation technique),
 * automatically post-process this bunch of results to filter the best analyses to be kept at the end for each sample (with the opportunity at the end for the user to check and fix if needed the automatic filtering).
+
 
 #### a. Run analyses
 
@@ -228,6 +237,7 @@ Once finished, this run produces the following files in this folder `./optanlys/
 * for each analysis, one sub-folder with all files output by MCDS,
 * the execution log, for traceability,
 * and some other miscellaneous files (like intermediate results files for restarting optimisations in case the whole process was interrupted, and some debugging ones that should not remain, this need to be fixed ;-).
+
 
 #### b. Filter and report analyses
 
@@ -283,6 +293,7 @@ As for the Excel workbook, it features multiple sheets:
 * "Details": all possible numerical results output by MCDS for **all** analyses run, not only the kept ones, whatever filter,
 * finally, some other traceability sheets (actually matching with the last tables of the main HTML table `ACDC2019-Nat-preanalyses-report.hml` : Samples, Models, Analyser, Computing platform) to recall, if needed later, any detail about how these results were computed.
 
+
 #### c. Run and report in 1 command
 
 Of course, in one command only, we can run the analyses and generate the filtered report(s) ; example, for the 2 ExAicMQua-r925m8q3d12 and MFTA-ExAicMQua-r975m8q3d8 HTML filtered reports:
@@ -290,6 +301,7 @@ Of course, in one command only, we can run the analyses and generate the filtere
 `python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./optanlys -o -f html:r925,html:r975 -u`
 
 In this particular case, we'll get 2 "main" HTML pages `ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.hml` and `ACDC2019-Nat-optanalyses-report.ExAicMQua-r975m8q3d8.hml` (1 for each filter specified in the command line option -f).
+
 
 #### d. Full (rather than "filtered") reports
 
@@ -318,11 +330,13 @@ If you don't need / want any automated truncation distance computations for your
 
 General hint: The generated files will no more contain the "optanalyses" keyword, but the simpler "analyses" keyword.
 
+
 #### a. Run analyses
 
 To **run all the analyses** specified in `ACDC2019-OptAnalysesToDo.xlsx`, except for the ones with `auto` distance truncation parameter values (they'll be automatically ignored), on the sightings listed in `ACDC2019-Nat-ObsIndivDist.xlsx`, in the work folder `./anlys` (as always, run first without `-u`):
 
 `python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys -a -u`
+
 
 #### b. Filter and report analyses
 
@@ -334,11 +348,13 @@ To **generate** both HTML and Excel **filtered reports** (the HTML one only for 
 
 `python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys/YYMMDD-HHMMSS -f excel,html:r950 -u`
 
+
 #### c. Run and report in 1 command
 
 You can also run and report analyses the same way in one command only:
 
 `python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys -a -f excel,html:r950 -u`
+
 
 #### d. Full (rather than "filtered") report
 
