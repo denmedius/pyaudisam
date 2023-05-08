@@ -71,7 +71,10 @@ The **pre-analysis summary reports** produced by pyaudisam in **HTML format** pr
 
 The units are specified in the header of the report (not visible in the extract below: here, distances in m, and areas in km2).
 
-For example, here is an [extract of such a report](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report.html) showing 2 samples (2 species) from the Naturalist dataset.
+For example, here is a partial view of an extract of such a report showing 2 samples (2 species) from the Naturalist dataset.
+![partial view of a 2 sample report extract](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report-partview.jpg)
+
+Here's also the "complete" HTML [2-sample extract of this report](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report.html) ([this file in GitHub repo](./preanlys/ACDC2019-Nat-preanalyses-report.html)).
 
 Clicking in the left-hand column (on the row number of the table) takes you to a page of details of the relevant pre-analysis, which is identical in every respect to what Distance 7 would produce (this is all the information produced by MCDS, as in Distance 7).
 
@@ -80,6 +83,8 @@ At the bottom of the main page of the HTML report, there are also traceability t
 A report in **Excel format** can also be generated: it does not contain any graphs, but presents in tabular form (see [example](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report.xlsx)):
 * on the one hand, the detailed results of each pre-analysis carried out, in totality of what MCDS produces (except for the graphs and textual reports),
 * on the other hand, a synthesis (customisable columns) of these results, in the form of a simple extract (customisable) from the columns of the details table.
+
+As an example, here's the [Excel report](https://sylbor63.pagesperso-orange.fr/ds/pyaudisam/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report.xlsx) ([this file in GitHub repo](./preanlys/ACDC2019-Nat-preanalyses-report.xlsx) corresponding to the 2-sample extract given as an example above for the HTML report.
 
 
 # IV. Extract from a synthesis report of pyaudisam analyses
@@ -95,7 +100,10 @@ Similarly, the units are specified in the header of the report (not visible in t
 
 Clicking in the left-hand column (on the line number of the table) takes you to a page of details of the analysis concerned, identical in every respect to what the Distance 7 software would produce (this is, moreover, all the information produced by MCDS, as in Distance 7).
 
-As an example, here is an [extract of such a report](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/optanlys/ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.html) presenting the 3 best analyses of the sample Sylvia atricapilla Males Naturalist 10mn.
+As an example, here is a partial view of an extract of such a report presenting the 3 best analyses of the sample `Sylvia atricapilla Males Naturalist 10mn`:
+![partial view of 3 analysis report extract](./optanlys/ACDC2019-Nat-optanalyses-report-partview.ExAicMQua-r925m8q3d12.jpg)
+
+Here's also the "complete" HTML [3-analysis extract of this report](https://sylbor63.pagesperso-orange.fr/ds/pyaudisam/docs/how-it-works/optanlys/ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.html) ([this file in GitHub repo](./optanlys/ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.html).
 
 Below this summary table, 2 other tables listing the analyses in the same order present respectively 
 * a selection of the columns of parameters, statistical indicators and results of each analysis (an enriched selection compared to the synthesis table above, i.e. approximately 45 columns),
@@ -105,11 +113,12 @@ It is also possible to produce a "**full" HTML report**, which presents in exact
 
 At the bottom of the main page of the HTML report, there are also traceability tables listing the various parameters and conditions of the analyses.
 
-A report in **Excel format** can also be generated: it does not contain any graphs, but presents in tabular form (see [example](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/optanlys/ACDC2019-Nat-optanalyses-report.xlsx)):
+A report in **Excel format** can also be generated: it does not contain any graphs, but presents in tabular form:
 * for each of the filtering and sorting schemes implemented (not just 1 as in the HTML report), a dedicated sheet giving, grouped by sample and sorted in descending order of the combined quality criterion chosen, the main results (configurable columns) of the N best analyses (Qual Bal 3 for example),
 * the detailed results of each analysis performed (not only the N best per sample), in totality of what MCDS produces (except graphs and textual reports),
 * a summary of the results (customisable columns) of each pre-analysis performed, in the form of a simple extract (customisable) from the columns of the details table.
 
+As an example, here's the [Excel report](https://sylbor63.pagesperso-orange.fr/ds/pyaudisam/docs/how-it-works/optanlys/ACDC2019-Nat-optanalyses-report.xlsx) ([this file in GitHub repo](./optanlys/ACDC2019-Nat-optanalyses-report.xlsx) corresponding to the 3-analysis extract given as an example above for the HTML report.
 
-Translated with  [DeepL](www.DeepL.com/Translator) (free version).
+Note: Translated with the help of [DeepL](www.DeepL.com/Translator) (free version).
 
