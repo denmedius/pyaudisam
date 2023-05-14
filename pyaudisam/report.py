@@ -1286,7 +1286,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
                                                convert=convert, round_=round_, style=style)
 
     @staticmethod
-    def float2str(v):  # Workaround to_html non transparent default float format (!?)
+    def float2str(v):  # Workaround to_html non-transparent default float format (!?)
         return format(v, 'g')
 
     @staticmethod

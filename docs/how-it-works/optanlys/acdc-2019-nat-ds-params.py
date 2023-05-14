@@ -59,10 +59,10 @@ studyAreaSpecs = dict(Zone='ACDC', Surface=24)  # km2
 # a. Selection / identification of samples.
 sampleSelCols = [speciesCol, passIdCol, 'Adulte', 'Durée']
 sampleIndCol = 'Echant'  # Unique Id integer
-sampleAbbrevCol = 'Abrev. Echant'  # Sample abbreviation (human readable)
+sampleAbbrevCol = 'Abrev. Echant'  # Sample abbreviation (human-readable)
 sampleSpecCustCols = []
 
-# b. Sample abbreviation (human readable) generation, from sample attributes 
+# b. Sample abbreviation (human-readable) generation, from sample attributes 
 def sampleAbbrev(sSamp):
     abbrvs = [''.join(word[:4].title() for word in sSamp[speciesCol].split(' ')[:2])]
     if passIdCol in sSamp.index and not pd.isnull(sSamp[passIdCol]) and sSamp[passIdCol]:
@@ -96,9 +96,9 @@ logPreAnalysisProgressEvery = 5
 # Parameters for analyse ###############################################################
 # a. Analysis identification
 analysisIndCol = 'Analyse'  # Unique integer
-analysisAbbrevCol = 'Abrev. Analyse' # Analysis abbreviation (human readable)
+analysisAbbrevCol = 'Abrev. Analyse' # Analysis abbreviation (human-readable)
 
-# b. Analysis abbreviation (human readable) generation, from main analysis attributes 
+# b. Analysis abbreviation (human-readable) generation, from main analysis attributes 
 def analysisAbbrev(sAnlys):
     abbrevs = [sampleAbbrev(sAnlys)]
     abbrevs += [sAnlys['FonctionClé'][:3].lower(), sAnlys['SérieAjust'][:3].lower()]

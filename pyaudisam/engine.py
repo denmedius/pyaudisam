@@ -148,7 +148,7 @@ class DSEngine(object):
          'SIZE':       ['nombre', 'nb', 'indiv', 'obj', 'tail', 'num', 'siz']}  # Cluster size
     
     # Data fields of decimal type.
-    # TODO: Complete for non 'Point transect' modes
+    # TODO: Complete for non-'Point transect' modes
     DecimalFields = ['SMP_EFFORT', 'DISTANCE', 'ANGLE']
     
     # Match srcFields with tgtAliasREs ones ; keep remaining ones ; sort decimal fields.
@@ -507,7 +507,7 @@ class MCDSEngine(DSEngine):
             params['discrDistCuts'] = self.DistDiscrCutsDef
 
         # Generate file contents
-        # a. Compute non trivial data fields
+        # a. Compute non-trivial data fields
         distDiscrSpecs = ''
         gOFitSpecs = ''
         

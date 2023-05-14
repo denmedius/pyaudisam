@@ -426,7 +426,6 @@ if args.distExport:
         dfExplSampleSpecs.to_excel(sampExplSpecFilePath, index=False)
 
     # b. Export 1 Distance input data file for each specified sample.
-    # dfSamples = Analyser.explicitVariantSpecs(partSpecs=sampSpecFile, varIndCol=pars.sampleIndCol)
     if args.realRun:
         preAnlysr.exportDSInputData(implSampleSpecs=sampleSpecFile, format='Distance')
         dfExplSampleSpecs.to_excel(sampExplSpecFilePath, index=False)

@@ -603,7 +603,8 @@ class DSParamsOptimiser(object):
                 reasons.append('Failed to match some user spec. names with internal ones: {}'
                                .format(', '.join(unmUserParamSpecCols)))
 
-            # Check that all rows are suitable for DS analysis (non empty sample identification columns, ...).
+            # Check that all rows are suitable for DS analysis (non-empty sample
+            # identification columns, ...).
             if dfExplParamSpecs[self.sampleSelCols].isnull().all(axis='columns').any():
                 verdict = False
                 reasons.append('Some rows have some null sample selection columns')

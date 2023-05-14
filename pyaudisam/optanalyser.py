@@ -478,7 +478,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
 
         else:
 
-            # Add non optimise(d) truncations analysis flag.
+            # Add non-optimise(d) truncations analysis flag.
             dfExplParamSpecs[self.OptimTruncFlagCol] = 0  # Const = "unoptimised" truncation params.
 
         # Done.
