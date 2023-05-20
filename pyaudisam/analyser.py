@@ -1663,19 +1663,24 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
             logger.info4('* scheme {}'.format(scheme))
 
-            # Workaround to-be-sorted problematic columns.
+            # Workaround for to-be-sorted problematic columns.
             sortCols = list()
-            for col in scheme['sort']:
-                if col in cls.DCLUnsortableCols:
-                    wkrndSortCol = cls.DCLUnsortableCols[col]
-                    logger.info5('{} => {}'.format(col, wkrndSortCol))
-                    dfSampRes[wkrndSortCol] = dfSampRes[col].apply(cls._toSortable)
-                    col = wkrndSortCol  # Will rather sort with this one !
-                sortCols.append(col)
+            sortAsc = list()
+            schSortAsc = [scheme['ascend']] * len(sortCols) if isinstance(scheme['ascend'], bool) else scheme['ascend']
+            for col, asc in zip(scheme['sort'], schSortAsc):
+                if col in dfSampRes.columns:  # Ignore missing cols
+                    if col in cls.DCLUnsortableCols:
+                        wkrndSortCol = cls.DCLUnsortableCols[col]
+                        logger.info5('{} => {}'.format(col, wkrndSortCol))
+                        dfSampRes[wkrndSortCol] = dfSampRes[col].apply(cls._toSortable)
+                        col = wkrndSortCol  # Will rather sort with this one !
+                    sortCols.append(col)
+                    sortAsc.append(asc)
 
             # Sort results
-            dfSampRes.sort_values(by=sortCols, ascending=scheme['ascend'],
-                                  na_position=scheme.get('napos', 'last'), inplace=True)
+            if sortCols:
+                dfSampRes.sort_values(by=sortCols, ascending=sortAsc,
+                                      na_position=scheme.get('napos', 'last'), inplace=True)
 
             # Compute order (target series is indexed like dfSampRes).
             if 'group' in scheme:  # Partial = 'group' order.
@@ -1683,12 +1688,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                 # Workaround for to-be-grouped problematic columns.
                 groupCols = list()
                 for col in scheme['group']:
-                    if col in cls.DCLUnhashableCols:
-                        wkrndGroupCol = cls.DCLUnhashableCols[col]
-                        logger.info5('{} => {}'.format(col, wkrndGroupCol))
-                        dfSampRes[wkrndGroupCol] = dfSampRes[col].apply(cls._toHashable)
-                        col = wkrndGroupCol  # Will rather group with this one !
-                    groupCols.append(col)
+                    if col in dfSampRes.columns:
+                        if col in cls.DCLUnhashableCols:
+                            wkrndGroupCol = cls.DCLUnhashableCols[col]
+                            logger.info5('{} => {}'.format(col, wkrndGroupCol))
+                            dfSampRes[wkrndGroupCol] = dfSampRes[col].apply(cls._toHashable)
+                            col = wkrndGroupCol  # Will rather group with this one !
+                        groupCols.append(col)
 
                 sSampOrder = dfSampRes.groupby(groupCols, dropna=False).cumcount()
 
