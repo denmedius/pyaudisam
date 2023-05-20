@@ -307,19 +307,19 @@ In this particular case, we'll get 2 "main" HTML pages `ACDC2019-Nat-optanalyses
 
 This is generally not what you want, as you trust pyaudisam filtering system and don't want to examine all the analyses yourself one by one :-).
 
-But in case you want to get exhaustive **reports**, showing the resuls **of all the analyses** run, without any filtering (beware of the total number !), you can go with the "**full**" Excel and HTML report types:
+But in case you really want to get exhaustive **reports**, showing the resuls **of all the analyses** run, without any filtering (beware of the total number !), you can go with the "**full**" Excel and HTML report types:
 
 `python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./optanlys -o -f html:full,excel:full -u`
 
-The produced Excel report is actually just the same as the "filtered" one (see above), except that it does not contain any "filtered" sheet ; which means that it not actually usefull, as it is really a subset of the filtered report.
+The produced Excel report workbook: `ACDC2019-Nat-optanalyses-report.xlsx` is actually just the same as the "filtered" one (see above), except that it **does not contain any "filtered" sheet** ; which means that it not actually usefull, as it is really a subset of the filtered report. Note that here, due to some specific settings in `acdc-2019-ds-params.py`, especially about row sorting, the results are not in the same order (sorted by increasing left and right truncation distance, and then only by decreasing Qual Bal 3 indicator) ; but you can change the settings !
 
 Warning: If you generate the "full" Excel report (`-f excel:full`) after generating the "filtered" one (only `-f excel`), the first one will be overwritten by the second one, as they share the same name `ACDC2019-Nat-optanalyses-report.xlsx` (but not a big deal, as `-f excel:full` is probably useless).
 
 Notes: When filters are availables in `-p acdc-2019-nat-ds-params.py`, using `excel:full` as a report specifier prevents the "filtered" sheets (1 for each filter) to be generated ; with simply `excel`, you'll get both types of report in the same workbook: the filtered one (1 sheet for each filter) + the full one (`synthesis` and `details` sheets).
 
-As for the HTML report, it shows the same structure and organisation as a filtered report (for 1 filter), but the tables display 1 row per run analysis among all of them (might result quite big a report !), rather than 1 row per **kept** analysis after filtering (the N best ones); here also, the analysis results are grouped by sample and sorted by descending combined quality indicator (Qual Bal 3 here).
+As for the HTML report `ACDC2019-Nat-optanalyses-report.html`, it shows the same structure and organisation as a filtered report (for 1 filter), but the tables display 1 row per run analysis **among all of them** (might result quite big a report !), rather than 1 row per **retained** analysis after filtering (the N best ones); here also, the analysis results are grouped by sample and sorted by descending combined quality indicator (Qual Bal 3 here).
 
-And this time, you can well generate the "full" HTML report (`-f html:full`) after generating some "filtered" one(s), no fear: no overwriting will occur, as the full report shows a different name (`ACDC2019-Nat-optanalyses-report.html` here: no filter name suffix).
+And again, even if the full report shows a different name (`ACDC2019-Nat-optanalyses-report.html`), generating the "full" HTML report (`-f html:full`) after some "filtered" one(s) will overwrite it (them) partially (actually, only the navigation links from the analysis-specific pages to the main page, but it enough to break it ; this is for sure a bug to fix one day :-).
 
 
 ### 4. Run designed analyses (without optimised distance truncation)
@@ -387,6 +387,4 @@ Now, you can start Distance and go on for manual analyses !
 
 ## C. pyaudisam as a python module
 
-TODO:
-* Build a demo notebook doing the same as the above commands (chapter B) (extract it from Visionature-ds-points.ipynb).
-
+You can also use pyaudisam as a python module in your scripts or notebooks: the [acdc-2019-nat-ds-run.ipynb](./acdc-2019-nat-ds-run.ipynb) jupyter notebook is here to demonstrate how you can do **exactly the same work** as the one explained above in **B.2 to B.5**, but with the confort of a notebook :-).
