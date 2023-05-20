@@ -112,7 +112,7 @@ class ResultsReport:
     
     @staticmethod
     def _libVersions():
-        return {'Python':sys.version.split()[0],
+        return {'Python': sys.version.split()[0],
                 'NumPy': runtime['numpy'],
                 'Pandas': runtime['pandas'],
                 'ZOOpt': runtime['zoopt'],
@@ -210,7 +210,7 @@ class ResultsReport:
 
         ddfWbk = dict()
 
-        # Specs (no need to check if 'specs' in subset: we have nothing else than results specs here.
+        # Specs (no need to check if 'specs' in subset: we have nothing else than results specs here).
         for spName, dfSpData in self.resultsSet.specs2Tables().items():
             logger.info1(f'* {spName} ...')
             ddfWbk[self.tr(spName)] = (dfSpData, True)
@@ -234,9 +234,9 @@ class ResultsReport:
         fileName = fileName or os.path.join(self.tgtFolder, self.tgtPrefix + ext)
         
         with pd.ExcelWriter(fileName, engine=engine) as xlsxWriter:
+            logger.info(f'Building workbook report {fileName} ...')
             for wstName, (dfWstData, wstIndex) in self.asWorkbook(rebuild=rebuild).items():
                 dfWstData.to_excel(xlsxWriter, sheet_name=wstName, index=wstIndex)
-            logger.info(f'Writing report to {fileName} ...')
 
         logger.info('... done.')
 
@@ -436,13 +436,22 @@ class DSResultsDistanceReport(ResultsReport):
 
         self.logProgressEvery = logProgressEvery
         
+    def checkNeededColumns(self):
+
+        """Side check as soon as possible : Are all report needed columns available ?
+        (now that computed columns have been ... post-computed through self.resultsSet.dfFilSorData calls)
+
+        :raise: AssertionError if not the case
+        """
+        raise NotImplementedError('Abstract method DSResultsDistanceReport.checkNeededColumns must not be called')
+
     # Static attached files for HTML report.
     AttachedFiles = ['report.css', 'fa-feather-alt.svg', 'fa-angle-up.svg', 'fa-file-excel.svg',
                      'fa-file-excel-hover.svg', 'fa-arrow-left-hover.svg', 'fa-arrow-left.svg',
                      'fa-arrow-right-hover.svg', 'fa-arrow-right.svg',
                      'fa-arrow-up-hover.svg', 'fa-arrow-up.svg']
     
-    # Plot ... data to be plot, and draw resulting figure to image files.
+    # Plot ... data to be plotted, and draw resulting figure to image files.
     PlotImgPrfxQqPlot = 'qqplot'
     PlotImgPrfxDetProb = 'detprob'
     PlotImgPrfxProbDens = 'probdens'
@@ -703,7 +712,7 @@ class DSResultsDistanceReport(ResultsReport):
                            surveyType=self.tr(self.resultsSet.surveyType),
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank line series to one only.
+        html = re.sub('(?:[ \t]*\n){2,}', '\n'*2, html)  # Cleanup blank line series to one only.
 
         # Write top HTML to file.
         htmlPathName = self.targetFilePathName(suffix='.html')
@@ -881,7 +890,7 @@ class DSResultsDistanceReport(ResultsReport):
                            surveyType=self.tr(self.resultsSet.surveyType),
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'))
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank line series to one only.
+        html = re.sub('(?:[ \t]*\n){2,}', '\n'*2, html)  # Cleanup blank line series to one only.
 
         # Write analysis HTML to file.
         htmlPathName = self.targetFilePathName(tgtFolder=anlysFolder, prefix='index', suffix='.html')
@@ -1291,9 +1300,9 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
 
     @staticmethod
     def series2VertTable(ser):
-        return re.sub('\\\n *', '',  ser.to_frame().to_html(header=False,
-                                                            float_format=MCDSResultsDistanceReport.float2str,
-                                                            na_rep=''))
+        return re.sub('\n *', '',  ser.to_frame().to_html(header=False,
+                                                          float_format=MCDSResultsDistanceReport.float2str,
+                                                          na_rep=''))
     
     def plotImageHtmlElement(self, runFolder, plotImgPrfx, plotHeight):
         
@@ -1653,7 +1662,7 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'),
                            estimSelCrits=estimSelCrits, confIntervals=[str(v) for v in confIntervals])
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
+        html = re.sub('(?:[ \t]*\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
 
         # 9. Write top HTML to file.
         htmlPathName = self.targetFilePathName(suffix='.html')
@@ -1865,7 +1874,7 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'),
                            estimSelCrits=estimSelCrits, confIntervals=[str(v) for v in confIntervals])
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
+        html = re.sub('(?:[ \t]*\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
 
         # 7. Write top HTML to file.
         htmlPathName = self.targetFilePathName(suffix='.html')
@@ -2187,7 +2196,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                            distanceType=self.tr(self.resultsSet.distanceType),
                            clustering=self.tr('Clustering' if self.resultsSet.clustering else 'No clustering'),
                            estimSelCrits=estimSelCrits, confIntervals=[str(v) for v in confIntervals])
-        html = re.sub('(?:[ \t]*\\\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
+        html = re.sub('(?:[ \t]*\n){2,}', '\n'*2, html)  # Cleanup blank lines series to one only
 
         # 8. Write top HTML to file.
         filSorSchId = self.resultsSet.filSorSchemeId(filSorScheme)
@@ -2203,7 +2212,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         """HTML report generation for a given scheme.
 
         Parameters:
-        :param filSorScheme: the 1 and only) scheme to use for building the report (see ctor)
+        :param filSorScheme: the 1 (and only) scheme to use for building the report (see ctor)
         :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
                         otherwise, use any cached data or existing plot image files
 
@@ -2212,6 +2221,8 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
               (and may be no matplotlib drawing actually done) ;
               but then, Exception: Can't pickle <function sync_do_first ... :-(
         """
+
+        logger.debug(f'MCDSResultsFilterSortReport.toHtml({rebuild=}, {filSorScheme=})')
 
         generators = None
 
