@@ -229,7 +229,7 @@ preReportRebuild = False
 # Full (opt-)analysis report #######################################################
 # 1. General parameters
 fullReportStudyTitle = reportStudyTitle
-fullReportStudySubTitle = '(Opt-)Analysis report (4-species sample)'
+fullReportStudySubTitle = 'Full (opt-)Analysis report (4-species sample)'
 fullReportAnlysSubTitle = 'Details'
 fullReportStudyDescr = reportStudyDescr
 fullReportStudyKeywords = reportStudyKeywords + ', full'
@@ -290,7 +290,7 @@ fullReportRebuild = False
 # Auto-filtered (oOpt-)analysis reports ##########################
 # 1. General parameters
 filsorReportStudyTitle = reportStudyTitle
-filsorReportStudySubTitle = 'Auto-filtered report: "{fsId}" method (4-species sample)'
+filsorReportStudySubTitle = 'Auto-filtered (opt-)analysis report: "{fsId}" filter scheme (4-species sample)'
 filsorReportAnlysSubTitle = 'Details'
 filsorReportStudyDescr = reportStudyDescr
 filsorReportStudyKeywords = reportStudyKeywords + ', auto-filter'
