@@ -23,6 +23,7 @@ prune tests/refout/dist-order-sens-min
 
 include docs/howto-acdc19-nat/*.md
 include docs/howto-acdc19-nat/*.xlsx
+exclude docs/howto-acdc19-nat/*.autogen.xlsx
 include docs/howto-acdc19-nat/*.py
 include docs/howto-acdc19-nat/*.ipynb
 include docs/howto-acdc19-nat/*.js
@@ -32,6 +33,7 @@ include docs/how-it-works/*.md
 include docs/how-it-works/common/*.svg
 include docs/how-it-works/common/*.css
 include docs/how-it-works/preanlys/*.html
+include docs/how-it-works/preanlys/*.jpg
 include docs/how-it-works/preanlys/*.xlsx
 include docs/how-it-works/preanlys/*.py
 include docs/how-it-works/preanlys/*.log
@@ -43,6 +45,7 @@ include docs/how-it-works/preanlys/SylvAtri-ab-10mn-m-haz-cos-fx8uk14r/*.png
 include docs/how-it-works/preanlys/SylvAtri-ab-10mn-m-haz-cos-fx8uk14r/*.html
 
 include docs/how-it-works/optanlys/*.html
+include docs/how-it-works/optanlys/*.jpg
 include docs/how-it-works/optanlys/*.xlsx
 include docs/how-it-works/optanlys/*.py
 include docs/how-it-works/optanlys/*.log
