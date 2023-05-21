@@ -1,14 +1,14 @@
 # Python module for AUtomated DIstance SAMpling analyses
 
 This module interfaces **distance sampling** analysis engines from [Distance software](https://distancesampling.org/), and possibly others in the future ; thus, it has been designed in order to make it easier :
-* to run (in parallel) numerous analysis with many (many) parameter variants on many field observation samples
+* to run (in parallel) numerous [Distance Sampling](https://en.wikipedia.org/wiki/Distance_sampling) analyses with many (many) parameter variants on many field observation samples
   (possibly using some optimisation techniques for automated computation of right and left distance truncations),
 * to select the best analysis variant results through a mostly automated process, based on customisable statistical
   quality indicators,
 * to produce partly customisable reports in spreadsheet (numerical results only) and HTML formats
   (more complete, with full-featured plots like in Distance, and more).
 
-As for now, only the Windows MCDS.exe V6 engine and Point Transect analyses are supported.
+As for now, only the Windows MCDS.exe V6 engine and Point Transect analyses are supported, and so, it runs only under Windows.
 
 ## Requirements
 
@@ -35,22 +35,25 @@ TODO: Publish also on [Conda Forge](https://conda-forge.org/), probably followin
 
 ## Usage
 
-As a python package, **pyaudisam** can be used through its API : for the moment, you can have an idea of how to use 
-it by playing with the fully functional [jupyter](https://jupyter.org/) notebook [tests/valtests.ipynb](./tests/valtests.ipynb) (see below [Running tests](#running-tests) for how to obtain and run it).
+As a **python package**, pyaudisam can be used through its python API.
 
-But there's also a command-line interface: run it with the -h/--help option, and read the quick-start guide (see below).
+But there's also a **command-line interface**: try and run it with the -h/--help option.
 
 `python -m pyaudisam --help`
+
+Whichever method, the best way to go is to read the concrete quick-start guide : see [Documentation](#documentation) below.
 
 ## Documentation
 
 * a short ["how it works" guide](./docs/how-it-works/how-it-works-en.md) to understand the basics (also in [French](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/how-it-works-fr.md)),
 * a concrete ["quick-start" guide](./docs/howto-acdc19-nat/howto.md) with a real life use case and relevant field data to play with,
-* another similar but shorter concrete ["quick-start guide" (in French)](https://sylbor63.pagesperso-orange.fr/ds/acdc19/materiau-public.zip) with the full field data set of the "ACDC 2019" birding study.
+* another similar but shorter concrete ["quick-start guide" (in French)](https://sylbor63.pagesperso-orange.fr/ds/acdc19/materiau-public.zip) (command-line only) with the full field data set of the "ACDC 2019" birding study.
+
+Note: You can also get a detailled idea of how to use pyaudisam python API by playing with the fully functional [jupyter](https://jupyter.org/) notebook [tests/valtests.ipynb](./tests/valtests.ipynb) (see below [Running tests](#running-tests) for how to obtain and run it).
 
 TODO:
 * complete the quick start guides above by other small and focused articles to explain some mandatory details:
-  - how to build a sample or analysis specification workbook (see a French language first draft in [analyser.py:273](./pyaudisam/analyser.py)),
+  - how to build a sample or analysis specification workbook (see a short draft in [analyser.py:273](./pyaudisam/analyser.py)),
   - ...
 * write a technical documentation of the whole module,
 * write a guide for building the module API documentation ([sphinx](https://www.sphinx-doc.org/) should work out of the box as [reStructured text](https://en.wikipedia.org/wiki/ReStructuredText) has been used in docstrings),
@@ -64,11 +67,11 @@ everything's inside :
 
   `pytest`
 
-* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/unintests.ipynb](./tests/unintests.ipynb']) that you must run step by step (as long as no one has fully automated them :-).
+* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/valtests.ipynb](./tests/valtests.ipynb']) that you must run step by step (as long as no one has fully automated them :-).
 
 ## Building
 
-To build pyaudisam [PyPI](https://pypi.org/project/pyaudisam/) source and binary packages, you first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install a [source package](https://pypi.org/project/pyaudisam/#files): once done, it's as simple as:
+To build pyaudisam [PyPI](https://pypi.org/project/pyaudisam/) source and binary packages, you first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and extract a [source package](https://pypi.org/project/pyaudisam/#files): once done, it's as simple as:
 
 `python -m build`
 
@@ -84,13 +87,13 @@ And if you are lacking ideas, here are some good ones ;-)
 
 ### To do list
 
-* finish tests automation (move [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/unintests.ipynb](./tests/unintests.ipynb') notebooks code to pytest scripts),
+* finish tests automation (move [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/valtests.ipynb](./tests/valtests.ipynb']) notebooks code to pytest scripts),
 * make pyaudisam work under Linux / Mac OS (all python: OK, but calling MCDS.exe):
   - or: through some kind of external client-server interface to MCDS.exe (that runs only under Windows),
-  - or: by porting MCDS to Linux (closed Fortran source, but old, so might be obtained through a polite request ; BUT, needs an IMSL license, which is horribly expensive).
+  - or: by porting MCDS to Linux (closed Fortran source, but old, so might be obtained through a polite request to [this Distance Sampling forum](https://groups.google.com/g/distance-sampling) ; BUT, needs an IMSL license, which is horribly expensive).
   - or: by rewriting MCDS from scratch,
-  - or: by rewriting MCDS using the [MRDS Distance package](https://distancesampling.org/), meaning so kind of interface to R,
-* build a GUI for pyaudisam command-line,
+  - or: by rewriting MCDS using the [MRDS Distance package](https://distancesampling.org/), meaning some kind of interface to R,
+* build a GUI for pyaudisam command-line (with some kind of "project" concept, and parameter set template, and ...),
 * add support line transects (only point transects for the moment),
 * add support for the co-variates feature of MCDS,
 * ...
@@ -98,5 +101,5 @@ And if you are lacking ideas, here are some good ones ;-)
 ### Some hints
 
 Some formal things that won't change as long as I'm the main maintainer :-)
-* this code is not blacked or isorted or fully conform to pep8,
+* this code is not blacked or isorted or fully conform to pep8 (but it's clean and works, isn't it ?),
 * the identifier naming scheme used is old-fashioned: camel case everywhere.
