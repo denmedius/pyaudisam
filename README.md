@@ -67,7 +67,7 @@ everything's inside :
 
   `pytest`
 
-* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/valtests.ipynb](./tests/valtests.ipynb']) that you must run step by step (as long as no one has fully automated them :-).
+* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/valtests.ipynb](./tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
 
 ## Building
 
@@ -87,7 +87,7 @@ And if you are lacking ideas, here are some good ones ;-)
 
 ### To do list
 
-* finish tests automation (move [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/valtests.ipynb](./tests/valtests.ipynb']) notebooks code to pytest scripts),
+* finish tests automation (move [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/valtests.ipynb](./tests/valtests.ipynb) notebooks code to pytest scripts),
 * make pyaudisam work under Linux / Mac OS (all python: OK, but calling MCDS.exe):
   - or: through some kind of external client-server interface to MCDS.exe (that runs only under Windows),
   - or: by porting MCDS to Linux (closed Fortran source, but old, so might be obtained through a polite request to [this Distance Sampling forum](https://groups.google.com/g/distance-sampling) ; BUT, needs an IMSL license, which is horribly expensive).
@@ -101,5 +101,5 @@ And if you are lacking ideas, here are some good ones ;-)
 ### Some hints
 
 Some formal things that won't change as long as I'm the main maintainer :-)
-* this code is not blacked or isorted or fully conform to pep8 (but it's clean and works, isn't it ?),
+* this code is not blacked or isorted or fully conform to pep8 (but it's clean, commented, and it works),
 * the identifier naming scheme used is old-fashioned: camel case everywhere.
