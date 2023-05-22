@@ -21,7 +21,7 @@ from pyaudisam.optanalyser import MCDSTruncOptanalysisResultsSet as rs
 # Field data ####################################################################
 
 # Root folder for linked files below
-_dataDir = pl.Path('.')
+dataDir = pl.Path('.')
 
 # Base columns.
 speciesCol = 'Espèce'
@@ -37,10 +37,9 @@ transectPlaceCols = ['Point']
 studyName = 'ACDC2019'
 subStudyName = '-Nat'
 
-surveyDataFile = _dataDir / f'{studyName}{subStudyName}-ObsIndivDist.xlsx'
+surveyDataFile = dataDir / f'{studyName}{subStudyName}-ObsIndivDist.xlsx'
 indivDistDataSheet = 'Donnees'
 transectsDataSheet = 'Inventaires'
-
 
 # General Distance Sampling parameters ##################################################
 distanceUnit = 'Meter'
@@ -74,7 +73,7 @@ def sampleAbbrev(sSamp):
     return '-'.join(abbrvs)
 
 # c. Samples to be analysed
-sampleSpecFile = _dataDir / f'ACDC2019-Samples.xlsx'
+sampleSpecFile = dataDir / f'ACDC2019-Samples.xlsx'
 
 # d. Pre-analysis specific parameters
 preResultsHeadCols = dict(before=[sampleIndCol],
@@ -92,8 +91,7 @@ runPreAnalysisTimeOut = 300
 logPreAnalysisData = False
 logPreAnalysisProgressEvery = 5
 
-
-# Parameters for analyse ###############################################################
+# Parameters for analysis (unoptimised) #####################################################
 # a. Analysis identification
 analysisIndCol = 'Analyse'  # Unique integer
 analysisAbbrevCol = 'Abrev. Analyse' # Analysis abbreviation (human-readable)
@@ -127,7 +125,7 @@ defEstimCriterion = 'AIC'
 defCVInterval = 95
 
 defMinDist = None
-defMaxDist = None,
+defMaxDist = None
 defFitDistCuts = None
 defDiscrDistCuts = None
 
@@ -137,9 +135,9 @@ truncIntrvEpsilon = 1e-6
 
 # d. Analyses to run : auto-extraction from opt-analyses spec. file ...
 #    (by simply removing 'auto' truncation parameters)
-analysisSpecFile = _dataDir / 'ACDC2019-AnalysesToDo.autogen.xlsx'
+analysisSpecFile = dataDir / 'ACDC2019-AnalysesToDo.autogen.xlsx'
 
-_ddfAnlysSpecs = pd.read_excel(_dataDir / f'ACDC2019-OptAnalysesToDo.xlsx', sheet_name=None)
+_ddfAnlysSpecs = pd.read_excel(dataDir / f'ACDC2019-OptAnalysesToDo.xlsx', sheet_name=None)
 with pd.ExcelWriter(analysisSpecFile) as xlWrtr:
     for sn in _ddfAnlysSpecs:
         if sn != 'TroncaturesAuto_impl':
@@ -181,7 +179,7 @@ defCoreAlgorithm = 'racos'
 defCoreMaxRetries = 0
 
 # b. Opt-analyses to run
-optAnalysisSpecFile = _dataDir / f'ACDC2019-OptAnalysesToDo.xlsx'
+optAnalysisSpecFile = dataDir / f'ACDC2019-OptAnalysesToDo.xlsx'
 
 # c. Parameters for computations run and follow-up
 runOptAnalysisMethod = 'subprocess.run'
@@ -196,17 +194,17 @@ backupOptimisationsEvery = 50
 studyLang = 'en'
 
 reportStudyTitle = f'ACDC 2019 Naturalist'
-reportStudyDescr = "Estimation of common breeding bird populations on the Cournols - Olloix plateau -" \
-                   " in 2019 though ~100 distance sampling point transects of 5 and 10mn (2 seasonal passes)" \
-                   " ; using the Naturalist smartphone app. for field surveys"
+reportStudyDescr = "Estimation of common breeding bird populations on the Cournols - Olloix plateau" \
+                   " in 2019 though ~100 (x 2 seasonal passes) distance sampling point transects of 5 and 10mn," \
+                   " using the Naturalist smartphone app. for field surveys"
 reportStudyKeywords = 'ACDC, Cournols, Olloix, 2019, Distance Sampling, Naturalist, smartphone'
 
 # Pre-analysis report ###############################################################
 preReportStudyTitle = reportStudyTitle
 preReportStudyDescr = reportStudyDescr
 preReportStudyKeywords = reportStudyKeywords
-preReportStudySubTitle = 'Pre-analysis report (30 most numerous species)'
-preReportAnlysSubTitle = 'Détails of pre-analyses'
+preReportStudySubTitle = 'Pre-analysis report (4-species sample)'
+preReportAnlysSubTitle = 'Details'
 
 preReportPlotParams = dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
                            plotImgFormat='png', plotImgQuality=90,
@@ -248,28 +246,28 @@ preReportSortAscend = True
 preReportRebuild = False
 
 
-# (Opt-)analysis 'full' report #######################################################
+# Full (opt-)analysis report #######################################################
 # 1. Analysis report specifics
 anlysFullReportStudyTitle = reportStudyTitle
-anlysFullReportStudySubTitle = 'Rapport d\'analyse (30 espèces les plus nombreuses)'
-anlysFullReportAnlysSubTitle = 'Détail des analyses'
+anlysFullReportStudySubTitle = 'Analysis report (4-species sample)'
+anlysFullReportAnlysSubTitle = 'Details'
 anlysFullReportStudyDescr = reportStudyDescr
 anlysFullReportStudyKeywords = reportStudyKeywords + ', full'
 
 # 2. Opt-analysis report specifics
 optAnlysFullReportStudyTitle = anlysFullReportStudyTitle
-optAnlysFullReportStudySubTitle = anlysFullReportStudySubTitle
+optAnlysFullReportStudySubTitle = '(Opt-)Analysis report (4-species sample)'
 optAnlysFullReportAnlysSubTitle = anlysFullReportAnlysSubTitle
 optAnlysFullReportStudyDescr = anlysFullReportStudyDescr
 optAnlysFullReportStudyKeywords = anlysFullReportStudyKeywords
 
-# 3. Common to analysis and opt-analysis reports : plotting parameters
+# 2. Plotting parameters
 fullReportPlotParams = dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
                             plotImgFormat='png', plotImgQuality=90,
                             plotLineWidth=1, plotDotWidth=4,
                             plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10))
 
-# Select columns for the various report tables
+# 3. Select columns for the various report tables
 # a. Main HTML page (super-synthesis) : Column #1 (top) = sample description
 fullReportSampleCols = [('header (head)', sampleIndCol, 'Value')] \
                        + [('header (sample)', col, 'Value') for col in sampleSelCols] \
@@ -310,17 +308,17 @@ fullReportSynthCols = \
 fullReportSortCols = \
     [('header (head)', sampleIndCol, 'Value')] \
     + [rs.CLParTruncLeft, rs.CLParTruncRight,
-       rs.CLDeltaAic, rs.CLCmbQuaBal3]
-fullReportSortAscend = [True, True, True, True, False]
+       rs.CLCmbQuaBal3]
+fullReportSortAscend = [True, True, True, False]
 
 fullReportRebuild = False
 
 
-# (Opt-)Analysis 'auto-filtered' reports d'(opt-)analyse 'auto-filtrés' ##########################
+# Auto-filtered (opt-)analysis reports ##########################
 # 1. Analysis report specifics
 anlysFilsorReportStudyTitle = reportStudyTitle
-anlysFilsorReportStudySubTitle = 'Auto-filtered report: "{fsId}" method (30 most numerous species)'
-anlysFilsorReportAnlysSubTitle = 'Analysis details'
+anlysFilsorReportStudySubTitle = 'Auto-filtered report: "{fsId}" method (4-species sample)'
+anlysFilsorReportAnlysSubTitle = 'Details'
 anlysFilsorReportStudyDescr = reportStudyDescr
 anlysFilsorReportStudyKeywords = reportStudyKeywords + ', auto-filter'
 
@@ -375,7 +373,7 @@ filsorReportSchemes = [dict(method=rs.filterSortOnExCAicMulQua,
                             preselCols=[rs.CLCmbQuaBal3, rs.CLCmbQuaBal2, rs.CLCmbQuaBal1],
                             preselAscs=False, preselThrhs=0.1, preselNum=10)]
 
-# Select columns for the various report tables
+# 4. Select columns for the various report tables
 # a. Main HTML page (super-synthesis) : Column #1 (top) = sample description
 filsorReportSampleCols = [('header (head)', sampleIndCol, 'Value')] \
                          + [('header (sample)', col, 'Value') for col in sampleSelCols] \

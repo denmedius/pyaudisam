@@ -41,8 +41,6 @@ surveyDataFile = dataDir / f'{studyName}{subStudyName}-ObsIndivDist.xlsx'
 indivDistDataSheet = 'Donnees'
 transectsDataSheet = 'Inventaires'
 
-allNestedCategories = {'Durée': '10mn'}
-
 # General Distance Sampling parameters ##################################################
 distanceUnit = 'Meter'
 areaUnit = 'Sq. Kilometer'
@@ -59,7 +57,6 @@ studyAreaSpecs = dict(Zone='ACDC', Surface=24)  # km2
 # Parameters for pre-analyses ##########################################################
 # a. Selection / identification of samples.
 sampleSelCols = [speciesCol, passIdCol, 'Adulte', 'Durée']
-sampleDecCols = [effortCol, distanceCol]
 sampleIndCol = 'Echant'  # Unique Id integer
 sampleAbbrevCol = 'Abrev. Echant'  # Sample abbreviation (human-readable)
 sampleSpecCustCols = []
@@ -88,8 +85,13 @@ modelPreStrategy = \
      for js in ['COSINE', 'POLY']  # , 'HERMITE'] # Hermite : not worth the computation cost
      for kf in ['HNORMAL', 'UNIFORM', 'HAZARD']]  # , 'NEXPON']] # Avoid, because g'(0) << 0 !!!
 
+# e. Parameters for computations run and follow-up
+runPreAnalysisMethod = 'subprocess.run'
+runPreAnalysisTimeOut = 300
+logPreAnalysisData = False
+logPreAnalysisProgressEvery = 5
 
-# Parameters for analysis ###############################################################
+# Parameters for analysis (unoptimised) #####################################################
 # a. Analysis identification
 analysisIndCol = 'Analyse'  # Unique integer
 analysisAbbrevCol = 'Abrev. Analyse' # Analysis abbreviation (human-readable)
@@ -121,6 +123,11 @@ defEstimKeyFn = 'HNORMAL'
 defEstimAdjustFn = 'COSINE'
 defEstimCriterion = 'AIC'
 defCVInterval = 95
+
+defMinDist = None
+defMaxDist = None
+defFitDistCuts = None
+defDiscrDistCuts = None
 
 ldTruncIntrvSpecs = [dict(col='left', minDist=5.0, maxLen=5.0),
                      dict(col='right', minDist=25.0, maxLen=25.0)]
@@ -163,11 +170,24 @@ defDiscrDistCutsFctr = dict(min=1/3, max=1)
 defSubmitTimes = 1
 defSubmitOnlyBest = 1
 
-dDefOptimCoreParams = dict(core='zoopt', maxIters=150, termExprValue=None,
-                           algorithm='racos', maxRetries=0)
+dDefSubmitOtherParams = dict()
+
+defCoreEngine = 'zoopt'
+defCoreMaxIters = 150
+defCoreTermExprValue = None
+defCoreAlgorithm = 'racos'
+defCoreMaxRetries = 0
 
 # b. Opt-analyses to run
 optAnalysisSpecFile = dataDir / f'ACDC2019-OptAnalysesToDo.xlsx'
+
+# c. Parameters for computations run and follow-up
+runOptAnalysisMethod = 'subprocess.run'
+runOptAnalysisTimeOut = 300
+logOptAnalysisData = False
+logOptAnalysisProgressEvery = 50
+logOptimisationProgressEvery = 5
+backupOptimisationsEvery = 50
 
 
 # Report parameters (all types of analysis) #############################################
@@ -227,12 +247,19 @@ preReportRebuild = False
 
 
 # Full (opt-)analysis report #######################################################
-# 1. General parameters
-fullReportStudyTitle = reportStudyTitle
-fullReportStudySubTitle = 'Full (opt-)Analysis report (4-species sample)'
-fullReportAnlysSubTitle = 'Details'
-fullReportStudyDescr = reportStudyDescr
-fullReportStudyKeywords = reportStudyKeywords + ', full'
+# 1. Analysis report specifics
+anlysFullReportStudyTitle = reportStudyTitle
+anlysFullReportStudySubTitle = 'Analysis report (4-species sample)'
+anlysFullReportAnlysSubTitle = 'Details'
+anlysFullReportStudyDescr = reportStudyDescr
+anlysFullReportStudyKeywords = reportStudyKeywords + ', full'
+
+# 2. Opt-analysis report specifics
+optAnlysFullReportStudyTitle = anlysFullReportStudyTitle
+optAnlysFullReportStudySubTitle = '(Opt-)Analysis report (4-species sample)'
+optAnlysFullReportAnlysSubTitle = anlysFullReportAnlysSubTitle
+optAnlysFullReportStudyDescr = anlysFullReportStudyDescr
+optAnlysFullReportStudyKeywords = anlysFullReportStudyKeywords
 
 # 2. Plotting parameters
 fullReportPlotParams = dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
@@ -287,21 +314,29 @@ fullReportSortAscend = [True, True, True, False]
 fullReportRebuild = False
 
 
-# Auto-filtered (oOpt-)analysis reports ##########################
-# 1. General parameters
-filsorReportStudyTitle = reportStudyTitle
-filsorReportStudySubTitle = 'Auto-filtered (opt-)analysis report: "{fsId}" filter scheme (4-species sample)'
-filsorReportAnlysSubTitle = 'Details'
-filsorReportStudyDescr = reportStudyDescr
-filsorReportStudyKeywords = reportStudyKeywords + ', auto-filter'
+# Auto-filtered (opt-)analysis reports ##########################
+# 1. Analysis report specifics
+anlysFilsorReportStudyTitle = reportStudyTitle
+anlysFilsorReportStudySubTitle = 'Auto-filtered report: "{fsId}" method (4-species sample)'
+anlysFilsorReportAnlysSubTitle = 'Details'
+anlysFilsorReportStudyDescr = reportStudyDescr
+anlysFilsorReportStudyKeywords = reportStudyKeywords + ', auto-filter'
 
-# 2. Plotting parameters
+# 2. Opt-analysis report specifics
+optAnlysFilsorReportStudyTitle = anlysFilsorReportStudyTitle
+optAnlysFilsorReportStudySubTitle = anlysFilsorReportStudySubTitle
+optAnlysFilsorReportAnlysSubTitle = anlysFilsorReportAnlysSubTitle
+optAnlysFilsorReportStudyDescr = anlysFilsorReportStudyDescr
+optAnlysFilsorReportStudyKeywords = anlysFilsorReportStudyKeywords
+
+# 3. Common to analysis and opt-analysis reports
+# a. Plotting parameters
 filsorReportPlotParams = dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
                               plotImgFormat='png', plotImgQuality=90,
                               plotLineWidth=1, plotDotWidth=4,
                               plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10))
 
-# 3. Available filter & sort schemes
+# b. Available filter & sort schemes
 _whichBestQua = [rs.CLGrpOrdClTrChi2KSDCv, rs.CLGrpOrdClTrDCv, rs.CLCmbQuaBal3, rs.CLCmbQuaBal2, rs.CLCmbQuaBal1,
                  rs.CLGrpOrdClTrQuaChi2, rs.CLGrpOrdClTrQuaKS, rs.CLGrpOrdClTrQuaDCv]
 
