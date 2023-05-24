@@ -67,7 +67,7 @@ Note: You can download the whole anonymised dataset of the ACDC 2019 study from 
 
 ## A. Pre-requisites
 
-We highly recommend you read first the [short "how it works" guide](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/how-it-works-en.md) in order to understand better what's not explicitely explained below :-)
+We highly recommend you read first the [short "how it works" guide](../how-it-works/how-it-works-en.md) in order to understand better what's not explicitely explained below :-)
 
 Warning: Only works under Windows (10 or newer, probably 7 and 8 also).
 
@@ -259,7 +259,7 @@ Now, let's run this command, for both an Excel and one HTML report (first withou
 
 Once finished (a few minutes), this run produces the following files in this folder `./optanlys/YYMMDD-HHMMSS`:
 * the Excel report workbook: `ACDC2019-Nat-optanalyses-report.xlsx`
-     (1 sheet per available "filter & sort scheme", a "**filter**" in short, i.e. a set of filter and sort parameters : see `acdc-2019-ds-params.filsorReportSchemes` for the actual parameter values, and the [short "how it works" guide](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/how-it-works-en.md) for a explanations about these "filters"),
+     (1 sheet per available "filter & sort scheme", a "**filter**" in short, i.e. a set of filter and sort parameters : see `acdc-2019-ds-params.filsorReportSchemes` for the actual parameter values, and the [short "how it works" guide](../how-it-works/how-it-works-en.md) for a explanations about these "filters"),
 * the files of the HTML report for the selected filter `ExAicMQua-r925m8q3d12` (the only one with `r925` contained in its name :-), as a mini web-site:
     - the main page `ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.hml` (with its `report.css` style sheet, and `.svg` icons),
     - inside each selected (by the filter) analysis sub-folder : a second-level page for the relevant analysis, `index.html`, along with the `.png` plots (the same plots as produced by Distance, with some improvements)

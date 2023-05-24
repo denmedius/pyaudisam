@@ -45,7 +45,7 @@ Whichever method, the best way to go is to read the concrete quick-start guide :
 
 ## Documentation
 
-* a short ["how it works" guide](./docs/how-it-works/how-it-works-en.md) to understand the basics (also in [French](https://github.com/denmedius/pyaudisam/tree/main/docs/how-it-works/how-it-works-fr.md)),
+* a short ["how it works" guide](./docs/how-it-works/how-it-works-en.md) to understand the basics (also in [French](./docs/how-it-works/how-it-works-fr.md)),
 * a concrete ["quick-start" guide](./docs/howto-acdc19-nat/howto.md) with a real life use case and relevant field data to play with,
 * another similar but shorter concrete ["quick-start guide" (in French)](https://sylbor63.pagesperso-orange.fr/ds/acdc19/materiau-public.zip) (command-line only) with the full field data set of the "ACDC 2019" birding study.
 
@@ -100,6 +100,6 @@ And if you are lacking ideas, here are some good ones ;-)
 
 ### Some hints
 
-Some formal things that won't change as long as I'm the main maintainer :-)
+Some formal things that I don't plan to change (let's concentrate on substantive content) :-)
 * this code is not blacked or isorted or fully conform to pep8 (but it's clean, commented, and it works),
 * the identifier naming scheme used is old-fashioned: camel case everywhere.
