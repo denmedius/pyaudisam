@@ -82,6 +82,10 @@ Warning: Only works under Windows (10 or newer, probably 7 and 8 also).
 
     `python -m pyaudisam -h`
 
+Note: As an alternative to installing pyaudisam in your python environment (through conda or pip) after activating it, you can also apply the commands of the following chapters (just as they are, no change) after first:
+1. extracting a source package of pyaudisam 1.0.0 or newer after downloading it from [pypi.org](https://pypi.org/project/pyaudisam/),
+2. set the PYTHONPATH env. variable to the absolute path of the root folder of the extracted tree (example: /c/my/dev/pyaudisam-1.0.0 for ... the 1.0.0 release).
+
 
 ## B. pyaudisam as a command line tool
 
@@ -195,7 +199,7 @@ As for the Excel workbook, it features multiple sheets:
 
 Of course, we can in one only command run the pre-analyses and generate the report(s) ; example, for the HTML report only here:
 
-`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./pranlys/YYMMDD-HHMMSS -e -t excel,html -u`
+`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./pranlys -e -t excel,html -u`
 
 Last: Talking about sample selection for later in-depth analyses, let's say that:
 * if a particular sample can't get any results during pre-analysis (i.e. when all tried models failed), after checking that the model choosing fallback strategy is correct (not to restrictive), it does not mean that this sample is completely unusable ; because sometimes, after removing outliers, it's OK ; here, this can be achieved through distance truncation ... but pre-analyses don't do that for the moment, so you'll probably have to check yourself with Distance ... or make a bet and run analyses anyway !
@@ -319,7 +323,7 @@ Notes: When filters are availables in `-p acdc-2019-nat-ds-params.py`, using `ex
 
 As for the HTML report `ACDC2019-Nat-optanalyses-report.html`, it shows the same structure and organisation as a filtered report (for 1 filter), but the tables display 1 row per run analysis **among all of them** (might result quite big a report !), rather than 1 row per **retained** analysis after filtering (the N best ones); here also, the analysis results are grouped by sample and sorted by descending combined quality indicator (Qual Bal 3 here).
 
-And again, even if the full report shows a different name (`ACDC2019-Nat-optanalyses-report.html`), generating the "full" HTML report (`-f html:full`) after some "filtered" one(s) will overwrite it (them) partially (actually, only the navigation links from the analysis-specific pages to the main page, but it enough to break it ; this is for sure a bug to fix one day :-).
+And again, even if the full report shows a different name (`ACDC2019-Nat-optanalyses-report.html`), generating the "full" HTML report (`-f html:full`) after some "filtered" one(s) will overwrite it (them) partially (actually, only the navigation links from the analysis-specific pages to the main page, but it is enough to break it ; this is for sure a bug to fix one day :-).
 
 
 ### 4. Run designed analyses (without optimised distance truncation)
