@@ -45,15 +45,15 @@ Whichever method, the best way to go is to read the concrete quick-start guide :
 
 ## Documentation
 
-* a short ["how it works" guide](./docs/how-it-works/how-it-works-en.md) to understand the basics (also in [French](./docs/how-it-works/how-it-works-fr.md)),
-* a concrete ["quick-start" guide](./docs/howto-acdc19-nat/howto.md) with a real life use case and relevant field data to play with,
+* a short ["how it works" guide](https://github.com/denmedius/pyaudisam/blob/main/docs/how-it-works/how-it-works-en.md) to understand the basics (also in [French](https://github.com/denmedius/pyaudisam/blob/main/docs/how-it-works/how-it-works-fr.md)),
+* a concrete ["quick-start" guide](https://github.com/denmedius/pyaudisam/blob/main/docs/howto-acdc19-nat/howto.md) with a real life use case and relevant field data to play with,
 * another similar but shorter concrete ["quick-start guide" (in French)](https://sylbor63.pagesperso-orange.fr/ds/acdc19/materiau-public.zip) (command-line only) with the full field data set of the "ACDC 2019" birding study.
 
-Note: You can also get a detailled idea of how to use pyaudisam python API by playing with the fully functional [jupyter](https://jupyter.org/) notebook [tests/valtests.ipynb](./tests/valtests.ipynb) (see below [Running tests](#running-tests) for how to obtain and run it).
+Note: You can also get a detailled idea of how to use pyaudisam python API by playing with the fully functional [jupyter](https://jupyter.org/) notebook [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) (see below [Running tests](#running-tests) for how to obtain and run it).
 
 TODO:
 * complete the quick start guides above by other small and focused articles to explain some mandatory details:
-  - how to build a sample or analysis specification workbook (see a short draft in [analyser.py:273](./pyaudisam/analyser.py)),
+  - how to build a sample or analysis specification workbook (see a short draft in [analyser.py:273](https://github.com/denmedius/pyaudisam/blob/main/pyaudisam/analyser.py)),
   - ...
 * write a technical documentation of the whole module,
 * write a guide for building the module API documentation ([sphinx](https://www.sphinx-doc.org/) should work out of the box as [reStructured text](https://en.wikipedia.org/wiki/ReStructuredText) has been used in docstrings),
@@ -67,7 +67,7 @@ everything's inside :
 
   `pytest`
 
-* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/valtests.ipynb](./tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
+* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
 
 ## Building
 
@@ -87,7 +87,7 @@ And if you are lacking ideas, here are some good ones ;-)
 
 ### To do list
 
-* finish tests automation (move [tests/unintests.ipynb](./tests/unintests.ipynb) and [tests/valtests.ipynb](./tests/valtests.ipynb) notebooks code to pytest scripts),
+* finish tests automation (move [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) notebooks code to pytest scripts),
 * make pyaudisam work under Linux / Mac OS (all python: OK, but calling MCDS.exe):
   - or: through some kind of external client-server interface to MCDS.exe (that runs only under Windows),
   - or: by porting MCDS to Linux (closed Fortran source, but old, so might be obtained through a polite request to [this Distance Sampling forum](https://groups.google.com/g/distance-sampling) ; BUT, needs an IMSL license, which is horribly expensive).
