@@ -45,7 +45,7 @@ And this demonstration will use pyaudisam in 2 ways:
 * as a **command line tool**, in a terminal,
 * as a **python module**, through a python notebook.
 
-Note: You can download the whole anonymised dataset of the ACDC 2019 study from [this place](https://sylbor63.pagesperso-orange.fr/ds/acdc19/materiau-public.zip):
+Note: You can download the whole anonymised dataset of the ACDC 2019 study from [this place](http://jpmeuret.free.fr/ds/acdc19/materiau-public.zip):
 * with all the bird species this time (not only 4 of them),
 * with the "Papyrus" sub-dataset: sighting that were collected on the same point transects by a second birder team, using the same protocol but this time by recording the sightings through pen and paper, on a satellite photo print for each point transect (we wanted to compare survey results with this good old method ... to the new "Naturalist smartphone app." one ... see articles about that above),
 * with a concatenated dataset (Naturalist + Papyrus),

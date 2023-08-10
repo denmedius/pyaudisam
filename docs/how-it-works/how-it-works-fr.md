@@ -72,7 +72,7 @@ Les unités sont précisées en entête du rapport (non visibles dans l'extrait 
 Pour l'exemple, voici une vue partielle d'un extrait d'un tel rapport présentant 2 échantillons (2 espèces) du jeu de données Naturalist:
 ![vue partielle extrait rapport à 2 échantillons](./preanlys/ACDC2019-Nat-preanalyses-report-partview.jpg)
 
-Et la version HTML "complète" de [cet extrait à 2 échantillons](https://sylbor63.pagesperso-orange.fr/ds/pyaudisam/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report.html) ([ce même fichier dans le dépôt GitHub](./preanlys/ACDC2019-Nat-preanalyses-report.html)).
+Et la version HTML "complète" de [cet extrait à 2 échantillons](http://jpmeuret.free.fr/ds/pyaudisam/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report.html) ([ce même fichier dans le dépôt GitHub](./preanlys/ACDC2019-Nat-preanalyses-report.html)).
 
 En cliquant dans la colonne de gauche (sur le numéro de ligne du tableau), on accède à une page de détails de la pré-analyse concernée, en tout points identique à ce que le logiciel Distance 7 produirait (il s'agit d'ailleurs de l'intégralité des informations produites par MCDS, comme dans Distance 7).
 
@@ -82,7 +82,7 @@ Un rapport au format Excel peut également être généré ; il ne contient aucu
 * d'une part le détail des résultats de chaque pré-analyse effectuée, en totalité de ce que MCDS produit (hormis les graphiques et rapports textuels),
 * d'autre part une synthèse (colonnes paramétrables) de ces résultats, sous la forme d'un simple extrait (paramétrable) des colonnes du tableau de détails.
 
-Pour l'exemple, voici le [rapport Excel](https://sylbor63.pagesperso-orange.fr/ds/pyaudisam/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report.xlsx) ([ce même fichier dans le dépôt GitHub](./preanlys/ACDC2019-Nat-preanalyses-report.xlsx)) correspondant à l'extrait à 2 échantillons cité en exemple ci-dessus pour le rapport HTML.
+Pour l'exemple, voici le [rapport Excel](http://jpmeuret.free.fr/ds/pyaudisam/docs/how-it-works/preanlys/ACDC2019-Nat-preanalyses-report.xlsx) ([ce même fichier dans le dépôt GitHub](./preanlys/ACDC2019-Nat-preanalyses-report.xlsx)) correspondant à l'extrait à 2 échantillons cité en exemple ci-dessus pour le rapport HTML.
 
 
 # IV. Extrait d'un rapport d'analyses de pyaudisam
@@ -101,7 +101,7 @@ En cliquant dans la colonne de gauche (sur le numéro de ligne du tableau), on a
 Pour l'exemple, voici une vue partielle d'un extrait d'un tel rapport présentant les 3 meilleures analyses de l'échantillon `Sylvia atricapilla Mâles Naturalist 10mn`:
 ![vue partielle extrait rapport à 3 analyses](./optanlys/ACDC2019-Nat-optanalyses-report-partview.ExAicMQua-r925m8q3d12.jpg)
 
-Et la version HTML "complète" de cet [extrait à 3 analyses](https://sylbor63.pagesperso-orange.fr/ds/pyaudisam/docs/how-it-works/optanlys/ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.html) ([ce même fichier dans le dépôt GitHub](./optanlys/ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.html)).
+Et la version HTML "complète" de cet [extrait à 3 analyses](http://jpmeuret.free.fr/ds/pyaudisam/docs/how-it-works/optanlys/ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.html) ([ce même fichier dans le dépôt GitHub](./optanlys/ACDC2019-Nat-optanalyses-report.ExAicMQua-r925m8q3d12.html)).
 
 Sous ce tableau de synthèse, 2 autres tableaux listant les analyses dans le même ordre présentent respectivement 
 * une sélection des colonnes de paramètres, indicateurs statistiques et résultats de chaque analyse (sélection enrichie comparée à celle du tableau de synthèse ci-dessus, soit environ 45 colonnes),
@@ -116,5 +116,5 @@ Un rapport au format Excel peut également être généré ; il ne contient aucu
 * le détail des résultats de chaque analyse effectuée (pas seulement les N meilleures par échantillon), en totalité de ce que MCDS produit (hormis les graphiques et rapports textuels),
 * une synthèse des résultats (colonnes paramétrables) de chaque pré-analyse effectuée, sous la forme d'un simple extrait (paramétrable) des colonnes du tableau de détails.
 
-Pour l'exemple, voici le [rapport Excel](https://sylbor63.pagesperso-orange.fr/ds/pyaudisam/docs/how-it-works/optanlys/ACDC2019-Nat-optanalyses-report.xlsx) ([ce même fichier dans le dépôt GitHub](./optanlys/ACDC2019-Nat-optanalyses-report.xlsx)) correspondant à l'extrait à 3 analyses cité en exemple ci-dessus pour le rapport HTML.
+Pour l'exemple, voici le [rapport Excel](http://jpmeuret.free.fr/ds/pyaudisam/docs/how-it-works/optanlys/ACDC2019-Nat-optanalyses-report.xlsx) ([ce même fichier dans le dépôt GitHub](./optanlys/ACDC2019-Nat-optanalyses-report.xlsx)) correspondant à l'extrait à 3 analyses cité en exemple ci-dessus pour le rapport HTML.
 
