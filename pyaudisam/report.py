@@ -754,8 +754,10 @@ class DSResultsDistanceReport(ResultsReport):
         :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
                         otherwise, use any cached data or existing plot image file
         :param generators: Number of parallel (process) generators to use :
+                           - None => no parallelism used, sequential execution,
                            - 0 => auto-number, based on the actual number of CPUs onboard,
-                           - > 0 => the actual number to use
+                           - > 0 => the actual number to use (Note: 1 means no parallelism,
+                            but some asynchronism though, contrary to None).
         :param kwargs: Other args relevant to derived classes.
         """
 
@@ -2207,7 +2209,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         return htmlPathName
 
     def toHtml(self, filSorScheme=dict(method=ResClass.filterSortOnExecCode),
-               rebuild=False):
+               rebuild=False, generators=0):
 
         """HTML report generation for a given scheme.
 
@@ -2216,15 +2218,14 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
                         otherwise, use any cached data or existing plot image files
 
-        Note: Parallelism does not work for this class (WTF ?), hence the absence of the 'generators' parameter.
-              Actually, it seems to work only the first time, and only when rebuild == False
-              (and may be no matplotlib drawing actually done) ;
-              but then, Exception: Can't pickle <function sync_do_first ... :-(
+        Note: Parallelism didn't work for this class (WTF ?), at least with Matplotlib 3.1 ;
+              (actually, it seems to work only the first time, and only when rebuild == False
+               ... and may be no matplotlib drawing actually done ; but then,
+              Exception: Can't pickle <function sync_do_first ...>) ;
+              but it works with Matplotlib 3.4.2
         """
 
         logger.debug(f'MCDSResultsFilterSortReport.toHtml({rebuild=}, {filSorScheme=})')
-
-        generators = None
 
         # Install needed attached files.
         self.installAttFiles(self.AttachedFiles)

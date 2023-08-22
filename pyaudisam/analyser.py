@@ -2140,8 +2140,13 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
             # Compute contents and add to table
             # a. Rank all results
+            # N.B. Below groupby(...) takes care of the following :
+            # * all-empty sample columns of results DataFrame may be present in miSampleCols,
+            # * some columns of miSampleCols may not be present in results DataFrame.
+            groupCols = [col for col in self.miSampleCols
+                         if col in dfFilSorRes.columns and not dfFilSorRes[col].isnull().all()]
             dfFilSorRes.insert(dfFilSorRes.columns.get_loc(srcCol), tgtPreSelCol,
-                               dfFilSorRes.groupby(self.miSampleCols.to_list())[[srcCol]]
+                               dfFilSorRes.groupby(groupCols)[[srcCol]]
                                           .transform(lambda s: s.rank(ascending=srcColAscend,
                                                                       method='dense', na_option='keep'))[srcCol])
 
