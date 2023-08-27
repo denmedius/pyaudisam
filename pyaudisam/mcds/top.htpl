@@ -14,9 +14,10 @@
      If not, see https://www.gnu.org/licenses/.
 -->
 
+<html>
 <head>
 
-  <meta charset="utf-8">
+  <meta charset="utf-8"/>
   <meta name="author" content="Jean-Philippe Meuret"/>
   <meta name="copyright" content="Jean-Philippe Meuret 2021"/>
   <meta name="license" content="CC BY NC SA"/>
@@ -26,10 +27,10 @@
   
   <title>{{title}}</title>
   
-  <link rel="stylesheet" media="screen" type="text/css" href="./report.css">
+  <link rel="stylesheet" media="screen" type="text/css" href="./report.css"/>
   
   <script>
-    // Back to top floating button managment
+    // Back to top floating button management
     // When the user scrolls down100 px from the top of the document, show the button
     window.onscroll = function()
     {
@@ -166,4 +167,4 @@
   </button>
 
 </body>
-, autodsVersion=ads.__version__
+</html>
