@@ -589,7 +589,7 @@ class DSAnalyser(Analyser):
         if implParamSpecs is not None:
             dfExplParamSpecs = \
                 Analyser.explicitVariantSpecs(implParamSpecs, varIndCol=anlysIndCol,
-                                              computedCols=dCompdCols)
+                                              computedCols=dCompdCols, convertCols={col: str for col in sampleSelCols})
         else:
             dfExplParamSpecs = dfExplParamSpecs.copy()
             for colName, computeCol in dCompdCols.items():
