@@ -34,10 +34,10 @@ logger = log.logger('ads.dat')
 
 class DataSet(object):
 
-    """"A tabular data set built by concatenating various-formatted source tables into one.
+    """A tabular data set built by concatenating various-formatted source tables into one.
     
     Note: visionat module also defines this class: no reason it differs in any way => synchronise please !
-    Why ? Just to keep the 2 modules independent ; might change in the future"""
+          Why ? Just to keep the 2 modules independent ; might change in the future"""
     
     def __init__(self, sources, dRenameCols={}, dComputeCols={}, importDecFields=[],
                  sheet=None, skipRows=None, headerRows=0, indexCols=None, separator='\t', encoding='utf-8'):
@@ -468,7 +468,7 @@ class DataSet(object):
         dfRelDiff.loc[dfLeft[~dfLeft.index.isin(dfRight.index)].index, :] = 0
         dfRelDiff.loc[dfRight[~dfRight.index.isin(dfLeft.index)].index, :] = 0
         
-        # Drop rows (and may be columns) with closeness over the threshold (or of NaN value if authorized)
+        # Drop rows (and maybe columns) with closeness over the threshold (or of NaN value if authorized)
         dfCells2Drop = dfRelDiff.applymap(lambda v: v > dropCloser or (dropNans and pd.isnull(v)))
         dfRelDiff.drop(dfRelDiff[dfCells2Drop.all(axis='columns')].index, inplace=True)
         if dropCloserCols:
@@ -523,7 +523,7 @@ class FieldDataSet(DataSet):
         Parameters:
         :param source: the input field-data table
         :param countCols: the category columns (each of them holds counts of individuals for the category)
-        :param addMonoCatCols: name and method of computing for columns to add after separating multi-category counts
+        :param addMonoCatCols: name and method of computing for columns to add after separating multi category counts
              (each column to add is computed through :
                 dfMonoCatSights[colName] = dfMonoCatSights[].apply(computeCol, axis='columns')
                 for colName, computeCol in addMonoCatCols.items())
@@ -558,12 +558,12 @@ class FieldDataSet(DataSet):
         self.dfIndivSights = None  # Not yet computed.
         self.dfMonoCatSights = None  # Idem.
     
-    # Transform a multi-category sightings set into an equivalent mono-category sightings set,
-    # that is where no sightings has more that one category with positive count (keeping the same total counts).
+    # Transform a multi category sightings set into an equivalent mono-category sightings set,
+    # that is where no sighting has more than one category with positive count (keeping the same total counts).
     # Highly optimized version.
     # Ex: A sightings set with 2 category count columns nMales and nFemales
-    #     * in the input set, you may have 1 sightings with nMales = 5 and nFemales = 2
-    #     * in the output set, this sightings have been separated in 2 distinct ones
+    #     * in the input set, you may have 1 sighting with nMales = 5 and nFemales = 2
+    #     * in the output set, this sighting have been separated in 2 distinct ones
     #       (all other properties left untouched) :
     #       the 1st with nMales = 5 and nFemales = 0, the 2nd with nMales = 0 and nFemales = 2.
     @staticmethod
@@ -595,13 +595,13 @@ class FieldDataSet(DataSet):
         return dfOutSights
 
     # Transform a multi-individual mono-category sightings set into an equivalent mono-individual
-    # mono-category sightings set, that is where no sightings has more that one individual
+    # mono-category sightings set, that is where no sighting has more than one individual
     # per category (keeping the same total counts).
     # Highly optimized version.
     # Ex: A sightings set with 2 mono-category count columns nMales and nFemales
-    #     * in tyhe input set, you may have 1 sightings with nMales = 3 and nFemales = 0
+    #     * in tyhe input set, you may have 1 sighting with nMales = 3 and nFemales = 0
     #       (but none with nMales and nFemales > 0)
-    #     * in the output set, this sightings have been separated in 3 distinct ones
+    #     * in the output set, this sighting have been separated in 3 distinct ones
     #       (all other properties left untouched) : all with nMales = 1 and nFemales = 0.
     @staticmethod
     def _individualiseMonoCategoryCounts(dfInSights, countColumns):
@@ -746,7 +746,7 @@ class MonoCategoryDataSet(DataSet):
         dfSampSights = dfAllSights
         for key, values in dSample.items():
             values = str(values).strip()  # For ints as strings that get forced to int in io sometimes (ex. from_excel)
-            if values and values not in ['nan', 'None']:  # Empty value means "no selection criteria for this columns"
+            if values and values not in ['nan', 'None']:  # Empty value means "no selection criteria for this column"
                 values = values.split('+') if '+' in values else [values]
                 dfSampSights = dfSampSights[dfSampSights[key].astype(str).isin(values)]
 
@@ -854,7 +854,7 @@ class SampleDataSet(DataSet):
     A tabular input data set for multiple analyses on the same sample, with 1 or 0 individual per row
     Warning:
     * Only Point transect supported as for now
-    * No change made afterwards on decimal precision : provide what you need !
+    * No change made afterward on decimal precision : provide what you need !
     * Rows can be sorted if and as specified
     * Input support provided for pandas.DataFrame, Excel .xlsx file, tab-separated .csv/.txt files,
       and even OpenDoc .ods file with pandas >= 0.25 (needs odfpy module)
@@ -1103,7 +1103,7 @@ class ResultsSet(object):
     @property
     def dfRawData(self):
 
-        """Direct access to unpostprocessed data
+        """Direct access to non post-processed data
 
         May have to remove computed columns and reset postCompute state.
         """
@@ -1116,7 +1116,7 @@ class ResultsSet(object):
     def getData(self, copy=True):
         
         # Do post-computation and sorting if not already done.
-        if not(self._dfData.empty or self.postComputed):
+        if not (self._dfData.empty or self.postComputed):
         
             # Make sure we keep a MultiIndex for columns if it was the case (append breaks this, not fromExcel)
             if self.isMultiIndexedCols and not isinstance(self._dfData.columns, pd.MultiIndex):
@@ -1131,7 +1131,7 @@ class ResultsSet(object):
                 self._dfData.sort_values(by=self.sortCols, ascending=self.sortAscend, inplace=True)
         
         # Enforce right columns order.
-        if not(self._dfData.empty or self.rightColOrder):
+        if not (self._dfData.empty or self.rightColOrder):
             
             miTgtColumns = self.miCols
             if self.miCustomCols is not None:
@@ -1289,7 +1289,7 @@ class ResultsSet(object):
 
         assert lang in ['en', 'fr'], 'No support for "{}" language'.format(lang)
         
-        # Extract (and may be copy) selected rows and columns of dfData.
+        # Extract (and maybe copy) selected rows and columns of dfData.
         dfTrData = self.dfSubData(index=index, columns=columns, copy=True)
         
         # Translate column names.
@@ -1457,7 +1457,7 @@ class ResultsSet(object):
 
     def fromPickle(self, fileName, specs=True, postComputed=False, acceptNewCols=False, dDefMissingCols=dict()):
 
-        """Load (overwrite) data and optionnaly specs from a pickle file, possibly lzma-compressed,
+        """Load (overwrite) data and optionally specs from a pickle file, possibly lzma-compressed,
         assuming ctor params match the results object used for prior toPickle(),
         which can well be ensured by using the same ctor params as used for saving !
 
@@ -1508,12 +1508,12 @@ class ResultsSet(object):
         assuming ctor params match with Excel sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
 
-        Also optionnaly load specs from other sheets named with given prefix, as dataframes
+        Also optionally load specs from other sheets named with given prefix, as dataframes
         (ignore others ; empty prefix => all others)
 
         Parameters:
         :param fileName: source file name
-        :param sheetName: name of the sheet to load data from (default None => 1st sheetw)
+        :param sheetName: name of the sheet to load data from (default None => 1st sheet)
         :param header: list of source data row indexes to use for column index (1st sheet only)
         :param skipRows: list of source data row indexes to ignore (1st sheet only)
         :param indexCol: index of the source data column to use as index (1st sheet only)
@@ -1574,7 +1574,7 @@ class ResultsSet(object):
         assuming ctor params match with ODF sheet column names and list,
         which can well be ensured by using the same ctor params as used for saving !
 
-        Also optionnaly load specs from other sheets with given prefix as dataframes
+        Also, optionally load specs from other sheets with given prefix as dataframes
         (ignore others ; empty prefix => all others)
 
         Parameters:

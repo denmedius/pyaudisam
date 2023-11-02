@@ -758,6 +758,7 @@ class DSResultsDistanceReport(ResultsReport):
                            - 0 => auto-number, based on the actual number of CPUs onboard,
                            - > 0 => the actual number to use (Note: 1 means no parallelism,
                             but some asynchronism though, contrary to None).
+        :param topSuffix: Suffix for top page HTML file
         :param kwargs: Other args relevant to derived classes.
         """
 
@@ -1998,7 +1999,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
 
         Parameters:
         :param subset: Selected list of data categories to include ; None = [] = all
-                       (categories in {'specs', 'samples', results'})
+                       (categories in {'specs', 'samples', 'results'})
         :param rebuild: If True, force rebuild of filtered and sorted sub-report
                         => prevent use of / reset results set filter & sort cache
         """
@@ -2217,10 +2218,15 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         :param filSorScheme: the 1 (and only) scheme to use for building the report (see ctor)
         :param rebuild: if True, rebuild from scratch (data extraction + plots) ;
                         otherwise, use any cached data or existing plot image files
+        :param generators: Number of parallel (process) generators to use :
+                           - None => no parallelism used, sequential execution,
+                           - 0 => auto-number, based on the actual number of CPUs onboard,
+                           - > 0 => the actual number to use (Note: 1 means no parallelism,
+                            but some asynchronism though, contrary to None).
 
         Note: Parallelism didn't work for this class (WTF ?), at least with Matplotlib 3.1 ;
               (actually, it seems to work only the first time, and only when rebuild == False
-               ... and may be no matplotlib drawing actually done ; but then,
+               ... and maybe no matplotlib drawing actually done ; but then, we get:
               Exception: Can't pickle <function sync_do_first ...>) ;
               but it works with Matplotlib 3.4.2
         """

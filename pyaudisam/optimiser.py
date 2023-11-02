@@ -111,7 +111,7 @@ class OptimisationResultsSet(ResultsSet):
 
     def fromFile(self, fileName, sheetName=None, specs=True, specSheetsPrfx='sp-'):
 
-        """Load (overwrite) data data and optionally specs from a given file,
+        """Load (overwrite) data and optionally specs from a given file,
         (see ResultsSet.fromFile for supported formats, auto-detected from file extensions)
         assuming ctor params match with the file contents,
         which can well be ensured by using the same ctor params as used for saving !
@@ -283,13 +283,13 @@ class DSParamsOptimiser(object):
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
     #  and case is ignored during searching).
     Int2UserSpecREs = \
-        {IntSpecExpr2Optimise:    ['opt[a-z]*[\.\-_ ]*exp', 'exp[a-z2]*[\.\-_ ]*opt',
-                                   'opt[a-z]*[\.\-_ ]*cri', 'cri[a-z]*[\.\-_ ]*opt'],
-         IntSpecOptimisationCore: ['opt[a-z]*[\.\-_ ]*core', 'mot[a-z]*[\.\-_ ]*opt',
-                                   'noy[a-z]*[\.\-_ ]*opt'],
-         IntSpecSubmitParams:     ['sub[a-z]*[\.\-_ ]*par', 'par[a-z]*[\.\-_ ]*sou',
-                                   'run[a-z]*[\.\-_ ]*par', 'par[a-z]*[\.\-_ ]*ex',
-                                   'mul[a-z]*[\.\-_ ]*opt', 'opt[a-z]*[\.\-_ ]*mul']}
+        {IntSpecExpr2Optimise:    [r'opt[a-z]*[\.\-_ ]*exp', r'exp[a-z2]*[\.\-_ ]*opt',
+                                   r'opt[a-z]*[\.\-_ ]*cri', r'cri[a-z]*[\.\-_ ]*opt'],
+         IntSpecOptimisationCore: [r'opt[a-z]*[\.\-_ ]*core', r'mot[a-z]*[\.\-_ ]*opt',
+                                   r'noy[a-z]*[\.\-_ ]*opt'],
+         IntSpecSubmitParams:     [r'sub[a-z]*[\.\-_ ]*par', r'par[a-z]*[\.\-_ ]*sou',
+                                   r'run[a-z]*[\.\-_ ]*par', r'par[a-z]*[\.\-_ ]*ex',
+                                   r'mul[a-z]*[\.\-_ ]*opt', r'opt[a-z]*[\.\-_ ]*mul']}
 
     # Types for user specs parsing (see usage below)
     class Auto(object):
@@ -425,7 +425,7 @@ class DSParamsOptimiser(object):
                 spec = spec + '()'
                 
             # String parameters don't need quoting in spec, but python needs it : add it if needed
-            spec = re.sub('([a-z_]+) *= *([^=0-9,; ][^=,;\) ]*)', r"\1='\2'", spec)
+            spec = re.sub(r'([a-z_]+) *= *([^=0-9,; ][^=,;\) ]*)', r"\1='\2'", spec)
     
         # Parse pythonified spec.
         return cls._parseUserSpec(spec, nullOrEmpty=nullOrEmpty, errIfNotA=errIfNotA, 
@@ -572,8 +572,8 @@ class DSParamsOptimiser(object):
 
         :return: a 3 or 5-item tuple :
            * explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned),
-           * list of analysis and optimisationparam. columns internal names,
-           * list of analysis and optimisationparam. columns user names,
+           * list of analysis and optimisation param. columns internal names,
+           * list of analysis and optimisation param. columns usernames,
            if check, 2 more items in the return tuple :
            * check verdict : True if everything went well, False otherwise,
              * some columns from paramSpecCols could not be found in dfExplParamSpecs columns,
@@ -745,7 +745,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     Int2UserSpecREs = \
       dict(list(DSParamsOptimiser.Int2UserSpecREs.items())
            + list(MCDSAnalyser.Int2UserSpecREs.items())
-           + [(IntSpecOutliersMethod, ['outl[a-z]*[\.\-_ ]*', 'me[a-z]*[\.\-_ ]*outl'])])
+           + [(IntSpecOutliersMethod, [r'outl[a-z]*[\.\-_ ]*', r'me[a-z]*[\.\-_ ]*outl'])])
 
     # Names of internal parameters which can be used as settings for optimising truncations
     # and not only as const=fixed=pre-determined analysis parameters.
@@ -758,7 +758,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     @classmethod
     def optimisationParamSpecUserNames(cls, userParamSpecCols, intParamSpecCols):
     
-        """Extract user names of params spec. columns that may contain truncation optimisation parameters
+        """Extract usernames of params spec. columns that may contain truncation optimisation parameters
 
         Parameters:
         :param userParamSpecCols: all user params spec column names to explore,
@@ -768,7 +768,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         # Internal column names to consider.
         optimIntCols = [intCol for intCol in cls.IntOptimParamSpecNames if intCol in intParamSpecCols]
         
-        # And the corresponding user names.
+        # And the corresponding usernames.
         return [userCol for intCol, userCol in zip(intParamSpecCols, userParamSpecCols) if intCol in optimIntCols]
 
     # Optimisation object ctor parameter names (MUST match exactly: check in optimisation submodule !).
@@ -811,13 +811,13 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
     SolDim2IntSpecOptimTargetParamNames = \
         dict(zip(MCDSTruncationOptimisation.SolutionDimensionNames,
                  [IntSpecMinDist, IntSpecMaxDist, IntSpecFitDistCuts, IntSpecDiscrDistCuts]))
-    IntSpec2SolDimOptimTargetParamNames = {v:k for k,v in SolDim2IntSpecOptimTargetParamNames.items()}
+    IntSpec2SolDimOptimTargetParamNames = {v: k for k, v in SolDim2IntSpecOptimTargetParamNames.items()}
 
     def getAnalysisOptimedParams(self, sAnIntSpec, sSampleDists):
     
         """Compute optimisation intervals of an optimisation, from user specs and default parameters
 
-        Some checks for final values are done, may be resulting in an Error.
+        Some checks for final values are done, maybe resulting in an Error.
         
         Parameters:
         :param sAnIntSpec: analysis parameter user specs with internal names (indexed with IntSpecXXX)
@@ -878,10 +878,11 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
         # B. minDist, maxDist :
         # - None,
-        # - auto : mode full auto via colonne OutliersMethod, 
-        #                             ou alors defOutliersMethod et defOutliersQuantCutPct,
-        # - <meth>(5) : mode auto tq OutliersMethod (<meth> quant(5) ou tucquant) et outliersQuantCutPct(ici 5%) fixés
-        # - dist(20, 250) : mode fixé, dist min (20) et max (250) du domaine de variations fournies en dur
+        # - auto : Full auto mode through OutliersMethod column,
+        #          or else defOutliersMethod and defOutliersQuantCutPct,
+        # - <meth>(5) : Auto mode such that OutliersMethod (<meth> quant(5) or tucquant)
+        #          and outliersQuantCutPct(5% here) fixed
+        # - dist(20, 250) : Fixed mode => min. dist. (20) and max. dist (250) enforced for the variation domain
 
         sDist = sSampleDists.dropna()
         sqrNSights = np.sqrt(len(sDist))
@@ -1008,7 +1009,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                                       
     # Supported truncation optimisation classes (=> engines = cores) (see submodule optimisation),
     # all must be subclasses of MCDSTruncationOptimisation.
-    OptimisationClasses = [MCDSZerothOrderTruncationOptimisation]  #, MCDSGridBruteTruncationOptimisation]
+    OptimisationClasses = [MCDSZerothOrderTruncationOptimisation]  # , MCDSGridBruteTruncationOptimisation]
             
     def getOptimisationCoreParams(self, sAnIntSpec):
 
@@ -1120,13 +1121,13 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
 
     def setupResults(self, dfOptimParamSpecs=None, recover=False, loadFrom=None, sheetName=None):
     
-        """Build an empty results objects and optionnaly pre-load results
+        """Build an empty results objects and optionally preload results
         * from the last auto-backup file, after a crash / interruption of the optimisations,
         * or from the given file name.
 
         Parameters:
         :param dfOptimParamSpecs: if not None, optim. param. specs for the result object
-                                  (overwrite any specs loaded from file; see blow)
+                                  (overwrite any specs loaded from file; see below)
         :param recover: if True, try and load the last backup file (see completeResults)
         :param loadFrom: if specified, and not recover, try and load the specified file
                          (see OptimisationResultsSet.fromFile for supported formats, auto-detected from file extensions)
@@ -1164,10 +1165,10 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                     break
                 except Exception as exc:
                     if bkupFpn == sBkupFileMTimes.index[-1]:
-                        logger.error('... failed ; no other usable backup file, sorry.')
+                        logger.error(f'... failed ({exc}); no other usable backup file, sorry.')
                         raise
                     else:
-                        logger.info('... failed ; trying next ...')
+                        logger.info(f'... failed ({exc}); trying next ...')
 
             logger.info('... success !')
 
@@ -1186,7 +1187,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
         
     def optimisationTargetColumnUserNames(self):
     
-        """Determine the user names of the results optimisation target columns
+        """Determine the usernames of the results optimisation target columns
         """
    
         # Should not be called before run !
@@ -1221,7 +1222,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             sCustomHead = optim.customData
             sCustomHead.index = self.results.miCustomCols
 
-            # Save results (exact column list changes among optimisations objects so we must acceptNewCols)
+            # Save results (exact column list changes among optimisations objects, so we must acceptNewCols)
             self.results.append(dfResults, sCustomHead=sCustomHead, acceptNewCols=True)
 
             # Backup raw results (with an alternate file scheme for safety) in case of unavoidable crash (or reboot).
@@ -1291,7 +1292,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             self.explicitParamSpecs(implParamSpecs, dfExplParamSpecs, dropDupes=True, check=True)
         assert checkVerdict, 'Error: Analysis / Optimisation params check failed: {}'.format('; '.join(checkErrors))
         
-        # Build internal name => user name converter for spec. columns
+        # Build internal name => username converter for spec. columns
         self.dInt2UserParamSpecNames = dict(zip(intParamSpecCols, userParamSpecCols))
         
         # Results object construction
@@ -1343,7 +1344,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
             logger.info2('Submit params: ' + ', '.join([f'{k}: {v}' for k, v in dSubmitParams.items()]))
             optimFut = optim.submit(error=submitError, **dSubmitParams)
             
-            # Store optimisation object and associated "future" for later use (should be running soon or later).
+            # Store optimisation object and associated "future" for later use (should be running sooner or later).
             dOptims[optimFut] = optim
             
             # Next analysis (loop).

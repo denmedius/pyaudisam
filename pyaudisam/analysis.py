@@ -13,12 +13,10 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see https://www.gnu.org/licenses/.
 
-# Submodule "analysis": One layer above engines, to run DS analyses from an imput data set, and get computation results
+# Submodule "analysis": One layer above engines, to run DS analyses from an input data set, and get computation results
 
-import sys
 import pathlib as pl
 import shutil
-import argparse
 
 import numpy as np
 import pandas as pd
@@ -53,7 +51,7 @@ class DSAnalysis(object):
     # Ctor
     # * :param: engine : DS engine to use
     # * :param: sampleDataSet : data.SampleDataSet instance to use
-    # * :param: name : name (may be empty), used for prefixing run folders or so, only for user-friendliness
+    # * :param: name : name (maybe empty), used for prefixing run folders or so, only for user-friendliness
     # * :param: customData : any custom data to be transported with the analysis object
     #                        during run (left completely untouched)
     def __init__(self, engine, sampleDataSet, name, customData=None):
@@ -63,6 +61,7 @@ class DSAnalysis(object):
         self.name = name
         self.customData = customData
         
+
 class MCDSAnalysis(DSAnalysis):
     
     EngineClass = MCDSEngine

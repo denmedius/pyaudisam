@@ -178,7 +178,7 @@ argser = argparse.ArgumentParser(prog='pyaudisam',  # usage='python -m pyaudisam
 argser.add_argument('-u', '--run', dest='realRun', action='store_true', default=False,
                     help='Actually run specified operation (not only run diagnosis of)'
                          ' => as long as -u/--run is not there, you can try any option,'
-                         ' it wont start or write anything (or may be slightly when -v, but anyway)'
+                         ' it wont start or write anything (or maybe slightly when -v, but anyway)'
                          ' ... feel free, you are safe :-)')
 argser.add_argument('-v', '--verbose', dest='verbose', action='store_true', default=False,
                     help='Display more infos about the work to be done and export sample / (opt-)analysis'
@@ -328,7 +328,7 @@ if 'html' in args.optReports and ('full' not in args.optReports['html'] or len(a
 #    (post-fixed with the run timestamp, if not already specified)
 workDir = args.workDir if 'workDir' in vars(args) else pars.workDir if 'workDir' in vars(pars) else '.'
 workDir = pl.Path(workDir)
-if not(args.noTimestamp or re.match('.*[0-9]{6}-[0-9]{4,6}$', workDir.name)):
+if not (args.noTimestamp or re.match('.*[0-9]{6}-[0-9]{4,6}$', workDir.name)):
     workDir = workDir / runTimestamp
 logger.info(f'Work folder: {workDir.as_posix()}')
 

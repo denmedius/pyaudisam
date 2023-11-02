@@ -108,7 +108,7 @@ class Executor(object):
                           whereas None means pure sequential calling ;,
                           if threads is not None, must be None (= unspecified)
         :param name_prefix: See concurrent module (only for multi-threading)
-        :param mp_context: See concurrent module (only for multi-processing)
+        :param mp_context: See concurrent module (only for multiprocessing)
         :param initializer: See concurrent module
         :param initargs: See concurrent module
         """

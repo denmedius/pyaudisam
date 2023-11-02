@@ -186,7 +186,7 @@ class DSEngine(object):
         return matFields, matDecFields, extFields
 
     # Set up a thread & process safe run folder for an analysis
-    # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
+    # * runPrefix : user-friendly prefix for the generated folder-name (maybe None)
     # Note: Not a class method because it uses self.workDir
     def setupRunFolder(self, runPrefix=None):
 
@@ -589,7 +589,7 @@ class MCDSEngine(DSEngine):
         # Put columns in the right order (first data fields ... first, in the same order)
         dfExport = sampleDataSet.dfData[exportFields].copy()
 
-        # Prepare safe export of decimal data with may be some NaNs
+        # Prepare safe export of decimal data with maybe some NaNs
         allDecFields = set(matchDecFields + sampleDataSet.decimalFields).intersection(exportFields)
         logger.debug2('Decimal columns: ' + str(allDecFields))
         for field in allDecFields:

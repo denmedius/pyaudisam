@@ -48,7 +48,7 @@ class Interval(object):
         
         Parameters:
         :param min: min of interval if a number, 
-                    or interval itself if a (min, max) tuple/list or a dict(min=, max=) or a Interval
+                    or interval itself if a (min, max) tuple/list or a dict(min=, max=) or an Interval
         :param max: max of interval if min is a number, ignored otherwise
         
         Ex: Interval(min=3, max=6.9), Interval((2.3, 4.2)), Interval(dict(max=2.3, min=1.2))
@@ -112,7 +112,7 @@ class Error(object):
         
     def append(self, error, head=''):
     
-        """Append an error to an other
+        """Append an error to another
         
         Parameters:
         :param error: string or Error
@@ -160,7 +160,7 @@ class DSOptimisation(object):
         :param engine: DS engine to use
         :param sampleDataSet: data.SampleDataSet instance to use
         :param name: used for prefixing run folders (sure to be automatically unique anyway),
-            analysis names, and so on, only for user-friendliness and deasier debugging ;
+            analysis names, and so on, only for user-friendliness and easier debugging ;
             default: None => auto-generated from optimisation parameters
         :param executor: Executor object to use for parallel execution of multiple optimisation instances
              Note: Up to the caller to shut it down when no more needed (not owned).
@@ -489,7 +489,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         
         dLocals = {alias: sResults.get(name, worst) for alias, (name, worst) in cls.AnlysResultsIndex.items()}
                                           
-        #logger.debug3('_getAnalysisResultValue: locals={}'.format(dLocals))
+        # logger.debug3('_getAnalysisResultValue: locals={}'.format(dLocals))
         
         try:
             value = eval(resultExpr, None, dLocals)
@@ -530,7 +530,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
         anlys.submit()
         
         sResults = anlys.getResults(postCleanup=self.autoClean)
-        #logger.debug3('Analysis results: {}'.format(sResults.to_dict()))
+        # logger.debug3('Analysis results: {}'.format(sResults.to_dict()))
 
         # Post-process results, and compute analysis values (_the_ values to optimise).
         if anlys.success() or anlys.warnings():
@@ -606,7 +606,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
     def zoopt(mxi=100, tv=None, a='racos', mxr=0):
     
         """Function for parsing optimisation specs:
-        * see optimiser.DSOptimiser._parseOptimCoreUserSpecs)
+        * see optimiser.DSOptimiser._parseOptimCoreUserSpecs()
         * see zoopt module for details
         
         Parameters:
@@ -658,7 +658,7 @@ class MCDSZerothOrderTruncationOptimisation(MCDSTruncationOptimisation):
         
         ZOOpt specific parameters:
         :param algorithm: Zeroth Order optimisation algorithm to use
-                          (only 'racos' is suitable here, 'poss' is not, don't use))
+                          (only 'racos' is suitable here, 'poss' is not, don't use)
         :param maxRetries: Max number of retries on optim. core failure ; default: 0 => 0 retries = 1 try
         :param maxIters: Number of iterations that stop optimisation algorithm when reached ; default: 0 => no limit
         :param termExprValue: Value that stops optimisation algorithm when exceeded ;

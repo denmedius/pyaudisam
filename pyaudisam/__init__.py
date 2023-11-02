@@ -21,13 +21,13 @@ import sys
 import platform
 
 
-# Infos about run-time (Python version, dependency library versions, ... + also updated by sub-modules)
+# Infos about run-time (Python version, dependency library versions, ... + also updated by submodules)
 _osEdition = (' ' + platform.win32_edition()) if sys.platform.startswith('win32') else ''
 runtime = dict(os=f'{platform.system()}{_osEdition} {platform.version()} ({platform.architecture()[0]})',
                processor=f'{platform.processor()}, {os.cpu_count()} CPUs',
                python=f'{sys.implementation.name} ({sys.platform}) R{sys.version}')
 
-# Transparent sub-module exports (in order not to care about them, and only import the top = pyaudisam package one)
+# Transparent submodule exports (in order not to care about them, and only import the top = pyaudisam package one)
 from . import log
 from .log import logger, DEBUG, DEBUG0, DEBUG1, DEBUG2, DEBUG3, DEBUG4, DEBUG5, DEBUG6, DEBUG7, DEBUG8, \
                          INFO,  INFO0,  INFO1,  INFO2,  INFO3,  INFO4, INFO5,  INFO6,  INFO7,  INFO8, \

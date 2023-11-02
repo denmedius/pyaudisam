@@ -445,12 +445,12 @@ class DSAnalyser(Analyser):
         :param areaUnit: see MCDSEngine
         :param resultsHeadCols: dict of list of column names (from dfMonoCatObs) to use in order
             to build results (right) header columns ; 'sample' columns are sample selection columns ;
-            sampleIndCol is added to resultsHeadCols['before'] if not elswehere in resultsHeadCols ;
+            sampleIndCol is added to resultsHeadCols['before'] if not elsewhere in resultsHeadCols ;
             same for anlysIndCol, right before sampleIndCol
         :param abbrevCol: Name of column to generate for abbreviating analyses params, not sure really useful ...
         :param abbrevBuilder: Function of explicit analysis params (as a Series) to generate abbreviated name
-        :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data.
-        :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data.
+        :param anlysIndCol: Name of column to generate for identifying analyses, unless already there in input data
+        :param sampleIndCol: Name of column to generate for identifying samples, unless already there in input data
         :param workDir: Folder where to generate analysis and results files
         """
 
@@ -576,9 +576,9 @@ class DSAnalyser(Analyser):
         :param dropDupes: if True, drop duplicates (keep first) in the final explicit DataFrame
            
         Return: Explicit specs as a DataFrame (input dfExplParamSpecs not modified : a new one is returned),
-                list of matched analysis param. columns user names,
+                list of matched analysis param. columns usernames,
                 list of matched analysis param. columns internal names,
-                list of unmatched analysis param. columns user names.
+                list of unmatched analysis param. columns usernames.
         """
     
         # Explicitate analysis specs if needed (and add computed columns if any and not already there).
@@ -615,7 +615,7 @@ class DSAnalyser(Analyser):
         intParamSpecCols = \
             DSAnalyser.userSpec2ParamNames(dfExplParamSpecs.columns, int2UserSpecREs, strict=False)
 
-        # Get back to associated column user names
+        # Get back to associated column usernames
         # a. matched with internal param. names
         userParamSpecCols = [usp for inp, usp in zip(intParamSpecCols, dfExplParamSpecs.columns) if inp]
         
@@ -655,7 +655,7 @@ class DSAnalyser(Analyser):
         
         Can moreover check params specs for usability, if check is True :
         * use it before calling analyser.run(implParamSpecs=..., dfExplParamSpecs=..., ...)
-          to check that everythings OK,
+          to check that everything's OK,
         * or be sure that run() will fail at startup (because it itself will do it).
         
         Parameters:
@@ -670,8 +670,8 @@ class DSAnalyser(Analyser):
         Return: a 3 or 5-item tuple :
            * explicit specs as a DataFrame (input dfExplParamSpecs not modified: a new updated one is returned),
            * list of analysis param. columns internal names,
-           * list of analysis param. columns user names,
-           if ckeck, 2 more items in the return tuple :
+           * list of analysis param. columns usernames,
+           if check, 2 more items in the return tuple :
            * check verdict : True if everything went well, False otherwise,
              * some columns from paramSpecCols could not be found in dfExplParamSpecs columns,
              * some user columns could not be matched with some of the expected internal parameter names,
@@ -816,6 +816,7 @@ class FilterSortSchemeIdManager(object):
 
         clone = FilterSortSchemeIdManager()
         clone.dFilSorSchemes = copy.deepcopy(self.dFilSorSchemes)
+        return clone
 
     def clear(self):
 
@@ -1253,7 +1254,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     @classmethod
     def _combinedQualityAll(cls, aRes):
 
-        """New quality indicators (August, 2021 and later), optimized through numpy
+        """New quality indicators (August 2021 and later), optimized through numpy
         (QualBal2, QualBal3, QualMoreChi2, QualMoreKS, QualMoreDCv)
 
         Returns:
@@ -1355,10 +1356,10 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         for miCol, aIndic in zip(cls.CLsNewQuaIndics, cls._combinedQualityAll(dfCompData.values)):
             self._dfData[miCol] = aIndic
 
-        # For some unknown reason, the theorically better code below raises some odd exceptions like (depends):
+        # For some unknown reason, the theoretically better code below raises some odd exceptions like (depends):
         # * index-join on non-unique index not implemented
         # * KeyError: None of <items of cls.CLsNewQuaIndics> exists in index
-        # whereas the same code works in devarchive2.ipynb/Development : Optimise _postComputeQualityIndicators).
+        # whereas the same code works in devarchive2.ipynb/Development : Optimise _postComputeQualityIndicators().
         # self._dfData[cls.CLsNewQuaIndics] = np.stack(cls._combinedQualityAll(dfCompData.values), axis=1)
 
     # Post computations : Truncations groups.
@@ -1906,8 +1907,6 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         :return: tuple(index of selected and sorted results, log of filter & sort steps accomplished)
         """
 
-        cls = self
-
         logger.debug(f'Filter and sort scheme "{schemeId}": Applying.')
 
         filSorSteps = _FilterSortSteps(schemeId, resultsSet=self, lang=lang)
@@ -2022,7 +2021,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             (and if equal, the best Chi2, KS, DCv, NObs, CodEx ... etc)
            but may actually give more than nBestAIC rows per sample and group of ...
         3. Per sample and group of close truncation distances (see _postComputeTruncationGroups),
-           keep only the results with a least one of the whichBestQua indicator orders < nBestQua ;
+           keep only the results with at least one of the whichBestQua indicator orders < nBestQua ;
            Note: this will probably give more than nBestQua rows par sample and group of ...
         4. Eliminate sighting rates < sightRate,
         5. Keep only the nFinalRes best results, with respect to whichFinalQua indicator
@@ -2030,7 +2029,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         6. Finally, sort by truncation distances (no truncation first, shorter distances first, ... simpler first)
            and by best whichFinalQua indicator values
 
-        Note: This doesn't actually modifies a single bit of the results set, but returns the resulting
+        Note: This doesn't actually modify a single bit of the results set, but returns the resulting
               filtered and sorted index, suitable for indexing on self.dfData / dfTransData ...
 
         Parameters:
@@ -2141,7 +2140,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
             # Compute contents and add to table
             # a. Rank all results
             # N.B. Below groupby(...) takes care of the following :
-            # * all-empty sample columns of results DataFrame may be present in miSampleCols,
+            # * all-empty sample columns of results DataFrame maybe present in miSampleCols,
             # * some columns of miSampleCols may not be present in results DataFrame.
             groupCols = [col for col in self.miSampleCols
                          if col in dfFilSorRes.columns and not dfFilSorRes[col].isnull().all()]
@@ -2343,17 +2342,17 @@ class MCDSAnalyser(DSAnalyser):
     # (regexps are re.search'ed : any match _anywhere_inside_ the column name is OK;
     #  and case is ignored during searching).
     Int2UserSpecREs = \
-        {IntSpecEstimKeyFn:     ['ke[a-z]*[\.\-_ ]*f', 'f[o]?n[a-z]*[\.\-_ ]*cl'],
-         IntSpecEstimAdjustFn:  ['ad[a-z]*[\.\-_ ]*s', 's[éa-z]*[\.\-_ ]*aj'],
-         IntSpecEstimCriterion: ['crit[èa-z]*[\.\-_ ]*'],
-         IntSpecCVInterval:     ['conf[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*int',
-                                 'int[a-z]*[\.\-_ ]*conf'],
-         IntSpecMinDist:        ['min[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*min',
-                                 'tr[a-z]*[\.\-_ ]*g[ca]', 'le[a-z]*[\.\-_ ]*tr'],
-         IntSpecMaxDist:        ['max[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*max',
-                                 'tr[a-z]*[\.\-_ ]*d[rt]', 'le[a-z]*[\.\-_ ]*tr'],
-         IntSpecFitDistCuts:    ['fit[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*mod'],
-         IntSpecDiscrDistCuts:  ['disc[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*disc']}
+        {IntSpecEstimKeyFn:     [r'ke[a-z]*[\.\-_ ]*f', r'f[o]?n[a-z]*[\.\-_ ]*cl'],
+         IntSpecEstimAdjustFn:  [r'ad[a-z]*[\.\-_ ]*s', r's[éa-z]*[\.\-_ ]*aj'],
+         IntSpecEstimCriterion: [r'crit[èa-z]*[\.\-_ ]*'],
+         IntSpecCVInterval:     [r'conf[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*int',
+                                 r'int[a-z]*[\.\-_ ]*conf'],
+         IntSpecMinDist:        [r'min[a-z]*[\.\-_ ]*d', r'd[a-z]*[\.\-_ ]*min',
+                                 r'tr[a-z]*[\.\-_ ]*g[ca]', r'le[a-z]*[\.\-_ ]*tr'],
+         IntSpecMaxDist:        [r'max[a-z]*[\.\-_ ]*d', r'd[a-z]*[\.\-_ ]*max',
+                                 r'tr[a-z]*[\.\-_ ]*d[rt]', r'le[a-z]*[\.\-_ ]*tr'],
+         IntSpecFitDistCuts:    [r'fit[a-z]*[\.\-_ ]*d', r'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*mod'],
+         IntSpecDiscrDistCuts:  [r'disc[a-z]*[\.\-_ ]*d', r'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*disc']}
 
     # Analysis object ctor parameter names (MUST match exactly: check in analysis submodule !).
     ParmEstimKeyFn = 'estimKeyFn'
@@ -2555,7 +2554,7 @@ class MCDSAnalyser(DSAnalyser):
             # Start running pre-analysis in parallel, but don't wait for it's finished, go on
             anlysFut = anlys.submit()
             
-            # Store pre-analysis object and associated "future" for later use (should be running soon or later).
+            # Store pre-analysis object and associated "future" for later use (should be running sooner or later).
             dAnlyses[anlysFut] = anlys
             
             # Next analysis (loop).
@@ -2766,7 +2765,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
             # Start running pre-analysis in parallel, but don't wait for it's finished, go on
             anlysFut = anlys.submit()
             
-            # Store pre-analysis object and associated "future" for later use (should be running soon or later).
+            # Store pre-analysis object and associated "future" for later use (should be running sooner or later).
             dAnlyses[anlysFut] = anlys
             
             # Next analysis (loop).
