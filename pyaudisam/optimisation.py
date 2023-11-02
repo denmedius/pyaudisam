@@ -257,7 +257,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
     """
     
     EngineClass = MCDSEngine
-        
+
     # Names of possible solution dimensions (the truncation parameter values we are searching for).
     SolutionDimensionNames = ['minDist', 'maxDist', 'fitDistCuts', 'discrDistCuts']
     
@@ -464,7 +464,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
 
         # c. Compute indicators at last !
         aCombQuaData = np.expand_dims(sResults[miCompCols].values, axis=0)  # Series to 1 row results array.
-        sResults[RSClass.CLCmbQuaBal1] = RSClass._combinedQualityBalanced1(aCombQuaData)
+        sResults[RSClass.CLCmbQuaBal1] = RSClass._combinedQualityBalanced1(aCombQuaData)[0]
         for miCol, aIndic in zip(RSClass.CLsNewQuaIndics, RSClass._combinedQualityAll(aCombQuaData)):
             sResults[miCol] = aIndic[0]
 
@@ -488,7 +488,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
     def _getAnalysisResultValue(cls, resultExpr, sResults, invalidValue):
         
         dLocals = {alias: sResults.get(name, worst) for alias, (name, worst) in cls.AnlysResultsIndex.items()}
-                                          
+
         # logger.debug3('_getAnalysisResultValue: locals={}'.format(dLocals))
         
         try:
