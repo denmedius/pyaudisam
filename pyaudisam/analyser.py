@@ -712,7 +712,7 @@ class DSAnalyser(Analyser):
 
     def shutdown(self):
     
-        """Shutdown engine and executor (only usefull if run() raises an exception and so fails to do it),
+        """Shutdown engine and executor (only useful if run() raises an exception and so fails to do it),
         but keep the remainder of the object state as is.
         """
 
