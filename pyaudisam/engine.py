@@ -52,12 +52,12 @@ KInstDirPath = pl.Path(__file__).parent.resolve()
 # Warning: No option change allowed while started analyses are running / all their getResults() have returned.
 class DSEngine(object):
     
-    # Options possible values.
+    # Possible values for options.
     DistUnits = ['Meter', 'Kilometer', 'Mile', 'Inch', 'Feet', 'Yard', 'Nautical mile']
     AreaUnits = ['Hectare', 'Acre'] + ['Sq. ' + distUnit for distUnit in DistUnits]
     
     # Forbidden chars in workDir path name (Distance DS engines are real red necks)
-    # TODO: stronger protection (more special chars ? more generic method, through re ?)
+    # TODO: Stronger protection (more special chars ? more generic method, through re ?)
     ForbidPathChars = [' ', '(', ')', ',']
     
     # Distance software detection params.
@@ -185,7 +185,7 @@ class DSEngine(object):
         
         return matFields, matDecFields, extFields
 
-    # Setup a thread & process safe run folder for an analysis
+    # Set up a thread & process safe run folder for an analysis
     # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
     # Note: Not a class method because it uses self.workDir
     def setupRunFolder(self, runPrefix=None):
@@ -297,7 +297,7 @@ class MCDSEngine(DSEngine):
                 modNum, modDesc, statNum, statDescNotes = \
                     moModule.group(1), moModule.group(2), moStatistic.group(1), moStatistic.group(2)
                 for i in range(len(statDescNotes)-1, -1, -1):
-                    if not re.match('[\d ,]', statDescNotes[i]):
+                    if not re.match(r'[\d ,]', statDescNotes[i]):
                         statDesc = statDescNotes[:i+1]
                         statNotes = statDescNotes[i+1:].replace(' ', '')
                         break
@@ -720,7 +720,7 @@ class MCDSEngine(DSEngine):
         raise NotImplementedError(f'Unknown MCDSEngine run method "{method}"')
 
     # Run 1 MCDS analysis from the beginning to the end (blocking for the calling thread)
-    # * runPrefix : user-friendly prefix for the generated folder-name (may be None)
+    # * runPrefix : user-friendly prefix for the generated folder-name (maybe None)
     def _runAnalysis(self, sampleDataSet, runPrefix='mcds', realRun=True, **analysisParms):
         
         # Create a new exclusive thread and process-safe run folder
@@ -795,7 +795,7 @@ class MCDSEngine(DSEngine):
             dfStats.loc[lbl, 'Statistic'] = newStatNum
         
         # 5. Add descriptive / naming columns for modules and statistics,
-        #    from cls.DfStatModSpecs (more user friendly than numeric ids + help for detecting N/A figures)
+        #    from cls.DfStatModSpecs (more user-friendly than numeric ids + help for detecting N/A figures)
         dfStats = dfStats.join(cls.DfStatModSpecs, on=['Module', 'Statistic'])
         
         # 6. Check that supposed N/A figures (as told by cls.DfStatModSpecs.statNotes) are really such
@@ -909,7 +909,7 @@ class MCDSEngine(DSEngine):
         matchFields, _, _ = \
             self.matchDataFields(sampleDataSet.dfData.columns, self.importFieldAliasREs)
         
-        # Extract usefull columns and rename them tfor standard semantics.
+        # Extract useful columns and rename them for standard semantics.
         dfSample = sampleDataSet.dfData[matchFields]
         dfSample.columns = self.distanceFields(self.options.firstDataFields)
 
