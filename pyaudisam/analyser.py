@@ -2688,6 +2688,29 @@ class MCDSPreAnalyser(MCDSAnalyser):
         assert runTimeOut is None or runMethod != 'os.system', \
                f"Can't care about {runTimeOut}s execution time limit with os.system run method (not implemented)"
 
+    def computeSampleStats(self, implSampleSpecs, sampleDistCol='Distance'):
+
+        dfExplSampleSpecs = self.explicitParamSpecs(implParamSpecs=implSampleSpecs, dropDupes=True)[0]
+
+        lSampleStats = []
+        for sampInd, sSampSpec in dfExplSampleSpecs.iterrows():
+
+            # Select data sample to process
+            sds = self._mcDataSet.sampleDataSet(sSampSpec[self.sampleSelCols])
+            if not sds:
+                continue  # No data => no stats.
+
+            sDist = sds.dfData[sampleDistCol]
+            lSampleStats.append((sampInd, sDist.min(), sDist.max(), sDist.count()))
+
+        dfSampleStats = pd.DataFrame(data=lSampleStats,
+                                     columns=[self.sampleIndCol, 'Distance Min', 'Distance Max', 'NTot Obs'])
+
+        dfSampleStats = dfExplSampleSpecs.join(dfSampleStats.set_index(self.sampleIndCol), on=self.sampleIndCol)
+        dfSampleStats.insert(0, self.sampleIndCol, dfSampleStats.pop(self.sampleIndCol))
+
+        return dfSampleStats
+
     def setupResults(self):
     
         """Build an empty results objects.
