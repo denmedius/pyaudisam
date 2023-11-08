@@ -702,8 +702,8 @@ class DSResultsDistanceReport(ResultsReport):
                            details=dfsDet.render(),  # escape=False, index=False),
                            traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
-                           title=self.title, subtitle=self.subTitle,
-                           description=self.description, keywords=self.keywords,
+                           title=self.title, subtitle=self.subTitle.replace('\n', '<br>'),
+                           description=self.description.replace('\n', '<br>'), keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang], 
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
                            genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(),
@@ -1654,8 +1654,8 @@ class MCDSResultsPreReport(MCDSResultsDistanceReport):
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
                            traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
-                           title=self.title, subtitle=self.subTitle,
-                           description=self.description, keywords=self.keywords,
+                           title=self.title, subtitle=self.subTitle.replace('\n', '<br>'),
+                           description=self.description.replace('\n', '<br>'), keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
                            genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(), 
@@ -1866,8 +1866,8 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
                            details=dfsDet.render(),  # escape=False, index=False),
                            traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
-                           title=self.title, subtitle=self.subTitle,
-                           description=self.description, keywords=self.keywords,
+                           title=self.title, subtitle=self.subTitle.replace('\n', '<br>'),
+                           description=self.description.replace('\n', '<br>'), keywords=self.keywords,
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
                            genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(),
@@ -2188,8 +2188,8 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                            traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, keywords=self.keywords,
-                           subtitle=self.subTitle.format(fsId=filSorSchId.split('@')[0]),
-                           description=self.description.format(fsId=filSorSchId.split('@')[0]),
+                           subtitle=self.subTitle.format(fsId=filSorSchId.split('@')[0]).replace('\n', '<br>'),
+                           description=self.description.format(fsId=filSorSchId.split('@')[0]).replace('\n', '<br>'),
                            xlUrl=xlFileUrl, tr=self.dTrans[self.lang],
                            pySources=[pl.Path(fpn).name for fpn in self.pySources],
                            genDateTime=genDateTime, version=__version__, libVersions=self._libVersions(), 
