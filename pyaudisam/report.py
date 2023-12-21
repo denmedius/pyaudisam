@@ -300,7 +300,8 @@ class DSResultsDistanceReport(ResultsReport):
                         'Observation model': 'Observations (fitted)',
                         'Real observations': 'Observations (sampled)',
                         'Fixed bin distance histograms': 'Fixed bin distance histograms',
-                        'Distance': 'Distance', 'Number of observations': 'Number of observations',
+                        'Distance': 'Distance', 'Distance in': 'Distance in',
+                        'Number of observations': 'Number of observations',
                         'Page generated': 'Generated', 'with': 'with',
                         'with icons from': 'with icons from',
                         'and': 'and', 'in': 'in', 'sources': 'sources', 'on': 'on',
@@ -333,7 +334,7 @@ class DSResultsDistanceReport(ResultsReport):
                         'Observation model': 'Observations (fitted)',  # No actual translation for plots
                         'Real observations': 'Observations (sampled)',  # Idem
                         'Fixed bin distance histograms': 'Fixed bin distance histograms',  # Idem
-                        'Distance': 'Distance',  # Idem
+                        'Distance': 'Distance', 'Distance in': 'Distance in',  # Idem
                         'Number of observations': 'Number of observations',  # Idem
                         'Page generated': 'Généré', 'with': 'avec',
                         'with icons from': 'avec les pictogrammes de',
@@ -633,7 +634,8 @@ class DSResultsDistanceReport(ResultsReport):
                              for binWidth in distHistBinWidths], fontsize=fontSizes['legend'])
                 axes.set_title(label=self.tr('Fixed bin distance histograms'),
                                fontdict=dict(fontsize=fontSizes['title']), pad=10)
-                axes.set_xlabel(self.tr('Distance'), fontsize=fontSizes['axes'])
+                axes.set_xlabel(self.tr('Distance in') + ' ' + self.resultsSet.distanceUnit.lower() + 's',
+                                fontsize=fontSizes['axes'])
                 axes.set_ylabel(self.tr('Number of observations'), fontsize=fontSizes['axes'])
                 axes.tick_params(axis='both', labelsize=fontSizes['ticks'])
                 axes.grid(True, which='major', zorder=0)
@@ -955,11 +957,6 @@ class DSResultsDistanceReport(ResultsReport):
             dfSyn = self.resultsSet.dfTransData(self.lang, columns=synCols)
             dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
             
-            # ... Convert run folder columns to hyperlink
-            def toHyperlink(path):
-                return '=HYPERLINK("file:///{path}", "{path}")'.format(path=path)
-            dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(toHyperlink)
-            
             dfsSyn = self.finalFormatAllAnalysesData(dfSyn, sort=True, indexer=True,
                                                      convert=True, round_=True, style=True)
 
@@ -969,7 +966,6 @@ class DSResultsDistanceReport(ResultsReport):
             logger.info1('* details ...')
             dfDet = self.resultsSet.dfTransData(self.lang)
             dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
-            dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(toHyperlink)
             
             dfsDet = self.finalFormatAllAnalysesData(dfDet, sort=True, indexer=True,
                                                      convert=False, round_=False, style=True)
