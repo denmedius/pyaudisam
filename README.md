@@ -12,15 +12,15 @@ As for now, only the Windows MCDS.exe V6 engine and Point Transect analyses are 
 
 ## Requirements
 
-The module itself:
-* python 3.8+
-* pandas 0.25+
-* matplotlib 3.1+
-* jinja2 2.10+
-* zoopt 0.4+
+The module itself was actually tested extensively with:
+* python 3.8 only
+* pandas 0.25 to 1.2.5
+* matplotlib 3.1 to 3.7
+* jinja2 2.10 to 3.1
+* zoopt 0.4
 
-Tests:
-* pytest
+As for testing:
+* pytest, pytest-cov
 * plotly (sometimes)
 
 ## Installation
@@ -67,6 +67,10 @@ everything's inside :
 
   `pytest`
 
+* for code corevage during tests, after installing pytest-cov, simply run:
+
+  `pytest --cov`
+
 * some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
 
 ## Building
@@ -94,7 +98,7 @@ And if you are lacking ideas, here are some good ones ;-)
   - or: by rewriting MCDS from scratch,
   - or: by rewriting MCDS using the [MRDS Distance package](https://distancesampling.org/), meaning some kind of interface to R,
 * build a GUI for pyaudisam command-line (with some kind of "project" concept, and parameter set template, and ...),
-* add support line transects (only point transects for the moment),
+* add support for line transects (only point transects for the moment),
 * add support for the co-variates feature of MCDS,
 * ...
 

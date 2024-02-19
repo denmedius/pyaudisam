@@ -558,7 +558,7 @@ class FieldDataSet(DataSet):
         self.dfIndivSights = None  # Not yet computed.
         self.dfMonoCatSights = None  # Idem.
     
-    # Transform a multi category sightings set into an equivalent mono-category sightings set,
+    # Transform a multi-category sightings set into an equivalent mono-category sightings set,
     # that is where no sighting has more than one category with positive count (keeping the same total counts).
     # Highly optimized version.
     # Ex: A sightings set with 2 category count columns nMales and nFemales

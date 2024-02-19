@@ -38,3 +38,4 @@ tests/tmp
 build
 dist
 pyaudisam.egg-info
+.idea
