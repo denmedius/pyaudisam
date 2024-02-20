@@ -28,46 +28,24 @@ import pathlib as pl
 import numpy as np
 import pandas as pd
 
-import pyaudisam as ads
-
 import pytest
 
+import pyaudisam as ads
 
-# Useful test folders
-KSrcPath = pl.Path(__file__).parent
-KRefInPath = pl.Path('refin')
-KRefOutPath = pl.Path('refout')
+import unintval_utils as uivu
 
-# Temporary work folder (created once in conftest.py if needed).
-KTmpPath = KSrcPath / 'tmp'
 
-# Logger for this module.
-logger = ads.logger('unt.eng')
+# Setup local logger.
+logger = uivu.setupLogger('unt.eng', level=ads.DEBUG,
+                          otherLoggers={'ads.dat': ads.INFO})
 
+what2Test = 'engine'
 
 ###############################################################################
 #                         Actions to be done before any test                  #
 ###############################################################################
 def testBegin():
-
-    # Configure logging.
-    logFilePathName = KTmpPath / 'unt-eng.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d%H%M'))
-    ads.log.configure(loggers=[dict(name='matplotlib', level=ads.WARNING),
-                               dict(name='ads', level=ads.INFO),
-                               # dict(name='ads.dat', level=ads.WARNING),  # Uncomment to limit log output
-                               dict(name='ads.eng', level=ads.INFO2),
-                               dict(name='unt.eng', level=ads.DEBUG)],
-                      handlers=[logFilePathName], reset=True)
-
-    # Show testing configuration (traceability).
-    logger.info(f'PyAuDiSam {ads.__version__} from {pl.Path(ads.__path__[0]).resolve().as_posix()}')
-    logger.info('Python environment:')
-    logger.info(f'* {sys.implementation.name}: {sys.version}')
-    logger.info(f'* platform: {sys.platform}')
-    for module in ['pytest', 'pandas', 'numpy']:  # 'lxml', 'scipy', 'pyproj', 'shapely']:
-        logger.info(f'* {module:>8s}: { sys.modules[module].__version__}')
-
-    logger.info('Testing pyaudisam.engine ...')
+    uivu.logBegin(what=what2Test)
 
 
 ###############################################################################
@@ -84,20 +62,20 @@ def testMcdsCtor():
 
     # test Exception raising with one of unsupported characters in workdir string (space) - first way
     with pytest.raises(Exception) as e_info:
-        ads.MCDSEngine(workDir=KTmpPath.as_posix() + '/test out')  # Simple string path
+        ads.MCDSEngine(workDir=uivu.pTmpDir.as_posix() + '/test out')  # Simple string path
     logger.info0(f'PASS (test_MCDS_Ctor) => EXCEPTION RAISED AS AWAITED:\n{e_info.value}')
 
     # test Exception raising with one of unsupported characters in workdir string (space) - second way
     with pytest.raises(Exception) as e_info:
-        ads.MCDSEngine(workDir=KTmpPath / 'test out')  # pl.Path path
+        ads.MCDSEngine(workDir=uivu.pTmpDir / 'test out')  # pl.Path path
     logger.info0(f'PASS (test_MCDS_Ctor) => EXCEPTION RAISED AS AWAITED:\n{e_info.value}')
 
     # test preferred method to initiate MCDSEngine
-    assert ads.MCDSEngine(workDir=KTmpPath / 'mcds-out', runMethod='os.system'), \
+    assert ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', runMethod='os.system'), \
            'MCDS Engine: Non identified issue at engine initiation'
 
     # test previous (older) method to initiate MCDSEngine
-    assert ads.MCDSEngine(workDir=KTmpPath / 'mcds-out'), 'MCDS Engine: Non identified issue at engine initiation'
+    assert ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out'), 'MCDS Engine: Non identified issue at engine initiation'
 
     # test Specs DataFrames not empty
     # TODO: improve for deeper test ???
@@ -192,7 +170,7 @@ def testMcdsBuildExportTable(dfShortSdsData_fxt):
 
 def testMcdsBuildDataFile(dfShortSdsData_fxt):
 
-    eng = ads.MCDSEngine(workDir=KTmpPath / 'mcds-out')
+    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out')
     runDir = eng.setupRunFolder(runPrefix='uni')
     dfData = dfShortSdsData_fxt  # load source test data
 
@@ -208,7 +186,7 @@ def testMcdsBuildDataFile(dfShortSdsData_fxt):
         'Error: test_buildDataFile: data exported to file do not match to source data'
 
     # clean-up: 'mcds-out' directory and content deleted
-    shutil.rmtree(KTmpPath / 'mcds-out')
+    shutil.rmtree(uivu.pTmpDir / 'mcds-out')
 
     logger.info0('PASS => MCDSEngine => methods "buildDataFile"')
 
@@ -220,7 +198,7 @@ def testMcdsBuildCmdFile():
     t_estimAdjustFn = 'COSINE'
     t_estimCriterion = 'AIC'
     t_cvInterval = 95
-    eng = ads.MCDSEngine(workDir=KTmpPath / 'mcds-out')
+    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out')
     runDir = eng.setupRunFolder(runPrefix='uni')
     cmdFileName = eng.buildCmdFile(estimKeyFn=t_estimKeyFn, estimAdjustFn=t_estimAdjustFn,
                                    estimCriterion=t_estimCriterion, cvInterval=t_cvInterval, runDir=runDir)
@@ -242,7 +220,7 @@ def testMcdsBuildCmdFile():
                    recorded in cmd.txt (cvInterval)'
 
     # clean-up: 'mcds-out' directory and content deleted
-    shutil.rmtree(KTmpPath / 'mcds-out')
+    shutil.rmtree(uivu.pTmpDir / 'mcds-out')
 
     logger.info0('PASS => MCDSEngine => methods "buildCmdFile"')
 
@@ -250,7 +228,7 @@ def testMcdsBuildCmdFile():
 def testMcdsComputeSampleStats(dfShortSdsData_fxt):
 
     # init MCDSEngine
-    eng = ads.MCDSEngine(workDir=KTmpPath / 'mcds-out', runMethod='os.system')
+    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', runMethod='os.system')
     # Prepare temporary working folder
     runDir = eng.setupRunFolder(runPrefix='uni')
     # Prepare SampleDataSet and data.txt file
@@ -270,7 +248,7 @@ def testMcdsComputeSampleStats(dfShortSdsData_fxt):
 def testMcdsRun(dfShortSdsData_fxt):
 
     # init MCDSEngine
-    eng = ads.MCDSEngine(workDir=KTmpPath / 'mcds-out', runMethod='os.system')
+    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', runMethod='os.system')
     # Prepare temporary working folder
     runDir = eng.setupRunFolder(runPrefix='uni')
     # Prepare SampleDataSet and data.txt file
@@ -349,7 +327,7 @@ def testMcdsRun(dfShortSdsData_fxt):
 
 #   Generate a reduced real-life SampleDataSet
 def sdsRealReduced():
-    return ads.SampleDataSet(source=KRefInPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',
+    return ads.SampleDataSet(source=uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',
                              decimalFields=['EFFORT', 'DISTANCE', 'NOMBRE'])
 
 
@@ -366,7 +344,7 @@ def testMcdsSubmitAnalysisDebug(sdsRealReduced_fxt):
     sds = sdsRealReduced_fxt
 
     # init MCDSEngine
-    eng = ads.MCDSEngine(workDir=KTmpPath / 'mcds-out')
+    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out')
 
     # Prepare temporary working folder
     runDir = eng.setupRunFolder(runPrefix='uni')
@@ -407,7 +385,7 @@ def checkEngineAnalysisRun(sampleDataSet, estimKeyFn='UNIFORM', estimAdjustFn='P
     exor = None if runMethod != 'os.system' or timeOut is None else ads.Executor(threads=1)
 
     # Engine
-    eng = ads.MCDSEngine(executor=exor, workDir=KTmpPath / 'mcds-out',
+    eng = ads.MCDSEngine(executor=exor, workDir=uivu.pTmpDir / 'mcds-out',
                          runMethod=runMethod, timeOut=timeOut)
 
     # Run analysis and get results
@@ -444,7 +422,7 @@ def testMcdsSubmitAnalysisReal(sdsRealReduced_fxt):
     sds = sdsRealReduced_fxt
 
     # init MCDSEngine
-    eng = ads.MCDSEngine(workDir=KTmpPath / 'mcds-out')
+    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out')
 
     # Prepare temporary working folder
     runDir = eng.setupRunFolder(runPrefix='uni')
@@ -486,7 +464,7 @@ def testMcdsBuildDistanceDataFile(sdsRealReduced_fxt, dfShortSdsData_fxt):
     sds = sdsRealReduced_fxt
 
     # init MCDSEngine
-    eng = ads.MCDSEngine(workDir=KTmpPath / 'mcds-out')
+    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out')
 
     # Prepare target folder
     tgtDir = pl.Path(eng.workDir, 'distance-in')
@@ -496,7 +474,7 @@ def testMcdsBuildDistanceDataFile(sdsRealReduced_fxt, dfShortSdsData_fxt):
     distDataFileName = \
         eng.buildDistanceDataFile(sds, tgtFilePathName=tgtDir / 'import-data-noextra.txt')
     assert distDataFileName.as_posix() == (tgtDir / 'import-data-noextra.txt').as_posix()
-    refDistDataFileName = KRefOutPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols-import-data-noextra.txt'
+    refDistDataFileName = uivu.pRefOutDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols-import-data-noextra.txt'
     with io.open(distDataFileName) as tst_f, io.open(refDistDataFileName) as ref_f:
         assert list(tst_f) == list(ref_f)
 
@@ -505,14 +483,14 @@ def testMcdsBuildDistanceDataFile(sdsRealReduced_fxt, dfShortSdsData_fxt):
         eng.buildDistanceDataFile(sds, tgtFilePathName=tgtDir / 'import-data-withextra.txt',
                                   withExtraFields=True)
     assert distDataFileName.as_posix() == (tgtDir / 'import-data-withextra.txt').as_posix()
-    refDistDataFileName = KRefOutPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols-import-data-withextra.txt'
+    refDistDataFileName = uivu.pRefOutDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols-import-data-withextra.txt'
     with io.open(distDataFileName) as tst_f, io.open(refDistDataFileName) as ref_f:
         assert list(tst_f) == list(ref_f)
 
     eng.shutdown()
 
     # Case 2: Point transect with radial distance, no extra fields, with clustering.
-    eng = ads.MCDSEngine(workDir=KTmpPath / 'mcds-out', clustering=True)
+    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', clustering=True)
     # Add cluster data to the data set
     dfData = dfShortSdsData_fxt
     dfData['Nombre'] = [1, 2, 1, 1, 2, 3]
@@ -522,7 +500,7 @@ def testMcdsBuildDistanceDataFile(sdsRealReduced_fxt, dfShortSdsData_fxt):
     tgtDir.mkdir(exist_ok=True)
     distDataFileName = \
         eng.buildDistanceDataFile(sds, tgtFilePathName=tgtDir / 'import-data-clusters.txt')
-    refDistDataFileName = KRefOutPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols-import-data-clusters.txt'
+    refDistDataFileName = uivu.pRefOutDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols-import-data-clusters.txt'
     with io.open(distDataFileName) as tst_f, io.open(refDistDataFileName) as ref_f:
         assert list(tst_f) == list(ref_f)
 
@@ -542,16 +520,18 @@ def testMcdsBuildDistanceDataFile(sdsRealReduced_fxt, dfShortSdsData_fxt):
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
-
-    logger.info('Done testing pyaudisam.engine.')
+    uivu.logEnd(what=what2Test)
 
 
 # This pytest-compatible module can also be run as a simple python script.
 if __name__ == '__main__':
 
     run = True
+
     # Run auto-tests (exit(0) if OK, 1 if not).
     rc = -1
+
+    uivu.logBegin(what=what2Test)
 
     if run:
         try:
@@ -576,9 +556,9 @@ if __name__ == '__main__':
             rc = 0
 
         except Exception as exc:
-            logger.exception('Exception: ' + str(exc))
+            logger.exception(f'Exception: {exc}')
             rc = 1
 
-    logger.info('Done unit integration testing ads: {} (code: {})'
-                .format({-1: 'Not run', 0: 'Success'}.get(rc, 'Error'), rc))
+    uivu.logEnd(what=what2Test, rc=rc)
+
     sys.exit(rc)

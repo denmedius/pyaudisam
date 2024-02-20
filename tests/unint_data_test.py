@@ -19,53 +19,29 @@
 #          and check standard output ; and ./tmp/unt-dat.{datetime}.log for details
 
 import sys
-import pathlib as pl
 import time
 
 import pandas as pd
 import numpy as np
 
-import pyaudisam as ads
-
 import pytest
 
+import pyaudisam as ads
 
-# Useful test folders
-KSrcPath = pl.Path(__file__).parent
-KRefInPath = pl.Path('refin')
-KRefOutPath = pl.Path('refout')
+import unintval_utils as uivu
 
-# Temporary work folder (created once in conftest.py if needed).
-KTmpPath = KSrcPath / 'tmp'
 
-# Logger for this module.
-logger = ads.logger('unt.dat')
+# Setup local logger.
+logger = uivu.setupLogger('unt.dat', level=ads.DEBUG,
+                          otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO})
 
+what2Test = 'data'
 
 ###############################################################################
-#                         Actions to be done before any test                  #
+#                         Actions to be done after all tests                  #
 ###############################################################################
 def testBegin():
-
-    # Configure logging.
-    logFilePathName = KTmpPath / 'unt-dat.{}.log'.format(pd.Timestamp.now().strftime('%Y%m%d%H%M'))
-    ads.log.configure(loggers=[dict(name='matplotlib', level=ads.WARNING),
-                               dict(name='ads', level=ads.INFO),
-                               # dict(name='ads.dat', level=ads.WARNING),  # Uncomment to limit log output
-                               dict(name='ads.eng', level=ads.INFO2),
-                               dict(name='unt.dat', level=ads.DEBUG)],
-                      handlers=[logFilePathName], reset=True)
-
-    # Show testing configuration (traceability).
-    logger.info('PyAuDiSam {} from {}'
-                .format(ads.__version__, pl.Path(ads.__path__[0]).resolve().as_posix()))
-    logger.info('Python environment:')
-    logger.info('*  {}: {}'.format(sys.implementation.name, sys.version))
-    logger.info('* platform: {}'.format(sys.platform))
-    for module in ['pytest', 'pandas', 'numpy']:
-        logger.info('* {:>8s}: {}'.format(module, sys.modules[module].__version__))
-
-    logger.info('Testing pyaudisam.data ...')
+    uivu.logBegin(what=what2Test)
 
 
 ###############################################################################
@@ -75,19 +51,19 @@ def testBegin():
 #   and return a list of sources (4 files and 1 DataFrame)
 def sources():
 
-    dfPapAlaArv = pd.read_excel(KRefInPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods')
+    dfPapAlaArv = pd.read_excel(uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods')
 
-    dfPapAlaArv.to_csv(KTmpPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv', sep='\t', index=False)
-    dfPapAlaArv.to_excel(KTmpPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls', index=False)
+    dfPapAlaArv.to_csv(uivu.pTmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv', sep='\t', index=False)
+    dfPapAlaArv.to_excel(uivu.pTmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls', index=False)
 
     # DataSet from multiple sources from various formats (same columns).
     # For test, list of require to contain 1 DataFrame, and one or several
     # source files (one for each different extension)
     # DataFrame and all files need to contain the same data
-    srcs = [KRefInPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',  # Need for module odfpy
-            KRefInPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',  # Need for module openpyxl (or xlrd)
-            KTmpPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls',  # No need for xlwt(openpyxl seems OK)
-            KTmpPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv',
+    srcs = [uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',  # Need for module odfpy
+            uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',  # Need for module openpyxl (or xlrd)
+            uivu.pTmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls',  # No need for xlwt(openpyxl seems OK)
+            uivu.pTmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv',
             dfPapAlaArv]
     return srcs
 
@@ -370,7 +346,7 @@ def testDataSetToFiles(sources_fxt):
     # => toExcel, toOpenDoc, toPickle, compareDataFrames
     closenessThreshold = 15  # => max relative delta = 1e-15
     subsetCols = ['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']
-    filePathName = KTmpPath / 'dataset-uni.ods'
+    filePathName = uivu.pTmpDir / 'dataset-uni.ods'
     dfRef = ds.dfSubData(columns=subsetCols).reset_index(drop=True)
 
     for fpn in [filePathName, filePathName.with_suffix('.xlsx'), filePathName.with_suffix('.xls'),
@@ -442,10 +418,10 @@ def testDataSetCloseness():
 # => compare, compareDataFrames, _toHashable, _closeness
 def testDataSetCompare():
     # a. Loading of Distance 7 and values to compare issued from PyAuDiSam
-    dsDist = ads.DataSet(KRefInPath / 'ACDC2019-Papyrus-ALAARV-TURMER-comp-dist-auto.ods',
+    dsDist = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-TURMER-comp-dist-auto.ods',
                          sheet='RefDist73', skipRows=[3], headerRows=[0, 1, 2], indexCols=0)
 
-    dsAuto = ads.DataSet(KRefInPath / 'ACDC2019-Papyrus-ALAARV-TURMER-comp-dist-auto.ods',
+    dsAuto = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-TURMER-comp-dist-auto.ods',
                          sheet='ActAuto', skipRows=[3], headerRows=[0, 1, 2], indexCols=0)
 
     # b. Index columns to be compared
@@ -525,7 +501,7 @@ def testSDSCtor():
     logger.info0(f'PASS (testSDSCtor) => EXCEPTION RAISED AS AWAITED:\n{e_info.value}')
 
     # Excel source (path as simple string)
-    sds = ads.SampleDataSet(source=KRefInPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',
+    sds = ads.SampleDataSet(source=uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',
                             decimalFields=['EFFORT', 'DISTANCE', 'NOMBRE'])
 
     assert sds.columns.to_list() == ['ZONE', 'HA', 'POINT', 'ESPECE', 'DISTANCE', 'MALE', 'DATE',
@@ -537,7 +513,7 @@ def testSDSCtor():
         'Error: testSDSCtor: inconsistency with data loaded in SDS: Sum of values from column "NOMBRE" should be 217'
 
     # Libre / Open Office source (path as simple string)
-    sds = ads.SampleDataSet(source=KRefInPath / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',
+    sds = ads.SampleDataSet(source=uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',
                             decimalFields=['EFFORT', 'DISTANCE', 'NOMBRE'])
 
     assert sds.columns.to_list() == ['ZONE', 'HA', 'POINT', 'ESPECE', 'DISTANCE', 'MALE', 'DATE',
@@ -548,7 +524,7 @@ def testSDSCtor():
         'Error: testSDSCtor: inconsistency with data loaded in SDS: Sum of values from column "NOMBRE" should be 217'
 
     # CSV source with ',' as decimal point (path as pl.Path)
-    sds = ads.SampleDataSet(source=KRefInPath / 'ACDC2019-Papyrus-TURMER-AB-5mn-1dec-dist.txt',
+    sds = ads.SampleDataSet(source=uivu.pRefInDir / 'ACDC2019-Papyrus-TURMER-AB-5mn-1dec-dist.txt',
                             decimalFields=['Point transect*Survey effort', 'Observation*Radial distance'])
 
     assert not any(sds.dfData[col].dropna().apply(lambda v: isinstance(v, str)).any() for col in sds.decimalFields), \
@@ -564,7 +540,7 @@ def testSDSCtor():
     data loaded in SDS: Sum of values from column "Observation*Radial distance" should be 324'
 
     # CSV source with '.' as decimal point
-    sds = ads.SampleDataSet(source=KRefInPath / 'ACDC2019-Papyrus-ALAARV-AB-10mn-1dotdec-dist.txt',
+    sds = ads.SampleDataSet(source=uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-AB-10mn-1dotdec-dist.txt',
                             decimalFields=['Point transect*Survey effort', 'Observation*Radial distance'])
 
     assert not any(sds.dfData[col].dropna().apply(lambda v: isinstance(v, str)).any() for col in sds.decimalFields), \
@@ -826,24 +802,27 @@ def testMonoCategoryDataSet():
     logger.info0('PASS (testMonoCategoryDataSet) => performance: _selectSampleSightings + _addAbsenceSightings')
 
 
-
 ###############################################################################
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
 
-    logger.info('Done testing pyaudisam.data.')
+    uivu.logEnd(what=what2Test)
 
 
 # This pytest-compatible module can also be run as a simple python script.
 if __name__ == '__main__':
 
     run = True
+
     # Run auto-tests (exit(0) if OK, 1 if not).
     rc = -1
 
+    uivu.logBegin(what=what2Test)
+
     if run:
         try:
+            # Let's go.
             testBegin()
 
             # Tests for DataSet
@@ -865,15 +844,19 @@ if __name__ == '__main__':
             testFieldDataSet()
             testMonoCategoryDataSet()
 
+            # Tests for ResultsSet
+            # => See unint_analyser_results_test and unint_optanalyser_results_test
+
+            # Done.
             testEnd()
 
             # Success !
             rc = 0
 
         except Exception as exc:
-            logger.exception('Exception: ' + str(exc))
+            logger.exception(f'Exception: {exc}')
             rc = 1
 
-    logger.info('Done unit integration testing pyaudisam.data: {} (code: {})'
-                .format({-1: 'Not run', 0: 'Success'}.get(rc, 'Error'), rc))
+    uivu.logEnd(what=what2Test, rc=rc)
+
     sys.exit(rc)

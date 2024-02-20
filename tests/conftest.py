@@ -13,17 +13,13 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see https://www.gnu.org/licenses/.
 
-# Pytest configuration file for all automated unit and integration tests
+# Pytest configuration file for all automated unit, integration and validation tests
 
 import sys
 import pathlib as pl
 
 
-KTestSrcPath = pl.Path(__file__).parent
+_pTestDir = pl.Path(__file__).parent
 
 # Update PYTHONPATH for pyaudisam package to be importable.
-sys.path.insert(0, KTestSrcPath.parent.as_posix())
-
-# Temporary work folder.
-tmpDir = KTestSrcPath / 'tmp'
-tmpDir.mkdir(exist_ok=True)
+sys.path.insert(0, _pTestDir.parent.as_posix())
