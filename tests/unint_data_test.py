@@ -806,7 +806,6 @@ def testMonoCategoryDataSet():
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
-
     uivu.logEnd(what=what2Test)
 
 
