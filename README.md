@@ -19,19 +19,32 @@ The module itself was actually tested extensively with:
 * jinja2 2.10 to 3.1
 * zoopt 0.4
 
+You will get no support outside of this (but porting to python 3.12 is planned for 2024).
+
 As for testing:
 * pytest, pytest-cov
 * plotly (sometimes)
 
 ## Installation
 
-You can install **pyaudisam** from [PyPI](https://pypi.org/project/pyaudisam/)
-in your current python environment (conda or venv, whatever):
+You can install **pyaudisam** from [PyPI](https://pypi.org/project/pyaudisam/) in your current python environment (conda or venv, whatever):
 
 `$ pip install pyaudisam`
 
-TODO: Publish also on [Conda Forge](https://conda-forge.org/), probably following
-      [this recipe](https://jacobtomlinson.dev/posts/2020/publishing-open-source-python-packages-on-github-pypi-and-conda-forge/#conda-forge).  
+TODO: Publish also on [Conda Forge](https://conda-forge.org/), probably following [this recipe](https://jacobtomlinson.dev/posts/2020/publishing-open-source-python-packages-on-github-pypi-and-conda-forge/#conda-forge).  
+
+Or from a downloaded source package:
+
+`$ pip install pyaudisam-1.0.2.tar.gz`
+
+Or from a downloaded wheel package:
+
+`$ pip install pyaudisam-1.0.2-py3-none-any.whl`
+
+Or even directly from GitHub:
+
+`$ pip install git+https://github.com/pypa/sampleproject.git@1.0.2`
+`$ pip install git+https://github.com/pypa/sampleproject.git@main`
 
 ## Usage
 
@@ -60,9 +73,7 @@ TODO:
 
 ## Running tests
 
-You first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install
-a [source package](https://pypi.org/project/pyaudisam/#files): once done, look in the _tests_ sub-folder, 
-everything's inside :
+You first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install a [source package](https://pypi.org/project/pyaudisam/#files): once done, look in the _tests_ sub-folder, everything's inside :
 * some tests are fully automated : after installing pytest, simply run it:
 
   `pytest`
@@ -87,15 +98,15 @@ Note: Don't care about warnings about pyaudisam.mcds and pyaudisam.report being 
 
 Merge requests are very welcome !
 
-And if you are lacking ideas, here are some good ones ;-)
+And if you are lacking ideas, here are some good ones below ;-)
 
 ### To do list
 
-* finish tests automation (move [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) notebooks code to pytest scripts),
+* finish tests automation (move and complete[tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) notebooks code to pytest scripts, after checking the state of this work in progress in tests/\*\_test.py scripts),
 * make pyaudisam work under Linux / Mac OS (all python: OK, but calling MCDS.exe):
   - or: through some kind of external client-server interface to MCDS.exe (that runs only under Windows),
   - or: by porting MCDS to Linux (closed Fortran source, but old, so might be obtained through a polite request to [this Distance Sampling forum](https://groups.google.com/g/distance-sampling) ; BUT, needs an IMSL license, which is horribly expensive).
-  - or: by rewriting MCDS from scratch,
+  - or: by rewriting MCDS from scratch, or by porting the [MRDS Distance package](https://distancesampling.org/) to Python,
   - or: by rewriting MCDS using the [MRDS Distance package](https://distancesampling.org/), meaning some kind of interface to R,
 * build a GUI for pyaudisam command-line (with some kind of "project" concept, and parameter set template, and ...),
 * add support for line transects (only point transects for the moment),
