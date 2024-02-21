@@ -73,7 +73,7 @@ def sampleAbbrev(sSamp):
     return '-'.join(abbrvs)
 
 # c. Samples to be analysed
-sampleSpecFile = dataDir / f'ACDC2019-Samples.xlsx'
+sampleSpecFile = dataDir / f'{studyName}-Samples.xlsx'
 
 # d. Pre-analysis specific parameters
 preResultsHeadCols = dict(before=[sampleIndCol],
@@ -135,9 +135,9 @@ truncIntrvEpsilon = 1e-6
 
 # d. Analyses to run : auto-extraction from opt-analyses spec. file ...
 #    (by simply removing 'auto' truncation parameters)
-analysisSpecFile = dataDir / 'ACDC2019-AnalysesToDo.autogen.xlsx'
+analysisSpecFile = dataDir / f'{studyName}-AnalysesToDo.autogen.xlsx'
 
-_ddfAnlysSpecs = pd.read_excel(dataDir / f'ACDC2019-OptAnalysesToDo.xlsx', sheet_name=None)
+_ddfAnlysSpecs = pd.read_excel(dataDir / f'{studyName}-OptAnalysesToDo.xlsx', sheet_name=None)
 with pd.ExcelWriter(analysisSpecFile) as xlWrtr:
     for sn in _ddfAnlysSpecs:
         if sn != 'TroncaturesAuto_impl':
@@ -179,7 +179,7 @@ defCoreAlgorithm = 'racos'
 defCoreMaxRetries = 0
 
 # b. Opt-analyses to run
-optAnalysisSpecFile = dataDir / f'ACDC2019-OptAnalysesToDo.xlsx'
+optAnalysisSpecFile = dataDir / f'{studyName}-OptAnalysesToDo.xlsx'
 
 # c. Parameters for computations run and follow-up
 runOptAnalysisMethod = 'subprocess.run'
@@ -193,7 +193,7 @@ backupOptimisationsEvery = 50
 # Report parameters (all types of analysis) #############################################
 studyLang = 'en'
 
-reportStudyTitle = f'ACDC 2019 Naturalist'
+reportStudyTitle = 'ACDC 2019 Naturalist'
 reportStudyDescr = "Estimation of common breeding bird populations on the Cournols - Olloix plateau" \
                    " in 2019 though ~100 (x 2 seasonal passes) distance sampling point transects of 5 and 10mn," \
                    " using the Naturalist smartphone app. for field surveys"
