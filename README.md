@@ -15,15 +15,18 @@ As for now, only the Windows MCDS.exe V6 engine and Point Transect analyses are 
 The module itself was actually tested extensively with:
 * python 3.8 only
 * pandas 0.25 to 1.2.5
+* openpyxl 3.0 to 3.1.2
 * matplotlib 3.1 to 3.7
 * jinja2 2.10 to 3.1
-* zoopt 0.4
+* zoopt 0.4.0
+* xlrd 2.0 (only for .xls format support)
 
 You will get no support outside of this (but porting to python 3.12 is planned for 2024).
 
 As for testing:
 * pytest, pytest-cov
 * plotly (sometimes)
+* xlrd >= 2 (only for old .xls format support)
 
 ## Installation
 
@@ -43,8 +46,8 @@ Or from a downloaded wheel package:
 
 Or even directly from GitHub:
 
-`$ pip install git+https://github.com/pypa/sampleproject.git@1.0.2`
-`$ pip install git+https://github.com/pypa/sampleproject.git@main`
+* `$ pip install git+https://github.com/pypa/sampleproject.git@1.0.2`
+* `$ pip install git+https://github.com/pypa/sampleproject.git@main`
 
 ## Usage
 
