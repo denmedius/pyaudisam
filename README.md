@@ -89,17 +89,26 @@ For code corevage during tests, simply run:
 
   `pytest --cov`
 
-Some other tests are not yet autmated: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
+Some other tests are not yet automated: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
 
 ## Building
 
-To build pyaudisam [PyPI](https://pypi.org/project/pyaudisam/) source and binary packages, you first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and extract a [source package](https://pypi.org/project/pyaudisam/#files): once done, it's as simple as:
+To build pyaudisam [PyPI](https://pypi.org/project/pyaudisam/) source and binary packages, you need:
+* a source tree (clone the [source tree](https://github.com/denmedius/pyaudisam) or download and extract a [source package](https://pypi.org/project/pyaudisam/#files)),
+* a python environment where pyaudisam works,
+* the `build` module (to install through pip as an example).
+
+Then, it's as simple as:
 
 `python -m build`
 
 Note: Don't care about warnings about pyaudisam.mcds and pyaudisam.report being recognised as importable,
  but being absent from setuptools' packages configuration ... these folders simply contain
  pyaudisam config. and data files, no python code at all.
+
+You'll get 2 files in the `dist` folder (ex. for version 1.0.2) :
+* the wheel package: `pyaudisam-1.0.2-py3-none-any.whl`
+* the source package: `pyaudisam-1.0.2.tar.gz`
 
 ## Contributing
 
