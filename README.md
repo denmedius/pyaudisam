@@ -26,7 +26,6 @@ You will get no support outside of this (but porting to python 3.12 is planned f
 As for testing:
 * pytest, pytest-cov
 * plotly (sometimes)
-* xlrd >= 2 (only for old .xls format support)
 
 ## Installation
 
@@ -76,16 +75,21 @@ TODO:
 
 ## Running tests
 
-You first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install a [source package](https://pypi.org/project/pyaudisam/#files): once done, look in the _tests_ sub-folder, everything's inside :
-* some tests are fully automated : after installing pytest, simply run it:
+You first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install a [source package](https://pypi.org/project/pyaudisam/#files): once done, look in the _tests_ sub-folder, everything's inside.
+
+Then, you need to install test dependencies:
+
+`$ pip install pyaudisam[test]`
+
+Some tests are fully automated, simply run:
 
   `pytest`
 
-* for code corevage during tests, after installing pytest-cov, simply run:
+For code corevage during tests, simply run:
 
   `pytest --cov`
 
-* some other tests not: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
+Some other tests are not yet autmated: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
 
 ## Building
 
@@ -119,5 +123,5 @@ And if you are lacking ideas, here are some good ones below ;-)
 ### Some hints
 
 Some formal things that I don't plan to change (let's concentrate on substantive content) :-)
-* this code is not blacked or isorted or fully conform to pep8 (but it's clean, commented, and it works),
+* this code is not blacked or isorted or fully conforms to pep8 (but it's clean, commented, and it works),
 * the identifier naming scheme used is old-fashioned: camel case everywhere.
