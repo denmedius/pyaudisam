@@ -102,10 +102,6 @@ Then, it's as simple as:
 
 `python -m build`
 
-Note: Don't care about warnings about pyaudisam.mcds and pyaudisam.report being recognised as importable,
- but being absent from setuptools' packages configuration ... these folders simply contain
- pyaudisam config. and data files, no python code at all.
-
 You'll get 2 files in the `dist` folder (ex. for version 1.0.2) :
 * the wheel package: `pyaudisam-1.0.2-py3-none-any.whl`
 * the source package: `pyaudisam-1.0.2.tar.gz`

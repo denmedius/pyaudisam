@@ -19,7 +19,7 @@
 # ... or the old way (should also work out of the box):
 # $ python setup.py sdist bdist_wheel
 
-from setuptools import setup
+import setuptools as sut
 import pathlib as pl
 import re
 
@@ -39,27 +39,27 @@ with open(here / 'requirements.txt') as file:
     requirements = file.read().splitlines()
 
 # Retrieve extra_requires['test'] from test/requirements.txt
-with open(here / 'test/requirements.txt') as file:
+with open(here / 'tests/requirements.txt') as file:
     # Skip first line "-r requirements.txt" present for direct pip install -r
     test_requirements = file.read().splitlines()[1:]
 
 # This call to setup() does all the final work !
-setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaudisam',
-      description='Distance Sampling automation through python and Distance software',
-      long_description=long_desc, long_description_content_type='text/markdown',
-      author='denmedius', author_email='fefeqe22.vucuqu82@murena.io',
-      license='GPLv3+',
-      classifiers=['Topic :: Software Development :: Libraries',
-                   'Topic :: Software Development :: Libraries :: Python Modules',
-                   'Intended Audience :: Science/Research',
-                   'Development Status :: 3 - Alpha',
-                   'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-                   'Programming Language :: Python :: 3 :: Only',
-                   'Programming Language :: Python :: 3.8',
-                   'Environment :: Win32 (MS Windows)'],
-      packages=['pyaudisam'],
-      include_package_data=True,
-      python_requires='==3.8',
-      install_requires=requirements,
-      extras_require={'test': test_requirements},
-      entry_points={'console_scripts': []})
+sut.setup(name='pyaudisam', version=version, url='https://github.com/denmedius/pyaudisam',
+          description='Distance Sampling automation through python and Distance software',
+          long_description=long_desc, long_description_content_type='text/markdown',
+          author='denmedius', author_email='fefeqe22.vucuqu82@murena.io',
+          license='GPLv3+',
+          classifiers=['Topic :: Software Development :: Libraries',
+                       'Topic :: Software Development :: Libraries :: Python Modules',
+                       'Intended Audience :: Science/Research',
+                       'Development Status :: 3 - Alpha',
+                       'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+                       'Programming Language :: Python :: 3 :: Only',
+                       'Programming Language :: Python :: 3.8',
+                       'Environment :: Win32 (MS Windows)'],
+          packages=['pyaudisam', 'pyaudisam.mcds', 'pyaudisam.report'],
+          include_package_data=True,
+          python_requires='==3.8',
+          install_requires=requirements,
+          extras_require={'test': test_requirements},
+          entry_points={'console_scripts': []})
