@@ -23,8 +23,8 @@ import pyaudisam as ads
 
 # Useful test folders
 pTestDir = pl.Path(__file__).parent
-pRefInDir = pl.Path('refin')
-pRefOutDir = pl.Path('refout')
+pRefInDir = pTestDir / 'refin'
+pRefOutDir = pTestDir / 'refout'
 
 # Temporary work folder.
 pTmpDir = pTestDir / 'tmp'

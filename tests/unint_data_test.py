@@ -37,6 +37,7 @@ logger = uivu.setupLogger('unt.dat', level=ads.DEBUG,
 
 what2Test = 'data'
 
+
 ###############################################################################
 #                         Actions to be done after all tests                  #
 ###############################################################################
@@ -208,8 +209,8 @@ def testDataSetAddComputedColumns(sources_fxt):
     ds = ads.DataSet(sources_fxt, dRenameCols={'MALE': 'SEXE'},
                      dComputeCols={'MALE': sex2bool, 'NEWCOL': ''},
                      sheet='Sheet1', skipRows=None, separator='\t')
-    print(ds.columns)
-    print(ds.dfData.SEXE)
+    logger.info('ds.columns: ' + str(ds.columns))
+    logger.info('ds.dfData.SEXE: ' + str(ds.dfData.SEXE))
     assert ds.dfData['SEXE'].dtype == bool, \
         'Error: testDataSetAddComputedColumns: Issue occurred with process of adding' \
         ' and renaming a new AND computed column.'
@@ -352,7 +353,7 @@ def testDataSetToFiles(sources_fxt):
     for fpn in [filePathName, filePathName.with_suffix('.xlsx'), filePathName.with_suffix('.xls'),
                 filePathName.with_suffix('.pickle'), filePathName.with_suffix('.pickle.xz')]:
 
-        print(fpn.as_posix(), end=' : ')
+        logger.info(fpn.as_posix() + ' : ')
         if fpn.suffix == '.ods':
             ds.toOpenDoc(fpn, sheetName='utest', subset=subsetCols, index=False)
         elif fpn.suffix in ['.xlsx', '.xls']:
@@ -371,9 +372,8 @@ def testDataSetToFiles(sources_fxt):
         assert ds.compareDataFrames(df.reset_index(), dfRef.reset_index(),
                                     subsetCols=['POINT', 'DISTANCE', 'INDIVIDUS', 'EFFORT'],
                                     indexCols=['index'], dropCloser=closenessThreshold, dropNans=True).empty
-        print('1e-{} comparison OK (df.equals(dfRef) is {}, df.compare(dfRef) {}empty)'
-              .format(closenessThreshold, df.equals(dfRef), '' if df.compare(dfRef).empty else 'not')), \
-            'Error: testDataSetToFiles'
+        logger.info('1e-{} comparison OK (df.equals(dfRef) is {}, df.compare(dfRef) {}empty)'
+                    .format(closenessThreshold, df.equals(dfRef), '' if df.compare(dfRef).empty else 'not'))
 
     logger.info0('PASS (testDataSetToFiles) => DATASET => method "toExcel",'
                  ' "toOpenDoc", "toPickle", "compareDataFrames"')
@@ -395,7 +395,7 @@ def testDataSetCloseness():
             try:
                 aClose[r, c] = ds._closeness(pd.Series([values[r], values[c]]))
             except Exception as e:
-                print(e, r, c, values[r], values[c])
+                logger.info(f'{e} {r}, {c}, {values[r]}, {values[c]}')
                 raise
 
     # Infinite closeness on the diagonal (except for nan and +/-inf)
@@ -451,7 +451,7 @@ def testDataSetCompare():
     assert len(dfRelDiff) == 3, \
         'Error: testCompare: compare: Issue occurred. Row by row comparison of both DataSet' \
         ' with accuracy of 10**-16 should fail for all rows but 3.'
-    print(dfRelDiff)
+    logger.info('dfRelDiff:' + dfRelDiff.to_string())
 
     # # e. Comparison with 10**-5 accuracy : all lines pass
     dfRelDiff = dsDist.compare(dsAuto, subsetCols=subsetCols, indexCols=indexCols, dropCloser=5, dropNans=True)
@@ -575,7 +575,7 @@ KFdsCountCols = ['nMalAd10', 'nAutAd10', 'nMalAd5', 'nAutAd5']
 def testFieldDataSet():
 
     # ### a. Load data sample
-    dfObs = pd.read_csv('refin/ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt', sep='\t', decimal=',')
+    dfObs = pd.read_csv(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt', sep='\t', decimal=',')
     dfObs.head()
 
     sCounts = dfObs[KFdsCountCols].sum()
@@ -646,7 +646,7 @@ def testFieldDataSet():
     logger.info0('PASS (testFieldDataSet) => individualise')
 
     # Second, try from source CSV file
-    fds = ads.FieldDataSet(source='refin/ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
+    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
                            importDecFields=['distMem'], countCols=KFdsCountCols,
                            addMonoCatCols={'Adulte': count2AdultCat, 'Durée': count2DurationCat})
 
@@ -665,7 +665,7 @@ def testFieldDataSet():
 def testMonoCategoryDataSet():
 
     # Setup source FDS
-    fds = ads.FieldDataSet(source='refin/ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
+    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
                            importDecFields=['distMem'], countCols=KFdsCountCols,
                            addMonoCatCols={'Adulte': count2AdultCat, 'Durée': count2DurationCat})
 
@@ -795,7 +795,7 @@ def testMonoCategoryDataSet():
                         logger.info(f'{esp}, {pas}, {ad}, {dur}: {len(dfObsIndivSmpl)}'
                                     f' => {len(dfObsIndivAbscSmpl_)}')
                     except Exception as e:
-                        print(e)
+                        logger.exception(e)
     end = time.perf_counter()
     logger.info(f'Elapsed time: {end - start}')
 
