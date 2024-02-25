@@ -443,7 +443,7 @@ if __name__ == '__main__':
             rc = 0
 
         except Exception as exc:
-            logger.exception('Exception: ' + str(exc))
+            logger.exception(f'Exception: {exc}')
             rc = 1
 
     uivu.logEnd(what=what2Test, rc=rc)
