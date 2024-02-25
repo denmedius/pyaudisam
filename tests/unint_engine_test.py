@@ -297,30 +297,32 @@ def testMcdsRun(dfShortSdsData_fxt):
     # Measure of performances (low level analysis execution)
     # BE CAREFUL: time.process_time() uses relative time for comparison only of codes among the same environment
     # NOT A REAL TIME reference
-    dfTimePerf = pd.DataFrame(columns=['OSS', 'SPR'], index=list('Cycle' + str(i) for i in range(1, 11)))
+    dfTimePerf = pd.DataFrame(columns=['OSS', 'SPR'])
 
     for cycle in range(10):
         start = time.perf_counter()
         for _ in range(5):
             _, _, _ = eng._run(eng.ExeFilePathName, cmdFileName, forReal=True, method=eng.runMethod)
         end = time.perf_counter()
-        dfTimePerf.iloc[cycle, 0] = end - start
+        dfTimePerf.at[cycle + 1, 'OSS'] = end - start
 
     for cycle in range(10):
         start = time.perf_counter()
         for _ in range(5):
             _, _, _ = eng._run(eng.ExeFilePathName, cmdFileName, forReal=True, method='subprocess.run')
         end = time.perf_counter()
-        dfTimePerf.iloc[cycle, 1] = end - start
+        dfTimePerf.at[cycle + 1, 'SPR'] = end - start
 
     dfTimePerf['OSS-faster'] = dfTimePerf.OSS < dfTimePerf.SPR
     dfTimePerf['%_vs_OSS'] = ((dfTimePerf.SPR - dfTimePerf.OSS) / dfTimePerf.OSS) * 100
 
     logger.info0('Performance: 10 loops of 5 runs (OSS = "os.system" ; SPR = "subprocess.run")')
     logger.info0('\n' + dfTimePerf.to_string(float_format=lambda f: f'{f:.2f}'))
-    logger.info0(f'For "os.system": Mean +/- Std Dev = {dfTimePerf.OSS.mean():.2f} +/- {dfTimePerf.OSS.std():.2f}')
+    logger.info0(f'For "os.system": Mean +/- Std Dev = {dfTimePerf.OSS.mean():.2f}s +/- {dfTimePerf.OSS.std():.2f}')
     logger.info0(
-        f'For "subprocess.run": Mean +/- Std Dev = {dfTimePerf.SPR.mean():.2f} +/- {dfTimePerf.SPR.std():.2f}')
+        f'For "subprocess.run": Mean +/- Std Dev = {dfTimePerf.SPR.mean():.2f}s +/- {dfTimePerf.SPR.std():.2f}')
+    logger.info0(
+        f"%_vs_OSS: Mean +/- Std Dev = {dfTimePerf['%_vs_OSS'].mean():.1f}% +/- {dfTimePerf['%_vs_OSS'].std():.1f}")
 
     logger.info0('PASS testMcdsRun: _run, _runThroughOSSystem, _runThroughSubProcessRun')
 
@@ -380,8 +382,7 @@ KRunCheckErrMsg = {ads.MCDSEngine.RCOK: 'Oh, oh, should have run smoothly and su
 
 
 def checkEngineAnalysisRun(sampleDataSet, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC',
-                           cvInterval=95,
-                           minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
+                           cvInterval=95, minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
                            runMethod='os.system', timeOut=None, expectRunCode=ads.MCDSEngine.RCOK):
     # Need for an async. executor for time limit checking with os.system run method.
     exor = None if runMethod != 'os.system' or timeOut is None else ads.Executor(threads=1)
@@ -398,6 +399,7 @@ def checkEngineAnalysisRun(sampleDataSet, estimKeyFn='UNIFORM', estimAdjustFn='P
                              fitDistCuts=fitDistCuts, discrDistCuts=discrDistCuts)
 
     try:
+        startTime = None
         if timeOut is not None:
             startTime = pd.Timestamp.now()  # In case of cofu.TimeoutError
         runCode, startTime, elapsedTime, runDir, sResults = fut.result(timeout=timeOut)
@@ -432,28 +434,34 @@ def testMcdsSubmitAnalysisReal(sdsRealReduced_fxt):
 
     # No time limit
     checkEngineAnalysisRun(sds, estimKeyFn='NEXPON', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95,
+                           minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
                            runMethod='os.system', timeOut=None, expectRunCode=ads.MCDSEngine.RCWarnings)
 
     # Some time limit, but too long to stop analysis.
     checkEngineAnalysisRun(sds, estimKeyFn='HNORMAL', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95,
+                           minDist=40, maxDist=300, fitDistCuts=[60, 80, 100, 140, 180, 230], discrDistCuts=6,
                            runMethod='os.system', timeOut=3, expectRunCode=ads.MCDSEngine.RCWarnings)
 
     # Too short time limit => analysis time-out (but MCDS goes on to its end : no kill done by executor)
     checkEngineAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
+                           minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
                            runMethod='os.system', timeOut=0.1, expectRunCode=ads.MCDSEngine.RCTimedOut)
 
     logger.info('Look: MCDS was not killed, it has gone to its end, whereas the analysis has timed-out')
 
     # No time limit
     checkEngineAnalysisRun(sds, estimKeyFn='NEXPON', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95,
+                           minDist=40, maxDist=250, fitDistCuts=7, discrDistCuts=[60, 80, 100, 120, 160, 200],
                            runMethod='subprocess.run', timeOut=None, expectRunCode=ads.MCDSEngine.RCWarnings)
 
     # Some time limit, but too long to stop analysis.
     checkEngineAnalysisRun(sds, estimKeyFn='HNORMAL', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
+                           minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
                            runMethod='subprocess.run', timeOut=3, expectRunCode=ads.MCDSEngine.RCErrors)
 
     # Too short time limit => analysis time-out (but MCDS goes on to its end : no kill done by executor)
     checkEngineAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
+                           minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
                            runMethod='subprocess.run', timeOut=0.05, expectRunCode=ads.MCDSEngine.RCTimedOut)
 
     logger.info('Look: MCDS was actually killed on time-out')
