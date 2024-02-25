@@ -240,7 +240,6 @@ def testMcdsPreAnlysCtorSubmitGetResults(sampleDataSet_fxt):
     raise NotImplementedError('testMcdsPreAnlysCtorSubmitGetResults: TODO !')
 
 
-
 ###############################################################################
 #                         Actions to be done after all tests                  #
 ###############################################################################
