@@ -52,24 +52,24 @@ def testBegin():
 ###############################################################################
 #                Test function and related tooling functions                  #
 ###############################################################################
-def testDsExecutableNotFound():
+def testDsFindExecutable():
 
-    with pytest.raises(Exception) as e_info:
-        ads.MCDSEngine().findExecutable('WrongName')
-    logger.info0(f'PASS (test_executableNotFound) => EXCEPTION RAISED AS AWAITED:\n{e_info.value}')
+    with pytest.raises(OSError) as exc_info:
+        ads.DSEngine.findExecutable('WrongName')
+    logger.info0(f'PASS testDsFindExecutable: Exception raised as awaited: {exc_info}')
 
 
 def testMcdsCtor():
 
     # test Exception raising with one of unsupported characters in workdir string (space) - first way
-    with pytest.raises(Exception) as e_info:
+    with pytest.raises(Exception) as exc_info:
         ads.MCDSEngine(workDir=uivu.pTmpDir.as_posix() + '/test out')  # Simple string path
-    logger.info0(f'PASS (test_MCDS_Ctor) => EXCEPTION RAISED AS AWAITED:\n{e_info.value}')
+    logger.info0(f'PASS testMcdsCtor: Exception raised as awaited: {exc_info}')
 
     # test Exception raising with one of unsupported characters in workdir string (space) - second way
-    with pytest.raises(Exception) as e_info:
+    with pytest.raises(Exception) as exc_info:
         ads.MCDSEngine(workDir=uivu.pTmpDir / 'test out')  # pl.Path path
-    logger.info0(f'PASS (test_MCDS_Ctor) => EXCEPTION RAISED AS AWAITED:\n{e_info.value}')
+    logger.info0(f'PASS testMcdsCtor: Exception raised as awaited: {exc_info}')
 
     # test preferred method to initiate MCDSEngine
     assert ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', runMethod='os.system'), \
@@ -80,26 +80,30 @@ def testMcdsCtor():
 
     # test Specs DataFrames not empty
     # TODO: improve for deeper test ???
-    assert not any([ads.MCDSEngine().statRowSpecs().empty, ads.MCDSEngine().statModSpecs().empty,
-                    ads.MCDSEngine().statModCols().empty, ads.MCDSEngine().statModNotes().empty,
-                    ads.MCDSEngine().statModColTrans().empty]), \
+    assert not any([ads.MCDSEngine.statRowSpecs().empty, ads.MCDSEngine.statModSpecs().empty,
+                    ads.MCDSEngine.statModCols().empty, ads.MCDSEngine.statModNotes().empty,
+                    ads.MCDSEngine.statModColTrans().empty]), \
         'Specs DataFrames: issue occurred with initialization from external files'
 
-    logger.info0('PASS => MCDSEngine => Constructor and methods "_run", "_runThroughOSSystem",'
-                 ' "_runThroughSubProcessRun", "loadStatSpecs" and setters for related class variables')
+    logger.info0('PASS testMcdsCtor: Constructor, _run, _runThroughOSSystem,'
+                 ' _runThroughSubProcessRun, loadStatSpecs, setters')
 
 
 def testDsSetupRunFolder():
 
+    # i. Non-empty run prefix with spaces and special chars
     runDir = ads.MCDSEngine().setupRunFolder(runPrefix=' t,e.s:t; ( )_setupRunFolder')
-
     assert not re.search('[ ,.:;()/]', str(runDir)), \
         'Error: test_MCDS_setupRunFolder: Setup directory: unsupported chars should have been cleaned up'
     assert runDir.exists(), 'Error: test_MCDS_setupRunFolder: temporary directory not created'
-    # clean-up: tmp directory deleted
-    runDir.rmdir()
+    runDir.rmdir()  # clean-up
 
-    logger.info0('PASS => MCDSEngine => method "setupRunFolder"')
+    # ii. Empty run prefix
+    runDir = ads.MCDSEngine().setupRunFolder()
+    assert runDir.exists(), 'Error: testDsSetupRunFolder: temporary directory not created'
+    runDir.rmdir()  # clean-up
+
+    logger.info0('PASS testDsSetupRunFolder: setupRunFolder')
 
 
 # Generate a DataFrame (returned) suite bale for creating a short SampleDataSet
@@ -131,9 +135,9 @@ def testMcdsBuildExportTable(dfShortSdsData_fxt):
     dfData.drop(['Surface'], axis=1, inplace=True)  # to create missing field
 
     # test exception raised if at least one field missing vs DSEngine.ImportFieldAliasREs
-    with pytest.raises(Exception) as e_info:
+    with pytest.raises(Exception) as exc_info:
         _, _ = eng.buildExportTable(ads.SampleDataSet(dfData), withExtraFields=True, decPoint='.')
-    logger.info0(f'PASS (test_buildExportTable) => EXCEPTION RAISED AS AWAITED:\n{e_info.value}')
+    logger.info0(f'PASS (test_buildExportTable) => EXCEPTION RAISED AS AWAITED:\n{exc_info}')
 
     # missing field added
     dfData['Surface'] = '2400'
@@ -166,7 +170,7 @@ def testMcdsBuildExportTable(dfShortSdsData_fxt):
             'Error: test_buildExportTable: issue with decimal fields: values of exported DataFrame' \
             "should have same values than source, but as string type (and NaN changed to '')"
 
-    logger.info0('PASS => MCDSEngine => methods "buildExportTable", "matchDataFields" and "safeFloat2Str"')
+    logger.info0('PASS testMcdsBuildExportTable: buildExportTable, matchDataFields, safeFloat2Str')
 
 
 def testMcdsBuildDataFile(dfShortSdsData_fxt):
@@ -189,7 +193,7 @@ def testMcdsBuildDataFile(dfShortSdsData_fxt):
     # clean-up: 'mcds-out' directory and content deleted
     shutil.rmtree(uivu.pTmpDir / 'mcds-out')
 
-    logger.info0('PASS => MCDSEngine => methods "buildDataFile"')
+    logger.info0('PASS testMcdsBuildDataFile: buildDataFile"')
 
 
 def testMcdsBuildCmdFile():
@@ -223,7 +227,7 @@ def testMcdsBuildCmdFile():
     # clean-up: 'mcds-out' directory and content deleted
     shutil.rmtree(uivu.pTmpDir / 'mcds-out')
 
-    logger.info0('PASS => MCDSEngine => methods "buildCmdFile"')
+    logger.info0('PASS testMcdsBuildCmdFile: buildCmdFile"')
 
 
 def testMcdsComputeSampleStats(dfShortSdsData_fxt):
@@ -243,7 +247,7 @@ def testMcdsComputeSampleStats(dfShortSdsData_fxt):
     assert (sSmpStats.index == eng.MIStatSampCols).all()
     assert (sSmpStats.values == [4, 7.2, 83.0]).all()
 
-    logger.info0('PASS => MCDSEngine => methods "computeSampleStats"')
+    logger.info0('PASS testMcdsComputeSampleStats: computeSampleStats"')
 
 
 def testMcdsRun(dfShortSdsData_fxt):
@@ -269,8 +273,8 @@ def testMcdsRun(dfShortSdsData_fxt):
     runStatus, startTime, elapsedTime = eng._run(eng.ExeFilePathName, cmdFileName, forReal=False,
                                                  method='subprocess.run')
     # test appropriate outputs
-    assert runStatus == 0 and startTime is pd.NaT and elapsedTime == 0, 'Error: test__run: issue occured with \
-    debug mode (forReal=False ; runMethod=subprocess.run)'
+    assert runStatus == 0 and startTime is pd.NaT and elapsedTime == 0, \
+        'Error: testMcdsRun: issue occurred with debug mode (forReal=False ; runMethod=subprocess.run)'
 
     # JUST TESTING that no exception is raised (no specific tests)
     # run with Warning Status (2) as for JPM test in notebook "unintests.ipynb"
@@ -280,6 +284,11 @@ def testMcdsRun(dfShortSdsData_fxt):
     # Real mode -  subprocess.run method
     _, _, _ = eng._run(eng.ExeFilePathName, cmdFileName, forReal=True, method='subprocess.run')
 
+    # Unknown run method
+    with pytest.raises(NotImplementedError) as exc_info:
+        _, _, _ = eng._run(eng.ExeFilePathName, cmdFileName, method='unknown')
+    logger.info0(f'Unknown run method: NotImplementedError raised as awaited: {exc_info}')
+
     # Timeout
     runStatus, startTime, engElapsedTime = \
         eng._run(eng.ExeFilePathName, cmdFileName, forReal=True, method='subprocess.run', timeOut=0.01)
@@ -288,42 +297,32 @@ def testMcdsRun(dfShortSdsData_fxt):
     # Measure of performances (low level analysis execution)
     # BE CAREFUL: time.process_time() uses relative time for comparison only of codes among the same environment
     # NOT A REAL TIME reference
-    timePerf = pd.DataFrame(columns=['OSS', 'SPR'], index=list('Cycle' + str(i) for i in range(1, 11)))
+    dfTimePerf = pd.DataFrame(columns=['OSS', 'SPR'], index=list('Cycle' + str(i) for i in range(1, 11)))
 
-    i = 0
-    while i < 10:
-        j = 0
+    for cycle in range(10):
         start = time.perf_counter()
-        while j < 5:
+        for _ in range(5):
             _, _, _ = eng._run(eng.ExeFilePathName, cmdFileName, forReal=True, method=eng.runMethod)
-            j += 1
         end = time.perf_counter()
+        dfTimePerf.iloc[cycle, 0] = end - start
 
-        timePerf.iloc[i, 0] = end - start
-        i += 1
-
-    i = 0
-    while i < 10:
-        j = 0
+    for cycle in range(10):
         start = time.perf_counter()
-        while j < 5:
+        for _ in range(5):
             _, _, _ = eng._run(eng.ExeFilePathName, cmdFileName, forReal=True, method='subprocess.run')
-            j += 1
         end = time.perf_counter()
+        dfTimePerf.iloc[cycle, 1] = end - start
 
-        timePerf.iloc[i, 1] = end - start
-        i += 1
+    dfTimePerf['OSS-faster'] = dfTimePerf.OSS < dfTimePerf.SPR
+    dfTimePerf['%_vs_OSS'] = ((dfTimePerf.SPR - dfTimePerf.OSS) / dfTimePerf.OSS) * 100
 
-    timePerf['OSS-faster'] = timePerf['OSS'] < timePerf['SPR']
-    timePerf['%_vs_OSS'] = ((timePerf['SPR'] - timePerf['OSS']) / timePerf['OSS']) * 100
-
-    logger.info0('\n\nPerformance: 10 loops of 5 runs (OSS = "os.system" ; SPR = "subprocess.run")\n')
-    logger.info0(f'\n{timePerf.to_markdown(floatfmt=".2f")}\n')
-    logger.info0(f'For "os.system": Mean +/- Std Dev = {timePerf["OSS"].mean():.2f} +/- {timePerf["OSS"].std():.2f}')
+    logger.info0('Performance: 10 loops of 5 runs (OSS = "os.system" ; SPR = "subprocess.run")')
+    logger.info0('\n' + dfTimePerf.to_string(float_format=lambda f: f'{f:.2f}'))
+    logger.info0(f'For "os.system": Mean +/- Std Dev = {dfTimePerf.OSS.mean():.2f} +/- {dfTimePerf.OSS.std():.2f}')
     logger.info0(
-        f'For "subprocess.run": Mean +/- Std Dev = {timePerf["SPR"].mean():.2f} +/- {timePerf["SPR"].std():.2f}\n\n')
+        f'For "subprocess.run": Mean +/- Std Dev = {dfTimePerf.SPR.mean():.2f} +/- {dfTimePerf.SPR.std():.2f}')
 
-    logger.info0('PASS => MCDSEngine => methods "_run", "_runThroughOSSystem" and "_runThroughSubProcessRun"')
+    logger.info0('PASS testMcdsRun: _run, _runThroughOSSystem, _runThroughSubProcessRun')
 
 
 #   Generate a reduced real-life SampleDataSet
@@ -370,6 +369,8 @@ def testMcdsSubmitAnalysisDebug(sdsRealReduced_fxt):
     assert runCode == ads.MCDSEngine.RCNotRun, 'Should have NOT run (run code = 0)'
     logger.info('Debug run:\n' + str(dict(runCode=runCode, runDir=runDir,
                                           startTime=startTime, elapsedTime=elapsedTime, sResults=sResults)))
+
+    logger.info0('PASS testMcdsSubmitAnalysisDebug: Ctor, setupRunFolder, submitAnalysis')
 
 
 # ### g. High level analysis execution  (via executor), real mode
@@ -457,6 +458,8 @@ def testMcdsSubmitAnalysisReal(sdsRealReduced_fxt):
 
     logger.info('Look: MCDS was actually killed on time-out')
 
+    logger.info0('PASS testMcdsSubmitAnalysisReal: Ctor, setupRunFolder, submitAnalysis')
+
 
 # h. Generate input data files for interactive Distance software
 #   ('point transect' mode only as for now)
@@ -507,6 +510,8 @@ def testMcdsBuildDistanceDataFile(sdsRealReduced_fxt, dfShortSdsData_fxt):
 
     eng.shutdown()
 
+    logger.info0('PASS testMcdsBuildDistanceDataFile: Ctor, buildDistanceDataFile')
+
 
 # i. TODO:  Test lower level code
 # * loadDataFile
@@ -538,7 +543,7 @@ if __name__ == '__main__':
         try:
             testBegin()
 
-            testDsExecutableNotFound()
+            testDsFindExecutable()
             testMcdsCtor()
             testDsSetupRunFolder()
             testMcdsBuildExportTable(dfShortSdsData())

@@ -86,7 +86,7 @@ class DSEngine(object):
                 break
 
         if not exeFilePathName:
-            raise Exception('Could not find {} ; please install Distance software (V6 or later)'.format(exeFileName))
+            raise OSError(f'Could not find {exeFileName} ; please install Distance software (V6 or later)')
 
         runtime.update({'DS engine': exeFilePathName.as_posix()})
             
