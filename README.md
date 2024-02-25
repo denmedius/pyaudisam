@@ -33,20 +33,18 @@ You can install **pyaudisam** from [PyPI](https://pypi.org/project/pyaudisam/) i
 
 `$ pip install pyaudisam`
 
-TODO: Publish also on [Conda Forge](https://conda-forge.org/), probably following [this recipe](https://jacobtomlinson.dev/posts/2020/publishing-open-source-python-packages-on-github-pypi-and-conda-forge/#conda-forge).  
-
 Or from a downloaded source package:
 
-`$ pip install pyaudisam-1.0.2.tar.gz`
+`pip install pyaudisam-1.0.2.tar.gz`
 
 Or from a downloaded wheel package:
 
-`$ pip install pyaudisam-1.0.2-py3-none-any.whl`
+`pip install pyaudisam-1.0.2-py3-none-any.whl`
 
 Or even directly from GitHub:
 
-* `$ pip install git+https://github.com/pypa/sampleproject.git@1.0.2`
-* `$ pip install git+https://github.com/pypa/sampleproject.git@main`
+* `pip install git+https://github.com/pypa/sampleproject.git@1.0.2`
+* `pip install git+https://github.com/pypa/sampleproject.git@main`
 
 ## Usage
 
@@ -64,7 +62,7 @@ Whichever method, the best way to go is to read the concrete quick-start guide :
 * a concrete ["quick-start" guide](https://github.com/denmedius/pyaudisam/blob/main/docs/howto-acdc19-nat/howto.md) with a real life use case and relevant field data to play with,
 * another similar but shorter concrete ["quick-start guide" (in French)](http://jpmeuret.free.fr/ds/acdc19/materiau-public.zip) (command-line only) with the full field data set of the "ACDC 2019" birding study.
 
-Note: You can also get a detailled idea of how to use pyaudisam python API by playing with the fully functional [jupyter](https://jupyter.org/) notebook [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) (see below [Running tests](#running-tests) for how to obtain and run it).
+Note: You can also get a detailed idea of how to use pyaudisam python API by playing with the fully functional [jupyter](https://jupyter.org/) notebook [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) (see below [Running tests](#running-tests) for how to obtain and run it).
 
 TODO:
 * complete the quick start guides above by other small and focused articles to explain some mandatory details:
@@ -79,17 +77,21 @@ You first need to clone the [source tree](https://github.com/denmedius/pyaudisam
 
 Then, you need to install test dependencies:
 
-`$ pip install pyaudisam[test]`
+`pip install pyaudisam[test]`
 
 Some tests are fully automated, simply run:
 
-  `pytest`
+`pytest`
 
-For code corevage during tests, simply run:
+For code coverage during tests, simply run:
 
-  `pytest --cov`
+`pytest --cov`
 
-Some other tests are not yet automated: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
+Or even, if you want an HTML report with annotated code coverage:
+
+`pytest --cov --cov-report html`
+
+Note: Some other tests are not yet automated: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
 
 ## Building
 
@@ -114,8 +116,9 @@ And if you are lacking ideas, here are some good ones below ;-)
 
 ### To do list
 
+* publish also pyaudisam on [Conda Forge](https://conda-forge.org/), probably following [this recipe](https://jacobtomlinson.dev/posts/2020/publishing-open-source-python-packages-on-github-pypi-and-conda-forge/#conda-forge),
 * finish tests automation (move and complete[tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) notebooks code to pytest scripts, after checking the state of this work in progress in tests/\*\_test.py scripts),
-* make pyaudisam work under Linux / Mac OS (all python: OK, but calling MCDS.exe):
+* make pyaudisam work under Linux / macOS (all python: OK, but ... calling MCDS.exe, that runs exclusively under Windows):
   - or: through some kind of external client-server interface to MCDS.exe (that runs only under Windows),
   - or: by porting MCDS to Linux (closed Fortran source, but old, so might be obtained through a polite request to [this Distance Sampling forum](https://groups.google.com/g/distance-sampling) ; BUT, needs an IMSL license, which is horribly expensive).
   - or: by rewriting MCDS from scratch, or by porting the [MRDS Distance package](https://distancesampling.org/) to Python,
