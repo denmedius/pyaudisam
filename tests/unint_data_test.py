@@ -580,7 +580,7 @@ def testFieldDataSet():
 
     sCounts = dfObs[KFdsCountCols].sum()
 
-    logger.info('Data sample: len={len(dfObs)}, sums={sCounts.to_dict()}')
+    logger.info(f'Data sample: len={len(dfObs)}, sums={sCounts.to_dict()}')
 
     assert len(dfObs) == 724
     assert not any(sCounts - pd.Series({'nMalAd10': 613, 'nAutAd10': 192, 'nMalAd5': 326, 'nAutAd5': 102}))

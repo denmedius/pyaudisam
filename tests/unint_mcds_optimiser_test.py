@@ -1,5 +1,7 @@
 # coding: utf-8
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
+import lzma
+import pickle
 import re
 # Copyright (C) 2021 Jean-Philippe Meuret
 
@@ -18,9 +20,12 @@ import re
 #          and check standard output ; and ./tmp/unt-ars.{datetime}.log for details
 
 import sys
+import pathlib as pl
 
 import numpy as np
 import pandas as pd
+
+import pytest
 
 import pyaudisam as ads
 
@@ -222,16 +227,29 @@ def count2DurationCat(sCounts):
     return '5mn' if '5' in sCounts[sCounts > 0].index[0] else '10mn'
 
 
-def testMcdsTruncOpterCtorGetXxxParams():
+KFdsCountCols = ['nMalAd10', 'nAutAd10', 'nMalAd5', 'nAutAd5']
+
+
+# Create an individualised sightings data set
+def indivSightings():
+    
+    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
+                           importDecFields=['distMem'], countCols=KFdsCountCols,
+                           addMonoCatCols={'Adulte': count2AdultCat, 'Durée': count2DurationCat})
+    
+    return fds.individualise()
+
+
+@pytest.fixture
+def indivSightings_fxt():
+    return indivSightings()
+
+
+def testMcdsTruncOpterCtorGetParams(indivSightings_fxt):
 
     # ### a. Individualised data set
-    countCols = ['nMalAd10', 'nAutAd10', 'nMalAd5', 'nAutAd5']
-
-    fds = ads.FieldDataSet(source='refin/ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
-                           importDecFields=['distMem'], countCols=countCols,
-                           addMonoCatCols={'Adulte': count2AdultCat, 'Durée': count2DurationCat})
-    dfObsIndiv = fds.individualise()
-    dfObsIndiv.drop(columns=countCols, inplace=True)
+    dfObsIndiv = indivSightings_fxt
+    dfObsIndiv.drop(columns=KFdsCountCols, inplace=True)
     dfObsIndiv.tail()
 
     transectPlaceCols = ['Point']
@@ -257,7 +275,7 @@ def testMcdsTruncOpterCtorGetXxxParams():
              dfObsIndiv, effortConstVal=1, dSurveyArea=dSurveyArea,
              transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
              sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistCol=sampleDistCol,
-             workDir=uivu.pTmpDir/ 'mcds-optr', runMethod='os.system', runTimeOut=120)
+             workDir=uivu.pTmpDir / 'mcds-optr', runMethod='os.system', runTimeOut=120)
     except AssertionError as exc:
         if re.search("Can't care about .+s execution time limit", str(exc)):
             logger.info('Good: Expected refuse to work for incompatible params')
@@ -272,7 +290,7 @@ def testMcdsTruncOpterCtorGetXxxParams():
          distanceUnit='Meter', areaUnit='Hectare',
          surveyType='Point', distanceType='Radial', clustering=False,
          resultsHeadCols=dict(before=[varIndCol], sample=sampleSelCols, after=[anlysAbbrevCol]),
-         abbrevCol=anlysAbbrevCol, workDir=uivu.pTmpDir/ 'mcds-optr', logData=False,
+         abbrevCol=anlysAbbrevCol, workDir=uivu.pTmpDir / 'mcds-optr', logData=False,
          defEstimKeyFn='HNO', defEstimAdjustFn='COS',
          defEstimCriterion='AIC', defCVInterval=95,
          defExpr2Optimise='chi2', defMinimiseExpr=False,
@@ -646,9 +664,235 @@ def testMcdsTruncOpterCtorGetXxxParams():
 
 
 # II.4. MCDSZerothOrderTruncationOptimiser : Optimise truncation params on real-life data
-def testMcdsZerothOrderTruncationOptimiser():
+# Note: Only from explicit specs here.
+# Note: For MCDSTruncationOptAnalyser tests, see val_mcds_optanalyser_test
+# Short identification string for a sample.
+def sampleAbbrev(sSample):
+    abrvSpe = ''.join(word[:4].title() for word in sSample['Espèce'].split(' ')[:2])
 
-    raise NotImplementedError('testMcdsZerothOrderTruncationOptimiser: TODO !')
+    sampAbbrev = '{}-{}-{}-{}'.format(abrvSpe, sSample.Passage.replace('+', ''),
+                                      sSample.Adulte.replace('+', ''), sSample['Durée'])
+
+    return sampAbbrev
+
+
+# Short identification string for an analysis.
+def analysisAbbrev(sAnlys):
+    # Sample abbreviation
+    abbrevs = [sampleAbbrev(sAnlys)]
+
+    # Model + Parameters abbreviation
+    abbrevs += [sAnlys['FonctionClé'][:3].lower(), sAnlys['SérieAjust'][:3].lower()]
+    dTroncAbrv = {'l': 'TrGche' if 'TrGche' in sAnlys.index else 'TroncGche',
+                  'r': 'TrDrte' if 'TrDrte' in sAnlys.index else 'TroncDrte',
+                  'm': 'NbTrches' if 'NbTrches' in sAnlys.index else 'NbTrModel'
+                  if 'NbTrModel' in sAnlys.index else 'NbTrchMod',
+                  'd': 'NbTrDiscr'}
+    for abrv, name in dTroncAbrv.items():
+        if name in sAnlys.index and not pd.isnull(sAnlys[name]):
+            abbrevs.append('{}{}'.format(abrv, sAnlys[name][0].lower() if isinstance(sAnlys[name], str)
+                                                                       else int(sAnlys[name])))
+
+    return '-'.join(abbrevs)
+
+
+def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
+
+    # a. Explicit analysis specs
+    # i. Individualised data set
+    dfObsIndiv = indivSightings_fxt
+    dfObsIndiv.drop(columns=KFdsCountCols, inplace=True)
+
+    logger.info(f'Individualised sightings: n={len(dfObsIndiv)} =>\n'
+                + dfObsIndiv.to_string(min_rows=20, max_rows=20)) 
+
+    # ii. Explicit analysis specs (through an analyser object)
+    transectPlaceCol = 'Point'
+    transectPlaceCols = [transectPlaceCol]
+    passIdCol = 'Passage'
+    effortCol = 'Effort'
+
+    sampleDistCol = 'distMem'
+    sampleDecCols = [effortCol, sampleDistCol]
+
+    sampleSelCols = ['Espèce', passIdCol, 'Adulte', 'Durée']
+    sampleIndCol = 'IndSamp'
+
+    varIndCol = 'IndAnlys'
+    anlysAbbrevCol = 'AbrevAnlys'
+
+    dSurveyArea = dict(Zone='ACDC', Surface='2400')
+
+    # Constant effort per point x passage (= 1) => no need to pass transect info (auto-generated)
+    anlysr = ads.MCDSAnalyser(dfObsIndiv, effortConstVal=1, dSurveyArea=dSurveyArea,
+                              transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
+                              sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
+                              abbrevCol=anlysAbbrevCol, abbrevBuilder=analysisAbbrev,
+                              anlysIndCol=varIndCol, sampleIndCol=sampleIndCol,
+                              distanceUnit='Meter', areaUnit='Hectare',
+                              surveyType='Point', distanceType='Radial', clustering=False,
+                              resultsHeadCols=dict(before=[varIndCol], sample=sampleSelCols, after=[anlysAbbrevCol]),
+                              workDir=uivu.pTmpDir / 'mcds-anlr', runMethod='subprocess.run', logProgressEvery=5)
+
+    anlysSpecFile = uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx'
+    dfAnlysExplSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols, verdict, reasons = \
+        anlysr.explicitParamSpecs(implParamSpecs=anlysSpecFile, dropDupes=True, check=True)
+
+    # iii. Done.
+    anlysr.shutdown()
+
+    # b. Explicit optimisation specs
+    # i. Left part = standard analysis params without truncation specs, from 4. above
+    dfOptimExplSpecs = dfAnlysExplSpecs[sampleSelCols + ['FonctionClé', 'SérieAjust']].drop_duplicates().reset_index(drop=True)
+    logger.info(f'Explicit specs (left part):\n' + dfOptimExplSpecs.to_string())
+
+    # ii. Right part : as many as possible truncation optimisation params combinations
+    dfMoreOptimCols = pd.DataFrame(dict(CritChx=[None, 'AIC']*6,
+                                        IntervConf=[None, 95, 97]*4,
+                                        TroncGche=['auto', None, 20, 'dist(5, 30)', 50.0, 'quant(3)']*2,
+                                        TroncDrte=[None, 'auto', 'dist(150, 300)', 200.0, 'tucquant(2)', 250]*2,
+                                        MethOutliers=[None, 'auto', None, None,
+                                                      None, 'quant(6)', None, None,
+                                                      None, 'tucquant(8)', None, None],
+                                        NbTrModel=[None, 9.0, 'auto', 17, 'abs(5, 10)', 'mult(0.5,5/4)']*2,
+                                        NbTrDiscr=[None, 'auto', 4, 'abs(5, 10)', 16.0, 'mult(0.5,5/4)']*2,
+                                        ExprOpt=[None, 'max(chi2)', 'min(1-chi2)', 'max(chi2)',
+                                                 'max(ks)', 'max(cvmuw*cvmcw)']*2,
+                                        MoteurOpt=[None, 'zoopt', 'zoopt(mxi=20, a=racos)',
+                                                   'zoopt(mxi=30, mxr=2, tv=0.5)']*3,
+                                        ParExec=[None, 'times(2)', 'times(3, b=2)']*4))
+    logger.info(f'Explicit specs (right part):\n' + dfOptimExplSpecs.to_string())
+
+    # iii. Concat left and right parts
+    dfOptimExplSpecs = pd.concat([dfOptimExplSpecs, dfMoreOptimCols], axis='columns')
+
+    # iv. Add neutral and path-through columns (from specs to results) : no real use, but for testing this useful feature
+    speAbbrevCol = 'AbrevEsp'
+    dfOptimExplSpecs[speAbbrevCol] = dfOptimExplSpecs['Espèce'].apply(lambda s: ''.join(m[:4] for m in s.split()))
+
+    # v. Artificially generate some duplicates (for testing auto-removal later :-)
+    dfOptimExplSpecs = dfOptimExplSpecs.append(dfOptimExplSpecs, ignore_index=True)
+    logger.info("Explicit specs (concat'd + neutral col. + artificial duplicates):"
+                f" n={len(dfOptimExplSpecs)}\n" + dfOptimExplSpecs.to_string())
+
+    # ### c. MCDSZerothOrderTruncationOptimiser object
+    # i. dfOptimExplSpecs columns that give the analysis & optimisation parameters
+    optimParamsSpecsCols = ['FonctionClé', 'SérieAjust', 'CritChx', 'IntervConf',
+                            'TroncGche', 'TroncDrte', 'MethOutliers', 'NbTrModel', 'NbTrDiscr',
+                            'ExprOpt', 'MoteurOpt', 'ParExec']
+
+    # ii. Optimiser
+    optIndCol = 'IndOptim'
+    optAbbrevCol = 'AbrevOptim'
+    zoptr = ads.MCDSZerothOrderTruncationOptimiser(
+        dfObsIndiv, effortConstVal=1, dSurveyArea=dSurveyArea,
+        transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
+        sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistCol=sampleDistCol,
+        anlysSpecCustCols=[speAbbrevCol], abbrevCol=optAbbrevCol, abbrevBuilder=analysisAbbrev,
+        anlysIndCol=optIndCol, sampleIndCol=sampleIndCol,
+        distanceUnit='Meter', areaUnit='Hectare',
+        surveyType='Point', distanceType='Radial', clustering=False,
+        resultsHeadCols=dict(before=[optIndCol], sample=sampleSelCols,
+                             after=optimParamsSpecsCols + [speAbbrevCol]),
+        workDir=uivu.pTmpDir / 'mcds-optr', runMethod='subprocess.run', runTimeOut=None,
+        logData=False, logProgressEvery=1, backupEvery=5,  # <= Need at least 6 runs for seeing a recovery file
+        defEstimKeyFn='HAZ', defEstimAdjustFn='POLY', defEstimCriterion='AIC', defCVInterval=93,
+        defExpr2Optimise='1-ks', defMinimiseExpr=True,
+        defOutliersMethod='quant', defOutliersQuantCutPct=5.5,
+        defFitDistCutsFctr=dict(min=1/2, max=4/3), defDiscrDistCutsFctr=dict(min=1/2, max=1.2),
+        defSubmitTimes=4, defSubmitOnlyBest=1,
+        defCoreMaxIters=45, defCoreTermExprValue=0.2, defCoreMaxRetries=1)
+
+    # ### d. Check optimisation specs
+    dfOptimExplSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols, verdict, reasons = \
+        zoptr.explicitParamSpecs(dfExplParamSpecs=dfOptimExplSpecs, dropDupes=True, check=True)
+    assert len(dfOptimExplSpecs) == 12
+    assert userParamSpecCols == optimParamsSpecsCols
+    assert intParamSpecCols == ['EstimKeyFn', 'EstimAdjustFn', 'EstimCriterion', 'CvInterval',
+                                'MinDist', 'MaxDist', 'OutliersMethod', 'FitDistCuts', 'DiscrDistCuts',
+                                'Expr2Optimise', 'OptimisationCore', 'SubmitParams']
+    assert unmUserParamSpecCols == []
+    assert verdict
+    assert not reasons
+
+    logger.info("Checked optim. explicit specs (contat'd + neutral col. + artificial duplicates):"
+                f" n={len(dfOptimExplSpecs)}\n" + dfOptimExplSpecs.to_string())
+
+    # ### e. Run optimisations (parallel)
+    # Python 3.8, Windows 10, Core i5 8365U (4 HT cores, 1.6-4.1GHz, cache  6Mb, bus 4GT/s) + SSD 256Gb NVME + RAM 16Gb, "optimal performances" power scheme
+    # * 2021-01: 12 optimisations, 1430 analyses, 12 threads : subprocess = 3mn13, system = 2mn35, 1mn54?
+    # * 2021-10-02: idem : system 2mn15
+    # Python 3.8, Windows 10, Core i7 10850H (6 HT cores, 2.7-5.1GHz, cache 12Mb, bus 8GT/s) + SSD 512Gb NVME + RAM 32Gb "optimal performances" power scheme
+    # * 2023-11-02: 12 optimisations, 1434 analyses, 12 threads : system = 1mn44s, 1mn46s, subprocess = 1mn47s
+    #               (N.B. not saturating the CPU: 6 max MCDS // processes observed => increase threads ? data set too small ?)
+
+    results = zoptr.run(dfOptimExplSpecs, threads=12)
+    assert len(results) == 20  # Given the ParExec column of dfOptimExplSpecs
+
+    zoptr.shutdown()
+
+    assert speAbbrevCol in results.dfTransData('fr').columns
+
+    dfFrRes = results.dfTransData('fr')
+    logger.info(f'Optim. results (fr): n={len(dfFrRes)} =>\n' + dfFrRes.to_string())
+
+    results.toExcel(pl.Path(zoptr.workDir) / 'unintst-mcds-optimiser-results-fr.xlsx', lang='fr')
+
+    # ### f. Recovery : Run again optimisations, but from the last backup
+    # (use case: crash, or mandatory/auto reboot of computer in the middle of a long optimisation run)
+    # i. Quickly check content of the recovery file
+    optResBkpPath = pl.Path(zoptr.workDir / 'optr-resbak-0.pickle.xz')
+    with lzma.open(optResBkpPath, 'rb') as file:
+        dfData, specs = pickle.load(file)
+    assert len(dfData) == 17
+    exptdCols = [optIndCol] + sampleSelCols + optimParamsSpecsCols + [speAbbrevCol]
+    exptdCols += ['OptAbbrev', 'KeyFn', 'AdjSer', 'EstCrit', 'CVInt', 'OptCrit',
+                  'MinDist', 'MaxDist', 'FitDistCuts', 'DiscrDistCuts',
+                  'SetupStatus', 'SubmitStatus', 'NFunEvals', 'MeanFunElapd',
+                  '1-ks', 'maxDist', 'discrDistCuts', 'chi2', 'minDist',
+                  'fitDistCuts', 'ks', '1-chi2', 'cvmuw*cvmcw']
+    assert dfData.columns.tolist() == exptdCols
+
+    # ii. Create the optimiser object : have to be a clone of the one whose execution was backed up
+    zoptr = ads.MCDSZerothOrderTruncationOptimiser(
+        dfObsIndiv, effortConstVal=1, dSurveyArea=dSurveyArea,
+        transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
+        sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistCol=sampleDistCol,
+        anlysSpecCustCols=[speAbbrevCol], abbrevCol=optAbbrevCol, abbrevBuilder=analysisAbbrev,
+        anlysIndCol=optIndCol, sampleIndCol=sampleIndCol,
+        distanceUnit='Meter', areaUnit='Hectare',
+        surveyType='Point', distanceType='Radial', clustering=False,
+        resultsHeadCols=dict(before=[optIndCol], sample=sampleSelCols,
+                             after=optimParamsSpecsCols + [speAbbrevCol]),
+        workDir=uivu.pTmpDir / 'mcds-optr', logProgressEvery=1,
+        defEstimKeyFn='HAZ', defEstimAdjustFn='POLY', defEstimCriterion='AIC', defCVInterval=93,
+        defExpr2Optimise='1-ks', defMinimiseExpr=True,
+        defOutliersMethod='quant', defOutliersQuantCutPct=5.5,
+        defFitDistCutsFctr=dict(min=1/2, max=4/3), defDiscrDistCutsFctr=dict(min=1/2, max=1.2),
+        defSubmitTimes=4, defSubmitOnlyBest=1,
+        defCoreMaxIters=45, defCoreTermExprValue=0.2, defCoreMaxRetries=1)
+
+    # iii. Run optimisation with recovery results ... using exact same optim. specs (MANDATORY)
+    results2 = zoptr.run(dfOptimExplSpecs, recover=True, threads=12)
+
+    zoptr.shutdown()
+
+    # iv. Quickly check results
+    assert len(results2) == 20 # Given the ParExec column of dfOptimExplSpecs
+
+    dfFrRes2 = results2.dfTransData('fr')
+    logger.info(f'Optim. results (fr, recovery run): n={len(dfFrRes2)} =>\n' + dfFrRes2.to_string())
+
+    # results2.toExcel(pl.Path(zoptr.workDir) / 'unintst-mcds-optimiser-results2-fr.xlsx', lang='fr')
+
+    # v. Check equality of 1st 17 results in `results` and `results2`, + added num of results
+    # (20 results at the end, 1st 17 ones in backup file, so only reloaded => only 3 left to be recomputed)
+    dfComp = results.dfTransData(lang='fr').compare(results2.dfTransData(lang='fr'))
+    logger.info(f'First run vs recovery compared results: n={len(dfComp)} =>\n' + dfComp.to_string())
+
+    assert len(dfComp) <= 3
+
+    logger.info0('PASS testMcdsZerothOrderTruncationOptimiser: Constructor, explicitParamSpecs, run, recovery')
 
 
 ###############################################################################
@@ -676,8 +920,8 @@ if __name__ == '__main__':
 
             testDSOpterParseDistTruncationUserSpec()
 
-            testMcdsTruncOpterCtorGetXxxParams()
-            testMcdsZerothOrderTruncationOptimiser()
+            testMcdsTruncOpterCtorGetParams(indivSightings())
+            testMcdsZerothOrderTruncationOptimiser(indivSightings())
 
             # Done.
             testEnd()
