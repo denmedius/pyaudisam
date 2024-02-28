@@ -328,10 +328,10 @@ if __name__ == '__main__':
             # Tests for DSAnalyser
             testDsAnalyser()
 
-            # Tests for DSAnalyser
+            # Tests for MCDSAnalyser
             testMcdsAnalyser()
 
-            # Tests for DSAnalyser
+            # Tests for MCDSPreAnalyser
             testMcdsPreAnalyser()
 
             # Done.
