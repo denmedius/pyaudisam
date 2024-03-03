@@ -14,12 +14,7 @@
 
 # Automated unit and integration tests for "analyser" submodule, results set part
 
-# To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and ./tmp/unt-ars.{datetime}.log for details
-
-# WARNING : Work in progress ... not working yet ... but soon ... patience !
-
-import sys
+# To run : simply run "pytest" and check standard output + ./tmp/unt-ars.{datetime}.log for details
 
 import pandas as pd
 
@@ -30,8 +25,7 @@ import unintval_utils as uivu
 
 # Setup local logger.
 logger = uivu.setupLogger('unt.ars', level=ads.DEBUG,
-                          otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO,
-                                        'ads.anr': ads.INFO5})
+                          otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO, 'ads.anr': ads.INFO5})
 
 what2Test = 'analysis results set'
 
@@ -75,7 +69,7 @@ class SpecialAnalysisResultsSet(ads.analyser.AnalysisResultsSet):
         self._dfData[deltaAicColInd] = self._dfData[aicColInd] - self._dfData[deltaAicColInd]
 
 
-# 5. AnalysisResultsSet and ResultsSet classes (1/2, see unint_mcds_anlys_results_test.py for 2/2)
+# 5. AnalysisResultsSet and ResultsSet classes (1/2, see test_unint_mcds_anlys_results.py for 2/2)
 # TODO: Split this too long test function !
 def testArsCtorGettersSettersToFromFiles():
 
@@ -356,7 +350,8 @@ def testArsCtorGettersSettersToFromFiles():
     # Specs
     logger.info('rs3.specs: ' + str(rs3.specs))
     assert isinstance(rs3.specs['d'], dict) and rs3.specs['d'] == rs.specs['d']
-    assert isinstance(rs3.specs['df'], pd.DataFrame) and rs3.specs['df'].equals(rs.specs['df'])  # == fails on NaNs in same places
+    # This one fails on NaNs in same places
+    assert isinstance(rs3.specs['df'], pd.DataFrame) and rs3.specs['df'].equals(rs.specs['df'])
     assert isinstance(rs3.specs['l'], list) and rs3.specs['l'] == rs.specs['l']
     assert isinstance(rs3.specs['s'], pd.Series) and rs3.specs['s'].name == rs.specs['s'].name \
            and rs3.specs['s'].equals(rs.specs['s'])  # == fails on NaNs in same places
@@ -406,6 +401,7 @@ def testArsCtorGettersSettersToFromFiles():
     # - overwrite target file with pandas API
     # - load target file with ResultsSet API, specifying default values for the missing columns
     # - check that results is OK
+    logger.warning('TODO: Imports with default values for missing columns')
 
     logger.info0('PASS testArsCtorGettersSettersToFromFiles: Constructor, empty, len, columns, index, append,'
                  ' dfRawData, dfData, dfTransData, updateSpecs, toExcel(xlsx, xls), toOpenDoc, toPickle(std, xz),'
@@ -417,35 +413,3 @@ def testArsCtorGettersSettersToFromFiles():
 ###############################################################################
 def testEnd():
     uivu.logEnd(what=what2Test)
-
-
-# This pytest-compatible module can also be run as a simple python script.
-if __name__ == '__main__':
-
-    run = True
-    # Run auto-tests (exit(0) if OK, 1 if not).
-    rc = -1
-
-    uivu.logBegin(what=what2Test)
-
-    if run:
-        try:
-            # Let's go.
-            testBegin()
-
-            # Tests for AnalysisResultsSet
-            testArsCtorGettersSettersToFromFiles()
-
-            # Done.
-            testEnd()
-
-            # Success !
-            rc = 0
-
-        except Exception as exc:
-            logger.exception(f'Exception: {exc}')
-            rc = 1
-
-    uivu.logEnd(what=what2Test, rc=rc)
-
-    sys.exit(rc)

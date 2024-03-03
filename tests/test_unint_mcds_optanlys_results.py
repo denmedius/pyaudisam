@@ -14,12 +14,7 @@
 
 # Automated unit and integration tests for "optanalyser" submodule, results set part
 
-# To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and ./tmp/unt-ors.{datetime}.log for details
-
-# WARNING : Work in progress ... not working yet ... but soon ... patience !
-
-import sys
+# To run : simply run "pytest" and check standard output + ./tmp/unt-ors.{datetime}.log for details
 
 import pandas as pd
 
@@ -421,7 +416,8 @@ def testMcdsOptArsNonRegression(mcdsOptAnalyser_fxt):
                    'PDetec', 'CoefVar PDetec', 'Min PDetec', 'Max PDetec', 'DegLib PDetec',
                    'EDR/ESW', 'CoefVar EDR/ESW', 'Min EDR/ESW', 'Max EDR/ESW', 'DegLib EDR/ESW',
                    'DensClu', 'CoefVar DensClu', 'Min DensClu', 'Max DensClu', 'DegLib DensClu',
-                   'Densité', 'Delta CoefVar Densité', 'CoefVar Densité', 'Min Densité', 'Max Densité', 'DegLib Densité',
+                   'Densité', 'Delta CoefVar Densité', 'CoefVar Densité',
+                   'Min Densité', 'Max Densité', 'DegLib Densité',
                    'Nombre', 'CoefVar Nombre', 'Min Nombre', 'Max Nombre', 'DegLib Nombre']
     ads.DataSet.compareDataFrames(refRes.dfTransData('fr').sort_values(by='DossierExec'),
                                   res.dfTransData('fr').sort_values(by='DossierExec'),
@@ -437,39 +433,3 @@ def testMcdsOptArsNonRegression(mcdsOptAnalyser_fxt):
 ###############################################################################
 def testEnd():
     uivu.logEnd(what=what2Test)
-
-
-# This pytest-compatible module can also be run as a simple python script.
-if __name__ == '__main__':
-
-    run = True
-    # Run auto-tests (exit(0) if OK, 1 if not).
-    rc = -1
-
-    uivu.logBegin(what=what2Test)
-
-    if run:
-        try:
-            # Let's go.
-            testBegin()
-
-            # Tests for AnalysisResultsSet
-            testMcdsOptArsCtorFromOpenDocGetData(mcdsOptAnalyser())
-            testMcdsOptArsFilterSortKeySchemes(mcdsOptAnalyser())
-            testMcdsOptArsFilterOnExecCode(mcdsOptAnalyser())
-            testMcdsOptArsFilterOnAicMultiQua(mcdsOptAnalyser())
-            testMcdsOptArsNonRegression(mcdsOptAnalyser())
-
-            # Done.
-            testEnd()
-
-            # Success !
-            rc = 0
-
-        except Exception as exc:
-            logger.exception(f'Exception: {exc}')
-            rc = 1
-
-    uivu.logEnd(what=what2Test, rc=rc)
-
-    sys.exit(rc)

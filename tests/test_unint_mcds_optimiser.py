@@ -1,8 +1,5 @@
 # coding: utf-8
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
-import lzma
-import pickle
-import re
 # Copyright (C) 2021 Jean-Philippe Meuret
 
 # This program is free software: you can redistribute it and/or modify it under the terms
@@ -14,13 +11,14 @@ import re
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see https://www.gnu.org/licenses/.
 
-# Automated unit and integration tests for "analyser" submodule (*Analyser class part)
+# Automated unit and integration tests for "optimiser" submodule (*Optimiser class part)
 
-# To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and ./tmp/unt-ars.{datetime}.log for details
+# To run : simply run "pytest" and check standard output + ./tmp/unt-opr.{datetime}.log for details
 
-import sys
 import pathlib as pl
+import lzma
+import pickle
+import re
 
 import numpy as np
 import pandas as pd
@@ -690,8 +688,8 @@ def analysisAbbrev(sAnlys):
                   'd': 'NbTrDiscr'}
     for abrv, name in dTroncAbrv.items():
         if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-            abbrevs.append('{}{}'.format(abrv, sAnlys[name][0].lower() if isinstance(sAnlys[name], str)
-                                                                       else int(sAnlys[name])))
+            val = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else int(sAnlys[name])
+            abbrevs.append(f'{abrv}{val}')
 
     return '-'.join(abbrevs)
 
@@ -878,7 +876,7 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
     zoptr.shutdown()
 
     # iv. Quickly check results
-    assert len(results2) == 20 # Given the ParExec column of dfOptimExplSpecs
+    assert len(results2) == 20  # Given the ParExec column of dfOptimExplSpecs
 
     dfFrRes2 = results2.dfTransData('fr')
     logger.info(f'Optim. results (fr, recovery run): n={len(dfFrRes2)} =>\n' + dfFrRes2.to_string())
@@ -900,39 +898,3 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
 ###############################################################################
 def testEnd():
     uivu.logEnd(what=what2Test)
-
-
-# This pytest-compatible module can also be run as a simple python script.
-if __name__ == '__main__':
-
-    run = True
-    # Run auto-tests (exit(0) if OK, 1 if not).
-    rc = -1
-
-    uivu.logBegin(what=what2Test)
-
-    if run:
-        try:
-            # Let's go.
-            testBegin()
-
-            testDSOpterParseUserSpecs()
-
-            testDSOpterParseDistTruncationUserSpec()
-
-            testMcdsTruncOpterCtorGetParams(indivSightings())
-            testMcdsZerothOrderTruncationOptimiser(indivSightings())
-
-            # Done.
-            testEnd()
-
-            # Success !
-            rc = 0
-
-        except Exception as exc:
-            logger.exception(f'Exception: {exc}')
-            rc = 1
-
-    uivu.logEnd(what=what2Test, rc=rc)
-
-    sys.exit(rc)

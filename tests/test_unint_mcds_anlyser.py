@@ -14,12 +14,10 @@
 
 # Automated unit and integration tests for "analyser" submodule (*Analyser class part)
 
-# To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and ./tmp/unt-ars.{datetime}.log for details
-
-import sys
+# To run : simply run "pytest" and check standard output + ./tmp/unt-anr.{datetime}.log for details
 
 import pandas as pd
+
 import pytest
 
 import pyaudisam as ads
@@ -70,8 +68,8 @@ def analysisAbbrev(sAnlys):
                   'd': 'NbTrDiscr'}
     for abrv, name in dTroncAbrv.items():
         if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-            abbrevs.append('{}{}'.format(abrv, sAnlys[name][0].lower() if isinstance(sAnlys[name], str)
-            else int(sAnlys[name])))
+            val = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else int(sAnlys[name])
+            abbrevs.append(f'{abrv}{val}')
 
     return '-'.join(abbrevs)
 
@@ -154,7 +152,7 @@ def testAnalyser(indivdSightings_fxt):
     assert dfFinalExplSpecs.compare(dfFinalExplSpecs1).empty
 
     # Just to see by eye
-    #dfFinalExplSpecs.to_excel(uivu.pTmpDir / 'tools-unitests-final-expl-specs.xlsx', index=False)
+    # dfFinalExplSpecs.to_excel(uivu.pTmpDir / 'tools-unitests-final-expl-specs.xlsx', index=False)
 
     # iv. Computational checks
     nSamp1Vars = 1
@@ -208,17 +206,17 @@ def testDsAnalyser():
     IntSpecFitDistCuts = 'FitDistCuts'
     IntSpecDiscrDistCuts = 'DiscrDistCuts'
     int2UserSpecREs = \
-        {IntSpecEstimKeyFn: ['ke[a-z]*[\.\-_ ]*f', 'f[o]?n[a-z]*[\.\-_ ]*cl'],
-         IntSpecEstimAdjustFn: ['ad[a-z]*[\.\-_ ]*s', 's[éa-z]*[\.\-_ ]*aj'],
-         IntSpecEstimCriterion: ['crit[èa-z]*[\.\-_ ]*'],
-         IntSpecCVInterval: ['conf[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*int',
-                             'in[o]?n[a-z]*[\.\-_ ]*conf'],
-         IntSpecMinDist: ['min[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*min',
-                          'tr[a-z]*[\.\-_ ]*ga', 'tr[a-z]*[\.\-_ ]*gc', 'le[a-z]*[\.\-_ ]*tr'],
-         IntSpecMaxDist: ['max[a-z]*[\.\-_ ]*d', 'd[a-z]*[\.\-_ ]*max',
-                          'tr[a-z]*[\.\-_ ]*dr', 'tr[a-z]*[\.\-_ ]*dt', 'le[a-z]*[\.\-_ ]*tr'],
-         IntSpecFitDistCuts: ['fit[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*mod'],
-         IntSpecDiscrDistCuts: ['dis[a-z]*[\.\-_ ]*d', 'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*dis']}
+        {IntSpecEstimKeyFn: [r'ke[a-z]*[\.\-_ ]*f', r'f[o]?n[a-z]*[\.\-_ ]*cl'],
+         IntSpecEstimAdjustFn: [r'ad[a-z]*[\.\-_ ]*s', r's[éa-z]*[\.\-_ ]*aj'],
+         IntSpecEstimCriterion: [r'crit[èa-z]*[\.\-_ ]*'],
+         IntSpecCVInterval: [r'conf[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*int',
+                             r'in[o]?n[a-z]*[\.\-_ ]*conf'],
+         IntSpecMinDist: [r'min[a-z]*[\.\-_ ]*d', r'd[a-z]*[\.\-_ ]*min',
+                          r'tr[a-z]*[\.\-_ ]*ga', r'tr[a-z]*[\.\-_ ]*gc', r'le[a-z]*[\.\-_ ]*tr'],
+         IntSpecMaxDist: [r'max[a-z]*[\.\-_ ]*d', r'd[a-z]*[\.\-_ ]*max',
+                          r'tr[a-z]*[\.\-_ ]*dr', r'tr[a-z]*[\.\-_ ]*dt', r'le[a-z]*[\.\-_ ]*tr'],
+         IntSpecFitDistCuts: [r'fit[a-z]*[\.\-_ ]*d', r'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*mod'],
+         IntSpecDiscrDistCuts: [r'dis[a-z]*[\.\-_ ]*d', r'tr[a-z]*[\.\-_ ]*[a-z]*[\.\-_ ]*dis']}
 
     assert ads.DSAnalyser.userSpec2ParamNames(['key fn', 'série-aj', 'est.crit.', 'ConfInt',
                                                'fit d', 'disc d', 'min dist', 'maxd'], int2UserSpecREs) \
@@ -232,8 +230,9 @@ def testDsAnalyser():
     anlysAbbrevCol = 'AbrevAnlys'
 
     # i. Through file specified implicit combinations
+    implParamSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx'
     dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols = \
-        ads.DSAnalyser._explicitParamSpecs(implParamSpecs=uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx',
+        ads.DSAnalyser._explicitParamSpecs(implParamSpecs=implParamSpecs,
                                            int2UserSpecREs=int2UserSpecREs,
                                            sampleSelCols=sampleSelCols, abbrevCol=anlysAbbrevCol,
                                            abbrevBuilder=analysisAbbrev, anlysIndCol=varIndCol,
@@ -250,9 +249,13 @@ def testDsAnalyser():
 
     # ii. Through DataFrame-specified explicit combinations, with cleaned up duplicates and neutral traversing columns
     dfExplParamSpecs.drop(columns=[varIndCol, anlysAbbrevCol, sampleIndCol], inplace=True)
-    dfExplParamSpecs = dfExplParamSpecs.append(dfExplParamSpecs, ignore_index=True)  # Pleins de doublons !
-    dfExplParamSpecs['AvecTronc'] = dfExplParamSpecs[['TrGche', 'TrDrte']].apply(lambda s: s.isnull().all(), axis='columns')  # Neutre 1
-    dfExplParamSpecs['AbrevEsp'] = dfExplParamSpecs['Espèce'].apply(lambda s: ''.join(m[:4] for m in s.split()))  # Neutre 2
+    # Add many duplicates
+    dfExplParamSpecs = dfExplParamSpecs.append(dfExplParamSpecs, ignore_index=True)
+    # Add 2 neutral pass-through columns
+    dfExplParamSpecs['AvecTronc'] = \
+        dfExplParamSpecs[['TrGche', 'TrDrte']].apply(lambda s: s.isnull().all(), axis='columns')
+    dfExplParamSpecs['AbrevEsp'] = \
+        dfExplParamSpecs['Espèce'].apply(lambda s: ''.join(m[:4] for m in s.split()))
 
     logger.info('DataFrame explicit parameter specs:\n' + dfExplParamSpecs.to_string())
 
@@ -290,15 +293,16 @@ def testDsAnalyser():
     logger.info0('PASS testDSAnalyser: userSpec2ParamNames, _explicitParamSpecs')
 
 
-# ## II.1.class MCDSAnalyser
+# ## II.1&2.class MCDSAnalyser : Run multiple analyses with real-life data
 def testMcdsAnalyser():
 
-    raise NotImplementedError('testMcdsAnalyser: TODO !')
+    logger.info0('SKIPPED testMcdsAnalyser: see val_mcds_analyser_test.py')
 
 
+# ## II.3. MCDSPreAnalyser : Run multiple pre-analyses with real-life data
 def testMcdsPreAnalyser():
 
-    raise NotImplementedError('testMcdsPreAnalyser: TODO !')
+    logger.info0('SKIPPED testMcdsPreAnalyser: see val_mcds_preanalyser_test.py')
 
 
 ###############################################################################
@@ -306,44 +310,3 @@ def testMcdsPreAnalyser():
 ###############################################################################
 def testEnd():
     uivu.logEnd(what=what2Test)
-
-
-# This pytest-compatible module can also be run as a simple python script.
-if __name__ == '__main__':
-
-    run = True
-    # Run auto-tests (exit(0) if OK, 1 if not).
-    rc = -1
-
-    uivu.logBegin(what=what2Test)
-
-    if run:
-        try:
-            # Let's go.
-            testBegin()
-
-            # Tests for Analyser
-            testAnalyser(indivdSightings())
-
-            # Tests for DSAnalyser
-            testDsAnalyser()
-
-            # Tests for MCDSAnalyser
-            testMcdsAnalyser()
-
-            # Tests for MCDSPreAnalyser
-            testMcdsPreAnalyser()
-
-            # Done.
-            testEnd()
-
-            # Success !
-            rc = 0
-
-        except Exception as exc:
-            logger.exception(f'Exception: {exc}')
-            rc = 1
-
-    uivu.logEnd(what=what2Test, rc=rc)
-
-    sys.exit(rc)

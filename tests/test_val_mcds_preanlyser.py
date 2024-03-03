@@ -14,14 +14,14 @@
 # Automated validation tests for "analyser" submodule, MCDSPreAnalyser class part
 # (adapted from valtest.ipynb notebook)
 
-# To run : simply run "pytest" in current folder  and check standard output ;
-#          and see ./tmp/val.pnr.{datetime}.log for detailed test log
+# To run : simply run "pytest" and see ./tmp/val.pnr.{datetime}.log for detailed test log
 
 import time
 import pathlib as pl
 
 import numpy as np
 import pandas as pd
+
 import pytest
 
 import pyaudisam as ads
@@ -30,8 +30,7 @@ import unintval_utils as uivu
 
 
 # Setup local logger.
-logger = uivu.setupLogger('val.pnr', level=ads.DEBUG,
-                          otherLoggers={'ads.eng': ads.INFO2})
+logger = uivu.setupLogger('val.pnr', level=ads.DEBUG, otherLoggers={'ads.eng': ads.INFO2})
 
 
 @pytest.mark.parametrize("implicitMode", [True, False])
@@ -94,14 +93,16 @@ class TestMcdsPreAnalyser:
     # Note: 2 modes here, with explicit or implicit sample specification (manual switch).
     # Note: The exact same results (implicit mode) and reports can be produced through the command line :
     # $ cd ..
-    # $ python -m pyaudisam -p tests/valtests-ds-params.py -w tests/tmp/mcds-preanlr -n --preanalyses --prereports excel,html -u
+    # $ python -m pyaudisam -p tests/valtests-ds-params.py -w tests/tmp/mcds-preanlr -n
+    #   --preanalyses --prereports excel,html -u
     @pytest.fixture()
     def inputDataSet_fxt(self):
 
         logger.info(f'Preparing invidual. sightings ...')
 
         # ## 1. Individuals data set
-        dfObsIndiv = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsIndiv.ods', sheet='DonnéesIndiv').dfData
+        dfObsIndiv = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsIndiv.ods',
+                                 sheet='DonnéesIndiv').dfData
 
         logger.info(f'Invidual. sightings: n={len(dfObsIndiv)} =>\n'
                     + dfObsIndiv.to_string(min_rows=30, max_rows=30))
@@ -111,7 +112,8 @@ class TestMcdsPreAnalyser:
 
         # ## 2. Actual transects
         # (can't deduce them from data, some points are missing because of data selection)
-        dfTransects = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsIndiv.ods', sheet='Inventaires').dfData
+        dfTransects = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsIndiv.ods',
+                                  sheet='Inventaires').dfData
 
         logger.info(f'Invidual. sightings: n={len(dfObsIndiv)} =>\n' + dfTransects.to_string(min_rows=30, max_rows=30))
 
@@ -208,11 +210,13 @@ class TestMcdsPreAnalyser:
         dfExplSampleSpecs = None
         if not implicitMode:
             dfExplSampleSpecs = ads.Analyser.explicitVariantSpecs(implSampleSpecs)
-            # dfExplSampleSpecs = ads.Analyser.explicitPartialVariantSpecs(dImplSampleSpecs) # Just the same, but less generic.
+            # Just the same, but less generic.
+            # dfExplSampleSpecs = ads.Analyser.explicitPartialVariantSpecs(dImplSampleSpecs)
 
             # Added neutral pass-through column (from sample specs to results)
             speciesAbbrevCol = 'AbrevEsp'
-            dfExplSampleSpecs[speciesAbbrevCol] = dfExplSampleSpecs['Espèce'].apply(lambda s: ''.join(m[:4] for m in s.split()))
+            dfExplSampleSpecs[speciesAbbrevCol] = \
+                dfExplSampleSpecs['Espèce'].apply(lambda s: ''.join(m[:4] for m in s.split()))
 
             logger.info(f'Explicit sample specs:\n{dfExplSampleSpecs.to_string()}')
 
@@ -250,7 +254,7 @@ class TestMcdsPreAnalyser:
         preAnlysr, sampleSpecs = preAnalyser_fxt
 
         # ### c. Generate input files for manual analyses with Distance GUI (not needed for pre-analyses)
-        # * Only minimalistic checks done here, as already more deeply tested in unint_engine_test.py
+        # * Only minimalistic checks done here, as already more deeply tested in test_unint_engine.py
         # * The exact same results can be produced through the command line for the implicit mode:
         # $ cd ..
         # $ python -m pyaudisam -p tests/valtests-ds-params.py -w tests/tmp/mcds-preanlr -n --distexport -u
@@ -375,7 +379,8 @@ class TestMcdsPreAnalyser:
                             ('detection probability', 'Delta AIC', 'Value'),
                             ('density/abundance', 'density of animals', 'Delta Cv')]]
 
-        dfDiff = rsRef.compare(preResults, indexCols=indexPreCols, subsetCols=subsetPreCols, dropCloser=13, dropNans=True)
+        dfDiff = rsRef.compare(preResults, indexCols=indexPreCols, subsetCols=subsetPreCols,
+                               dropCloser=13, dropNans=True)
 
         logger.info(f'Diff. to reference (relative): n={len(dfDiff)} =>\n'
                     + dfDiff.to_string(min_rows=30, max_rows=30))

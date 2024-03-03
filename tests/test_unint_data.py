@@ -2,7 +2,7 @@
 
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Copyright (C) 2021 Jean-Philippe Meuret, Sylvain Sainnier
+# Copyright (C) 2021 Sylvain Sainnier, Jean-Philippe Meuret
 
 # This program is free software: you can redistribute it and/or modify it under the terms
 # of the GNU General Public License as published by the Free Software Foundation,
@@ -15,10 +15,8 @@
 
 # Automated unit and integration tests for "data" submodule
 
-# To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and ./tmp/unt-dat.{datetime}.log for details
+# To run : simply run "pytest" and check standard output + ./tmp/unt-dat.{datetime}.log for details
 
-import sys
 import time
 
 import pandas as pd
@@ -807,55 +805,3 @@ def testMonoCategoryDataSet():
 ###############################################################################
 def testEnd():
     uivu.logEnd(what=what2Test)
-
-
-# This pytest-compatible module can also be run as a simple python script.
-if __name__ == '__main__':
-
-    run = True
-
-    # Run auto-tests (exit(0) if OK, 1 if not).
-    rc = -1
-
-    uivu.logBegin(what=what2Test)
-
-    if run:
-        try:
-            # Let's go.
-            testBegin()
-
-            # Tests for DataSet
-            testDataSetCtorLen(sources())
-            testDataSetDfData(sources())
-            testDataSetEmpty()
-            testDataSetColumns(sources())
-            testDataSetRenameColumns(sources())
-            testDataSetAddComputedColumns(sources())
-            testDataSetDropColumns(sources())
-            testDataSetDfSubData(sources())
-            testDataSetDropRows(sources())
-            testDataSetToFiles(sources())
-            testDataSetCloseness()
-            testDataSetCompare()
-
-            # Tests for other XxxDataSet
-            testSDSCtor()
-            testFieldDataSet()
-            testMonoCategoryDataSet()
-
-            # Tests for ResultsSet
-            # => See unint_analyser_results_test and unint_optanalyser_results_test
-
-            # Done.
-            testEnd()
-
-            # Success !
-            rc = 0
-
-        except Exception as exc:
-            logger.exception(f'Exception: {exc}')
-            rc = 1
-
-    uivu.logEnd(what=what2Test, rc=rc)
-
-    sys.exit(rc)

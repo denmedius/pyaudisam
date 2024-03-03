@@ -14,10 +14,8 @@
 
 # Automated unit and integration tests for "analysis" submodule
 
-# To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and ./tmp/unt-ars.{datetime}.log for details
+# To run : simply run "pytest" and check standard output + ./tmp/unt-ans.{datetime}.log for details
 
-import sys
 import time
 
 import pandas as pd
@@ -135,35 +133,42 @@ def testMcdsAnlysCtorSubmitGetResults(sampleDataSet_fxt):
 
     # ### b. Engine 'os.system' RunMethod and run time limit management
     # No time limit
-    sResult = checkAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95,
-                               minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
-                               runMethod='os.system', timeOut=None, name='anlys', expectStatus=ads.MCDSEngine.RCWarnings)
+    _ = checkAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95,
+                         minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
+                         runMethod='os.system', timeOut=None, name='anlys',
+                         expectStatus=ads.MCDSEngine.RCWarnings)
 
     # Some time limit, but too long to stop analysis.
-    sResult = checkAnalysisRun(sds, estimKeyFn='HAZARD', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
-                               minDist=50, maxDist=300, fitDistCuts=[60, 70, 80, 100, 120, 180, 250], discrDistCuts=None,
-                               runMethod='os.system', timeOut=5, name=None, expectStatus=ads.MCDSEngine.RCOK)
+    _ = checkAnalysisRun(sds, estimKeyFn='HAZARD', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
+                         minDist=50, maxDist=300, fitDistCuts=[60, 70, 80, 100, 120, 180, 250],
+                         discrDistCuts=None,
+                         runMethod='os.system', timeOut=5, name=None,
+                         expectStatus=ads.MCDSEngine.RCOK)
 
     # Too short time limit => analysis time-out
-    sResult = checkAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
-                               minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
-                               runMethod='os.system', timeOut=0.01, name='anlys', expectStatus=ads.MCDSEngine.RCTimedOut)
+    _ = checkAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
+                         minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
+                         runMethod='os.system', timeOut=0.01, name='anlys',
+                         expectStatus=ads.MCDSEngine.RCTimedOut)
 
     # ### c. Engine 'subprocess.run' RunMethod and run time limit management
     # No time limit
-    sResult = checkAnalysisRun(sds, estimKeyFn='HAZARD', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95,
-                               minDist=None, maxDist=200, fitDistCuts=None, discrDistCuts=12,
-                               runMethod='os.system', timeOut=None, name=None, expectStatus=ads.MCDSEngine.RCWarnings)
+    _ = checkAnalysisRun(sds, estimKeyFn='HAZARD', estimAdjustFn='COSINE', estimCriterion='AIC', cvInterval=95,
+                         minDist=None, maxDist=200, fitDistCuts=None, discrDistCuts=12,
+                         runMethod='os.system', timeOut=None, name=None,
+                         expectStatus=ads.MCDSEngine.RCWarnings)
 
     # Some time limit, but too long to stop analysis.
-    sResult = checkAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
-                               minDist=40, maxDist=250, fitDistCuts=7, discrDistCuts=[60, 80, 100, 120, 160, 200],
-                               runMethod='os.system', timeOut=5, name='anlys', expectStatus=ads.MCDSEngine.RCWarnings)
+    _ = checkAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
+                         minDist=40, maxDist=250, fitDistCuts=7, discrDistCuts=[60, 80, 100, 120, 160, 200],
+                         runMethod='os.system', timeOut=5, name='anlys',
+                         expectStatus=ads.MCDSEngine.RCWarnings)
 
     # Too short time limit => analysis time-out
-    sResult = checkAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
-                               minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
-                               runMethod='os.system', timeOut=0.01, name=None, expectStatus=ads.MCDSEngine.RCTimedOut)
+    _ = checkAnalysisRun(sds, estimKeyFn='UNIFORM', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95,
+                         minDist=None, maxDist=None, fitDistCuts=None, discrDistCuts=None,
+                         runMethod='os.system', timeOut=0.01, name=None,
+                         expectStatus=ads.MCDSEngine.RCTimedOut)
 
     logger.info0('PASS testMcdsAnlysCtorSubmitGetResults')
 
@@ -181,10 +186,12 @@ def testMcdsAnlysPerformances(sampleDataSet_fxt):
     eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', runMethod='subprocess.run')
 
     # timeit', '-r 5 -n 10',
-    # Core i5  8365U (4 HT cores, 1.6-4.1GHz, cache  6Mb, bus 4GT/s) + SSD 256Gb NVME + RAM 16Gb "Optimal performance power scheme"
+    # Core i5 8365U (4 HT cores, 1.6-4.1GHz, cache  6Mb, bus 4GT/s)
+    #   + SSD 256Gb NVME + RAM 16Gb "Optimal performance power scheme"
     # * 2020-01-06: 347 ms ± 8.71 ms per loop (mean ± std. dev. of 5 runs, 10 loops each)
     # * 2021-10-02: 326 ms ± 2.71 ms per loop (mean ± std. dev. of 5 runs, 10 loops each)
-    # Core i7 10850H (6 HT cores, 2.7-5.1GHz, cache 12Mb, bus 8GT/s) + SSD 512Gb NVME + RAM 32Gb "Optimal performance power scheme"
+    # Core i7 10850H (6 HT cores, 2.7-5.1GHz, cache 12Mb, bus 8GT/s)
+    #   + SSD 512Gb NVME + RAM 32Gb "Optimal performance power scheme"
     # * 20213-11-02: 169 ms ± 1.94 ms per loop (mean ± std. dev. of 5 runs, 10 loops each)
     for cycle in range(10):
         start = time.perf_counter()
@@ -201,11 +208,13 @@ def testMcdsAnlysPerformances(sampleDataSet_fxt):
     eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', runMethod='os.system')
 
     # timeit', '-r 5 -n 10',
-    # Python 3.8 + Core i5  8365U (4 HT cores, 1.6-4.1GHz, cache  6Mb, bus 4GT/s) + SSD 256Gb NVME + RAM 16Gb "Optimal performance power scheme"
+    # Python 3.8 + Core i5  8365U (4 HT cores, 1.6-4.1GHz, cache  6Mb, bus 4GT/s)
+    #   + SSD 256Gb NVME + RAM 16Gb "Optimal performance power scheme"
     # * 2020-01-06: 272 ms ± 7.57 ms per loop (mean ± std. dev. of 5 runs, 10 loops each)
     # * 2021-10-02: 268 ms ± 20.4 ms per loop (mean ± std. dev. of 5 runs, 10 loops each)
-    # Python 3.8 + Core i7 10850H (6 HT cores, 2.7-5.1GHz, cache 12Mb, bus 8GT/s) + SSD 512Gb NVME + RAM 32Gb "Optimal performance power scheme"
-    # * 20213-11-02: 171 ms ± 5.89 ms per loop (mean ± std. dev. of 5 runs, 10 loops each)
+    # Python 3.8 + Core i7 10850H (6 HT cores, 2.7-5.1GHz, cache 12Mb, bus 8GT/s)
+    #   + SSD 512Gb NVME + RAM 32Gb "Optimal performance power scheme"
+    # * 2023-11-02: 171 ms ± 5.89 ms per loop (mean ± std. dev. of 5 runs, 10 loops each)
 
     for cycle in range(10):
         start = time.perf_counter()
@@ -237,7 +246,7 @@ def testMcdsAnlysPerformances(sampleDataSet_fxt):
 # 4bis. MCDSPreAnalysis class : TODO
 def testMcdsPreAnlysCtorSubmitGetResults(sampleDataSet_fxt):
 
-    raise NotImplementedError('testMcdsPreAnlysCtorSubmitGetResults: TODO !')
+    raise NotImplementedError('TODO !')
 
 
 ###############################################################################
@@ -245,39 +254,3 @@ def testMcdsPreAnlysCtorSubmitGetResults(sampleDataSet_fxt):
 ###############################################################################
 def testEnd():
     uivu.logEnd(what=what2Test)
-
-
-# This pytest-compatible module can also be run as a simple python script.
-if __name__ == '__main__':
-
-    run = True
-    # Run auto-tests (exit(0) if OK, 1 if not).
-    rc = -1
-
-    uivu.logBegin(what=what2Test)
-
-    if run:
-        try:
-            # Let's go.
-            testBegin()
-
-            # Tests for MCDSAnalysis
-            testMcdsAnlysCtorSubmitGetResults(sampleDataSet())
-            testMcdsAnlysPerformances(sampleDataSet())
-
-            # Tests for MCDSPreAnalysis
-            testMcdsPreAnlysCtorSubmitGetResults(sampleDataSet())
-
-            # Done.
-            testEnd()
-
-            # Success !
-            rc = 0
-
-        except Exception as exc:
-            logger.exception(f'Exception: {exc}')
-            rc = 1
-
-    uivu.logEnd(what=what2Test, rc=rc)
-
-    sys.exit(rc)

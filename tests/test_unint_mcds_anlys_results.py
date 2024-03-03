@@ -14,12 +14,8 @@
 
 # Automated unit and integration tests for "analyser" submodule, results set part
 
-# To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and ./tmp/unt-ars.{datetime}.log for details
+# To run : simply run "pytest" and check standard output + ./tmp/unt-ars.{datetime}.log for details
 
-# WARNING : Work in progress ... not working yet ... but soon ... patience !
-
-import sys
 import copy
 
 import numpy as np
@@ -51,7 +47,7 @@ def testBegin():
 #                                Test Cases                                   #
 ###############################################################################
 
-# 5. AnalysisResultsSet and ResultsSet classes (2/2, see unint_anlys_results_test.py for 1/2)
+# 5. AnalysisResultsSet and ResultsSet classes (2/2, see test_unint_anlys_results.py for 1/2)
 # i. Comparison
 def testMcdsArsCompare():
 
@@ -62,7 +58,8 @@ def testMcdsArsCompare():
     caseIdCols = ['AnlysNum', 'SampNum'] + sampleIdCols + modelIdCols
     sampCols = [('sample', col, 'Value') for col in sampleIdCols]
     miSampCols = pd.MultiIndex.from_tuples(sampCols)
-    custCols = [('sample', 'AnlysNum', 'Value'), ('sample', 'SampNum', 'Value')] + sampCols + [('model', 'Model', 'Value')]
+    custCols = [('sample', 'AnlysNum', 'Value'), ('sample', 'SampNum', 'Value')] \
+               + sampCols + [('model', 'Model', 'Value')]
     miCustCols = pd.MultiIndex.from_tuples(custCols)
     dfCustColTrans = \
         pd.DataFrame(index=miCustCols,
@@ -139,7 +136,8 @@ def testMcdsArsPostCompute():
     caseIdCols = ['AnlysNum', 'SampNum'] + sampleIdCols + modelIdCols
     sampCols = [('sample', col, 'Value') for col in sampleIdCols]
     miSampCols = pd.MultiIndex.from_tuples(sampCols)
-    custCols = [('sample', 'AnlysNum', 'Value'), ('sample', 'SampNum', 'Value')] + sampCols + [('model', 'Model', 'Value')]
+    custCols = [('sample', 'AnlysNum', 'Value'), ('sample', 'SampNum', 'Value')] \
+               + sampCols + [('model', 'Model', 'Value')]
     miCustCols = pd.MultiIndex.from_tuples(custCols)
     dfCustColTrans = \
         pd.DataFrame(index=miCustCols,
@@ -266,7 +264,8 @@ def testMcdsArsGroupingIntervals():
                              + '\nref= ' + str(case['intervals'])
 
         # Non regression, comparing to old code results
-        dfIntrvsOld = intervalsOld(pd.Series(case['values']), minIntrvDist=minDist, maxIntrvLen=maxLen, intrvEpsilon=eps)
+        dfIntrvsOld = intervalsOld(pd.Series(case['values']),
+                                   minIntrvDist=minDist, maxIntrvLen=maxLen, intrvEpsilon=eps)
         dfDiffOld = ads.DataSet.compareDataFrames(dfIntrvs.reset_index(), dfIntrvsOld.reset_index(),
                                                   indexCols=['index'], dropCloser=6)
         assert dfDiff.empty, 'Oh, oh ... not what we expected ; diff to old= ' + str(dfDiffOld.to_dict('index'))
@@ -768,7 +767,8 @@ def testMcdsArsFilterSortKeys(mcdsAnalyser_fxt):
     anlr = mcdsAnalyser_fxt
 
     # Load results to play with ...
-    # Note: Okay, it's actually an MCDSTruncOptAnalysisResultsSet file ... but we'll ignore the extra columns, promised :-)
+    # Note: Okay, it's actually an MCDSTruncOptAnalysisResultsSet file ...
+    # but we'll ignore the extra columns, promised :-)
     resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     results = anlr.setupResults()
@@ -872,17 +872,18 @@ def testMcdsArsFilterSortKeys(mcdsAnalyser_fxt):
 # ### l. _indexOfDuplicates
 def testMcdsArsIndexOfDuplicates():
     # Test cases
-    df = pd.DataFrame([dict(a=1.000, b=2.00, c=3.0, d='To be kept: first so as a.round(1) == 1.0, whatever c, b == 2'),
-                       dict(a=1.010, b=2.00, c=1.0, d='Duplicate: 2nd so as a.round(1) == 1.0, whatever c, b == 2'),
-                       dict(a=1.049, b=2.00, c=2.0, d='Duplicate: 3rd so as a.round(1) == 1.0, whatever c, b == 2'),
-                       dict(a=1.051, b=2.00, c=2.0, d='To be kept: first so as a.round(1) == 1.1, whatever c, b == 2'),
-                       dict(a=1.060, b=2.00, c=2.0, d='Duplicate: 2nd so as a.round(1) == 1.1, whatever c, b == 2'),
-                       dict(a=1.100, b=2.00, c=4.0, d='Duplicate: 3rd so as a.round(1) == 1.1, whatever c, b == 2'),
-                       dict(a=1.151, b=2.00, c=5.0, d='To be kept: first so as a.round(1) == 1.2, whatever c, b == 2'),
-                       dict(a=2.000, b=2.00, c=3.0, d='To be kept: first so as b == 2.0, whatever c, a == 2'),
-                       dict(a=2.000, b=2.00, c=5.0, d='Duplicate: 2nd so as b == 2.0, whatever c, a == 2'),
-                       dict(a=2.000, b=2.01, c=9.0, d='To be kept: first so as b == 2.0, whatever c, a == 2'),
-                       dict(a=2.000, b=1.9999999, c=3.0, d='To be kept: first so as b == 1.9999999, whatever c, a == 2')])
+    df = pd.DataFrame(
+        [dict(a=1.000, b=2.00, c=3.0, d='To be kept: first so as a.round(1) == 1.0, whatever c, b == 2'),
+         dict(a=1.010, b=2.00, c=1.0, d='Duplicate: 2nd so as a.round(1) == 1.0, whatever c, b == 2'),
+         dict(a=1.049, b=2.00, c=2.0, d='Duplicate: 3rd so as a.round(1) == 1.0, whatever c, b == 2'),
+         dict(a=1.051, b=2.00, c=2.0, d='To be kept: first so as a.round(1) == 1.1, whatever c, b == 2'),
+         dict(a=1.060, b=2.00, c=2.0, d='Duplicate: 2nd so as a.round(1) == 1.1, whatever c, b == 2'),
+         dict(a=1.100, b=2.00, c=4.0, d='Duplicate: 3rd so as a.round(1) == 1.1, whatever c, b == 2'),
+         dict(a=1.151, b=2.00, c=5.0, d='To be kept: first so as a.round(1) == 1.2, whatever c, b == 2'),
+         dict(a=2.000, b=2.00, c=3.0, d='To be kept: first so as b == 2.0, whatever c, a == 2'),
+         dict(a=2.000, b=2.00, c=5.0, d='Duplicate: 2nd so as b == 2.0, whatever c, a == 2'),
+         dict(a=2.000, b=2.01, c=9.0, d='To be kept: first so as b == 2.0, whatever c, a == 2'),
+         dict(a=2.000, b=1.9999999, c=3.0, d='To be kept: first so as b == 1.9999999, whatever c, a == 2')])
 
     # Compute filter
     iDupes = RS._indexOfDuplicates(df, keep='first', subset=['a', 'b'], round2decs=dict(a=1))
@@ -1016,50 +1017,3 @@ def testMcdsArsFilSorSchemeId():
 ###############################################################################
 def testEnd():
     uivu.logEnd(what=what2Test)
-
-
-# This pytest-compatible module can also be run as a simple python script.
-if __name__ == '__main__':
-
-    run = True
-    # Run auto-tests (exit(0) if OK, 1 if not).
-    rc = -1
-
-    uivu.logBegin(what=what2Test)
-
-    if run:
-        try:
-            # Let's go.
-            testBegin()
-
-            # Tests for AnalysisResultsSet
-            testMcdsArsCompare()
-            testMcdsArsPostCompute()
-            testMcdsArsGroupingIntervals()
-            testMcdsArsIntervalIndex()
-            testMcdsArsPostComputeChi2(mcdsAnalyser())
-            testMcdsArsPostComputeDeltaAicDCv1(mcdsAnalyser())
-            testMcdsArsPostComputeDeltaAicDCv2(mcdsAnalyser())
-            testMcdsArsPostComputeQualityIndicators1(mcdsAnalyser())
-            testMcdsArsPostComputeQualityIndicators2(mcdsAnalyser())
-            testMcdsArsSampleDistTruncGroups(mcdsAnalyser())
-            testMcdsArsFilterSortKeySchemes(mcdsAnalyser())
-            testMcdsArsFilterSortKeys(mcdsAnalyser())
-            testMcdsArsIndexOfDuplicates()
-            testMcdsArsIndexOfWorstOneCriterion()
-            testMcdsArsIndexOfWorstMultiOrderCriteria()
-            testMcdsArsFilSorSchemeId()
-
-            # Done.
-            testEnd()
-
-            # Success !
-            rc = 0
-
-        except Exception as exc:
-            logger.exception(f'Exception: {exc}')
-            rc = 1
-
-    uivu.logEnd(what=what2Test, rc=rc)
-
-    sys.exit(rc)

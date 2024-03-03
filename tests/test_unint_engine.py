@@ -1,7 +1,7 @@
 # coding: utf-8
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Copyright (C) 2021 Jean-Philippe Meuret, Sylvain Sainnier
+# Copyright (C) 2021 Jean-Philippe Meuret, Jean-Philippe Meuret
 
 # This program is free software: you can redistribute it and/or modify it under the terms
 # of the GNU General Public License as published by the Free Software Foundation,
@@ -14,10 +14,8 @@
 
 # Automated unit and integration tests for "engine" submodule
 
-# To run : simply run "pytest" or "python <this file>" in current folder
-#          and check standard output ; and tmp/unt-eng.{datetime}.log for details
+# To run : simply run "pytest" and check standard output + tmp/unt-eng.{datetime}.log for details
 
-import sys
 import io
 import re
 import time
@@ -36,8 +34,7 @@ import unintval_utils as uivu
 
 
 # Setup local logger.
-logger = uivu.setupLogger('unt.eng', level=ads.DEBUG,
-                          otherLoggers={'ads.dat': ads.INFO})
+logger = uivu.setupLogger('unt.eng', level=ads.DEBUG, otherLoggers={'ads.dat': ads.INFO})
 
 what2Test = 'engine'
 
@@ -522,12 +519,15 @@ def testMcdsBuildDistanceDataFile(sdsRealReduced_fxt, dfShortSdsData_fxt):
 
 
 # i. TODO:  Test lower level code
-# * loadDataFile
-# * buildExportTable
-# * decodeStats
-# * decodeLog
-# * decodePlots
-# * decodeOutput
+def testLowerLevelCode():
+    # * loadDataFile
+    # * buildExportTable
+    # * decodeStats
+    # * decodeLog
+    # * decodePlots
+    # * decodeOutput
+
+    raise NotImplementedError('TODO !')
 
 
 ###############################################################################
@@ -535,44 +535,3 @@ def testMcdsBuildDistanceDataFile(sdsRealReduced_fxt, dfShortSdsData_fxt):
 ###############################################################################
 def testEnd():
     uivu.logEnd(what=what2Test)
-
-
-# This pytest-compatible module can also be run as a simple python script.
-if __name__ == '__main__':
-
-    run = True
-
-    # Run auto-tests (exit(0) if OK, 1 if not).
-    rc = -1
-
-    uivu.logBegin(what=what2Test)
-
-    if run:
-        try:
-            testBegin()
-
-            testDsFindExecutable()
-            testMcdsCtor()
-            testDsSetupRunFolder()
-            testMcdsBuildExportTable(dfShortSdsData())
-            testMcdsBuildDataFile(dfShortSdsData())
-            testMcdsBuildCmdFile()
-            testMcdsComputeSampleStats(dfShortSdsData())
-            testMcdsRun(dfShortSdsData())
-
-            testMcdsSubmitAnalysisDebug(sdsRealReduced())
-            testMcdsSubmitAnalysisReal(sdsRealReduced())
-            testMcdsBuildDistanceDataFile(sdsRealReduced(), dfShortSdsData())
-
-            testEnd()
-
-            # Success !
-            rc = 0
-
-        except Exception as exc:
-            logger.exception(f'Exception: {exc}')
-            rc = 1
-
-    uivu.logEnd(what=what2Test, rc=rc)
-
-    sys.exit(rc)
