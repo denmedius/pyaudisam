@@ -2587,7 +2587,7 @@ class MCDSAnalyser(DSAnalyser):
             logger.info1(f'* {anlysFolder}')
             dpn = pl.Path(anlysFolder)
             if dpn.is_dir():
-                shutil.rmtree()
+                shutil.rmtree(dpn)
                 nRemvd += 1
         logger.info(f'... done ({nRemvd}/{len(self.results)} removed).')
 
