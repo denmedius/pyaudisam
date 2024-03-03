@@ -18,6 +18,8 @@
 import copy
 import re
 import pathlib as pl
+import shutil
+
 from packaging import version
 
 import numpy as np
@@ -713,7 +715,7 @@ class DSAnalyser(Analyser):
     def shutdown(self):
     
         """Shutdown engine and executor (only useful if run() raises an exception and so fails to do it),
-        but keep the remainder of the object state as is.
+        but keep the remainder of the object state as is: cleanup() not called.
         """
 
         if self._engine:
@@ -722,10 +724,6 @@ class DSAnalyser(Analyser):
         if self._executor:
             self._executor.shutdown()
             self._executor = None
-        
-#    def __del__(self):
-#    
-#        self.shutdown()
 
 
 class _FilterSortSteps(object):
@@ -2573,6 +2571,29 @@ class MCDSAnalyser(DSAnalyser):
 
         return self.results
 
+    def cleanup(self):
+        
+        """Cleanup analyser:
+        * remove analysis folders if any run,
+        * reset results."""
+        
+        if not self.results:
+            logger.info('Nothing to cleanup: no result available')
+            return
+
+        logger.info(f'Removing analysis folders ...')
+        nRemvd = 0
+        for anlysFolder in self.results.dfData[self.results.CLRunFolder]:
+            logger.info1(f'* {anlysFolder}')
+            dpn = pl.Path(anlysFolder)
+            if dpn.is_dir():
+                shutil.rmtree()
+                nRemvd += 1
+        logger.info(f'... done ({nRemvd}/{len(self.results)} removed).')
+
+        # Done.
+        self.results = None
+
 
 class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
 
@@ -2688,6 +2709,9 @@ class MCDSPreAnalyser(MCDSAnalyser):
         assert runTimeOut is None or runMethod != 'os.system', \
                f"Can't care about {runTimeOut}s execution time limit with os.system run method (not implemented)"
 
+        # Set of file (names) exported to self.workDir (for later cleanup)
+        self.workDirExportedFiles = set()
+
     def computeSampleStats(self, implSampleSpecs, sampleDistCol='Distance'):
 
         dfExplSampleSpecs = self.explicitParamSpecs(implParamSpecs=implSampleSpecs, dropDupes=True)[0]
@@ -2785,7 +2809,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
                                     customData=sSampSpec[customCols].copy(),
                                     logData=False, modelStrategy=dModelStrategy)
 
-            # Start running pre-analysis in parallel, but don't wait for it's finished, go on
+            # Start running pre-analysis in parallel, but don't wait for it's finished: go on
             anlysFut = anlys.submit()
             
             # Store pre-analysis object and associated "future" for later use (should be running sooner or later).
@@ -2807,7 +2831,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         return self.results
 
-    def exportDSInputData(self, dfExplSampleSpecs=None, implSampleSpecs=None, format='Distance'):
+    def exportDSInputData(self, dfExplSampleSpecs=None, implSampleSpecs=None, format='Distance', targetFolder=None):
     
         """Export specified data samples to the specified DS input format, for "manual" DS analyses
         
@@ -2817,6 +2841,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         :param implSampleSpecs: Implicit sample specs, suitable for explicitation
           through explicitVariantSpecs
         :param format: output files format, only 'Distance' supported for the moment.
+        :param targetFolder: output folder for exported files (str or Path) ; self.workDir if None.
         """
     
         assert format == 'Distance', 'Only Distance format supported for the moment'
@@ -2832,10 +2857,17 @@ class MCDSPreAnalyser(MCDSAnalyser):
         dfExplSampleSpecs, _, _, _, checkVerdict, checkErrors = \
             self.explicitParamSpecs(implSampleSpecs, dfExplSampleSpecs, dropDupes=True, check=True)
         assert checkVerdict, 'Sample specs check failed: {}'.format('; '.join(checkErrors))
-        
+
+        # Export folder.
+        toWorkDir = False
+        if not targetFolder:
+            toWorkDir = True
+            targetFolder = self.workDir
+        targetFolder = pl.Path(targetFolder)
+
         # For each sample to export:
-        logger.info('Exporting {} samples to {} format ...'.format(len(dfExplSampleSpecs), format))
-        logger.debug(dfExplSampleSpecs)
+        logger.info(f'Exporting {len(dfExplSampleSpecs)} samples to {targetFolder.as_posix()} ({format} format) ...')
+        logger.debug('Sample specs:\n'+ dfExplSampleSpecs.to_string())
 
         for sampInd, sSampSpec in dfExplSampleSpecs.iterrows():
             
@@ -2847,8 +2879,10 @@ class MCDSPreAnalyser(MCDSAnalyser):
                 continue
 
             # Export to Distance
-            fpn = pl.Path(self.workDir) / '{}-dist.txt'.format(sSampSpec[self.abbrevCol])
+            fpn = targetFolder / '{}-dist.txt'.format(sSampSpec[self.abbrevCol])
             fpn = self._engine.buildDistanceDataFile(sds, tgtFilePathName=fpn)
+            if toWorkDir:
+                self.workDirExportedFiles.add(fpn.name)
 
             logger.info1('#{}/{} => {}'.format(sampInd+1, len(dfExplSampleSpecs), fpn.name))
 
@@ -2856,3 +2890,28 @@ class MCDSPreAnalyser(MCDSAnalyser):
         self._engine.shutdown()
 
         logger.info(f'Done exporting.')
+
+    def cleanup(self):
+
+        """Cleanup pre-analyser:
+        * remove analysis folders if any run,
+        * reset results,
+        * remove files exported in self.workDir (not those exported elsewhere)"""
+        
+        super().cleanup()
+        
+        logger.info('Removing files exported in workDir'
+                    f' ({len(self.workDirExportedFiles)} expected) ...')
+        nRemvd = 0
+        if self.workDirExportedFiles:
+            workDir = pl.Path(self.workDir)
+            for fileName in self.workDirExportedFiles:
+                logger.info1(f'* {fileName}')
+                fpn = workDir / fileName
+                if fpn.isfile():
+                    fpn.unlink()
+                    nRemvd += 1
+        logger.info(f'... done ({nRemvd}/{len(self.workDirExportedFiles)} removed).')
+
+        # Done.
+        self.workDirExportedFiles.clear()
