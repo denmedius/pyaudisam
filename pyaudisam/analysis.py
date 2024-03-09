@@ -184,11 +184,9 @@ class MCDSAnalysis(DSAnalysis):
     CLParModFitDistCuts = ('parameters', 'model fitting distance cut points', 'Value')
     CLParModDiscrDistCuts = ('parameters', 'distance discretisation cut points', 'Value')
 
-    MIRunColumns = pd.MultiIndex.from_tuples([CLParEstKeyFn, CLParEstAdjSer,
-                                              CLParEstSelCrit, CLParEstCVInt,
-                                              CLParTruncLeft, CLParTruncRight,
-                                              CLParModFitDistCuts, CLParModDiscrDistCuts]
-                                             + DSAnalysis.RunRunColumns)
+    RunParColumns = [CLParEstKeyFn, CLParEstAdjSer, CLParEstSelCrit, CLParEstCVInt,
+                     CLParTruncLeft, CLParTruncRight, CLParModFitDistCuts, CLParModDiscrDistCuts]
+    MIRunColumns = pd.MultiIndex.from_tuples(RunParColumns + DSAnalysis.RunRunColumns)
     
     # DataFrame for translating 3-level multi-index columns to 1 level lang-translated columns
     DfRunColumnTrans = \
