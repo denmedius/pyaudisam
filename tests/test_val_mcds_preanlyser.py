@@ -304,7 +304,7 @@ class TestMcdsPreAnalyser:
 
         logger.info(f"PASS testMcdsPreAnalyser: exportDsInputData({specMode} sample specs)")
 
-    # ### d. Run pre-analyses
+    # ### d. Run pre-analyses through pyaudisam API
     def testRun(self, preAnalyser_fxt, implicitMode):
 
         preAnlysr, sampleSpecs = preAnalyser_fxt
@@ -341,10 +341,8 @@ class TestMcdsPreAnalyser:
 
         logger.info(f'Elapsed time={end - start:.2f}s')
 
-        # preResFileName = workDir / 'valtests-preanalyses-results.xlsx'
-        # preResults.toExcel(preResFileName)
-
-        # preResults.toExcel(workDir / 'valtests-preanalyses-results-fr.xlsx', lang='fr')
+        preResults.toExcel(preAnlysr.workDir / f'valtests-preanalyses-results-{specMode}.xlsx')
+        # preResults.toExcel(preAnlysr.workDir / f'valtests-preanalyses-results-{specMode}-fr.xlsx', lang='fr')
 
         # ### e. Check results: Compare to reference
         # (reference generated with same kind of "long" code like in III above, but on another data set)
@@ -360,27 +358,31 @@ class TestMcdsPreAnalyser:
 
         logger.info(f'Reference results: n={len(rsRef)} =>\n' + rsRef.dfData.to_string(min_rows=30, max_rows=30))
 
-        # iii Compare (ignore sample and analysis indexes, no use here).
+        # iii Compare:
+        # * index = analysis "Id": sample Id columns and analysis indexes.
         indexPreCols = [col for col in preResults.miCustomCols.to_list() if '(sample)' in col[0]] \
                        + [('parameters', 'estimator key function', 'Value'),
                           ('parameters', 'estimator adjustment series', 'Value')]
-
+        # * ignore:
+        #   - sample Id columns and analysis indexes (used as comparison index = analysis "Id")
+        #   - 'run output' chapter results (start time, elapsed time, run folder ... always different)
+        #   - text columns (not supported by ResultsSet.compare).
         subsetPreCols = [col for col in preResults.dfData.columns.to_list()
                          if col in rsRef.columns
                          and col not in indexPreCols + [col for col in preResults.miCustomCols.to_list()
                                                         if '(sample)' not in col[0]]
-                         + [('parameters', 'estimator selection criterion', 'Value'),
-                            ('parameters', 'CV interval', 'Value'),
-                            ('run output', 'start time', 'Value'),
-                            ('run output', 'elapsed time', 'Value'),
-                            ('run output', 'run folder', 'Value'),
-                            ('detection probability', 'key function type', 'Value'),
-                            ('detection probability', 'adjustment series type', 'Value'),
-                            ('detection probability', 'Delta AIC', 'Value'),
-                            ('density/abundance', 'density of animals', 'Delta Cv')]]
+                                        + [('parameters', 'estimator selection criterion', 'Value'),
+                                           ('parameters', 'CV interval', 'Value'),
+                                           ('run output', 'start time', 'Value'),
+                                           ('run output', 'elapsed time', 'Value'),
+                                           ('run output', 'run folder', 'Value'),
+                                           ('detection probability', 'key function type', 'Value'),
+                                           ('detection probability', 'adjustment series type', 'Value'),
+                                           ('detection probability', 'Delta AIC', 'Value'),
+                                           ('density/abundance', 'density of animals', 'Delta Cv')]]
 
         dfDiff = rsRef.compare(preResults, indexCols=indexPreCols, subsetCols=subsetPreCols,
-                               dropCloser=13, dropNans=True)
+                               noneIsNan=True, dropCloser=13, dropNans=True)
 
         logger.info(f'Diff. to reference (relative): n={len(dfDiff)} =>\n'
                     + dfDiff.to_string(min_rows=30, max_rows=30))
@@ -388,7 +390,8 @@ class TestMcdsPreAnalyser:
         assert dfDiff.empty, 'Oh oh ... some unexpected differences !'
 
         # iv. To be perfectly honest ... there may be some 10**-14/-16 glitches (due to worksheet I/O ?) ... or not.
-        dfComp = rsRef.compare(preResults, indexCols=indexPreCols, subsetCols=subsetPreCols, dropNans=True)
+        dfComp = rsRef.compare(preResults, indexCols=indexPreCols, subsetCols=subsetPreCols,
+                               noneIsNan=True, dropNans=True)
         dfComp = dfComp[(dfComp != np.inf).all(axis='columns')]
 
         logger.info(f'Diff. to reference (absolute): n={len(dfComp)} =>\n'
