@@ -317,7 +317,7 @@ This is generally not what you want, as you trust pyaudisam filtering system and
 
 But in case you really want to get exhaustive **reports**, showing the resuls **of all the analyses** run, without any filtering (beware of the total number !), you can go with the "**full**" Excel and HTML report types:
 
-`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./optanlys -o -f html:full,excel:full -u`
+`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./optanlys/YYMMDD-HHMMSS -f html:full,excel:full -u`
 
 The produced Excel report workbook: `ACDC2019-Nat-optanalyses-report.xlsx` is actually just the same as the "filtered" one (see above), except that it **does not contain any "filtered" sheet** ; which means that it not actually usefull, as it is really a subset of the filtered report. Note that here, due to some specific settings in `acdc-2019-ds-params.py`, especially about row sorting, the results are not in the same order (sorted by increasing left and right truncation distance, and then only by decreasing Qual Bal 3 indicator) ; but you can change the settings !
 
@@ -354,21 +354,21 @@ To **generate** both HTML and Excel **filtered reports** (the HTML one only for 
 
 2. generate the (filtered) reports (as always, run first without `-u` to check what's going on):
 
-`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys/YYMMDD-HHMMSS -f excel,html:r950 -u`
+`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys/YYMMDD-HHMMSS -r excel,html:r950 -u`
 
 
 #### c. Run and report in 1 command
 
 You can also run and report analyses the same way in one command only:
 
-`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys -a -f excel,html:r950 -u`
+`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys -a -r excel,html:r950 -u`
 
 
 #### d. Full (rather than "filtered") report
 
 This is generally not what you want (see above), but in case you want it, you can go with the "**full**" report types:
 
-`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys -o -f html:full,excel:full -u`
+`python -m pyaudisam -p acdc-2019-nat-ds-params.py -w ./anlys/YYMMDD-HHMMSS -r excel:full,html:full -u`
 
 
 ### 5. Export sample data files ready for manual analyses through Distance
