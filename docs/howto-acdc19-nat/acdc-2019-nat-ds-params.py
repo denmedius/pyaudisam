@@ -140,7 +140,7 @@ analysisSpecFile = dataDir / f'{studyName}-AnalysesToDo.autogen.xlsx'
 _ddfAnlysSpecs = pd.read_excel(dataDir / f'{studyName}-OptAnalysesToDo.xlsx', sheet_name=None)
 with pd.ExcelWriter(analysisSpecFile) as xlWrtr:
     for sn in _ddfAnlysSpecs:
-        if sn != 'TroncaturesAuto_impl':
+        if sn != 'AutoTruncations_impl':
             _ddfAnlysSpecs[sn].to_excel(xlWrtr, sheet_name=sn, index=False)
 
 # e. Parameters for computations run and follow-up
