@@ -431,7 +431,7 @@ def testDataSetCompare():
                    ('parameters', 'model fitting distance cut points', 'Value'),
                    ('parameters', 'distance discretisation cut points', 'Value')]
 
-    # # c. Columns to be compared (DeltaDCV and DeltaAIC were removed as results depend on a set of ran analyses,
+    # # c. Columns to be compared (DeltaDCV and DeltaAIC were removed as results depend on a set of run analyses,
     # #    different between reference and PyAuDiSam run).
     subsetCols = [col for col in dsDist.dfData.columns.to_list()
                   if col not in indexCols + [('run output', 'run time', 'Value'),
@@ -456,6 +456,8 @@ def testDataSetCompare():
     assert len(dfRelDiff) == 2, \
         'Error: testCompare: compare: Issue occurred. Row by row comparison of both DataSet' \
         'with accuracy of 10**5 should pass for all rows.'
+
+    # # f. TODO: Comparison with noneIsNan=True
 
     logger.info0('PASS (testCompare) => DATASET => method "_closeness" and "compare"')
 

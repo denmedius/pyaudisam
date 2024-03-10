@@ -16,6 +16,7 @@
 
 # To run : simply run "pytest" and check standard output + ./tmp/unt-ars.{datetime}.log for details
 
+import numpy as np
 import pandas as pd
 
 import pyaudisam as ads
@@ -41,13 +42,17 @@ def testBegin():
 #                                Test Cases                                   #
 ###############################################################################
 
-# AnalysisResultsSet class with specialised postComputeColumns
+# AnalysisResultsSet class with a specialised postComputeColumns
 # (with an extra. post-computed column: Delta AIC)
 class SpecialAnalysisResultsSet(ads.analyser.AnalysisResultsSet):
 
     def __init__(self, miCustomCols=None, dfCustomColTrans=None,
-                 dComputedCols=None, dfComputedColTrans=None):
-        super().__init__(ads.MCDSAnalysis, miCustomCols, dfCustomColTrans, dComputedCols, dfComputedColTrans)
+                 dComputedCols=None, dfComputedColTrans=None,
+                 dropNACols=True, miExemptNACols=None):
+        super().__init__(analysisClass=ads.MCDSAnalysis,
+                         miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
+                         dComputedCols=dComputedCols, dfComputedColTrans=dfComputedColTrans,
+                         dropNACols=dropNACols, miExemptNACols=miExemptNACols)
 
     # Post-computations.
     def postComputeColumns(self):
@@ -74,23 +79,35 @@ class SpecialAnalysisResultsSet(ads.analyser.AnalysisResultsSet):
 def testArsCtorGettersSettersToFromFiles():
 
     # a. AnalysisResultsSet results object construction
+    emptyCustCol = ('test', 'all NaN', 'Value')
     miCustCols = pd.MultiIndex.from_tuples([('id', 'index', 'Value'),
                                             ('sample', 'species', 'Value'),
                                             ('sample', 'periods', 'Value'),
                                             ('sample', 'duration', 'Value'),
-                                            ('variant', 'precision', 'Value')])
+                                            ('variant', 'precision', 'Value'),
+                                            emptyCustCol])
     dfCustColTrans = \
         pd.DataFrame(index=miCustCols,
-                     data=dict(en=['index', 'species', 'periods', 'duration', 'precision'],
-                               fr=['numéro', 'espèce', 'périodes', 'durée', 'précision']))
+                     data=dict(en=['index', 'species', 'periods', 'duration', 'precision', 'empty'],
+                               fr=['numéro', 'espèce', 'périodes', 'durée', 'précision', 'vide']))
     dCompCols = {('detection probability', 'Delta AIC', 'Value'):
                  len(ads.MCDSEngine.statSampCols()) + len(ads.MCDSAnalysis.MIRunColumns) + 11}  # Right before AIC
     dfCompColTrans = \
         pd.DataFrame(index=dCompCols.keys(),
                      data=dict(en=['Delta AIC'], fr=['Delta AIC']))
 
+    # These columns will be intentionally emptied, but kept after getData
+    emptyExemptCol1 = ('density/abundance', 'bootstrap density of animals', 'Df')
+    emptyExemptCol2 = ('cluster size', 'average cluster size', 'Value')
+    miExemptNACols = pd.MultiIndex.from_tuples([emptyExemptCol1, emptyExemptCol2])
+
     rs = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                   dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                   dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                   dropNACols=True, miExemptNACols=miExemptNACols)
+
+    # These other columns will also be intentionally emptied (and auto removed by getData cleanup)
+    emptyRemvdCol1 = ('density/abundance', 'bootstrap number of animals', 'Lcl')
+    emptyRemvdCol2 = ('density/abundance', 'bootstrap number of animals', 'Ucl')
 
     # ### b. Some getters
     # empty
@@ -105,43 +122,61 @@ def testArsCtorGettersSettersToFromFiles():
     assert len(rs.index) == 0
     assert rs.index.to_list() == []
     logger.info('index OK')
-    logger.info('index OK')
 
     # columns
     assert len(rs.columns) == 0
     logger.info('columns OK')
 
-    # ### c. Append result rows
+    # ### c. Append result rows (fictive data, never mind !)
     # append
     sHead = pd.Series(index=miCustCols, data=list(range(len(miCustCols))))
     miResCols = ads.MCDSEngine.statSampCols().append(ads.MCDSAnalysis.MIRunColumns).append(ads.MCDSEngine.statModCols())
-    sResult = pd.Series(index=miResCols, data=list(range(len(miResCols))))  # Fictive data, never mind !
+    sResult = pd.Series(index=miResCols, data=list(range(len(miResCols))))
     rs.append(sResult, sCustomHead=sHead)
-    sResult = pd.Series(index=miResCols, data=list(range(1, len(miResCols) + 1)))  # Fictive data, never mind !
+    sResult = pd.Series(index=miResCols, data=list(range(1, len(miResCols) + 1)))
     rs.append(sResult, sCustomHead=sHead)
-    sResult = pd.Series(index=miResCols, data=list(range(2, len(miResCols) + 2)))  # Fictive data, never mind !
+    sResult = pd.Series(index=miResCols, data=list(range(2, len(miResCols) + 2)))
     rs.append(sResult, sCustomHead=sHead)
+
+    # empty 1 custom column and 2 exempt columns (for testing auto-cleanup exceptions in getData)
+    logger.info(f'1. {len(rs._dfData.columns)}')
+    rs._dfData[emptyCustCol] = np.NaN
+    logger.info(f'2. {len(rs._dfData.columns)}')
+    rs._dfData[emptyExemptCol1] = np.NaN
+    logger.info(f'3. {len(rs._dfData.columns)}')
+    rs._dfData[emptyExemptCol2] = np.NaN
+    logger.info(f'4. {len(rs._dfData.columns)}')
+
+    # empty 2 other columns (for testing auto-cleanup in getData)
+    rs._dfData[emptyRemvdCol1] = np.NaN
+    logger.info(f'5. {len(rs._dfData.columns)}')
+    rs._dfData[emptyRemvdCol2] = np.NaN
+    logger.info(f'6. {len(rs._dfData.columns)}')
 
     # ### d. Some getters again
     # dfRawData (no post-computed columns)
     dfRaw = rs.dfRawData
-    logger.info('dfRaw: ' + dfRaw.to_string())
+    logger.info('dfRaw:\n' + dfRaw.to_string())
 
-    # columns (Beware: rs.columns does trigger computation of ... computed columns !)
-    assert len(rs._dfData.columns) == len(dfRaw.columns) and len(dfRaw.columns) == 113
+    # columns before calling columns() (Beware: rs.columns does trigger computation of ... computed columns !)
     rawCols = rs._dfData.columns.to_list()
-    logger.info('raw columns: ' + str(rawCols))
+    logger.info('raw columns:\n' + '\n'.join(str(c) for c in rawCols))
+    assert len(rawCols) == len(dfRaw.columns) and len(dfRaw.columns) == 114
 
-    # columns
-    assert len(rs.columns) == 114  # The proof here !
+    # columns after (+ post-computed one - empty non-custom and non-exempt cleanup)
     postCols = rs.columns.to_list()
-    logger.info('raw columns: ' + str(postCols))
+    logger.info('post-columns() columns:\n' + '\n'.join(str(c) for c in postCols))
+    assert len(postCols) == 113  # Beware ... above : the proof here !
 
-    # Check added == compute column
+    # Check added == computed column
     assert (set(rs.columns.to_list()) - set(dfRaw.columns.to_list())
             == {('detection probability', 'Delta AIC', 'Value')})
 
-    # dfData (post-computations already done, never mind)
+    # Check presence of empty exempt and custom columns after getData (<= dfData <= columns)
+    assert all(col in rs.columns for col in miExemptNACols)
+    assert emptyCustCol in rs.columns
+
+    # dfData (post-computations already done by columns(), never mind)
     dfPost = rs.dfData
     logger.info('dfPost: ' + dfPost.to_string())
 
@@ -211,15 +246,18 @@ def testArsCtorGettersSettersToFromFiles():
     # #### ii. Imports with explicit format (with specs)
     # A. XLSX Format
     rs1 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs1.fromExcel(uivu.pTmpDir / 'results-set-uni.xlsx', sheetName='utest')
-    logger.info('rs1.dfData: ' + rs1.dfData.to_string())
+    logger.info('rs1.dfData:\n' + rs1.dfData.to_string())
 
     # Data
+    rs1.toExcel(uivu.pTmpDir / 'results-set-uni-1.xlsx', sheetName='utest')
+    logger.info('rs1.dfData.compare(rs.dfData):\n' + rs1.dfData.compare(rs.dfData).to_string())
     assert rs1.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs1.specs: ' + str(rs1.specs))
+    logger.info('rs1.specs:\n' + str(rs1.specs))
     assert isinstance(rs1.specs['d'], dict) and rs1.specs['d'] == rs.specs['d']
     assert (isinstance(rs1.specs['df'], pd.DataFrame)
             and rs1.specs['df'].equals(rs.specs['df']))  # == fails on NaNs in same places
@@ -230,15 +268,16 @@ def testArsCtorGettersSettersToFromFiles():
 
     # B. XLS Format
     rs2 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs2.fromExcel(uivu.pTmpDir / 'results-set-uni.xls', sheetName='utest')
-    logger.info(rs2.dfData.to_string())
+    logger.info('rs2.dfData:\n' + rs2.dfData.to_string())
 
     # Data
     assert rs2.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs2.specs: ' + str(rs2.specs))
+    logger.info('rs2.specs:\n' + str(rs2.specs))
     assert isinstance(rs2.specs['d'], dict) and rs2.specs['d'] == rs.specs['d']
     assert (isinstance(rs2.specs['df'], pd.DataFrame)
             and rs2.specs['df'].equals(rs.specs['df']))  # == fails on NaNs in same places
@@ -249,9 +288,10 @@ def testArsCtorGettersSettersToFromFiles():
 
     # C. Format ODS
     rs3 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs3.fromOpenDoc(uivu.pTmpDir / 'results-set-uni.ods', sheetName='utest')
-    logger.info('rs3.dfData: ' + rs3.dfData.to_string())
+    logger.info('rs3.dfData:\n' + rs3.dfData.to_string())
 
     # Data
     assert rs3.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
@@ -267,15 +307,16 @@ def testArsCtorGettersSettersToFromFiles():
 
     # D. Format pickle comprimé
     rs4 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs4.fromPickle(uivu.pTmpDir / 'results-set-uni.pickle.xz')
-    logger.info('rs4.dfData: ' + rs4.dfData.to_string())
+    logger.info('rs4.dfData:\n' + rs4.dfData.to_string())
 
     # Data
     assert rs4.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs4.specs: ' + str(rs4.specs))
+    logger.info('rs4.specs:\n' + str(rs4.specs))
     assert isinstance(rs4.specs['d'], dict) and rs4.specs['d'] == rs.specs['d']
     assert isinstance(rs4.specs['df'], pd.DataFrame) and rs4.specs['df'].equals(
         rs.specs['df'])  # == fails on NaNs in same places
@@ -285,15 +326,16 @@ def testArsCtorGettersSettersToFromFiles():
 
     # E. Format pickle non comprimé
     rs5 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs5.fromPickle(uivu.pTmpDir / 'results-set-uni.pickle')
-    logger.info('rs5.dfData: ' + rs5.dfData.to_string())
+    logger.info('rs5.dfData:\n' + rs5.dfData.to_string())
 
     # Data
     assert rs5.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs5.specs: ' + str(rs5.specs))
+    logger.info('rs5.specs:\n' + str(rs5.specs))
     assert isinstance(rs5.specs['d'], dict) and rs5.specs['d'] == rs.specs['d']
     assert isinstance(rs5.specs['df'], pd.DataFrame) and rs5.specs['df'].equals(
         rs.specs['df'])  # == fails on NaNs in same places
@@ -304,15 +346,16 @@ def testArsCtorGettersSettersToFromFiles():
     # #### iii. Imports with auto-detected format (with specs)
     # A. XLSX Format
     rs1 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs1.fromFile(uivu.pTmpDir / 'results-set-uni.xlsx', sheetName='utest')
-    logger.info('rs1.dfData: ' + rs1.dfData.to_string())
+    logger.info('rs1.dfData:\n' + rs1.dfData.to_string())
 
     # Data
     assert rs1.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs1.specs: ' + str(rs1.specs))
+    logger.info('rs1.specs:\n' + str(rs1.specs))
     assert isinstance(rs1.specs['d'], dict) and rs1.specs['d'] == rs.specs['d']
     assert isinstance(rs1.specs['df'], pd.DataFrame) and rs1.specs['df'].equals(
         rs.specs['df'])  # == fails on NaNs in same places
@@ -322,15 +365,16 @@ def testArsCtorGettersSettersToFromFiles():
 
     # B. XLS Format
     rs2 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs2.fromFile(uivu.pTmpDir / 'results-set-uni.xls', sheetName='utest')
-    logger.info('rs2.dfData: ' + rs2.dfData.to_string())
+    logger.info('rs2.dfData:\n' + rs2.dfData.to_string())
 
     # Data
     assert rs2.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs2.specs: ' + str(rs2.specs))
+    logger.info('rs2.specs:\n' + str(rs2.specs))
     assert isinstance(rs2.specs['d'], dict) and rs2.specs['d'] == rs.specs['d']
     assert isinstance(rs2.specs['df'], pd.DataFrame) and rs2.specs['df'].equals(
         rs.specs['df'])  # == fails on NaNs in same places
@@ -340,15 +384,16 @@ def testArsCtorGettersSettersToFromFiles():
 
     # C. Format ODS
     rs3 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs3.fromFile(uivu.pTmpDir / 'results-set-uni.ods', sheetName='utest')
-    logger.info('rs3.dfData: ' + rs3.dfData.to_string())
+    logger.info('rs3.dfData:\n' + rs3.dfData.to_string())
 
     # Data
     assert rs3.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs3.specs: ' + str(rs3.specs))
+    logger.info('rs3.specs:\n' + str(rs3.specs))
     assert isinstance(rs3.specs['d'], dict) and rs3.specs['d'] == rs.specs['d']
     # This one fails on NaNs in same places
     assert isinstance(rs3.specs['df'], pd.DataFrame) and rs3.specs['df'].equals(rs.specs['df'])
@@ -358,15 +403,16 @@ def testArsCtorGettersSettersToFromFiles():
 
     # D. Format pickle comprimé
     rs4 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs4.fromFile(uivu.pTmpDir / 'results-set-uni.pickle.xz')
-    logger.info('rs4.dfData: ' + rs4.dfData.to_string())
+    logger.info('rs4.dfData:\n' + rs4.dfData.to_string())
 
     # Data
     assert rs4.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs4.specs: ' + str(rs4.specs))
+    logger.info('rs4.specs:\n' + str(rs4.specs))
     assert isinstance(rs4.specs['d'], dict) and rs4.specs['d'] == rs.specs['d']
     assert isinstance(rs4.specs['df'], pd.DataFrame) and rs4.specs['df'].equals(
         rs.specs['df'])  # == fails on NaNs in same places
@@ -376,15 +422,16 @@ def testArsCtorGettersSettersToFromFiles():
 
     # E. Format pickle non comprimé
     rs5 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
-                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans)
+                                    dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
+                                    dropNACols=True, miExemptNACols=miExemptNACols)
     rs5.fromFile(uivu.pTmpDir / 'results-set-uni.pickle')
-    logger.info('rs5.dfData: ' + rs5.dfData.to_string())
+    logger.info('rs5.dfData:\n' + rs5.dfData.to_string())
 
     # Data
     assert rs5.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
     # Specs
-    logger.info('rs5.specs: ' + str(rs5.specs))
+    logger.info('rs5.specs:\n' + str(rs5.specs))
     assert isinstance(rs5.specs['d'], dict) and rs5.specs['d'] == rs.specs['d']
     assert isinstance(rs5.specs['df'], pd.DataFrame) and rs5.specs['df'].equals(
         rs.specs['df'])  # == fails on NaNs in same places
