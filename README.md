@@ -64,7 +64,7 @@ Whichever method, the best way to go is to read the concrete quick-start guide :
 
 Note: You can also get a detailed idea of how to use pyaudisam python API by playing with the fully functional [jupyter](https://jupyter.org/) notebook [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) (see below [Running tests](#running-tests) for how to obtain and run it).
 
-## Running tests
+## Testing
 
 You first need to clone the [source tree](https://github.com/denmedius/pyaudisam) or download and install a [source package](https://pypi.org/project/pyaudisam/#files): once done, look in the _tests_ sub-folder, everything's inside.
 
@@ -117,7 +117,7 @@ And if you are lacking ideas, here are some good ones below ;-)
   * write a guide for building the module API documentation ([sphinx](https://www.sphinx-doc.org/) should work out of the box as [reStructured text](https://en.wikipedia.org/wiki/ReStructuredText) has been used in docstrings),
 * tests:
   * finish moving (and completing) [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) notebooks code to pytest scripts,
-    (after checking the state of this work in progress in tests/\*\_test.py scripts),
+    (after checking the state of this work-in-progress in tests/\*\_test.py scripts),
   * add more tests for improving code coverage (thanks to HTML coverage report),
 * features:
   * add support for line transects (only point transects for the moment),
@@ -139,5 +139,5 @@ And if you are lacking ideas, here are some good ones below ;-)
 ### Some hints
 
 Some formal things that I don't plan to change (let's concentrate on substantive content) :-)
-* this code is not blacked or isorted or fully conforms to pep8 (but it's clean, commented, and it works),
+* this code is not blacked or isorted or fully conform to pep8 (but it's clean, commented, and it works),
 * the identifier naming scheme used is old-fashioned: camel case everywhere.

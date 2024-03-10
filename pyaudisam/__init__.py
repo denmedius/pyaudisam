@@ -53,7 +53,7 @@ from .optanalyser import MCDSTruncationOptanalyser, MCDSTruncOptanalysisResultsS
 
 from .report import MCDSResultsPreReport, MCDSResultsFullReport, MCDSResultsFilterSortReport
 
-from .utils import loadPythonData
+from .main import main
 
 # Sort and update runtime last bits
 runtime.update(pyaudisam=f'{__version__}')
