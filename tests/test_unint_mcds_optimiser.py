@@ -849,6 +849,8 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
                   'SetupStatus', 'SubmitStatus', 'NFunEvals', 'MeanFunElapd',
                   '1-ks', 'maxDist', 'discrDistCuts', 'chi2', 'minDist',
                   'fitDistCuts', 'ks', '1-chi2', 'cvmuw*cvmcw']
+    logger.info('Expected dfData.columns: ' + ', '.join(exptdCols))
+    logger.info('Read     dfData.columns: ' + ', '.join(dfData.columns))
     assert dfData.columns.tolist() == exptdCols
 
     # ii. Create the optimiser object : have to be a clone of the one whose execution was backed up
