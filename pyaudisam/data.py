@@ -384,7 +384,7 @@ class DataSet(object):
     
     @classmethod
     def compareDataFrames(cls, dfLeft, dfRight, subsetCols=[], indexCols=[],
-                          dropCloser=np.inf, dropNans=True, dropCloserCols=False):
+                          noneIsNan=False, dropCloser=np.inf, dropNans=True, dropCloserCols=False):
     
         """
         Compare 2 DataFrames.
@@ -399,6 +399,7 @@ class DataSet(object):
         :param dfRight: Right DataFrame
         :param list subsetCols: on a subset of columns,
         :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
+        :param bool noneIsNan: if True, replace any None by a np.nan in left and right before comparing
         :param float dropCloser: result will only include rows with all cell closeness > dropCloser
                                  (default: np.inf => all cols and rows kept).
         :param bool dropNans: smoother condition for dropCloser : if True, NaN values are also considered > dropCloser
@@ -421,9 +422,9 @@ class DataSet(object):
         for colsSetName, colsSet in dColsSets.items():
             for col in colsSet:
                 if col not in dfLeft.columns:
-                    raise KeyError('{} {} not in left result set'.format(colsSetName, col))
+                    raise KeyError(f'{colsSetName} {col} not in left result set')
                 if col not in dfRight.columns:
-                    raise KeyError('{} {} not in right result set'.format(colsSetName, col))
+                    raise KeyError(f'{colsSetName} {col} not in right result set')
         
         # Set specified cols as the index (after making them hashable) and sort it.
         dfLeft[indexCols] = dfLeft[indexCols].applymap(cls._toHashable)
@@ -446,7 +447,12 @@ class DataSet(object):
         dfRight = dfRight.join(dfLeft[[anyCol]], rsuffix='_l', how='outer')
         dfRight.drop(columns=dfRight.columns[-1], inplace=True)
 
-        # Compare : Compute closeness 
+        # Replace None by NaNs if specified
+        if noneIsNan:
+            dfLeft.replace({None: np.nan}, inplace=True)
+            dfRight.replace({None: np.nan}, inplace=True)
+
+        # Compare : Compute closeness
         nColLevels = dfLeft.columns.nlevels
         KRightCol = 'tmp' if nColLevels == 1 else tuple('tmp{}'.format(i) for i in range(nColLevels))
         dfRelDiff = dfLeft.copy()
@@ -456,7 +462,9 @@ class DataSet(object):
             try:
                 dfRelDiff[leftCol] = dfRelDiff[[leftCol, KRightCol]].apply(cls._closeness, axis='columns')
             except TypeError as exc:
-                logger.error(f'Column {leftCol} : {exc}')
+                logger.error(f'_closeness failed for left column {leftCol}: {exc} ...')
+                logger.error(f'* left: {dfRelDiff[leftCol].to_dict()}')
+                logger.error(f'* right: {dfRelDiff[KRightCol].to_dict()}')
                 exception = True
             dfRelDiff.drop(columns=[KRightCol], inplace=True)
             
@@ -478,7 +486,8 @@ class DataSet(object):
             
         return dfRelDiff
 
-    def compare(self, other, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True, dropCloserCols=False):
+    def compare(self, other, subsetCols=[], indexCols=[],
+                noneIsNan=False, dropCloser=np.inf, dropNans=True, dropCloserCols=False):
     
         """
         Compare 2 data sets.
@@ -492,6 +501,7 @@ class DataSet(object):
         :param other: Right data set or DataFrame object to compare
         :param list subsetCols: on a subset of columns,
         :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
+        :param bool noneIsNan: if True, replace any None by a np.nan in left and right before comparing
         :param float dropCloser: result will only include rows with all cell closeness > dropCloser
                                  (default: np.inf => all cols and rows kept).
         :param bool dropNans: smoother condition for dropCloser : if True, NaN values are also considered > dropCloser
@@ -504,7 +514,7 @@ class DataSet(object):
         
         return self.compareDataFrames(dfLeft=self.dfData,
                                       dfRight=other if isinstance(other, pd.DataFrame) else other.dfData,
-                                      subsetCols=subsetCols, indexCols=indexCols,
+                                      subsetCols=subsetCols, indexCols=indexCols, noneIsNan=noneIsNan,
                                       dropCloser=dropCloser, dropNans=dropNans, dropCloserCols=dropCloserCols)
 
 
@@ -897,7 +907,8 @@ class ResultsSet(object):
     """
 
     def __init__(self, miCols, dfColTrans=None, miCustomCols=None, dfCustomColTrans=None,
-                 dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[], dropNACols=True):
+                 dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[],
+                 dropNACols=True, miExemptNACols=None):
     
         """Ctor
         
@@ -913,7 +924,9 @@ class ResultsSet(object):
         :param sortCols: if not empty, iterable of columns to sort values by in dfData()
         :param sortAscend: sorting order for all (bool), or each column (iterable of bool) in dfData()
         :param dropNACols: If True, dfData() won't return columns with no relevant results data
-                           (except for custom cols).
+                           (except for custom cols and exempt cols).
+        :param miExemptNACols: if not None, non-custom columns to keep even if
+        dropNACols and all NaN
         """
         
         assert len(sortCols) == len(sortAscend), 'sortCols and sortAscend must have same length'
@@ -923,8 +936,9 @@ class ResultsSet(object):
             dComputedCols = dict()
             dfComputedColTrans = pd.DataFrame()
 
-        # Columns : Process results + computed results (at the specified position if any)
+        # Columns: Process results + computed results (at the specified position if any)
         self.miCols = miCols.copy()
+        self.isMultiIndexedCols = isinstance(miCols, pd.MultiIndex)
         for col, ind in dComputedCols.items():
             if ind is not None:
                 self.miCols = self.miCols.insert(ind, col)
@@ -932,21 +946,20 @@ class ResultsSet(object):
         if lastCompCols:
             self.miCols = self.miCols.append(pd.MultiIndex.from_tuples(lastCompCols))
 
-        # 
+        # Columns: post-computed ones, and custom ones (to prepend to process results)
         self.computedCols = list(dComputedCols.keys())
         self.miCustomCols = miCustomCols.copy() if miCustomCols is not None else list()
-        
-        self.isMultiIndexedCols = isinstance(miCols, pd.MultiIndex)
 
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
         self.dfColTrans = pd.concat([dfColTrans if dfColTrans is not None else pd.DataFrame(),
-                                     dfComputedColTrans if dfColTrans is not None else pd.DataFrame()])
+                                     dfComputedColTrans if dfComputedColTrans is not None else pd.DataFrame()])
         self.dfCustomColTrans = dfCustomColTrans.copy() if dfCustomColTrans is not None else pd.DataFrame()
         
         # Sorting and cleaning parameters (after postComputing)
         self.sortCols = sortCols
         self.sortAscend = sortAscend
         self.dropNACols = dropNACols
+        self.miExemptNACols = miExemptNACols
         
         # Non-constant data members
         self._dfData = pd.DataFrame()  # The real data (frame).
@@ -967,7 +980,7 @@ class ResultsSet(object):
 
     @property
     def columns(self):
-    
+        # Yes, using dfData triggers post-computation, we mean it !
         return self.dfData.columns
         
     @property
@@ -992,7 +1005,8 @@ class ResultsSet(object):
         clone = ResultsSet(miCols=self.miCols,
                            miCustomCols=self.miCustomCols.copy(),
                            dfCustomColTrans=self.dfCustomColTrans.copy(),
-                           sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy())
+                           sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy(),
+                           dropNACols=self.dropNACols, miExemptNACols=self.miExemptNACols.copy())
     
         # 2. Complete clone initialisation.
         clone.miCols = self.miCols.copy()
@@ -1142,20 +1156,27 @@ class ResultsSet(object):
             self._dfData = self._dfData.reindex(columns=miTgtColumns)
             self.rightColOrder = True  # No need to do it again, until next append() !
         
-        # This is also documentation line !
+        # These are also documentation lines !
         if self.isMultiIndexedCols and not self._dfData.empty:
             assert isinstance(self._dfData.columns, pd.MultiIndex)
         
-        # If specified, don't return columns with no relevant results data (unless among custom cols).
+        # If specified, don't return columns with no relevant results data,
+        # unless among custom cols or explicitly exempt cols.
         if self.dropNACols and not self._dfData.empty:
             miCols2Cleanup = self._dfData.columns
-            if self.miCustomCols is not None:
-                if self.isMultiIndexedCols:
+            if self.isMultiIndexedCols:
+                if self.miCustomCols is not None:
                     miCols2Cleanup = miCols2Cleanup.drop(self.miCustomCols.to_list())
-                else:
+                if self.miExemptNACols is not None:
+                    miCols2Cleanup = miCols2Cleanup.drop(self.miExemptNACols.to_list())
+            else:
+                if self.miCustomCols is not None:
                     miCols2Cleanup = [col for col in miCols2Cleanup if col not in self.miCustomCols]
+                if self.miExemptNACols is not None:
+                    miCols2Cleanup = [col for col in miCols2Cleanup if col not in
+                                      self.miExemptNACols]
             cols2Drop = [col for col in miCols2Cleanup if self._dfData[col].isna().all()]
-            logger.debug(f'Dropping all-NaN columns {cols2Drop}')
+            logger.debug(f'Dropping all-NaN result columns {cols2Drop}')
             self._dfData.drop(columns=cols2Drop, inplace=True)
 
         # Done.
@@ -1287,9 +1308,9 @@ class ResultsSet(object):
                        or as a list(tuple(string*)) or pd.MultiIndex when multi-indexed ; None = all columns.
         """
 
-        assert lang in ['en', 'fr'], 'No support for "{}" language'.format(lang)
+        assert lang in ['en', 'fr'], f'No support for "{lang}" language'
         
-        # Extract (and maybe copy) selected rows and columns of dfData.
+        # Extract selected rows and columns of dfData.
         dfTrData = self.dfSubData(index=index, columns=columns, copy=True)
         
         # Translate column names.
@@ -1639,7 +1660,8 @@ class ResultsSet(object):
         else:
             raise NotImplementedError(f'Unsupported ResultsSet input file format: {fileName}')
 
-    def compare(self, other, subsetCols=[], indexCols=[], dropCloser=np.inf, dropNans=True, dropCloserCols=False):
+    def compare(self, other, subsetCols=[], indexCols=[],
+                noneIsNan=False, dropCloser=np.inf, dropNans=True, dropCloserCols=False):
     
         """
         Compare 2 results sets.
@@ -1653,6 +1675,7 @@ class ResultsSet(object):
         :param other: Right results or DataFrame object to compare
         :param list subsetCols: on a subset of columns,
         :param list indexCols: ignoring these columns, but keeping them as the index and sorting order,
+        :param bool noneIsNan: if True, replace any None by a np.nan in left and right before comparing
         :param float dropCloser: result will only include rows with all cell closeness > dropCloser
                                  (default: np.inf => all cols and rows kept).
         :param bool dropNans: smoother condition for dropCloser : if True, NaN values are also considered > dropCloser
@@ -1665,7 +1688,7 @@ class ResultsSet(object):
         
         return DataSet.compareDataFrames(dfLeft=self.dfData,
                                          dfRight=other if isinstance(other, pd.DataFrame) else other.dfData,
-                                         subsetCols=subsetCols, indexCols=indexCols,
+                                         subsetCols=subsetCols, indexCols=indexCols, noneIsNan=noneIsNan,
                                          dropCloser=dropCloser, dropNans=dropNans, dropCloserCols=dropCloserCols)
         
 

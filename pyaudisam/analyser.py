@@ -43,7 +43,8 @@ class AnalysisResultsSet(ResultsSet):
     """
     
     def __init__(self, analysisClass, miCustomCols=None, dfCustomColTrans=None,
-                 dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[]):
+                 dComputedCols=None, dfComputedColTrans=None, sortCols=[], sortAscend=[],
+                 dropNACols=True, miExemptNACols=None):
         
         assert issubclass(analysisClass, DSAnalysis), 'analysisClass must derive from DSAnalysis'
         assert miCustomCols is None \
@@ -64,7 +65,8 @@ class AnalysisResultsSet(ResultsSet):
         super().__init__(miCols=miCols, dfColTrans=dfColTrans,
                          miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
                          dComputedCols=dComputedCols, dfComputedColTrans=dfComputedColTrans,
-                         sortCols=sortCols, sortAscend=sortAscend)
+                         sortCols=sortCols, sortAscend=sortAscend,
+                         dropNACols=dropNACols, miExemptNACols=miExemptNACols)
     
     def copy(self, withData=True):
     
@@ -72,16 +74,18 @@ class AnalysisResultsSet(ResultsSet):
     
         # 1. Call ctor without computed columns stuff (we no more have initial data)
         clone = AnalysisResultsSet(analysisClass=self.analysisClass,
-                                   miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                                   sortCols=[], sortAscend=[])
+                                   miCustomCols=self.miCustomCols.copy(), dfCustomColTrans=self.dfCustomColTrans.copy(),
+                                   dComputedCols=None, dfComputedColTrans=None,
+                                   sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy(),
+                                   dropNACols=self.dropNACols, miExemptNACols=self.miExemptNACols.copy())
     
         # 2. Complete clone initialisation.
         # 3-level multi-index columns (module, statistic, figure)
-        clone.miCols = self.miCols
-        clone.computedCols = self.computedCols
+        clone.miCols = self.miCols.copy()
+        clone.computedCols = self.computedCols.copy()
         
         # DataFrames for translating 3-level multi-index columns to 1 level lang-translated columns
-        clone.dfColTrans = self.dfColTrans
+        clone.dfColTrans = self.dfColTrans.copy()
         
         # Copy data if needed.
         if withData:
@@ -338,7 +342,7 @@ class Analyser(object):
                 
             dSameColsPsNames[colSetId].append(psName)
 
-        # For each group, concat. tables into one, after expliciting if needed
+        # For each group, concat. tables into one, after explicitating if needed
         ldfExplPartSpecs = list()
 
         for lPsNames in dSameColsPsNames.values():
@@ -1044,8 +1048,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     DFinalSelColTrans = dict(fr='Sélection finale', en='Final selection')
 
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
-                 sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
-                 surveyType='Point', distanceType='Radial', clustering=False,
+                 sortCols=[], sortAscend=[], dropNACols=True, miExemptNACols=None,
+                 distanceUnit='Meter', areaUnit='Hectare', surveyType='Point', distanceType='Radial', clustering=False,
                  ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
                                     dict(col='right', minDist=25.0, maxLen=25.0)],
                  truncIntrvEpsilon=1e-6, ldFilSorKeySchemes=None):
@@ -1069,7 +1073,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         # Initialise base.
         super().__init__(MCDSAnalysis, miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
                          dComputedCols=self.DComputedCols, dfComputedColTrans=self.DfComputedColTrans,
-                         sortCols=sortCols, sortAscend=sortAscend)
+                         sortCols=sortCols, sortAscend=sortAscend,
+                         dropNACols=dropNACols, miExemptNACols=miExemptNACols)
         
         if self.CLFinalSelection:
             self.addColumnsTrans({self.CLFinalSelection: self.DFinalSelColTrans})
@@ -1106,13 +1111,15 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
         """Clone function, with optional data copy"""
     
         # Create new instance with same ctor params.
-        clone = MCDSAnalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                                       miSampleCols=self.miSampleCols, sampleIndCol=self.sampleIndCol,
-                                       sortCols=self.sortCols, sortAscend=self.sortAscend,
+        clone = MCDSAnalysisResultsSet(miCustomCols=self.miCustomCols.copy(),
+                                       dfCustomColTrans=self.dfCustomColTrans.copy(),
+                                       miSampleCols=self.miSampleCols.copy(), sampleIndCol=self.sampleIndCol,
+                                       sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy(),
+                                       dropNACols=self.dropNACols, miExemptNACols=self.miExemptNACols.copy(),
                                        distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                        surveyType=self.surveyType, distanceType=self.distanceType,
                                        clustering=self.clustering,
-                                       ldTruncIntrvSpecs=self.ldTruncIntrvSpecs,
+                                       ldTruncIntrvSpecs=self.ldTruncIntrvSpecs.copy(),
                                        truncIntrvEpsilon=self.truncIntrvEpsilon)
 
         # Copy data if needed.
@@ -2382,6 +2389,15 @@ class MCDSAnalyser(DSAnalyser):
 
     DAnlr2ResChapName = dict(before='header (head)', sample='header (sample)', after='header (tail)')
 
+    MIAllParmResultsCols = pd.MultiIndex.from_tuples([MCDSAnalysisResultsSet.CLParEstKeyFn,
+                                                      MCDSAnalysisResultsSet.CLParEstAdjSer,
+                                                      MCDSAnalysisResultsSet.CLParEstSelCrit,
+                                                      MCDSAnalysisResultsSet.CLParEstCVInt,
+                                                      MCDSAnalysisResultsSet.CLParTruncLeft,
+                                                      MCDSAnalysisResultsSet.CLParTruncRight,
+                                                      MCDSAnalysisResultsSet.CLParModFitDistCuts,
+                                                      MCDSAnalysisResultsSet.CLParModDiscrDistCuts])
+
     def prepareResultsColumns(self):
         
         # a. Sample multi-index columns
@@ -2406,14 +2422,17 @@ class MCDSAnalyser(DSAnalyser):
         # d. The 3-columns index for the sample index column
         sampIndMCol = (self.DAnlr2ResChapName[self.sampIndResHChap], self.sampleIndCol, 'Value')
 
-        # e. And finally, the result object (sorted at the end by the analysis or else sample index column)
+        # e. The result column to sort the result table at the end by (ascending).
         if self.anlysIndCol or self.sampleIndCol:
             sortCols = [next(mCol for mCol in custMCols if mCol[1] == self.anlysIndCol or self.sampleIndCol)]
         else:
             sortCols = []
         sortAscend = [True] * len(sortCols)
 
-        return miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend
+        # f. The result analysis parameter columns to keep at the end (if present) even if all empty
+        miExemptNACols = self.MIAllParmResultsCols
+
+        return miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend, miExemptNACols
 
     def setupResults(self, ldFilSorKeySchemes=None):
     
@@ -2423,13 +2442,14 @@ class MCDSAnalyser(DSAnalyser):
         :param ldFilSorKeySchemes: Replacement for MCDSAnalysisResultsSet predefined filter-sort key schemes
                                    None => use predefined ones MCDSAnalysisResultsSet.AutoFilSorKeySchemes.
         """
-    
-        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend = \
+
+        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend, miExemptNACols = \
             self.prepareResultsColumns()
-        
+
         return MCDSAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                       miSampleCols=miSampCols, sampleIndCol=sampIndMCol,
                                       sortCols=sortCols, sortAscend=sortAscend,
+                                      dropNACols=True, miExemptNACols=miExemptNACols,
                                       distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                       surveyType=self.surveyType, distanceType=self.distanceType,
                                       clustering=self.clustering,
@@ -2627,8 +2647,8 @@ class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
     CLFinalSelection = None
 
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
-                 sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
-                 surveyType='Point', distanceType='Radial', clustering=False):
+                 sortCols=[], sortAscend=[], dropNACols=True, miExemptNACols=None,
+                 distanceUnit='Meter', areaUnit='Hectare', surveyType='Point', distanceType='Radial', clustering=False):
         
         """
         Parameters:
@@ -2640,6 +2660,7 @@ class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
         super().__init__(miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
                          miSampleCols=miSampleCols, sampleIndCol=sampleIndCol,
                          sortCols=sortCols, sortAscend=sortAscend,
+                         dropNACols=dropNACols, miExemptNACols=miExemptNACols,
                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering)
 
@@ -2647,9 +2668,11 @@ class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
         """Clone function, with optional data copy"""
 
         # Create new instance with same ctor params.
-        clone = MCDSPreAnalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                                          miSampleCols=self.miSampleCols, sampleIndCol=self.sampleIndCol,
-                                          sortCols=self.sortCols, sortAscend=self.sortAscend,
+        clone = MCDSPreAnalysisResultsSet(miCustomCols=self.miCustomCols.copy(),
+                                          dfCustomColTrans=self.dfCustomColTrans.copy(),
+                                          miSampleCols=self.miSampleCols.copy(), sampleIndCol=self.sampleIndCol,
+                                          sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy(),
+                                          dropNACols=self.dropNACols, miExemptNACols=self.miExemptNACols.copy(),
                                           distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                           surveyType=self.surveyType, distanceType=self.distanceType,
                                           clustering=self.clustering)
@@ -2740,12 +2763,13 @@ class MCDSPreAnalyser(MCDSAnalyser):
         """Build an empty results objects.
         """
     
-        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend = \
+        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend, miExemptNACols = \
             self.prepareResultsColumns()
         
         return MCDSPreAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                          miSampleCols=miSampCols, sampleIndCol=sampIndMCol,
                                          sortCols=sortCols, sortAscend=sortAscend,
+                                         dropNACols=True, miExemptNACols=miExemptNACols,
                                          distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                          surveyType=self.surveyType, distanceType=self.distanceType,
                                          clustering=self.clustering)

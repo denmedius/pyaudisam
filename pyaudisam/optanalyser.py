@@ -42,8 +42,8 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
     CLOptimTruncFlag = ('header (tail)', OptimTruncFlagCol, 'Value')
     
     def __init__(self, miCustomCols=None, dfCustomColTrans=None, miSampleCols=None, sampleIndCol=None,
-                 sortCols=[], sortAscend=[], distanceUnit='Meter', areaUnit='Hectare',
-                 surveyType='Point', distanceType='Radial', clustering=False,
+                 sortCols=[], sortAscend=[], dropNACols=True, miExemptNACols=None,
+                 distanceUnit='Meter', areaUnit='Hectare', surveyType='Point', distanceType='Radial', clustering=False,
                  ldTruncIntrvSpecs=[dict(col='left', minDist=5.0, maxLen=5.0),
                                     dict(col='right', minDist=25.0, maxLen=25.0)],
                  truncIntrvEpsilon=1e-6, ldFilSorKeySchemes=None):
@@ -59,7 +59,8 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
 
         super().__init__(miCustomCols=miCustomCols, dfCustomColTrans=dfCustomColTrans,
                          miSampleCols=miSampleCols, sampleIndCol=sampleIndCol,
-                         sortCols=sortCols, sortAscend=sortAscend, distanceUnit=distanceUnit, areaUnit=areaUnit,
+                         sortCols=sortCols, sortAscend=sortAscend, dropNACols=dropNACols, miExemptNACols=miExemptNACols,
+                         distanceUnit=distanceUnit, areaUnit=areaUnit,
                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,
                          ldTruncIntrvSpecs=ldTruncIntrvSpecs, truncIntrvEpsilon=truncIntrvEpsilon,
                          ldFilSorKeySchemes=ldFilSorKeySchemes)
@@ -71,13 +72,15 @@ class MCDSTruncOptanalysisResultsSet(MCDSAnalysisResultsSet):
         """Clone function, with optional data copy"""
     
         # Create new instance with same ctor params.
-        clone = MCDSTruncOptanalysisResultsSet(miCustomCols=self.miCustomCols, dfCustomColTrans=self.dfCustomColTrans,
-                                               miSampleCols=self.miSampleCols, sampleIndCol=self.sampleIndCol,
-                                               sortCols=self.sortCols, sortAscend=self.sortAscend,
+        clone = MCDSTruncOptanalysisResultsSet(miCustomCols=self.miCustomCols,
+                                               dfCustomColTrans=self.dfCustomColTrans.copy(),
+                                               miSampleCols=self.miSampleCols.copy(), sampleIndCol=self.sampleIndCol,
+                                               sortCols=self.sortCols.copy(), sortAscend=self.sortAscend.copy(),
+                                               dropNACols=self.dropNACols, miExemptNACols=self.miExemptNACols.copy(),
                                                distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                                surveyType=self.surveyType, distanceType=self.distanceType,
                                                clustering=self.clustering,
-                                               ldTruncIntrvSpecs=self.ldTruncIntrvSpecs,
+                                               ldTruncIntrvSpecs=self.ldTruncIntrvSpecs.copy(),
                                                truncIntrvEpsilon=self.truncIntrvEpsilon)
 
         # Copy data if needed.
@@ -493,12 +496,13 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
                                    None => use predefined ones MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes.
         """
 
-        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend = \
+        miCustCols, dfCustColTrans, miSampCols, sampIndMCol, sortCols, sortAscend, miExemptNACols = \
             self.prepareResultsColumns()
 
         return MCDSTruncOptanalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                               miSampleCols=miSampCols, sampleIndCol=sampIndMCol,
                                               sortCols=sortCols, sortAscend=sortAscend,
+                                              dropNACols=True, miExemptNACols=miExemptNACols,
                                               distanceUnit=self.distanceUnit, areaUnit=self.areaUnit,
                                               surveyType=self.surveyType, distanceType=self.distanceType,
                                               clustering=self.clustering,
