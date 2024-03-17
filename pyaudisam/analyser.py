@@ -2924,8 +2924,7 @@ class MCDSPreAnalyser(MCDSAnalyser):
         
         super().cleanup()
         
-        logger.info('Removing files exported in workDir'
-                    f' ({len(self.workDirExportedFiles)} expected) ...')
+        logger.info(f'Removing files exported in workDir ({len(self.workDirExportedFiles)} expected) ...')
         nRemvd = 0
         if self.workDirExportedFiles:
             workDir = pl.Path(self.workDir)
