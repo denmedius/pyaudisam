@@ -2737,6 +2737,18 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
     def computeSampleStats(self, implSampleSpecs, sampleDistCol='Distance'):
 
+        """Compute simple statistics for specified samples
+
+        Parameters:
+        :param implSampleSpecs: Implicit sample specs, suitable for explicitation
+          through explicitVariantSpecs
+        :param sampleDistCol: Name of the distance column in samples
+
+        Returns: DataFrame of stats:
+        * index: sample num. Id,
+        * columns: explicitated sample spec. columns + ['Distance Min', 'Distance Max', 'NTot Obs']
+        """
+
         dfExplSampleSpecs = self.explicitParamSpecs(implParamSpecs=implSampleSpecs, dropDupes=True)[0]
 
         lSampleStats = []

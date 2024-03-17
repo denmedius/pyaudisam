@@ -35,7 +35,7 @@ logger = log.logger('ads.eng', level=log.INFO)  # Initial config (can be changed
 
 from .executor import Executor
 
-# Keep ruin'dows from opening a GPF dialog box every time a launched executable (like MCDS.exe) crashes !
+# Keep Ruin'dows from opening a GPF dialog box every time a launched executable (like MCDS.exe) crashes !
 # BUT: This does NOT work :-(
 if sys.platform.startswith('win'):
     import ctypes
@@ -223,7 +223,7 @@ class DSEngine(object):
 # MCDS engine (Conventional Distance Sampling)
 class MCDSEngine(DSEngine):
     
-    # Possible suervy types and distance types.
+    # Possible survey types and distance types.
     SurveyTypes = ['Point', 'Line']
     DistTypes = ['Radial', 'Perpendicular', 'Radial & Angle']
     
