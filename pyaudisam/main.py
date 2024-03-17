@@ -414,15 +414,16 @@ class _Application:
             workDir = workDir / self.runTimestamp
         self.logger.info(f'Work folder: {workDir.as_posix()}')
         
-        # 5. Now we can set up the final session log file path-name prefix !
-        if any(arg in self.rawArgs for arg in ['-h', '--help']):
-            self.args.logPrefix =  None # No need for a log file at the end here !
-        elif self.args.logPrefix is None:
-            if self.args.realRun:  # Default
-                self.args.logPrefix = workDir.as_posix() + f'/{pars.studyName}{pars.subStudyName}'
-        elif self.args.logPrefix.lower() == 'none':
-            self.args.logPrefix = None
-        self.logger.setFinalLogPrefix(self.args.logPrefix)
+        # 5. Now we can set up the final session log file path-name prefix (iif standalone log config mode) !
+        if self.logger.standaloneConfig:
+            if any(arg in self.rawArgs for arg in ['-h', '--help']):
+                self.args.logPrefix = None # No need for a log file at the end here !
+            elif self.args.logPrefix is None:
+                if self.args.realRun:  # Default
+                    self.args.logPrefix = workDir.as_posix() + f'/{pars.studyName}{pars.subStudyName}'
+            elif self.args.logPrefix.lower() == 'none':
+                self.args.logPrefix = None
+            self.logger.setFinalLogPrefix(self.args.logPrefix)
         
         # 6. Really something to do ?
         emptyRun = not any([self.args.distExport, self.args.preAnalyses, self.args.preReports,
