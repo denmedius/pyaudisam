@@ -50,7 +50,7 @@ class TestMcdsPreAnalyser:
         # Make sure the ground is clear
         logger.info('Removing work folder ' + self.KPreAnlalyserWorkDir.as_posix())
         if self.KPreAnlalyserWorkDir.is_dir():
-            shutil.rmtree(self.KPreAnlalyserWorkDir)
+            pass # shutil.rmtree(self.KPreAnlalyserWorkDir)
 
         # The code before yield is run before the first test function in this class
         yield
@@ -59,7 +59,7 @@ class TestMcdsPreAnalyser:
         # Let the ground clear after passing there
         logger.info('Removing work folder ' + self.KPreAnlalyserWorkDir.as_posix())
         if self.KPreAnlalyserWorkDir.is_dir():
-            shutil.rmtree(self.KPreAnlalyserWorkDir)
+            pass # shutil.rmtree(self.KPreAnlalyserWorkDir)
 
         uivu.logEnd(what=what2Test)
 
@@ -114,7 +114,7 @@ class TestMcdsPreAnalyser:
         logger.info(f'Preparing individual. sightings ...')
 
         # ## 1. Individuals data set
-        dfObsIndiv = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsIndiv.ods',
+        dfObsIndiv = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsIndiv.ods',
                                  sheet='DonnéesIndiv').dfData
 
         logger.info(f'Invidual. sightings: n={len(dfObsIndiv)} =>\n'
@@ -125,7 +125,7 @@ class TestMcdsPreAnalyser:
 
         # ## 2. Actual transects
         # (can't deduce them from data, some points are missing because of data selection)
-        dfTransects = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsIndiv.ods',
+        dfTransects = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsIndiv.ods',
                                   sheet='Inventaires').dfData
 
         logger.info(f'Invidual. sightings: n={len(dfObsIndiv)} =>\n' + dfTransects.to_string(min_rows=30, max_rows=30))
@@ -283,27 +283,25 @@ class TestMcdsPreAnalyser:
 
     def testComputeSampleStats(self, sampleSpecMode, preAnalyser_fxt, expectedSampleStats_fxt):
 
-        if sampleSpecMode == 'implicit':
-
-            preAnlysr, sampleSpecs = preAnalyser_fxt
-            dfExptdStats = expectedSampleStats_fxt
-
-            dfSampleStats = preAnlysr.computeSampleStats(implSampleSpecs=sampleSpecs, sampleDistCol='Distance')
-            logger.info(f'Sample stats: n={len(dfSampleStats)} =>\n{dfSampleStats.to_string(min_rows=30, max_rows=30)}')
-
-            dfSampleStats['Distance Min'] = dfSampleStats['Distance Min'].round(1)
-            dfSampleStats['Distance Max'] = dfSampleStats['Distance Max'].round(1)
-            dfSampleStats.set_index('NumEchant', inplace=True)
-            dfSampleStats = dfSampleStats[['Distance Min', 'Distance Max', 'NTot Obs']]
-
-            assert dfSampleStats.compare(dfExptdStats).empty
-        else:
-
+        if sampleSpecMode != 'implicit':
             msg = 'testComputeSampleStats(explicit): skipped, as not relevant'
             logger.info(msg)
-            pytest.skip(msg)
+            pytest.skip(msg)  # Raises an exception => function execution stops here.
 
-        logger.info(f'PASS testComputeSampleStats: computeSampleStats({sampleSpecMode} sample specs)')
+        preAnlysr, sampleSpecs = preAnalyser_fxt
+        dfExptdStats = expectedSampleStats_fxt
+
+        dfSampleStats = preAnlysr.computeSampleStats(implSampleSpecs=sampleSpecs, sampleDistCol='Distance')
+        logger.info(f'Sample stats: n={len(dfSampleStats)} =>\n{dfSampleStats.to_string(min_rows=30, max_rows=30)}')
+
+        dfSampleStats['Distance Min'] = dfSampleStats['Distance Min'].round(1)
+        dfSampleStats['Distance Max'] = dfSampleStats['Distance Max'].round(1)
+        dfSampleStats.set_index('NumEchant', inplace=True)
+        dfSampleStats = dfSampleStats[['Distance Min', 'Distance Max', 'NTot Obs']]
+
+        assert dfSampleStats.compare(dfExptdStats).empty
+
+        logger.info(f'PASS testComputeSampleStats: computeSampleStats')
 
     # Only minimalistic checks done here, as already more deeply tested in test_unint_engine.py
     def checkExportedDsInputData(self, exportDir, sampleSpecs, sampleSpecMode):
@@ -366,34 +364,31 @@ class TestMcdsPreAnalyser:
         logger.info(f'PASS testExportDsInputData: exportDsInputData({sampleSpecMode} sample specs)')
 
     # ### c. Generate input files for manual analyses with Distance GUI (not needed for pre-analyses),
-    #        through pyaudisam command line interface (implicit mode oly, see valtests-ds-params.py)
+    #        through pyaudisam command line interface (implicit mode only, see valtests-ds-params.py)
     def testExportDsInputDataCli(self, sampleSpecMode, preAnalyser_fxt):
 
-        if sampleSpecMode == 'implicit':
-
-            preAnlysr, sampleSpecs = preAnalyser_fxt
-
-            # i. Export distance files
-            logger.info(f'Exporting Distance files (command line mode, {sampleSpecMode} sample specs) ...')
-
-            testPath = pl.Path(__file__).parent
-            workPath = preAnlysr.workDir
-
-            # a. Export files "through the commande line"
-            argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()} -n --distexport -u'.split()
-            rc = ads.main(argv, standaloneLogConfig=False)
-            logger.info(f'CLI run: rc={rc}')
-
-            # ii. Check exported files
-            self.checkExportedDsInputData(workPath, sampleSpecs, sampleSpecMode)
-
-        else:
-
+        if sampleSpecMode != 'implicit':
             msg = 'testExportDsInputDataCli(explicit): skipped, as not relevant'
             logger.info(msg)
-            pytest.skip(msg)
+            pytest.skip(msg)  # Raises an exception => function execution stops here.
 
-        logger.info(f'PASS testExportDsInputDataCli: exportDsInputData({sampleSpecMode} sample specs)')
+        preAnlysr, sampleSpecs = preAnalyser_fxt
+
+        # i. Export distance files
+        logger.info(f'Exporting Distance files (command line mode) ...')
+
+        testPath = pl.Path(__file__).parent
+        workPath = preAnlysr.workDir
+
+        # a. Export files "through the commande line"
+        argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()} -n --distexport -u'.split()
+        rc = ads.main(argv, standaloneLogConfig=False)
+        logger.info(f'CLI run: rc={rc}')
+
+        # ii. Check exported files
+        self.checkExportedDsInputData(workPath, sampleSpecs, sampleSpecMode)
+
+        logger.info(f'PASS testExportDsInputDataCli: exportDsInputData(command line mode)')
 
     @staticmethod
     def loadPreResults(preAnlysr, filePath, postComputed=False):
@@ -413,7 +408,7 @@ class TestMcdsPreAnalyser:
         logger.info(f'Preparing reference pre-results ({sampleSpecMode} mode) ...')
 
         # Prevent re-postComputation as this ref. file is old, with now missing computed cols
-        rsPreRef = self.loadPreResults(preAnlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-ExtraitPreResultats.ods',
+        rsPreRef = self.loadPreResults(preAnlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreResultats.ods',
                                        postComputed=True)
 
         logger.info(f'Reference results: n={len(rsPreRef)} =>\n' + rsPreRef.dfData.to_string(min_rows=30, max_rows=30))
@@ -511,10 +506,10 @@ class TestMcdsPreAnalyser:
         assert areSpecsImplicit or speciesAbbrevCol in rsPreAct.dfTransData('en').columns
 
         # ii. Load reference (prevent re-postComputation as this ref. file is old, with now missing computed cols)
-        rsPreRef = self.loadPreResults(preAnlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-ExtraitPreResultats.ods',
+        rsPreRef = self.loadPreResults(preAnlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreResultats.ods',
                                        postComputed=True)
         # rsPreRef = preResults.copy(withData=False)
-        # rsPreRef.fromOpenDoc(uivu.pRefOutDir / 'ACDC2019-Naturalist-ExtraitPreResultats.ods', postComputed=True)
+        # rsPreRef.fromOpenDoc(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreResultats.ods', postComputed=True)
         logger.info(f'Reference results: n={len(rsPreRef)} =>\n' + rsPreRef.dfData.to_string(min_rows=30, max_rows=30))
 
         # iii Compare:
@@ -530,10 +525,16 @@ class TestMcdsPreAnalyser:
         preAnlysr.cleanup()
 
         # h. Done.
-        logger.info(f'PASS testMcdsPreAnalyser: run({sampleSpecMode} sample specs)')
+        logger.info(f'PASS testRun: run({sampleSpecMode} sample specs)')
 
     # Run pre-analyses through pyaudisam command line interface
+    # (implicit mode only, see valtests-ds-params.py)
     def testRunCli(self, sampleSpecMode, preAnalyser_fxt, refPreResults_fxt):
+
+        if sampleSpecMode != 'implicit':
+            msg = 'testRunCli(explicit): skipped, as not relevant'
+            logger.info(msg)
+            pytest.skip(msg)  # Raises an exception => function execution stops here.
 
         preAnlysr, _ = preAnalyser_fxt
         rsPreRef = refPreResults_fxt
@@ -548,13 +549,173 @@ class TestMcdsPreAnalyser:
 
         # b. Load pre-results
         rsPreAct = self.loadPreResults(preAnlysr, workPath / 'valtests-preanalyses-results.xlsx')
-        logger.info(f'Reference results: n={len(rsPreRef)} =>\n' + rsPreRef.dfData.to_string(min_rows=30, max_rows=30))
+        logger.info(f'Actual results: n={len(rsPreAct)} =>\n' + rsPreAct.dfData.to_string(min_rows=30, max_rows=30))
 
         # c. Compare to reference.
         self.comparePreResults(rsPreRef, rsPreAct)
 
         # g. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
-        shutil.rmtree(workPath)
+        # shutil.rmtree(workPath)
 
         # h. Done.
-        logger.info(f'PASS testMcdsPreAnalyser: CLI run ({sampleSpecMode} sample specs)')
+        logger.info(f'PASS testRunCli: run(command line mode)')
+
+    # @pytest.fixture()
+    # def excelPreReport_fxt(self):
+    #
+    #     return pd.read_excel(refPath, sheet_name=None, index_col=0)
+    #
+    # def compareExcelReports(self, ddfRefReport, ddfActReport):
+    #
+    #     # b. Check that 2 was really run ...
+    #     assert (ddfClPreReport['Details']['StartTime'].max() - ddfNbPreReport['Details']['StartTime'].max()).total_seconds() > 1, \
+    #         'Please run above given command line first: you are actually comparing notebook report to itself !'
+    #
+    #     # 5. Compare Synthesis and Details sheets
+    #     assert ddfNbPreReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant') \
+    #         .compare(ddfClPreReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')) \
+    #         .empty
+    #     assert ddfNbPreReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder']).set_index('NumEchant') \
+    #         .compare(ddfClPreReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder']).set_index('NumEchant')) \
+    #         .empty
+    #
+    #     logger.info('Success !')
+
+    # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam API
+    def testReports(self, sampleSpecMode, preAnalyser_fxt):
+
+        if sampleSpecMode != 'implicit':
+            msg = 'testReports(explicit): skipped, as not relevant'
+            logger.info(msg)
+            pytest.skip(msg)  # Raises an exception => function execution stops here.
+
+        preAnlysr, sampleSpecs = preAnalyser_fxt
+
+        # a. Load pre-results
+        # (the last generated one, through implicit or explicit sample specs:
+        #  never mind, they are the same as checked above)
+        rsPreAct = self.loadPreResults(preAnlysr, preAnlysr.workDir / 'valtests-preanalyses-results.xlsx')
+        logger.info(f'Actual results: n={len(rsPreAct)} =>\n' + rsPreAct.dfData.to_string(min_rows=30, max_rows=30))
+
+        # b. Generate Excel and HTML reports
+        R = rsPreAct.__class__
+        # b.i. Super-synthesis sub-report : Selected analysis results columns for the 3 textual columns of the table
+        samplePreRepCols = [
+            ('header (head)', 'NumEchant', 'Value'),
+            ('header (sample)', 'Espèce', 'Value'),
+            ('header (sample)', 'Passage', 'Value'),
+            ('header (sample)', 'Adulte', 'Value'),
+            ('header (sample)', 'Durée', 'Value'),
+            R.CLNTotObs, R.CLMinObsDist, R.CLMaxObsDist
+        ]
+
+        paramPreRepCols = [
+            R.CLParEstKeyFn, R.CLParEstAdjSer
+            # R.CLParEstSelCrit, R.CLParEstCVInt
+        ]
+
+        resultPreRepCols = [
+            R.CLRunStatus,
+            R.CLNObs, R.CLEffort,
+            R.CLAic, R.CLChi2, R.CLKS, R.CLDCv,
+
+            R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
+
+            R.CLPDetec,
+            R.CLEswEdr,
+            R.CLDensity, R.CLDensityMin, R.CLDensityMax,
+            R.CLNumber, R.CLNumberMin, R.CLNumberMax
+        ]
+
+        # b.ii. Synthesis sub-report : Selected analysis results columns for the
+        synthPreRepCols = [
+            ('header (head)', 'NumEchant', 'Value'),
+            ('header (sample)', 'Espèce', 'Value'),
+            ('header (sample)', 'Passage', 'Value'),
+            ('header (sample)', 'Adulte', 'Value'),
+            ('header (sample)', 'Durée', 'Value'),
+            R.CLParEstKeyFn,
+            R.CLParEstAdjSer,
+            # R.CLParEstSelCrit,
+            # R.CLParEstCVInt,
+            # R.CLParTruncLeft,
+            # R.CLParTruncRight,
+            # R.CLParModFitDistCuts,
+
+            R.CLNTotObs, R.CLNObs, R.CLNTotPars, R.CLEffort, R.CLDeltaAic,
+            R.CLChi2, R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv,
+
+            R.CLSightRate,
+            R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
+            R.CLCmbQuaChi2, R.CLCmbQuaKS, R.CLCmbQuaDCv,
+
+            R.CLPDetec, R.CLPDetecMin, R.CLPDetecMax,
+            R.CLDensity, R.CLDensityMin, R.CLDensityMax,
+            R.CLNumber, R.CLNumberMin, R.CLNumberMax
+        ]
+
+        # b.iii. Sorting columns for all the sub-reports
+        sortPreRepCols = [('header (head)', 'NumEchant', 'Value')]
+        sortPreRepAscend = True
+
+        # b.iv. Report object
+        preReport = ads.MCDSResultsPreReport(resultsSet=rsPreAct,
+                                             title='PyAuDiSam Validation: Pre-analyses',
+                                             subTitle='Pre-analysis results report',
+                                             anlysSubTitle='Pre-analysis results details',
+                                             description='Easy and parallel run through MCDSPreAnalyser',
+                                             keywords='pyaudisam, validation, pre-analysis',
+                                             lang='en', superSynthPlotsHeight=288,
+                                             # plotImgSize=(640, 400), plotLineWidth=1, plotDotWidth=4,
+                                             # plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
+                                             sampleCols=samplePreRepCols, paramCols=paramPreRepCols,
+                                             resultCols=resultPreRepCols, synthCols=synthPreRepCols,
+                                             sortCols=sortPreRepCols, sortAscend=sortPreRepAscend,
+                                             tgtFolder=preAnlysr.workDir, tgtPrefix='valtests-preanalyses-report-api')
+
+        # b.iv. Excel report
+        xlsxPreRep = preReport.toExcel()
+        logger.info('HTML pre-report: ' + pl.Path(xlsxPreRep).resolve().as_posix())
+
+        # b.v. HTML report
+        htmlPreRep = preReport.toHtml()
+        logger.info('HTML pre-report: ' + pl.Path(htmlPreRep).resolve().as_posix())
+
+        # c. TODO: a few checks ?
+        #    (given that testReportsCli
+
+        # d. Done.
+        logger.info(f'PASS testReports: MCDSResultsPreReport ctor, toExcel, toHtml')
+
+    # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam command line
+    def testReportsCli(self, sampleSpecMode, preAnalyser_fxt):
+
+        if sampleSpecMode != 'implicit':
+            msg = 'testReportsCli(explicit): skipped, as not relevant'
+            logger.info(msg)
+            pytest.skip(msg)  # Raises an exception => function execution stops here.
+
+        preAnlysr, sampleSpecs = preAnalyser_fxt
+
+        testPath = pl.Path(__file__).parent
+        workPath = preAnlysr.workDir
+
+        # a. Report "through the commande line"
+        argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()}' \
+               ' -n --prereports excel,html -u'.split()
+        rc = ads.main(argv, standaloneLogConfig=False)
+        logger.info(f'CLI run: rc={rc}')
+
+        # # b. Load pre-results
+        # rsPreAct = self.loadPreResults(preAnlysr, workPath / 'valtests-preanalyses-results.xlsx')
+        # logger.info(f'Reference results: n={len(rsPreRef)} =>\n' + rsPreRef.dfData.to_string(min_rows=30, max_rows=30))
+        #
+        # # c. Compare to reference.
+        # self.comparePreResults(rsPreRef, rsPreAct)
+        #
+        # # g. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
+        # shutil.rmtree(workPath)
+
+        # h. Done.
+        logger.info(f'PASS testReports: MCDSResultsPreReport ctor, toExcel, toHtml (command line mode)')
+

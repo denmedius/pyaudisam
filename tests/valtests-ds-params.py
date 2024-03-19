@@ -53,7 +53,7 @@ effortCol = 'Effort'
 transectPlaceCols = ['Point']  # Columns for identifying places of transects, whatever pass number
 
 # Survey field data: Individualised sightings + transects definition
-surveyDataFile = instDir / 'refin/ACDC2019-Naturalist-ExtraitObsIndiv.ods'
+surveyDataFile = instDir / 'refin/ACDC2019-Naturalist-extrait-ObsIndiv.ods'
 indivDistDataSheet = 'DonnéesIndiv'
 transectsDataSheet = 'Inventaires'
 
@@ -88,7 +88,7 @@ def sampleAbbrev(sSample):
 sampleSpecCustCols = []
 
 # b. Samples to analyse
-sampleSpecFile = instDir / 'refin/ACDC2019-Naturalist-ExtraitSpecsEchants.ods'
+sampleSpecFile = instDir / 'refin/ACDC2019-Naturalist-extrait-SpecsEchants.ods'
 
 # c. DS and run params
 preResultsHeadCols = dict(before=[sampleIndCol],
@@ -153,8 +153,8 @@ logAnalysisData = False
 logAnalysisProgressEvery = 5
 
 # c. Analyses to run (reuse valtests notebook spec. file)
-_ddfAnlysSpecs = pd.read_excel(instDir / 'refin/ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx', sheet_name=None)
-analysisSpecFile = instDir / 'tmp/ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx'
+_ddfAnlysSpecs = pd.read_excel(instDir / 'refin/ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx', sheet_name=None)
+analysisSpecFile = instDir / 'tmp/ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
 with pd.ExcelWriter(analysisSpecFile) as xlWrtr:
     for sn in ['Echant1_impl', 'Echant2_impl', 'Modl_impl', 'Params1_expl', 'Params2_expl']:
         _ddfAnlysSpecs[sn].to_excel(xlWrtr, sheet_name=sn, index=False)
@@ -197,7 +197,7 @@ defCoreAlgorithm = 'racos'
 defCoreMaxRetries = 0
 
 # c. Opt-analyses to run (reuse valtests notebook spec. file)
-optAnalysisSpecFile = instDir / 'refin/ACDC2019-Naturalist-ExtraitSpecsOptanalyses.xlsx'
+optAnalysisSpecFile = instDir / 'refin/ACDC2019-Naturalist-extrait-SpecsOptanalyses.xlsx'
 
 
 # Reports (all types) ##############################################################

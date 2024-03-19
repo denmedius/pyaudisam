@@ -109,7 +109,7 @@ def mcdsOptAnalyser():
     clustering = False
 
     # Load individualised observations and actual transects
-    indivObsFile = uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsIndiv.ods'
+    indivObsFile = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsIndiv.ods'
     dfObsIndiv = ads.DataSet(indivObsFile, sheet='DonnéesIndiv').dfData
     dfTransects = ads.DataSet(indivObsFile, sheet='Inventaires').dfData
     dict(indivObs=len(dfObsIndiv), transects=len(dfTransects))
@@ -140,7 +140,7 @@ def testMcdsOptArsCtorFromOpenDocGetData(mcdsOptAnalyser_fxt):
     optanlr = mcdsOptAnalyser_fxt
     
     # Load results to play with ...
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     results = optanlr.setupResults()
     results.fromOpenDoc(resFileName, postComputed=True)  # Prevent re-post-computation : not a problem here, but longer
@@ -213,7 +213,7 @@ def testMcdsOptArsFilterSortKeySchemes(mcdsOptAnalyser_fxt):
     optanlr = mcdsOptAnalyser_fxt
 
     # Load results to play with ...
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     results = optanlr.setupResults(ldFilSorKeySchemes=None)  # Will use predefined filter-sort key generation schemes
     results.fromOpenDoc(resFileName, postComputed=True)  # Prevent re-post-computation : not a problem here, but longer
@@ -221,7 +221,7 @@ def testMcdsOptArsFilterSortKeySchemes(mcdsOptAnalyser_fxt):
     assert results._filterSortKeySchemes() == ads.MCDSTruncOptanalysisResultsSet.AutoFilSorKeySchemes
 
     # Load results to play with ...
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     ldFilSorKeySchemes = \
         [dict(key=RS.CLGrpOrdClTrChi2KSDCv,  # Best Chi2 & KS & DCv inside groups of close truncation params
@@ -249,7 +249,7 @@ def testMcdsOptArsFilterOnExecCode(mcdsOptAnalyser_fxt):
     # Load results to play with ...
     # (OK, it's MCDSAnalysisResultsSet's one, but it's not any specialized
     # in MCDS(TruncOpt)AnalysisResultsSet, so it's the same)
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     results = optanlr.setupResults()
     results.fromOpenDoc(resFileName, postComputed=True)  # Prevent re-post-computation : not a problem here, but longer
@@ -299,7 +299,7 @@ def testMcdsOptArsFilterOnAicMultiQua(mcdsOptAnalyser_fxt):
     # Load results to play with ...
     # (OK, it's MCDSAnalysisResultsSet's one, but it's not any specialized
     # in MCDS(TruncOpt)AnalysisResultsSet, so it's the same)
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     results = optanlr.setupResults()
     results.fromFile(resFileName, postComputed=True)  # Prevent re-post-computation : we don't want it !
@@ -359,7 +359,7 @@ def testMcdsOptArsNonRegression(mcdsOptAnalyser_fxt):
     # #### i. Load reference results
     # (generated once through valtests.ipynb/IV. Run truncation opt-analyses ...)
     refRes = optanlr.setupResults()
-    resFileName = uivu.pRefOutDir / 'ACDC2019-Naturalist-ExtraitOptResultats.ods'
+    resFileName = uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-OptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     refRes.fromFile(resFileName, postComputed=True)  # Prevent re-post-computation : this is our reference !
     optanlr.shutdown()

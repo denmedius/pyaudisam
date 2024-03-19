@@ -231,7 +231,7 @@ KFdsCountCols = ['nMalAd10', 'nAutAd10', 'nMalAd5', 'nAutAd5']
 # Create an individualised sightings data set
 def indivSightings():
     
-    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
+    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsBrutesAvecDist.txt',
                            importDecFields=['distMem'], countCols=KFdsCountCols,
                            addMonoCatCols={'Adulte': count2AdultCat, 'Durée': count2DurationCat})
     
@@ -732,7 +732,7 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
                               resultsHeadCols=dict(before=[varIndCol], sample=sampleSelCols, after=[anlysAbbrevCol]),
                               workDir=uivu.pTmpDir / 'mcds-anlr', runMethod='subprocess.run', logProgressEvery=5)
 
-    anlysSpecFile = uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx'
+    anlysSpecFile = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
     dfAnlysExplSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols, verdict, reasons = \
         anlysr.explicitParamSpecs(implParamSpecs=anlysSpecFile, dropDupes=True, check=True)
 

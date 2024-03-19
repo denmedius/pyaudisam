@@ -357,7 +357,7 @@ def mcdsAnalyser():
     truncIntrvEpsilon = 1e-6
 
     # Load individualised observations and actual transects
-    indivObsFile = uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsIndiv.ods'
+    indivObsFile = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsIndiv.ods'
     dfObsIndiv = ads.DataSet(indivObsFile, sheet='DonnéesIndiv').dfData
     dfTransects = ads.DataSet(indivObsFile, sheet='Inventaires').dfData
     dict(indivObs=len(dfObsIndiv), transects=len(dfTransects))
@@ -635,7 +635,7 @@ def testMcdsArsSampleDistTruncGroups(mcdsAnalyser_fxt):
     # Load results to play with ...
     # Note: Okay, it's actually an MCDSTruncOptAnalysisResultsSet file ...
     #       but we'll ignore the extra columns, promised :-)
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info(f'Loading results from {resFileName.as_posix()} ...')
     results = anlr.setupResults()
     results.fromOpenDoc(resFileName, postComputed=True)  # Prevent re-post-computation : not a problem here, but longer
@@ -646,7 +646,7 @@ def testMcdsArsSampleDistTruncGroups(mcdsAnalyser_fxt):
     dfRes = results.getData(copy=True)[[CLSampNum, RS.CLParTruncLeft, RS.CLParTruncRight]]
     dfRes.head()
 
-    # Test case: a hard-coded extract of once refin/ACDC2019-Naturalist-UnitestOptResultats.ods results file
+    # Test case: a hard-coded extract of once refin/ACDC2019-Naturalist-extrait-UnitestOptResultats.ods results file
     # CLSampNum = ('header (head)', 'NumEchant', 'Value')
     # dfRes = pd.DataFrame(
     #     index=[18, 17, 5, 16, 15, 0, 12, 8, 14, 9, 1, 19, 2, 22, 24, 21, 20, 26, 23, 27, 28, 30, 29, 32, 31,
@@ -730,7 +730,7 @@ def testMcdsArsFilterSortKeySchemes(mcdsAnalyser_fxt):
 
     # 1. Using predefined filter-sort key generation schemes
     # Load results to play with ...
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     results = anlr.setupResults(ldFilSorKeySchemes=None)  # Will use predefined filter-sort key generation schemes
     results.fromOpenDoc(resFileName, postComputed=True)  # Prevent re-post-computation : not a problem here, but longer
@@ -741,7 +741,7 @@ def testMcdsArsFilterSortKeySchemes(mcdsAnalyser_fxt):
 
     # 2. NOT using predefined filter-sort key generation schemes
     # Load results to play with ...
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     ldFilSorKeySchemes = \
         [dict(key=RS.CLGrpOrdClTrChi2KSDCv,
@@ -769,7 +769,7 @@ def testMcdsArsFilterSortKeys(mcdsAnalyser_fxt):
     # Load results to play with ...
     # Note: Okay, it's actually an MCDSTruncOptAnalysisResultsSet file ...
     # but we'll ignore the extra columns, promised :-)
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     results = anlr.setupResults()
     results.fromOpenDoc(resFileName, postComputed=True)  # Prevent re-post-computation : not a problem here, but longer
@@ -848,7 +848,7 @@ def testMcdsArsFilterSortKeys(mcdsAnalyser_fxt):
     # Load results to play with ...
     # Note: Okay, it's actually an MCDSTruncOptAnalysisResultsSet file ...
     #       but we'll ignore the extra columns, promised :-)
-    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-UnitestOptResultats.ods'
+    resFileName = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-UnitestOptResultats.ods'
     logger.info('Loading results from {} ...'.format(resFileName))
     # Make test simpler : replace filter and sort key predefined generation scheme set by a shorter one.
     results = anlr.setupResults(ldFilSorKeySchemes=ldFilSorKeySchemes)

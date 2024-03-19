@@ -85,7 +85,7 @@ def count2DurationCat(sCounts):
 def indivdSightings():
 
     # Load FieldDataSet from file
-    dfObs = pd.read_csv(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt', sep='\t', decimal=',')
+    dfObs = pd.read_csv(uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsBrutesAvecDist.txt', sep='\t', decimal=',')
     countCols = ['nMalAd10', 'nAutAd10', 'nMalAd5', 'nAutAd5']
     fds = ads.FieldDataSet(source=dfObs, countCols=countCols,
                            addMonoCatCols={'Adulte': count2AdultCat, 'Durée': count2DurationCat})
@@ -129,7 +129,7 @@ def testAnalyser(indivdSightings_fxt):
 
     # c. Direct explicitation of all variants from user specs (implicit and explicit)
     # i. Specs from a dict of DataFrame
-    wbpnUserVariantSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx'
+    wbpnUserVariantSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
     ddfUserVariantSpecs = pd.read_excel(wbpnUserVariantSpecs, sheet_name=None)
     logger.info('Implicit user specs:')
     for spName, spData in ddfUserVariantSpecs.items():
@@ -230,7 +230,7 @@ def testDsAnalyser():
     anlysAbbrevCol = 'AbrevAnlys'
 
     # i. Through file specified implicit combinations
-    implParamSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitSpecsAnalyses.xlsx'
+    implParamSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
     dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols = \
         ads.DSAnalyser._explicitParamSpecs(implParamSpecs=implParamSpecs,
                                            int2UserSpecREs=int2UserSpecREs,

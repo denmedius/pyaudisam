@@ -575,7 +575,7 @@ KFdsCountCols = ['nMalAd10', 'nAutAd10', 'nMalAd5', 'nAutAd5']
 def testFieldDataSet():
 
     # ### a. Load data sample
-    dfObs = pd.read_csv(uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt', sep='\t', decimal=',')
+    dfObs = pd.read_csv(uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsBrutesAvecDist.txt', sep='\t', decimal=',')
     dfObs.head()
 
     sCounts = dfObs[KFdsCountCols].sum()
@@ -646,7 +646,7 @@ def testFieldDataSet():
     logger.info0('PASS (testFieldDataSet) => individualise')
 
     # Second, try from source CSV file
-    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
+    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsBrutesAvecDist.txt',
                            importDecFields=['distMem'], countCols=KFdsCountCols,
                            addMonoCatCols={'Adulte': count2AdultCat, 'Durée': count2DurationCat})
 
@@ -665,7 +665,7 @@ def testFieldDataSet():
 def testMonoCategoryDataSet():
 
     # Setup source FDS
-    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-ExtraitObsBrutesAvecDist.txt',
+    fds = ads.FieldDataSet(source=uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsBrutesAvecDist.txt',
                            importDecFields=['distMem'], countCols=KFdsCountCols,
                            addMonoCatCols={'Adulte': count2AdultCat, 'Durée': count2DurationCat})
 
