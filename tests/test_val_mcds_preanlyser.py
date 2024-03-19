@@ -461,6 +461,9 @@ class TestMcdsPreAnalyser:
 
         preAnlysr, sampleSpecs = preAnalyser_fxt
 
+        # ?. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
+        # shutil.rmtree(workPath)
+
         # i. Run and measure performance
         # Ruindows 10 laptop with PCI-e SSD, "optimal performances" power scheme, Python 3.8 :
         # * 4-HT-core i5-8350U:
@@ -542,6 +545,9 @@ class TestMcdsPreAnalyser:
         testPath = pl.Path(__file__).parent
         workPath = preAnlysr.workDir
 
+        # g. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
+        # shutil.rmtree(workPath)
+
         # a. Run "through the commande line"
         argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()} -n --preanalyses -u'.split()
         rc = ads.main(argv, standaloneLogConfig=False)
@@ -554,35 +560,30 @@ class TestMcdsPreAnalyser:
         # c. Compare to reference.
         self.comparePreResults(rsPreRef, rsPreAct)
 
-        # g. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
-        # shutil.rmtree(workPath)
-
         # h. Done.
-        logger.info(f'PASS testRunCli: run(command line mode)')
+        logger.info(f'PASS testRunCli: main, run (command line mode)')
 
-    # @pytest.fixture()
-    # def excelPreReport_fxt(self):
-    #
-    #     return pd.read_excel(refPath, sheet_name=None, index_col=0)
-    #
-    # def compareExcelReports(self, ddfRefReport, ddfActReport):
-    #
-    #     # b. Check that 2 was really run ...
-    #     assert (ddfClPreReport['Details']['StartTime'].max() - ddfNbPreReport['Details']['StartTime'].max()).total_seconds() > 1, \
-    #         'Please run above given command line first: you are actually comparing notebook report to itself !'
-    #
-    #     # 5. Compare Synthesis and Details sheets
-    #     assert ddfNbPreReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant') \
-    #         .compare(ddfClPreReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')) \
-    #         .empty
-    #     assert ddfNbPreReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder']).set_index('NumEchant') \
-    #         .compare(ddfClPreReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder']).set_index('NumEchant')) \
-    #         .empty
-    #
-    #     logger.info('Success !')
+    @pytest.fixture()
+    def excelRefPreReport_fxt(self):
+
+        return pd.read_excel(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreRapport.xlsx',
+                             sheet_name=None, index_col=0)
+
+    @staticmethod
+    def compareExcelReports(ddfRefReport, ddfActReport):
+
+        # Compare "Synthesis" sheet
+        dfRefSynRep = ddfRefReport['Synthesis'].drop(columns=['RunFolder'])
+        dfActSynRep = ddfActReport['Synthesis'].drop(columns=['RunFolder'])
+        assert dfRefSynRep.set_index('NumEchant').compare(dfActSynRep.set_index('NumEchant')).empty
+
+        # Compare "Details" sheet
+        dfRefDetRep = ddfRefReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
+        dfActDetRep = ddfActReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
+        assert dfRefDetRep.set_index('NumEchant').compare(dfActDetRep.set_index('NumEchant')).empty
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam API
-    def testReports(self, sampleSpecMode, preAnalyser_fxt):
+    def testReports(self, sampleSpecMode, preAnalyser_fxt, excelRefPreReport_fxt):
 
         if sampleSpecMode != 'implicit':
             msg = 'testReports(explicit): skipped, as not relevant'
@@ -675,20 +676,31 @@ class TestMcdsPreAnalyser:
 
         # b.iv. Excel report
         xlsxPreRep = preReport.toExcel()
-        logger.info('HTML pre-report: ' + pl.Path(xlsxPreRep).resolve().as_posix())
+        logger.info('Excel pre-report: ' + pl.Path(xlsxPreRep).resolve().as_posix())
 
         # b.v. HTML report
         htmlPreRep = preReport.toHtml()
         logger.info('HTML pre-report: ' + pl.Path(htmlPreRep).resolve().as_posix())
 
-        # c. TODO: a few checks ?
-        #    (given that testReportsCli
+        # c. Load generated Excel report and compare it to reference one
+        ddfActPreRep = pd.read_excel(xlsxPreRep, sheet_name=None, index_col=0)
 
-        # d. Done.
+        ddfRefPreRep = excelRefPreReport_fxt
+        self.compareExcelReports(ddfRefPreRep, ddfActPreRep)
+
+        # d. Load generated HTML report and compare it to reference one ?
+        # TODO ?
+
+        # e. Cleanup generated report (well ... partially at least)
+        #    for clearing next function's ground
+        pl.Path(xlsxPreRep).unlink()
+        pl.Path(htmlPreRep).unlink()
+
+        # f. Done.
         logger.info(f'PASS testReports: MCDSResultsPreReport ctor, toExcel, toHtml')
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam command line
-    def testReportsCli(self, sampleSpecMode, preAnalyser_fxt):
+    def testReportsCli(self, sampleSpecMode, preAnalyser_fxt, excelRefPreReport_fxt):
 
         if sampleSpecMode != 'implicit':
             msg = 'testReportsCli(explicit): skipped, as not relevant'
@@ -706,16 +718,16 @@ class TestMcdsPreAnalyser:
         rc = ads.main(argv, standaloneLogConfig=False)
         logger.info(f'CLI run: rc={rc}')
 
-        # # b. Load pre-results
-        # rsPreAct = self.loadPreResults(preAnlysr, workPath / 'valtests-preanalyses-results.xlsx')
-        # logger.info(f'Reference results: n={len(rsPreRef)} =>\n' + rsPreRef.dfData.to_string(min_rows=30, max_rows=30))
-        #
-        # # c. Compare to reference.
-        # self.comparePreResults(rsPreRef, rsPreAct)
-        #
-        # # g. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
-        # shutil.rmtree(workPath)
+        # b. Load generated Excel report and compare it to reference one
+        ddfActPreRep = pd.read_excel(workPath / 'valtests-preanalyses-report.xlsx',
+                                     sheet_name=None, index_col=0)
 
-        # h. Done.
-        logger.info(f'PASS testReports: MCDSResultsPreReport ctor, toExcel, toHtml (command line mode)')
+        ddfRefPreRep = excelRefPreReport_fxt
+        self.compareExcelReports(ddfRefPreRep, ddfActPreRep)
+
+        # c. Load generated HTML report and compare it to reference one ?
+        # TODO ?
+
+        # d. Done.
+        logger.info(f'PASS testReports: main, MCDSResultsPreReport ctor, toExcel, toHtml (command line mode)')
 
