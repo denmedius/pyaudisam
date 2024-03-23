@@ -15,6 +15,8 @@
 # Common tools for automated unit, integration and validation tests
 
 import pathlib as pl
+import difflib
+from types import SimpleNamespace as DotDict
 
 import pandas as pd
 
@@ -34,8 +36,8 @@ pTmpDir.mkdir(exist_ok=True)
 _logger = ads.logger('uiv.tst')
 
 
-# Create logger for tests and configure logging.
 def setupLogger(name, level=ads.DEBUG, otherLoggers={'ads': ads.INFO}):
+    """Create logger for tests and configure logging"""
     logLevels = [dict(name='matplotlib', level=ads.WARNING),
                  dict(name='ads', level=otherLoggers.get('ads', ads.INFO))] \
                 + [dict(name=nm, level=lvl) for nm, lvl in otherLoggers.items() if nm != 'ads'] \
@@ -48,8 +50,8 @@ def setupLogger(name, level=ads.DEBUG, otherLoggers={'ads': ads.INFO}):
     return ads.logger(name)
 
 
-# Show testing configuration (traceability).
 def logPlatform():
+    """Show testing configuration (traceability)"""
     _logger.info('Testing platform:')
     for k, v in ads.runtime:
         if k != 'pyaudisam':
@@ -57,13 +59,59 @@ def logPlatform():
     _logger.info(f'PyAuDiSam {ads.__version__} from {pl.Path(ads.__path__[0]).resolve().as_posix()}')
 
 
-# Log beginning of tests
 def logBegin(what):
+    """Log beginning of tests"""
     _logger.info(f'Testing pyaudisam: {what} ...')
 
 
-# Log end of tests
 def logEnd(what, rc=None):
+    """Log end of tests"""
     sts = {-1: 'Not run', 0: 'Success', None: None}.get(rc, 'Error')
     msg = 'see pytest report' if sts is None else f'{sts} (code: {rc})'
     _logger.info(f'Done testing pyaudisam: {what} => {msg}.')
+
+
+def unifiedDiff(expectedLines, realLines, logger=None):
+
+    """Run difflib.unified_diff on 2 text line sets and extract resulting diff blocks
+    as a list of DotDict(startLines=DotDict(expected=<line number>, real=<line number>),
+                         expectedLines=list(<expected lines>), realLines=list(<actual lines>))"""
+
+    if logger:
+        logger.info('Unified HTML pre-report diff:')
+
+    blocks = []
+    block = None
+    for diffLine in difflib.unified_diff(expectedLines, realLines, n=0):
+
+        if logger:
+            logger.info(diffLine.rstrip('\n'))
+
+        if diffLine[0] == '-':
+            if diffLine.strip() == '---':
+                continue
+            block.expectedLines.append(diffLine[1:].rstrip('\n'))
+            continue
+
+        if diffLine[0] == '+':
+            if diffLine.strip() == '+++':
+                continue
+            block.realLines.append(diffLine[1:].rstrip('\n'))
+            continue
+
+        if diffLine[0] == '@':
+            if block:
+                blocks.append(block)
+            block = DotDict(startLines=DotDict(expected=-1, real=-1), expectedLines=[], realLines=[])
+            fields = diffLine.split(' ')[1:-1]
+            if ',' in fields[0]:
+                fields[0] = fields[0].split(',')[0]
+            block.startLines.expected = - int(fields[0])
+            if ',' in fields[1]:
+                fields[1] = fields[1].split(',')[0]
+            block.startLines.real = int(fields[1])
+
+    if block:
+        blocks.append(block)
+
+    return blocks

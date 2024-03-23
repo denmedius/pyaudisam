@@ -22,6 +22,7 @@ import pathlib as pl
 import numpy as np
 import pandas as pd
 
+import difflib
 import pytest
 
 import pyaudisam as ads
@@ -573,139 +574,247 @@ class TestMcdsPreAnalyser:
     def compareExcelReports(ddfRefReport, ddfActReport):
 
         # Compare "Synthesis" sheet
-        dfRefSynRep = ddfRefReport['Synthesis'].drop(columns=['RunFolder'])
-        dfActSynRep = ddfActReport['Synthesis'].drop(columns=['RunFolder'])
-        assert dfRefSynRep.set_index('NumEchant').compare(dfActSynRep.set_index('NumEchant')).empty
+        dfRef = ddfRefReport['Synthesis'].drop(columns=['RunFolder'])
+        dfAct = ddfActReport['Synthesis'].drop(columns=['RunFolder'])
+        assert dfRef.set_index('NumEchant').compare(dfAct.set_index('NumEchant')).empty
 
         # Compare "Details" sheet
-        dfRefDetRep = ddfRefReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
-        dfActDetRep = ddfActReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
-        assert dfRefDetRep.set_index('NumEchant').compare(dfActDetRep.set_index('NumEchant')).empty
+        dfRef = ddfRefReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
+        dfAct = ddfActReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
+        assert dfRef.set_index('NumEchant').compare(dfAct.set_index('NumEchant')).empty
+
+        # Compare "Samples" sheet
+        dfRef = ddfRefReport['Samples']
+        dfAct = ddfActReport['Samples']
+        assert dfRef.set_index('NumEchant').compare(dfAct.set_index('NumEchant')).empty
+
+        # Compare "Models" sheet
+        dfRef = ddfRefReport['Models']
+        dfAct = ddfActReport['Models']
+        assert dfRef.compare(dfAct).empty
+
+        # Compare "Analyser" sheet
+        dfRef = ddfRefReport['Analyser']
+        dfAct = ddfActReport['Analyser']
+        assert dfRef.compare(dfAct).empty
+
+    @pytest.fixture()
+    def htmlRefPreReportLines_fxt(self):
+
+        with open(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreRapport.html') as file:
+            repLines = file.readlines()
+
+        return repLines
+
+    @staticmethod
+    def compareHtmlReports(refReportLines, actReportLines):
+
+        blocks = uivu.unifiedDiff(refReportLines, actReportLines, logger=logger)
+
+        assert len(blocks) == 15
+        assert blocks[0].startLines.expected == 26
+        assert blocks[-1].startLines.expected == 600
+
+        for block in blocks:
+
+            logger.info(f'Block @ -{block.startLines.expected} +{block.startLines.real} @')
+
+            if block.startLines.expected == 26:
+                assert block.startLines.real == 26, 'Wrong start line nums on first diff block'
+                assert len(block.expectedLines) == 1, 'Wrong num. of expected lines on first diff block'
+                assert len(block.realLines) == 1, 'Wrong num. of real lines on first diff block'
+                assert block.expectedLines[0].strip().startswith('<meta name="datetime" content="'), \
+                    'Wrong first diff block expected line'
+                assert block.realLines[0].strip().startswith('<meta name="datetime" content="'), \
+                    'Wrong first diff block real line'
+                continue
+
+            if block.startLines.expected == 114:
+                assert block.startLines.real == 114, 'Wrong start line nums on 2nd diff block'
+                assert len(block.expectedLines) == 1, 'Wrong num. of expected lines on 2nd diff block'
+                assert len(block.realLines) == 1, 'Wrong num. of real lines on 2nd diff block'
+                continue
+
+            if block.startLines.expected == 600:
+                assert block.startLines.real == 600, 'Wrong start line nums on last diff block'
+                assert len(block.expectedLines) == 1, 'Wrong num. of expected lines on last diff block'
+                assert len(block.realLines) == 1, 'Wrong num. of real lines on last diff block'
+                assert block.expectedLines[0].strip().startswith('Generated on'), \
+                    'Wrong last diff block expected line'
+                assert block.realLines[0].strip().startswith('Generated on'), \
+                    'Wrong last diff block real line'
+                continue
+
+            if block.startLines.expected == 217:
+                assert block.startLines.real == 217, 'Wrong start line nums on last diff block'
+                assert len(block.expectedLines) == 3, 'Wrong num. of expected lines on diff block'
+                assert len(block.realLines) == 3, 'Wrong num. of real lines on diff block'
+                for line in block.expectedLines:
+                    line = line.strip()
+                    assert line.startswith('<td><img src="./'), f"Wrong diff block expected line: '{line}'"
+                for line in block.realLines:
+                    line = line.strip()
+                    assert line.startswith('<td><img src="./'), f"Wrong diff block real line: '{line}'"
+                continue
+
+            # All other blocks ...
+            assert block.startLines.expected == block.startLines.real, 'Wrong start line nums on last diff block'
+            assert len(block.expectedLines) == 6, 'Wrong num. of expected lines on diff block'
+            assert len(block.realLines) == 6, 'Wrong num. of real lines on diff block'
+            for line in block.expectedLines:
+                line = line.strip()
+                assert line.startswith('<tr>') or line.startswith('</tr>') \
+                       or line.startswith('<th><a href="./') or line.startswith('<td><img src="./'), \
+                    f"Wrong diff block expected line: '{line}'"
+            for line in block.realLines:
+                line = line.strip()
+                assert line.startswith('<tr>') or line.startswith('</tr>') \
+                       or line.startswith('<th><a href="./') or line.startswith('<td><img src="./'), \
+                    f"Wrong diff block real line: '{line}'"
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam API
-    def testReports(self, sampleSpecMode, preAnalyser_fxt, excelRefPreReport_fxt):
+    def testReports(self, sampleSpecMode, preAnalyser_fxt, excelRefPreReport_fxt, htmlRefPreReportLines_fxt):
 
         if sampleSpecMode != 'implicit':
             msg = 'testReports(explicit): skipped, as not relevant'
             logger.info(msg)
             pytest.skip(msg)  # Raises an exception => function execution stops here.
 
+        build = False  # Debug only: Set to False to avoid rebuilding the report
+        cleanup = False  # Debug only: Set to False to prevent cleaning at the end
+
         preAnlysr, sampleSpecs = preAnalyser_fxt
 
-        # a. Load pre-results
-        # (the last generated one, through implicit or explicit sample specs:
-        #  never mind, they are the same as checked above)
-        rsPreAct = self.loadPreResults(preAnlysr, preAnlysr.workDir / 'valtests-preanalyses-results.xlsx')
-        logger.info(f'Actual results: n={len(rsPreAct)} =>\n' + rsPreAct.dfData.to_string(min_rows=30, max_rows=30))
+        if build:
+            # a. Load pre-results
+            # (the last generated one, through implicit or explicit sample specs:
+            #  never mind, they are the same as checked above)
+            rsPreAct = self.loadPreResults(preAnlysr, preAnlysr.workDir / 'valtests-preanalyses-results.xlsx')
+            logger.info(f'Actual results: n={len(rsPreAct)} =>\n' + rsPreAct.dfData.to_string(min_rows=30, max_rows=30))
 
-        # b. Generate Excel and HTML reports
-        R = rsPreAct.__class__
-        # b.i. Super-synthesis sub-report : Selected analysis results columns for the 3 textual columns of the table
-        samplePreRepCols = [
-            ('header (head)', 'NumEchant', 'Value'),
-            ('header (sample)', 'Espèce', 'Value'),
-            ('header (sample)', 'Passage', 'Value'),
-            ('header (sample)', 'Adulte', 'Value'),
-            ('header (sample)', 'Durée', 'Value'),
-            R.CLNTotObs, R.CLMinObsDist, R.CLMaxObsDist
-        ]
+            # # b. Generate Excel and HTML reports
+            R = rsPreAct.__class__
+            # b.i. Super-synthesis sub-report : Selected analysis results columns for the 3 textual columns of the table
+            samplePreRepCols = [
+                ('header (head)', 'NumEchant', 'Value'),
+                ('header (sample)', 'Espèce', 'Value'),
+                ('header (sample)', 'Passage', 'Value'),
+                ('header (sample)', 'Adulte', 'Value'),
+                ('header (sample)', 'Durée', 'Value'),
+                R.CLNTotObs, R.CLMinObsDist, R.CLMaxObsDist
+            ]
 
-        paramPreRepCols = [
-            R.CLParEstKeyFn, R.CLParEstAdjSer
-            # R.CLParEstSelCrit, R.CLParEstCVInt
-        ]
+            paramPreRepCols = [
+                R.CLParEstKeyFn, R.CLParEstAdjSer
+                # R.CLParEstSelCrit, R.CLParEstCVInt
+            ]
 
-        resultPreRepCols = [
-            R.CLRunStatus,
-            R.CLNObs, R.CLEffort,
-            R.CLAic, R.CLChi2, R.CLKS, R.CLDCv,
+            resultPreRepCols = [
+                R.CLRunStatus,
+                R.CLNObs, R.CLEffort,
+                R.CLAic, R.CLChi2, R.CLKS, R.CLDCv,
 
-            R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
+                R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
 
-            R.CLPDetec,
-            R.CLEswEdr,
-            R.CLDensity, R.CLDensityMin, R.CLDensityMax,
-            R.CLNumber, R.CLNumberMin, R.CLNumberMax
-        ]
+                R.CLPDetec,
+                R.CLEswEdr,
+                R.CLDensity, R.CLDensityMin, R.CLDensityMax,
+                R.CLNumber, R.CLNumberMin, R.CLNumberMax
+            ]
 
-        # b.ii. Synthesis sub-report : Selected analysis results columns for the
-        synthPreRepCols = [
-            ('header (head)', 'NumEchant', 'Value'),
-            ('header (sample)', 'Espèce', 'Value'),
-            ('header (sample)', 'Passage', 'Value'),
-            ('header (sample)', 'Adulte', 'Value'),
-            ('header (sample)', 'Durée', 'Value'),
-            R.CLParEstKeyFn,
-            R.CLParEstAdjSer,
-            # R.CLParEstSelCrit,
-            # R.CLParEstCVInt,
-            # R.CLParTruncLeft,
-            # R.CLParTruncRight,
-            # R.CLParModFitDistCuts,
+            # b.ii. Synthesis sub-report : Selected analysis results columns for the
+            synthPreRepCols = [
+                ('header (head)', 'NumEchant', 'Value'),
+                ('header (sample)', 'Espèce', 'Value'),
+                ('header (sample)', 'Passage', 'Value'),
+                ('header (sample)', 'Adulte', 'Value'),
+                ('header (sample)', 'Durée', 'Value'),
+                R.CLParEstKeyFn,
+                R.CLParEstAdjSer,
+                # R.CLParEstSelCrit,
+                # R.CLParEstCVInt,
+                # R.CLParTruncLeft,
+                # R.CLParTruncRight,
+                # R.CLParModFitDistCuts,
 
-            R.CLNTotObs, R.CLNObs, R.CLNTotPars, R.CLEffort, R.CLDeltaAic,
-            R.CLChi2, R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv,
+                R.CLNTotObs, R.CLNObs, R.CLNTotPars, R.CLEffort, R.CLDeltaAic,
+                R.CLChi2, R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv,
 
-            R.CLSightRate,
-            R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
-            R.CLCmbQuaChi2, R.CLCmbQuaKS, R.CLCmbQuaDCv,
+                R.CLSightRate,
+                R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
+                R.CLCmbQuaChi2, R.CLCmbQuaKS, R.CLCmbQuaDCv,
 
-            R.CLPDetec, R.CLPDetecMin, R.CLPDetecMax,
-            R.CLDensity, R.CLDensityMin, R.CLDensityMax,
-            R.CLNumber, R.CLNumberMin, R.CLNumberMax
-        ]
+                R.CLPDetec, R.CLPDetecMin, R.CLPDetecMax,
+                R.CLDensity, R.CLDensityMin, R.CLDensityMax,
+                R.CLNumber, R.CLNumberMin, R.CLNumberMax
+            ]
 
-        # b.iii. Sorting columns for all the sub-reports
-        sortPreRepCols = [('header (head)', 'NumEchant', 'Value')]
-        sortPreRepAscend = True
+            # b.iii. Sorting columns for all the sub-reports
+            sortPreRepCols = [('header (head)', 'NumEchant', 'Value')]
+            sortPreRepAscend = True
 
-        # b.iv. Report object
-        preReport = ads.MCDSResultsPreReport(resultsSet=rsPreAct,
-                                             title='PyAuDiSam Validation: Pre-analyses',
-                                             subTitle='Pre-analysis results report',
-                                             anlysSubTitle='Pre-analysis results details',
-                                             description='Easy and parallel run through MCDSPreAnalyser',
-                                             keywords='pyaudisam, validation, pre-analysis',
-                                             lang='en', superSynthPlotsHeight=288,
-                                             # plotImgSize=(640, 400), plotLineWidth=1, plotDotWidth=4,
-                                             # plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
-                                             sampleCols=samplePreRepCols, paramCols=paramPreRepCols,
-                                             resultCols=resultPreRepCols, synthCols=synthPreRepCols,
-                                             sortCols=sortPreRepCols, sortAscend=sortPreRepAscend,
-                                             tgtFolder=preAnlysr.workDir, tgtPrefix='valtests-preanalyses-report-api')
+            # b.iv. Report object
+            preReport = ads.MCDSResultsPreReport(resultsSet=rsPreAct,
+                                                 title='PyAuDiSam Validation: Pre-analyses',
+                                                 subTitle='Pre-analysis results report',
+                                                 anlysSubTitle='Pre-analysis results details',
+                                                 description='Easy and parallel run through MCDSPreAnalyser',
+                                                 keywords='pyaudisam, validation, pre-analysis',
+                                                 lang='en', superSynthPlotsHeight=288,
+                                                 # plotImgSize=(640, 400), plotLineWidth=1, plotDotWidth=4,
+                                                 # plotFontSizes=dict(title=11, axes=10, ticks=9, legend=10),
+                                                 sampleCols=samplePreRepCols, paramCols=paramPreRepCols,
+                                                 resultCols=resultPreRepCols, synthCols=synthPreRepCols,
+                                                 sortCols=sortPreRepCols, sortAscend=sortPreRepAscend,
+                                                 tgtFolder=preAnlysr.workDir,
+                                                 tgtPrefix='valtests-preanalyses-report-api')
 
-        # b.iv. Excel report
-        xlsxPreRep = preReport.toExcel()
-        logger.info('Excel pre-report: ' + pl.Path(xlsxPreRep).resolve().as_posix())
+            # b.iv. Excel report
+            xlsxPreRep = preReport.toExcel()
+            logger.info('Excel pre-report: ' + pl.Path(xlsxPreRep).resolve().as_posix())
 
-        # b.v. HTML report
-        htmlPreRep = preReport.toHtml()
-        logger.info('HTML pre-report: ' + pl.Path(htmlPreRep).resolve().as_posix())
+            # b.v. HTML report
+            htmlPreRep = preReport.toHtml()
+            logger.info('HTML pre-report: ' + pl.Path(htmlPreRep).resolve().as_posix())
 
         # c. Load generated Excel report and compare it to reference one
+        ddfRefPreRep = excelRefPreReport_fxt
+
+        if not build:
+            xlsxPreRep = preAnlysr.workDir / 'valtests-preanalyses-report.xlsx'
         ddfActPreRep = pd.read_excel(xlsxPreRep, sheet_name=None, index_col=0)
 
-        ddfRefPreRep = excelRefPreReport_fxt
         self.compareExcelReports(ddfRefPreRep, ddfActPreRep)
 
-        # d. Load generated HTML report and compare it to reference one ?
-        # TODO ?
+        # c. Load generated HTML report and compare it to reference one
+        htmlRefPreRepLines = htmlRefPreReportLines_fxt
+
+        if not build:
+            htmlPreRep = preAnlysr.workDir / 'valtests-preanalyses-report.html'
+        with open(htmlPreRep) as file:
+            htmlActPreRepLines = file.readlines()
+
+        self.compareHtmlReports(htmlRefPreRepLines, htmlActPreRepLines)
 
         # e. Cleanup generated report (well ... partially at least)
         #    for clearing next function's ground
-        pl.Path(xlsxPreRep).unlink()
-        pl.Path(htmlPreRep).unlink()
+        if cleanup:
+            pl.Path(xlsxPreRep).unlink()
+            pl.Path(htmlPreRep).unlink()
 
         # f. Done.
         logger.info(f'PASS testReports: MCDSResultsPreReport ctor, toExcel, toHtml')
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam command line
-    def testReportsCli(self, sampleSpecMode, preAnalyser_fxt, excelRefPreReport_fxt):
+    def testReportsCli(self, sampleSpecMode, preAnalyser_fxt, excelRefPreReport_fxt, htmlRefPreReportLines_fxt):
 
         if sampleSpecMode != 'implicit':
             msg = 'testReportsCli(explicit): skipped, as not relevant'
             logger.info(msg)
             pytest.skip(msg)  # Raises an exception => function execution stops here.
+
+        build = False  # Debug only: Set to False to avoid rebuilding the report
+        cleanup = False  # Debug only: Set to False to prevent cleaning at the end
 
         preAnlysr, sampleSpecs = preAnalyser_fxt
 
@@ -713,10 +822,11 @@ class TestMcdsPreAnalyser:
         workPath = preAnlysr.workDir
 
         # a. Report "through the commande line"
-        argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()}' \
-               ' -n --prereports excel,html -u'.split()
-        rc = ads.main(argv, standaloneLogConfig=False)
-        logger.info(f'CLI run: rc={rc}')
+        if build:
+            argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()}' \
+                   ' -n --prereports excel,html -u'.split()
+            rc = ads.main(argv, standaloneLogConfig=False)
+            logger.info(f'CLI run: rc={rc}')
 
         # b. Load generated Excel report and compare it to reference one
         ddfActPreRep = pd.read_excel(workPath / 'valtests-preanalyses-report.xlsx',
@@ -725,9 +835,17 @@ class TestMcdsPreAnalyser:
         ddfRefPreRep = excelRefPreReport_fxt
         self.compareExcelReports(ddfRefPreRep, ddfActPreRep)
 
-        # c. Load generated HTML report and compare it to reference one ?
-        # TODO ?
+        # c. Load generated HTML report and compare it to reference one
+        with open(workPath / 'valtests-preanalyses-report.html') as file:
+            htmlActPreRepLines = file.readlines()
 
-        # d. Done.
+        htmlRefPreRepLines = htmlRefPreReportLines_fxt
+        self.compareHtmlReports(htmlRefPreRepLines, htmlActPreRepLines)
+
+        # d. Cleanup
+        if cleanup:
+            pass  # TODO
+
+        # e. Done.
         logger.info(f'PASS testReports: main, MCDSResultsPreReport ctor, toExcel, toHtml (command line mode)')
 
