@@ -71,6 +71,34 @@ def logEnd(what, rc=None):
     _logger.info(f'Done testing pyaudisam: {what} => {msg}.')
 
 
+# Short string for sample "identification"
+def sampleAbbrev(sSample):
+    abrvSpe = ''.join(word[:4].title() for word in sSample['Espèce'].split(' ')[:2])
+    sampAbbrev = '{}-{}-{}-{}'.format(abrvSpe, sSample.Passage.replace('+', ''),
+                                      sSample.Adulte.replace('+', ''), sSample['Durée'])
+    return sampAbbrev
+
+
+# Short string for analysis "identification"
+def analysisAbbrev(sAnlys):
+    # Sample abbreviation
+    abbrevs = [sampleAbbrev(sAnlys)]
+
+    # Model + Parameters abbreviation
+    abbrevs += [sAnlys['FonctionClé'][:3].lower(), sAnlys['SérieAjust'][:3].lower()]
+    dTroncAbrv = {'l': 'TrGche' if 'TrGche' in sAnlys.index else 'TroncGche',
+                  'r': 'TrDrte' if 'TrDrte' in sAnlys.index else 'TroncDrte',
+                  'm': 'NbTrches' if 'NbTrches' in sAnlys.index else 'NbTrModel'
+                  if 'NbTrModel' in sAnlys.index else 'NbTrchMod', 'd': 'NbTrDiscr'}
+    for abrv, name in dTroncAbrv.items():
+        if name in sAnlys.index and not pd.isnull(sAnlys[name]):
+            trcAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) \
+                else int(sAnlys[name])
+            abbrevs.append('{}{}'.format(abrv, trcAbrv))
+
+    return '-'.join(abbrevs)
+
+
 def unifiedDiff(expectedLines, realLines, logger=None):
 
     """Run difflib.unified_diff on 2 text line sets and extract resulting diff blocks

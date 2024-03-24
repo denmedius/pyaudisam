@@ -1,7 +1,7 @@
 # coding: utf-8
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 # Copyright (C) 2021 Jean-Philippe Meuret
-import shutil
+
 # This program is free software: you can redistribute it and/or modify it under the terms
 # of the GNU General Public License as published by the Free Software Foundation,
 # either version 3 of the License, or (at your option) any later version.
@@ -18,11 +18,11 @@ import shutil
 
 import time
 import pathlib as pl
+import shutil
 
 import numpy as np
 import pandas as pd
 
-import difflib
 import pytest
 
 import pyaudisam as ads
@@ -48,10 +48,10 @@ class TestMcdsPreAnalyser:
 
         uivu.logBegin(what=what2Test)
 
-        # Make sure the ground is clear
+        # Make sure the ground is clear at start
         logger.info('Removing work folder ' + self.KPreAnlalyserWorkDir.as_posix())
         if self.KPreAnlalyserWorkDir.is_dir():
-            pass # shutil.rmtree(self.KPreAnlalyserWorkDir)
+            shutil.rmtree(self.KPreAnlalyserWorkDir)
 
         # The code before yield is run before the first test function in this class
         yield
@@ -60,7 +60,7 @@ class TestMcdsPreAnalyser:
         # Let the ground clear after passing there
         logger.info('Removing work folder ' + self.KPreAnlalyserWorkDir.as_posix())
         if self.KPreAnlalyserWorkDir.is_dir():
-            pass # shutil.rmtree(self.KPreAnlalyserWorkDir)
+            shutil.rmtree(self.KPreAnlalyserWorkDir)
 
         uivu.logEnd(what=what2Test)
 
@@ -72,34 +72,6 @@ class TestMcdsPreAnalyser:
         # The code after yield is run after every test function
 
     # Test functions #############################################################
-
-    # Short string for sample "identification"
-    @staticmethod
-    def sampleAbbrev(sSample):
-        abrvSpe = ''.join(word[:4].title() for word in sSample['Espèce'].split(' ')[:2])
-        sampAbbrev = '{}-{}-{}-{}'.format(abrvSpe, sSample.Passage.replace('+', ''),
-                                          sSample.Adulte.replace('+', ''), sSample['Durée'])
-        return sampAbbrev
-
-    # Short string for analysis "identification"
-    @classmethod
-    def analysisAbbrev(cls, sAnlys):
-        # Sample abbreviation
-        abbrevs = [cls.sampleAbbrev(sAnlys)]
-
-        # Model + Parameters abbreviation
-        abbrevs += [sAnlys['FonctionClé'][:3].lower(), sAnlys['SérieAjust'][:3].lower()]
-        dTroncAbrv = {'l': 'TrGche' if 'TrGche' in sAnlys.index else 'TroncGche',
-                      'r': 'TrDrte' if 'TrDrte' in sAnlys.index else 'TroncDrte',
-                      'm': 'NbTrches' if 'NbTrches' in sAnlys.index else 'NbTrModel'
-                           if 'NbTrModel' in sAnlys.index else 'NbTrchMod', 'd': 'NbTrDiscr'}
-        for abrv, name in dTroncAbrv.items():
-            if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-                trcAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) \
-                                                  else int(sAnlys[name])
-                abbrevs.append('{}{}'.format(abrv, trcAbrv))
-
-        return '-'.join(abbrevs)
 
     # II. Run and report pre-analyses
     # Thanks to MCDSPreAnalyser and MCDSPreReport.
@@ -178,7 +150,7 @@ class TestMcdsPreAnalyser:
                                 transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
                                 sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
                                 sampleSpecCustCols=[speciesAbbrevCol],
-                                abbrevCol=sampleAbbrevCol, abbrevBuilder=self.sampleAbbrev, sampleIndCol=sampleNumCol,
+                                abbrevCol=sampleAbbrevCol, abbrevBuilder=uivu.sampleAbbrev, sampleIndCol=sampleNumCol,
                                 distanceUnit='Meter', areaUnit='Hectare',
                                 surveyType='Point', distanceType='Radial', clustering=False,
                                 resultsHeadCols=dict(before=[sampleNumCol], sample=sampleSelCols,
@@ -316,17 +288,17 @@ class TestMcdsPreAnalyser:
                 for pas in sampleSpecs['_impl']['Passage']:
                     for ad in sampleSpecs['_impl']['Adulte']:
                         for dur in sampleSpecs['_impl']['Durée']:
-                            sampAbbrv = self.sampleAbbrev(pd.Series({'Espèce': esp, 'Passage': pas,
+                            sampAbbrv = uivu.sampleAbbrev(pd.Series({'Espèce': esp, 'Passage': pas,
                                                                      'Adulte': ad, 'Durée': dur}))
                             expdGenFileNames.append(f'{sampAbbrv}-dist.txt')
         else:
             for _, sSampSpec in sampleSpecs.iterrows():
-                sampAbbrv = self.sampleAbbrev(sSampSpec[['Espèce', 'Passage', 'Adulte', 'Durée']])
+                sampAbbrv = uivu.sampleAbbrev(sSampSpec[['Espèce', 'Passage', 'Adulte', 'Durée']])
                 expdGenFileNames.append(f'{sampAbbrv}-dist.txt')
         assert all(fpn.name in expdGenFileNames for fpn in exportDir.glob('*-dist.txt'))
 
         # iii. Check first generated file
-        sampAbbrv = self.sampleAbbrev(pd.Series({'Espèce': 'Luscinia megarynchos', 'Passage': 'a+b',
+        sampAbbrv = uivu.sampleAbbrev(pd.Series({'Espèce': 'Luscinia megarynchos', 'Passage': 'a+b',
                                                  'Adulte': 'm', 'Durée': '10mn'}))
         fpnSamp = exportDir / f'{sampAbbrv}-dist.txt'
         dfSampDist = pd.read_csv(fpnSamp, sep='\t', decimal=',')
@@ -462,10 +434,11 @@ class TestMcdsPreAnalyser:
 
         preAnlysr, sampleSpecs = preAnalyser_fxt
 
-        # ?. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
-        # shutil.rmtree(workPath)
+        # i. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
+        if self.KPreAnlalyserWorkDir.is_dir():
+            shutil.rmtree(self.KPreAnlalyserWorkDir)
 
-        # i. Run and measure performance
+        # ii. Run and measure performance
         # Ruindows 10 laptop with PCI-e SSD, "optimal performances" power scheme, Python 3.8 :
         # * 4-HT-core i5-8350U:
         #   * 2021 (precise date ?): 50s to ~1mn10s elapsed for 12 samples, 6-12 threads (N=?)
@@ -512,8 +485,6 @@ class TestMcdsPreAnalyser:
         # ii. Load reference (prevent re-postComputation as this ref. file is old, with now missing computed cols)
         rsPreRef = self.loadPreResults(preAnlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreResultats.ods',
                                        postComputed=True)
-        # rsPreRef = preResults.copy(withData=False)
-        # rsPreRef.fromOpenDoc(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreResultats.ods', postComputed=True)
         logger.info(f'Reference results: n={len(rsPreRef)} =>\n' + rsPreRef.dfData.to_string(min_rows=30, max_rows=30))
 
         # iii Compare:
@@ -529,7 +500,7 @@ class TestMcdsPreAnalyser:
         preAnlysr.cleanup()
 
         # h. Done.
-        logger.info(f'PASS testRun: run({sampleSpecMode} sample specs)')
+        logger.info(f'PASS testRun: run({sampleSpecMode} sample specs), cleanup')
 
     # Run pre-analyses through pyaudisam command line interface
     # (implicit mode only, see valtests-ds-params.py)
@@ -546,22 +517,24 @@ class TestMcdsPreAnalyser:
         testPath = pl.Path(__file__).parent
         workPath = preAnlysr.workDir
 
-        # g. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
-        # shutil.rmtree(workPath)
+        # a. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
+        shutil.rmtree(workPath)
 
-        # a. Run "through the commande line"
+        # b. Run "through the commande line"
         argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()} -n --preanalyses -u'.split()
         rc = ads.main(argv, standaloneLogConfig=False)
         logger.info(f'CLI run: rc={rc}')
 
-        # b. Load pre-results
+        # c. Load pre-results
         rsPreAct = self.loadPreResults(preAnlysr, workPath / 'valtests-preanalyses-results.xlsx')
         logger.info(f'Actual results: n={len(rsPreAct)} =>\n' + rsPreAct.dfData.to_string(min_rows=30, max_rows=30))
 
-        # c. Compare to reference.
+        # d. Compare to reference.
         self.comparePreResults(rsPreRef, rsPreAct)
 
-        # h. Done.
+        # e. Don't clean up work folder / analysis folders : needed for report generations below
+
+        # f. Done.
         logger.info(f'PASS testRunCli: main, run (command line mode)')
 
     @pytest.fixture()
@@ -607,13 +580,13 @@ class TestMcdsPreAnalyser:
         return repLines
 
     @staticmethod
-    def compareHtmlReports(refReportLines, actReportLines):
+    def compareHtmlReports(refReportLines, actReportLines, cliMode=False):
 
         blocks = uivu.unifiedDiff(refReportLines, actReportLines, logger=logger)
 
-        assert len(blocks) == 15
+        assert len(blocks) == 15 + (0 if cliMode else 1)
         assert blocks[0].startLines.expected == 26
-        assert blocks[-1].startLines.expected == 600
+        assert blocks[-1].startLines.expected == (600 if cliMode else 610)
 
         for block in blocks:
 
@@ -657,6 +630,15 @@ class TestMcdsPreAnalyser:
                     assert line.startswith('<td><img src="./'), f"Wrong diff block real line: '{line}'"
                 continue
 
+            if block.startLines.expected == 610:
+                assert not cliMode  # This block only when cliMode (sources include valtests-ds-params.py)
+                assert block.startLines.real == 609, 'Wrong start line nums on sources diff block'
+                assert len(block.expectedLines) == 3, 'Wrong num. of expected lines on sources diff block'
+                assert len(block.realLines) == 0, 'Wrong num. of real lines on sources diff block'
+                assert any('valtests-ds-params.py' in line for line in block.expectedLines), \
+                    'Wrong diff block: expecting valtests-ds-params.py in expected sources'
+                continue
+
             # All other blocks ...
             assert block.startLines.expected == block.startLines.real, 'Wrong start line nums on last diff block'
             assert len(block.expectedLines) == 6, 'Wrong num. of expected lines on diff block'
@@ -680,16 +662,24 @@ class TestMcdsPreAnalyser:
             logger.info(msg)
             pytest.skip(msg)  # Raises an exception => function execution stops here.
 
-        build = False  # Debug only: Set to False to avoid rebuilding the report
-        cleanup = False  # Debug only: Set to False to prevent cleaning at the end
+        build = True  # Debug only: Set to False to avoid rebuilding the report, and only check it
+        cleanup = True  # Debug only: Set to False to prevent cleaning at the end
 
         preAnlysr, sampleSpecs = preAnalyser_fxt
 
+        # Pre-requisites : uncleaned pre-analyser work dir (we need the results file and analysis folders).
         if build:
+            logger.info('Checking analyser results presence ...')
+            preAnlysrResFilePath = preAnlysr.workDir / 'valtests-preanalyses-results.xlsx'
+            assert self.KPreAnlalyserWorkDir.is_dir() and preAnlysrResFilePath.is_file()
+            anlysFolders = [path for path in self.KPreAnlalyserWorkDir.iterdir() if path.is_dir()]
+            assert len(anlysFolders) == 12
+            logger.info('Done checking analyser results presence: OK.')
+
             # a. Load pre-results
             # (the last generated one, through implicit or explicit sample specs:
             #  never mind, they are the same as checked above)
-            rsPreAct = self.loadPreResults(preAnlysr, preAnlysr.workDir / 'valtests-preanalyses-results.xlsx')
+            rsPreAct = self.loadPreResults(preAnlysr, preAnlysrResFilePath)
             logger.info(f'Actual results: n={len(rsPreAct)} =>\n' + rsPreAct.dfData.to_string(min_rows=30, max_rows=30))
 
             # # b. Generate Excel and HTML reports
@@ -794,7 +784,7 @@ class TestMcdsPreAnalyser:
         with open(htmlPreRep) as file:
             htmlActPreRepLines = file.readlines()
 
-        self.compareHtmlReports(htmlRefPreRepLines, htmlActPreRepLines)
+        self.compareHtmlReports(htmlRefPreRepLines, htmlActPreRepLines, cliMode=False)
 
         # e. Cleanup generated report (well ... partially at least)
         #    for clearing next function's ground
@@ -813,8 +803,7 @@ class TestMcdsPreAnalyser:
             logger.info(msg)
             pytest.skip(msg)  # Raises an exception => function execution stops here.
 
-        build = False  # Debug only: Set to False to avoid rebuilding the report
-        cleanup = False  # Debug only: Set to False to prevent cleaning at the end
+        build = True  # Debug only: Set to False to avoid rebuilding the report
 
         preAnlysr, sampleSpecs = preAnalyser_fxt
 
@@ -840,12 +829,9 @@ class TestMcdsPreAnalyser:
             htmlActPreRepLines = file.readlines()
 
         htmlRefPreRepLines = htmlRefPreReportLines_fxt
-        self.compareHtmlReports(htmlRefPreRepLines, htmlActPreRepLines)
+        self.compareHtmlReports(htmlRefPreRepLines, htmlActPreRepLines, cliMode=True)
 
-        # d. Cleanup
-        if cleanup:
-            pass  # TODO
+        # d. No cleanup: let the final test class cleaner operate: _inifinalise_class()
 
         # e. Done.
         logger.info(f'PASS testReports: main, MCDSResultsPreReport ctor, toExcel, toHtml (command line mode)')
-
