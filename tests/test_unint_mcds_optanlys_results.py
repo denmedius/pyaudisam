@@ -45,36 +45,6 @@ def testBegin():
 ###############################################################################
 RS = ads.MCDSTruncOptanalysisResultsSet
 
-
-# Short identification string for a sample.
-def sampleAbbrev(sSample):
-    abrvSpe = ''.join(word[:4].title() for word in sSample['Espèce'].split(' ')[:2])
-
-    sampAbbrev = '{}-{}-{}-{}'.format(abrvSpe, sSample.Passage.replace('+', ''),
-                                      sSample.Adulte.replace('+', ''), sSample['Durée'])
-
-    return sampAbbrev
-
-
-# Short identification string for an analysis.
-def analysisAbbrev(sAnlys):
-    # Sample abbreviation
-    abbrevs = [sampleAbbrev(sAnlys)]
-
-    # Model + Parameters abbreviation
-    abbrevs += [sAnlys['FonctionClé'][:3].lower(), sAnlys['SérieAjust'][:3].lower()]
-    dTroncAbrv = {'l': 'TrGche' if 'TrGche' in sAnlys.index else 'TroncGche',
-                  'r': 'TrDrte' if 'TrDrte' in sAnlys.index else 'TroncDrte',
-                  'm': 'NbTrches' if 'NbTrches' in sAnlys.index else 'NbTrModel'
-                  if 'NbTrModel' in sAnlys.index else 'NbTrchMod',
-                  'd': 'NbTrDiscr'}
-    for abrv, name in dTroncAbrv.items():
-        if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-            abbrevs.append(abrv + sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else int(sAnlys[name]))
-
-    return '-'.join(abbrevs)
-
-
 # Results post-computation parameters
 KLdTruncIntrvSpecs = [dict(col='left', minDist=5.0, maxLen=5.0),
                       dict(col='right', minDist=25.0, maxLen=25.0)]
@@ -119,7 +89,7 @@ def mcdsOptAnalyser():
                                          transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
                                          sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols,
                                          sampleDistCol=sampleDistCol,
-                                         abbrevCol=anlysAbbrevCol, abbrevBuilder=analysisAbbrev,
+                                         abbrevCol=anlysAbbrevCol, abbrevBuilder=uivu.analysisAbbrev,
                                          anlysIndCol=varIndCol, sampleIndCol=sampleNumCol,
                                          distanceUnit=distanceUnit, areaUnit=areaUnit,
                                          surveyType=surveyType, distanceType=distanceType, clustering=clustering,

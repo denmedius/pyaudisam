@@ -45,35 +45,6 @@ def testBegin():
 
 # ## 8. Abstract class Analyser
 
-# Short identification string for a sample.
-def sampleAbbrev(sSample):
-    abrvSpe = ''.join(word[:4].title() for word in sSample['Espèce'].split(' ')[:2])
-
-    sampAbbrev = '{}-{}-{}-{}'.format(abrvSpe, sSample.Passage.replace('+', ''),
-                                      sSample.Adulte.replace('+', ''), sSample['Durée'])
-
-    return sampAbbrev
-
-
-# Short identification string for an analysis.
-def analysisAbbrev(sAnlys):
-    # Sample abbreviation
-    abbrevs = [sampleAbbrev(sAnlys)]
-    # Model + Parameters abbreviation
-    abbrevs += [sAnlys['FonctionClé'][:3].lower(), sAnlys['SérieAjust'][:3].lower()]
-    dTroncAbrv = {'l': 'TrGche' if 'TrGche' in sAnlys.index else 'TroncGche',
-                  'r': 'TrDrte' if 'TrDrte' in sAnlys.index else 'TroncDrte',
-                  'm': 'NbTrches' if 'NbTrches' in sAnlys.index else 'NbTrModel'
-                  if 'NbTrModel' in sAnlys.index else 'NbTrchMod',
-                  'd': 'NbTrDiscr'}
-    for abrv, name in dTroncAbrv.items():
-        if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-            val = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else int(sAnlys[name])
-            abbrevs.append(f'{abrv}{val}')
-
-    return '-'.join(abbrevs)
-
-
 def count2AdultCat(sCounts):
     return 'm' if 'Mal' in sCounts[sCounts > 0].index[0] else 'a'
 
@@ -138,14 +109,14 @@ def testAnalyser(indivdSightings_fxt):
     dfFinalExplSpecs = ads.Analyser.explicitVariantSpecs(ddfUserVariantSpecs, ignore=['Params3_expl'],
                                                          varIndCol='IndAnlys',
                                                          # convertCols={ 'Durée': int }, # float 'cause of Excel
-                                                         computedCols=dict(AbrevAnlys=analysisAbbrev))
+                                                         computedCols=dict(AbrevAnlys=uivu.analysisAbbrev))
     logger.info('Explicitated dict[DataFrame] user specs:\n' + dfFinalExplSpecs.to_string())
 
     # ii. Specs from an Excel workbook
     dfFinalExplSpecs1 = ads.Analyser.explicitVariantSpecs(wbpnUserVariantSpecs, ignore=['Params3_expl'],
                                                           varIndCol='IndAnlys',
                                                           # convertCols={'Durée': int}, # float 'cause of Excel
-                                                          computedCols=dict(AbrevAnlys=analysisAbbrev))
+                                                          computedCols=dict(AbrevAnlys=uivu.analysisAbbrev))
     logger.info('Explicitated Excel user specs:\n' + dfFinalExplSpecs1.to_string())
 
     # iii. Check that the result is the same
@@ -235,7 +206,7 @@ def testDsAnalyser():
         ads.DSAnalyser._explicitParamSpecs(implParamSpecs=implParamSpecs,
                                            int2UserSpecREs=int2UserSpecREs,
                                            sampleSelCols=sampleSelCols, abbrevCol=anlysAbbrevCol,
-                                           abbrevBuilder=analysisAbbrev, anlysIndCol=varIndCol,
+                                           abbrevBuilder=uivu.analysisAbbrev, anlysIndCol=varIndCol,
                                            sampleIndCol=sampleIndCol, dropDupes=False)
     logger.info(f'_explicitParamSpecs results: {len(dfExplParamSpecs)}, {userParamSpecCols},'
                 f' {intParamSpecCols}, {unmUserParamSpecCols}')
@@ -263,7 +234,7 @@ def testDsAnalyser():
     dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols = \
         ads.DSAnalyser._explicitParamSpecs(dfExplParamSpecs=dfExplParamSpecs, int2UserSpecREs=int2UserSpecREs,
                                            sampleSelCols=sampleSelCols, abbrevCol=anlysAbbrevCol,
-                                           abbrevBuilder=analysisAbbrev, anlysIndCol=varIndCol,
+                                           abbrevBuilder=uivu.analysisAbbrev, anlysIndCol=varIndCol,
                                            sampleIndCol=sampleIndCol, dropDupes=False)
     logger.info(f'_explicitParamSpecs results: {len(dfExplParamSpecs)}, {userParamSpecCols},'
                 f' {intParamSpecCols}, {unmUserParamSpecCols}')
@@ -277,7 +248,7 @@ def testDsAnalyser():
     dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols = \
         ads.DSAnalyser._explicitParamSpecs(dfExplParamSpecs=dfExplParamSpecs, int2UserSpecREs=int2UserSpecREs,
                                            sampleSelCols=sampleSelCols, abbrevCol=anlysAbbrevCol,
-                                           abbrevBuilder=analysisAbbrev, anlysIndCol=varIndCol,
+                                           abbrevBuilder=uivu.analysisAbbrev, anlysIndCol=varIndCol,
                                            sampleIndCol=sampleIndCol, anlysSpecCustCols=['AvecTronc', 'AbrevEsp'],
                                            dropDupes=True)
     logger.info(f'_explicitParamSpecs results: {len(dfExplParamSpecs)}, {userParamSpecCols},'

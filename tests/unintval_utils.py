@@ -90,11 +90,10 @@ def analysisAbbrev(sAnlys):
                   'r': 'TrDrte' if 'TrDrte' in sAnlys.index else 'TroncDrte',
                   'm': 'NbTrches' if 'NbTrches' in sAnlys.index else 'NbTrModel'
                   if 'NbTrModel' in sAnlys.index else 'NbTrchMod', 'd': 'NbTrDiscr'}
-    for abrv, name in dTroncAbrv.items():
+    for trAbrv, name in dTroncAbrv.items():
         if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-            trcAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) \
-                else int(sAnlys[name])
-            abbrevs.append('{}{}'.format(abrv, trcAbrv))
+            nmAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else int(sAnlys[name])
+            abbrevs.append(trAbrv + nmAbrv)
 
     return '-'.join(abbrevs)
 
