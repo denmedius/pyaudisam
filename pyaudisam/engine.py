@@ -61,13 +61,13 @@ class DSEngine(object):
     ForbidPathChars = [' ', '(', ')', ',']
     
     # Distance software detection params.
-    DistanceMajorVersions = [7, 6]  # Lastest first.
+    DistanceMajorVersions = [7, 6]  # Latest first.
     DistanceInstDirNameFmt = 'Distance {majorVersion}'
     DistancePossInstPaths = map(pl.Path, ['C:/Program files (x86)', 'C:/Program files', 'C:/PortableApps', '.'])
 
     # Find given executable installation dir.
     # Note: MCDS.exe is an autonomous executable : simply put it in a "Distance 7" sub-folder
-    #       of this package's one, and it'll work ! Or else install Distance 7 (or later) the normal way :-)
+    #       of this package's one, and it'll work ! Or else install Distance 7 (or 6, or newer) the normal way :-)
     @staticmethod
     def findExecutable(exeFileName):
 
