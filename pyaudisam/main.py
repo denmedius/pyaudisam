@@ -308,7 +308,7 @@ class _Application:
         try:
             rc = self._run()
         except:
-            self.logger.exception()
+            self.logger.exception('Unexpected error')
             rc = self.RC_UXPTD_ERROR
 
         return rc
