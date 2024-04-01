@@ -244,7 +244,7 @@ def testMcdsAnlysPerformances(sampleDataSet_fxt):
 
 
 # 4bis. MCDSPreAnalysis class : TODO
-def testMcdsPreAnlysCtorSubmitGetResults(sampleDataSet_fxt):
+def testMcdsPreAnlys(sampleDataSet_fxt):  # CtorSubmitGetResults
 
     raise NotImplementedError('TODO !')
 

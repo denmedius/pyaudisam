@@ -33,6 +33,9 @@ import unintval_utils as uivu
 # Setup local logger.
 logger = uivu.setupLogger('val.pnr', level=ads.DEBUG, otherLoggers={'ads.eng': ads.INFO2})
 
+# Set to False to skip final cleanup (useful for debugging)
+KFinalCleanup = True
+
 
 @pytest.mark.parametrize("sampleSpecMode", ['implicit', 'explicit'])
 class TestMcdsPreAnalyser:
@@ -59,7 +62,7 @@ class TestMcdsPreAnalyser:
 
         # Let the ground clear after passing there
         logger.info('Removing work folder ' + self.KPreAnalyserWorkDir.as_posix())
-        if self.KPreAnalyserWorkDir.is_dir():
+        if KFinalCleanup and self.KPreAnalyserWorkDir.is_dir():
             shutil.rmtree(self.KPreAnalyserWorkDir)
 
         uivu.logEnd(what=what2Test)
