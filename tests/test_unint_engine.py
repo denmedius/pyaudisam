@@ -52,8 +52,52 @@ def testBegin():
 def testDsFindExecutable():
 
     with pytest.raises(OSError) as exc_info:
-        ads.DSEngine.findExecutable('WrongName')
+        ads.DSEngine.findExecutable('WrongName', ads.MCDSEngine._ExeFileSearchPaths)
     logger.info0(f'PASS testDsFindExecutable: Exception raised as awaited: {exc_info}')
+
+
+def testMcdsStatSpecs():
+
+    KRebuildRef = False  # Should normally be False, unless if you want to rebuild the ref. specs.
+
+    # Load module and statistic specs.
+    E = ads.MCDSEngine
+    dfStatRowSpecs = E.statRowSpecs()
+    logger.info('statRowSpecs:\n' + dfStatRowSpecs.to_string(min_rows=20, max_rows=20))
+
+    dfStatModSpecs = E.statModSpecs()
+    logger.info('statModSpecs:\n' + dfStatModSpecs.to_string(min_rows=90, max_rows=90))
+
+    dfStatModCols = E.statModCols().to_frame().reset_index(drop=True)
+    logger.info('statModCols:\n' + dfStatModCols.to_string(min_rows=150, max_rows=150))
+
+    dfStatModColTrans = E.statModColTrans()
+    logger.info('statModColTrans:\n' + dfStatModColTrans.to_string(min_rows=90, max_rows=90))
+
+    dfStatModNotes = E.statModNotes()
+    logger.info('statModNotes:\n' + dfStatModNotes.to_string(min_rows=20, max_rows=20))
+
+    # If specified, rebuild reference specs (when ABSOLUTELY certain that this IS a correct reference update !)
+    # and force the test to fail, to enforce this important check ! Then set KRebuildRef to False, and rerun test.
+    if KRebuildRef:
+        with pd.ExcelWriter(uivu.pRefOutDir / 'mcds-stat-specs.ods', engine='odf') as wbWrtr:
+            dfStatRowSpecs.reset_index().to_excel(wbWrtr, sheet_name='statRowSpecs', index=False)
+            dfStatModSpecs.reset_index().to_excel(wbWrtr, sheet_name='statModSpecs', index=False)
+            dfStatModCols.to_excel(wbWrtr, sheet_name='statModCols', index=False)
+            dfStatModColTrans.reset_index().to_excel(wbWrtr, sheet_name='statModColTrans', index=False)
+            dfStatModNotes.reset_index().to_excel(wbWrtr, sheet_name='statModNotes', index=False)
+        raise ValueError('testMcdsStatSpecs: reference rebuilt, did you mean it ? If so, inhibit it and rerun test')
+
+    # Compare to reference specs.
+    ddfStatSpecs = pd.read_excel(uivu.pRefOutDir / 'mcds-stat-specs.ods', sheet_name=None)
+    assert dfStatRowSpecs.reset_index().equals(ddfStatSpecs['statRowSpecs'])
+    assert dfStatModSpecs.reset_index().equals(ddfStatSpecs['statModSpecs'].fillna(''))
+    assert dfStatModCols.equals(ddfStatSpecs['statModCols'])
+    assert dfStatModColTrans.reset_index().equals(ddfStatSpecs['statModColTrans'])
+    assert dfStatModNotes.reset_index().equals(ddfStatSpecs['statModNotes'])
+
+    logger.info0('PASS testMcdsStatSpecs: class methods loadStatSpecs,'
+                 ' statRowSpecs, statModSpecs, statModCols, statModNotes, statModColTrans')
 
 
 def testMcdsCtor():

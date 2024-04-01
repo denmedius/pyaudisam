@@ -40,6 +40,17 @@ detection probability	adjustment series type	Value	Adj Ser	Sér Ajust
 detection probability	number of key function parameters (NKP)	Value	NumPars KeyFn	NbPars FnClé
 detection probability	number of adjustment term parameters (NAP)	Value	NumPars AdjSer	NbPars SérAjust
 detection probability	number of covariate parameters (NCP)	Value	Num Covars	Nb Covars
+detection probability	undocumented #18 stat	Value	SansDoc #18	NoDoc #18
+detection probability	undocumented #19 stat	Value	SansDoc #19	NoDoc #19
+detection probability	undocumented #20 stat (distance set 1)	Value	SansDoc #20 1	NoDoc #20 1
+detection probability	undocumented #20 stat (distance set 2)	Value	SansDoc #20 2	NoDoc #20 2
+detection probability	undocumented #20 stat (distance set 3)	Value	SansDoc #20 3	NoDoc #20 3
+detection probability	undocumented #21 stat (distance set 1)	Value	SansDoc #21 1	NoDoc #21 1
+detection probability	undocumented #21 stat (distance set 2)	Value	SansDoc #21 2	NoDoc #21 2
+detection probability	undocumented #21 stat (distance set 3)	Value	SansDoc #21 3	NoDoc #21 3
+detection probability	undocumented #22 stat (distance set 1)	Value	SansDoc #22 1	NoDoc #22 1
+detection probability	undocumented #22 stat (distance set 2)	Value	SansDoc #22 2	NoDoc #22 2
+detection probability	undocumented #22 stat (distance set 3)	Value	SansDoc #22 3	NoDoc #22 3
 detection probability	estimated value of A(1) adjustment term parameter	Value	EstA(1)	EstA(1)
 detection probability	estimated value of A(2) adjustment term parameter	Value	EstA(2)	EstA(2)
 detection probability	estimated value of A(3) adjustment term parameter	Value	EstA(3)	EstA(3)

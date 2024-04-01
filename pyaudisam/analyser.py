@@ -991,11 +991,21 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     CLGblOrdDAicChi2KSDCv = (CLCAutoFilSor, 'DeltaAIC Chi2 KS DCv (global)', CLTSortOrder)
 
     # Computed columns specs (name translation + position).
+    # Note: position is a 0-starting index in the initial (constructor) list of columns of the results set
+    #       (the miCols ctor argument; see DSAnalysisResultsSet above, it's basically the list of columns
+    #        for sample stats, appended with the engine run columns, appended with the full theoretical list
+    #        of columns output by MCDS, even if not all are actually filled for each analysis),
+    #       prepended by the custom columns (miCustomCols ctor arg.),
+    #       possibly appended by unexpected columns appearing in the analyses results as they are run,
+    #       and finally enhanced (through insert(index) or append(=> end)) according to DComputedCols,
+    #       one item by one ; meaning that you can fix a computed column index only once you have fixed
+    #       the index of the previous computed column in DComputedCols !
+    # TODO: Make this awful stuff simpler (using a "before column name" rather a "before column index" ?)
     _firstResColInd = len(MCDSEngine.statSampCols()) + len(MCDSAnalysis.MIRunColumns)
     DComputedCols = {CLSightRate: _firstResColInd + 10,  # After Encounter Rate / Left|Right Trunc. Dist.
                      CLDeltaAic: _firstResColInd + 12,  # Before AIC
                      CLChi2: _firstResColInd + 14,  # Before all Chi2 tests
-                     CLDeltaDCv: _firstResColInd + 72,  # Before Density of animals / Cv
+                     CLDeltaDCv: _firstResColInd + 83,  # Before Density of animals / Cv
                      # And, at the end ...
                      **{cl: -1 for cl in [CLCmbQuaBal1, CLCmbQuaBal2, CLCmbQuaBal3,
                                           CLCmbQuaChi2, CLCmbQuaKS, CLCmbQuaDCv,
@@ -2624,12 +2634,22 @@ class MCDSPreAnalysisResultsSet(MCDSAnalysisResultsSet):
     """
     
     # Computed columns specs (name translation + position).
+    # Note: position is a 0-starting index in the initial (constructor) list of columns of the results set
+    #       (the miCols ctor argument; see DSAnalysisResultsSet above, it's basically the list of columns
+    #        for sample stats, appended with the engine run columns, appended with the full theoretical list
+    #        of columns output by MCDS, even if not all are actually filled for each analysis),
+    #       prepended by the custom columns (miCustomCols ctor arg.),
+    #       possibly appended by unexpected columns appearing in the analyses results as they are run,
+    #       and finally enhanced (through insert(index) or append(=> end)) according to DComputedCols,
+    #       one item by one ; meaning that you can fix a computed column index only once you have fixed
+    #       the index of the previous computed column in DComputedCols !
+    # TODO: Make this awful stuff simpler (using a "before column name" rather a "before column index" ?)
     Super = MCDSAnalysisResultsSet
     _firstResColInd = len(MCDSEngine.statSampCols()) + len(MCDSAnalysis.MIRunColumns)
     DComputedCols = {Super.CLSightRate: _firstResColInd + 10,  # After Encounter Rate / Left|Right Trunc. Dist.
                      Super.CLDeltaAic: _firstResColInd + 12,  # Before AIC
                      Super.CLChi2: _firstResColInd + 14,  # Before all Chi2 tests
-                     Super.CLDeltaDCv: _firstResColInd + 72,  # Before Density of animals / Cv
+                     Super.CLDeltaDCv: _firstResColInd + 83,  # Before Density of animals / Cv
                      # And, at the end ...
                      **{cl: -1 for cl in [Super.CLCmbQuaBal1, Super.CLCmbQuaBal2, Super.CLCmbQuaBal3,
                                           Super.CLCmbQuaChi2, Super.CLCmbQuaKS, Super.CLCmbQuaDCv]}}

@@ -88,6 +88,12 @@ Note: As an alternative to installing pyaudisam in your python environment (thro
 1. extracting a source package of pyaudisam 1.0.0 or newer after downloading it from [pypi.org](https://pypi.org/project/pyaudisam/),
 2. set the PYTHONPATH env. variable to the absolute path of the root folder of the extracted tree (example: /c/my/dev/pyaudisam-1.0.0 for ... the 1.0.0 release).
 
+Note: pyaudisam will auto-detect MCDS.exe, the executable of the Distance Sampling engine (the only one supported as for now), if it was installed through the Distance software ; alternatively, you can put a copy of this (standalone) executable:
+* in one of the folders specified through the 'MCDS_PATH' environment variable (individual paths separated by ';', left one are tried first),
+* in a 'Distance 7' (or 'Distance 6') sub-folder of the current folder of your terminal or notebook, 
+* in a 'Distance 7' (or 'Distance 6') sub-folder of the C:/PortableApps folder ;
+* then, if no MCDS.exe found in the above folders (first ones searched first), pyaudisam with search in standard installation folders for Distance 7 or 6.
+
 
 ## B. pyaudisam as a command line tool
 

@@ -1,4 +1,4 @@
-# Python module for AUtomated DIstance SAMpling analyses
+# PYthon module for AUtomated DIstance SAMpling analyses
 
 This module interfaces **distance sampling** analysis engines from [Distance software](https://distancesampling.org/), and possibly others in the future ; thus, it has been designed in order to make it easier :
 * to run (in parallel) numerous [Distance Sampling](https://en.wikipedia.org/wiki/Distance_sampling) analyses with many (many) parameter variants on many field observation samples
@@ -8,7 +8,7 @@ This module interfaces **distance sampling** analysis engines from [Distance sof
 * to produce partly customisable reports in spreadsheet (numerical results only) and HTML formats
   (more complete, with full-featured plots like in Distance, and more).
 
-As for now, only the Windows MCDS.exe V6 engine and Point Transect analyses are supported, and so, it runs only under Windows.
+As for now, only the Windows MCDS.exe 6.x (Distance 6 to 7.3) and 7.4 (Distance 7.4 and 7.5 at least) engine and Point Transect analyses are supported, and so, it runs only under Windows.
 
 ## Requirements
 
@@ -54,7 +54,8 @@ But there's also a **command-line interface**: try and run it with the -h/--help
 
 `python -m pyaudisam --help`
 
-Whichever method, the best way to go is to read the concrete quick-start guide : see [Documentation](#documentation) below.
+Whichever method, the best way to go is to read the concrete quick-start guide : see [Documentation](#documentation) below
+(but be aware that you'll need to install an external Distance Sampling engine, like MCDS, to run analyses with paudisam).
 
 ## Documentation
 

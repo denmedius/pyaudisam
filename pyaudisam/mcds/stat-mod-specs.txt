@@ -1,9 +1,13 @@
-# Extract from Distance 7.3 documentation (http://distancesampling.org/)
-# The following was copied and pasted from the 2nd table of .chm documentation,
-# "MCDS Engine Stats File" page, with the following fixes :
-# * Module 1 / Statistic 4 : Added reference to note 1 at the end,
-# * Module 2 / Statistic 101...100+N : Changed "of each parameter" to "of each adjustment term parameter".
-# * Module 4 : Abudance => Abundance
+# Extract from Distance software documentation (http://distancesampling.org/):
+# the following was copied and pasted from the 2nd table of .chm documentation,
+# "MCDS Engine Stats File" page, and then fixed as such:
+# * With Distance 7.3 = MCDS 6.2
+#   - Module 1 / Statistic 4: added missing reference to note 1 at the end,
+#   - Module 2 / Statistic 101...100+N: changed "of each parameter" to "of each adjustment term parameter",
+#   - Module 4 : Abudance => Abundance.
+# * With Distance 7.5 = MCDS 7.4, new fixes:
+#   - Module 2 / Statistic 18, 19, 20*, 21*, 22* : added because undocumented (* => multiple instances, like for Statistic 3).
+# Beware when editing: '–' are not '-' below !
 1 – encounter rate
  1 – number of observations (n)
 
@@ -51,6 +55,16 @@
 16 – number of adjustment term parameters (NAP)
 
 17 – number of covariate parameters (NCP)
+
+18 – undocumented #18 stat
+
+19 – undocumented #19 stat
+
+20 – undocumented #20 stat
+
+21 – undocumented #21 stat
+
+22 – undocumented #22 stat
 
 101 … (100+m) – estimated value of each adjustment term parameter 5
  

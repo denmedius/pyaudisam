@@ -161,12 +161,12 @@ def testArsCtorGettersSettersToFromFiles():
     # columns before calling columns() (Beware: rs.columns does trigger computation of ... computed columns !)
     rawCols = rs._dfData.columns.to_list()
     logger.info('raw columns:\n' + '\n'.join(str(c) for c in rawCols))
-    assert len(rawCols) == len(dfRaw.columns) and len(dfRaw.columns) == 114
+    assert len(rawCols) == len(dfRaw.columns) and len(dfRaw.columns) == 125
 
     # columns after (+ post-computed one - empty non-custom and non-exempt cleanup)
     postCols = rs.columns.to_list()
     logger.info('post-columns() columns:\n' + '\n'.join(str(c) for c in postCols))
-    assert len(postCols) == 113  # Beware ... above : the proof here !
+    assert len(postCols) == 124  # Beware ... above : the proof here !
 
     # Check added == computed column
     assert (set(rs.columns.to_list()) - set(dfRaw.columns.to_list())

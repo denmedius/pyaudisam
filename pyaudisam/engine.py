@@ -60,36 +60,25 @@ class DSEngine(object):
     # TODO: Stronger protection (more special chars ? more generic method, through re ?)
     ForbidPathChars = [' ', '(', ')', ',']
     
-    # Distance software detection params.
-    DistanceMajorVersions = [7, 6]  # Latest first.
-    DistanceInstDirNameFmt = 'Distance {majorVersion}'
-    DistancePossInstPaths = map(pl.Path, ['C:/Program files (x86)', 'C:/Program files', 'C:/PortableApps', '.'])
-
-    # Find given executable installation dir.
-    # Note: MCDS.exe is an autonomous executable : simply put it in a "Distance 7" sub-folder
-    #       of this package's one, and it'll work ! Or else install Distance 7 (or 6, or newer) the normal way :-)
+    # Find executable installation dir.
     @staticmethod
-    def findExecutable(exeFileName):
+    def findExecutable(exeFileName, exeFileSearchPaths):
 
         exeFilePathName = None
-        logger.debug('Looking for {} ...'.format(exeFileName))
-        for ver in DSEngine.DistanceMajorVersions:
-            for path in DSEngine.DistancePossInstPaths:
-                exeFN = path / DSEngine.DistanceInstDirNameFmt.format(majorVersion=ver) / exeFileName
-                if not exeFN.exists():
-                    logger.info2('  Checking {} : No,'.format(exeFN))
-                else:
-                    logger.info('Found {} here: {}.'.format(exeFileName, exeFN))
-                    exeFilePathName = exeFN
-                    break
-            if exeFilePathName:
-                break
+        logger.info(f'Looking for {exeFileName} ...')
+        for path in exeFileSearchPaths:
+            exeFN = path / exeFileName
+            if not exeFN.exists():
+                logger.info(f'* checking {exeFN.as_posix()}: no,')
+                continue
+
+            logger.info(f'Found {exeFileName} here: {exeFN.as_posix()}.')
+            exeFilePathName = exeFN
+            break
 
         if not exeFilePathName:
             raise OSError(f'Could not find {exeFileName} ; please install Distance software (V6 or later)')
 
-        runtime.update({'DS engine': exeFilePathName.as_posix()})
-            
         return exeFilePathName
     
     # Specifications of output stats.
@@ -253,8 +242,18 @@ class MCDSEngine(DSEngine):
     DistFitCutsDef = None  # Model fitting : Automatic engine distance cuts determination.
     DistDiscrCutsDef = None  # Distance values discretisation : None (keep exact values).
 
-    # Executable 
-    ExeFilePathName = DSEngine.findExecutable('MCDS.exe')
+    # MCDS Executable
+    # * MCDS.exe is an autonomous executable: you can put a copy anywhere, or nearly ... see below
+    # * it'll be search first in the folders (separated by a ;) referenced in MCDS_PATH env. variable,
+    # * then in a "Distance 7" sub-folder of ., then C:/PortableApps, C:/Program files (x86), C:/Program files,
+    # * then in a "Distance 6" sub-folder of ., then C:/PortableApps, C:/Program files (x86), C:/Program files.
+    # (if you install Distance 7 (or 6, or newer) the normal way, it will then of course be found :-)
+    _ExeFileSearchPaths = [pl.Path(path) for path in os.environ.get('MCDS_PATH', '').split(';') if path] \
+                           + [pl.Path(rootFolder) / f'Distance {majorVersion}'
+                              for majorVersion in [7, 6]  # Latest first.
+                              for rootFolder in ['.', 'C:/PortableApps', 'C:/Program files (x86)', 'C:/Program files']]
+    ExeFilePathName = DSEngine.findExecutable('MCDS.exe', _ExeFileSearchPaths)
+    runtime.update({'DS engine': ExeFilePathName.as_posix()})
 
     # Output stats specs : load from external files (extracts from Distance doc).
     @classmethod
@@ -278,13 +277,14 @@ class MCDSEngine(DSEngine):
         
         # Module and stats number to description table
         fileName = KInstDirPath / 'mcds/stat-mod-specs.txt'
-        logger.debug1('* {}'.format(fileName))
+        logger.debug1('* ' + fileName.as_posix())
         with open(fileName, mode='r', encoding='utf8') as fStatModSpecs:
             statModSpecLines = [line.rstrip('\n') for line in fStatModSpecs.readlines() if not line.startswith('#')]
             reModSpecNumName = re.compile('(.+) – (.+)')
             statModSpecs = list()
             moModule = None
             for line in statModSpecLines:
+                # logger.debug2(line)
                 if not line:
                     continue
                 if moModule is None:
@@ -296,23 +296,31 @@ class MCDSEngine(DSEngine):
                 moStatistic = reModSpecNumName.match(line.strip())
                 modNum, modDesc, statNum, statDescNotes = \
                     moModule.group(1), moModule.group(2), moStatistic.group(1), moStatistic.group(2)
-                for i in range(len(statDescNotes)-1, -1, -1):
+                for i in range(len(statDescNotes) - 1, -1, -1):
                     if not re.match(r'[\d ,]', statDescNotes[i]):
-                        statDesc = statDescNotes[:i+1]
-                        statNotes = statDescNotes[i+1:].replace(' ', '')
+                        statDesc = statDescNotes[:i + 1]
+                        statNotes = statDescNotes[i + 1:].replace(' ', '')
                         break
                 modNum = int(modNum)
                 if statNum.startswith('101 '):
                     for num in range(nMaxAdjParams):  # Assume no more than that ... a bit hacky !
                         statModSpecs.append((modNum, modDesc, 101+num,  # Make statDesc unique for later indexing
-                                             statDesc.replace('each', 'A({})'.format(num+1)), statNotes))
+                                             statDesc.replace('each', f'A({num+1})'), statNotes))
                 else:
                     statNum = int(statNum)
-                    if modNum == 2 and statNum == 3:  # Actually, there are 0 or 3 of these ...
-                        for num in range(3):
-                            statModSpecs.append((modNum, modDesc, num+201,
-                                                 # Change statNum & Make statDesc unique for later indexing
-                                                 statDesc+' (distance set {})'.format(num+1), statNotes))
+                    if modNum == 2 and statNum in [3, 20, 21, 22]:
+                        if statNum == 3:
+                            # MCDS 6.2: Actually, there are 0 or 3 of these, but anyway ...
+                            for num in range(3):
+                                statModSpecs.append((modNum, modDesc, num + 1 + 200,
+                                                     # Change statNum & Make statDesc unique for later indexing
+                                                     statDesc + f' (distance set {num + 1})', statNotes))
+                        else:
+                            # MCDS 7.4: 20, 21 & 22 are new and undocumented, but assume behaviour same as for 3.
+                            for num in range(3):
+                                statModSpecs.append((modNum, modDesc, num + 1 + 10 * (statNum + 1),
+                                                     # Change statNum & Make statDesc unique for later indexing
+                                                     statDesc + f' (distance set {num + 1})', statNotes))
                     else:
                         statModSpecs.append((modNum, modDesc, statNum, statDesc, statNotes))
             cls.DfStatModSpecs = pd.DataFrame(columns=['modNum', 'modDesc', 'statNum', 'statDesc', 'statNotes'],
@@ -787,13 +795,20 @@ class MCDSEngine(DSEngine):
         dfStats = dfStats.stack().reset_index()
         dfStats.rename(columns={'level_0': 'id', 'level_3': 'Figure', 0: 'Value'}, inplace=True)
 
-        # 4. Fix multiple Module=2 & Statistic=3 rows (before joining with cls.DfStatModSpecs)
+        # 4. Fix multiple Module=2 & Statistic=3, 20, 21, 22 rows (before joining with cls.DfStatModSpecs)
+        #    => change Statistic column for unicity = instance unambiguous identification
         newStatNum = 200
         for lbl, sRow in dfStats[(dfStats.Module == 2) & (dfStats.Statistic == 3)].iterrows():
-            if dfStats.loc[lbl, 'Figure'] == 'Value':
+            if dfStats.at[lbl, 'Figure'] == 'Value':
                 newStatNum += 1
-            dfStats.loc[lbl, 'Statistic'] = newStatNum
-        
+            dfStats.at[lbl, 'Statistic'] = newStatNum
+        for oldStatNum in [20, 21, 22]:
+            newStatNum = 10 * (oldStatNum + 1)
+            for lbl, sRow in dfStats[(dfStats.Module == 2) & (dfStats.Statistic == oldStatNum)].iterrows():
+                if dfStats.at[lbl, 'Figure'] == 'Value':
+                    newStatNum += 1
+                dfStats.at[lbl, 'Statistic'] = newStatNum
+
         # 5. Add descriptive / naming columns for modules and statistics,
         #    from cls.DfStatModSpecs (more user-friendly than numeric ids + help for detecting N/A figures)
         dfStats = dfStats.join(cls.DfStatModSpecs, on=['Module', 'Statistic'])
@@ -803,7 +818,7 @@ class MCDSEngine(DSEngine):
         sKeepOnlyValueFig = ~dfStats.statNotes.apply(lambda s: pd.notnull(s) and '1' in s)
         sFigs2Drop = (dfStats.Figure != 'Value') & sKeepOnlyValueFig
         assert ~dfStats[sFigs2Drop & ((dfStats.Module != 2) | (dfStats.Statistic < 100))].Value.any(), \
-               'Warning: Some so-called "N/A" figures are not zeroes !'
+               'Error: Some so-called "N/A" stat figures are not zeroes !'
         
         # 7. Remove so-called N/A figures
         dfStats.drop(dfStats[sFigs2Drop].index, inplace=True)
@@ -815,8 +830,17 @@ class MCDSEngine(DSEngine):
         lblAdjFn = (dfStats.Module == 2) & (dfStats.Statistic == 14)
         dfStats.loc[lblAdjFn, 'Value'] = \
             dfStats.loc[lblAdjFn, 'Value'].astype(int).apply(lambda n: cls.EstAdjustFns[n-1])
-        
-        # 9. Final indexing
+
+        # 9. Check if any unexpected module / statistic present, and if so, warn and fix
+        #    (like after MCDS.exe changed version ... as an example)
+        dfUnexptdStats = dfStats[dfStats[['modDesc', 'statDesc']].isnull().any(axis='columns')]
+        if not dfUnexptdStats.empty:
+            logger.warning('Ignoring unexpected modules / stats found in results'
+                           ' from a likely unsupported yet MCDS version'
+                           f'\n{dfUnexptdStats.to_string(min_rows=30, max_rows=30)}')
+            dfStats.drop(dfUnexptdStats.index, inplace=True)
+
+        # 10. Final indexing
         dfStats = dfStats.reindex(columns=['modDesc', 'statDesc', 'Figure', 'Value'])
         dfStats.set_index(['modDesc', 'statDesc', 'Figure'], inplace=True)
 
