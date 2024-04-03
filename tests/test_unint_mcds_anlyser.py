@@ -16,6 +16,8 @@
 
 # To run : simply run "pytest" and check standard output + ./tmp/unt-anr.{datetime}.log for details
 
+import shutil
+
 import pandas as pd
 
 import pytest
@@ -29,14 +31,18 @@ import unintval_utils as uivu
 logger = uivu.setupLogger('unt.anr', level=ads.DEBUG,
                           otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO, 'ads.ans': ads.INFO2})
 
-what2Test = 'analyser'
+# Set to False to skip final cleanup (useful for debugging)
+KFinalCleanup = True
+
+KWhat2Test = 'analyser'
 
 
 ###############################################################################
 #                         Actions to be done before any test                  #
 ###############################################################################
 def testBegin():
-    uivu.logBegin(what=what2Test)
+    uivu.logBegin(what=KWhat2Test)
+    # uivu.setupWorkDir('unt-anr')
 
 
 ###############################################################################
@@ -123,7 +129,7 @@ def testAnalyser(indivdSightings_fxt):
     assert dfFinalExplSpecs.compare(dfFinalExplSpecs1).empty
 
     # Just to see by eye
-    # dfFinalExplSpecs.to_excel(uivu.pTmpDir / 'tools-unitests-final-expl-specs.xlsx', index=False)
+    # dfFinalExplSpecs.to_excel(uivu.pWorkDir / 'tools-unitests-final-expl-specs.xlsx', index=False)
 
     # iv. Computational checks
     nSamp1Vars = 1
@@ -280,4 +286,6 @@ def testMcdsPreAnalyser():
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
-    uivu.logEnd(what=what2Test)
+    # if KFinalCleanup:
+    #     uivu.cleanupWorkDir()
+    uivu.logEnd(what=KWhat2Test)

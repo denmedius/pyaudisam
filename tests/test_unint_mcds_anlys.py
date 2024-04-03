@@ -30,14 +30,18 @@ import unintval_utils as uivu
 logger = uivu.setupLogger('unt.ans', level=ads.DEBUG,
                           otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO, 'ads.ans': ads.INFO2})
 
-what2Test = 'analysis'
+# Set to False to skip final cleanup (useful for debugging)
+KFinalCleanup = True
+
+KWhat2Test = 'analysis'
 
 
 ###############################################################################
 #                         Actions to be done before any test                  #
 ###############################################################################
 def testBegin():
-    uivu.logBegin(what=what2Test)
+    uivu.logBegin(what=KWhat2Test)
+    uivu.setupWorkDir('unt-ans')
 
 
 ###############################################################################
@@ -60,7 +64,7 @@ def checkAnalysisRun(sds, name=None, estimKeyFn='UNIFORM', estimAdjustFn='POLY',
     exor = None if runMethod != 'os.system' or timeOut is None else ads.Executor(threads=1)
 
     # Engine
-    eng = ads.MCDSEngine(executor=exor, workDir=uivu.pTmpDir / 'mcds-out',
+    eng = ads.MCDSEngine(executor=exor, workDir=uivu.pWorkDir,
                          runMethod=runMethod, timeOut=timeOut)
 
     # Analysis
@@ -183,7 +187,7 @@ def testMcdsAnlysPerformances(sampleDataSet_fxt):
     dfTimePerf = pd.DataFrame(columns=['OSS', 'SPR'])
 
     # i. RunMethod='subprocess.run' (sequential synchronous executor)
-    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', runMethod='subprocess.run')
+    eng = ads.MCDSEngine(workDir=uivu.pWorkDir, runMethod='subprocess.run')
 
     # timeit', '-r 5 -n 10',
     # Core i5 8365U (4 HT cores, 1.6-4.1GHz, cache  6Mb, bus 4GT/s)
@@ -205,7 +209,7 @@ def testMcdsAnlysPerformances(sampleDataSet_fxt):
     eng.shutdown()
 
     # ii. RunMethod='os.system' (sequential synchronous executor)
-    eng = ads.MCDSEngine(workDir=uivu.pTmpDir / 'mcds-out', runMethod='os.system')
+    eng = ads.MCDSEngine(workDir=uivu.pWorkDir, runMethod='os.system')
 
     # timeit', '-r 5 -n 10',
     # Python 3.8 + Core i5  8365U (4 HT cores, 1.6-4.1GHz, cache  6Mb, bus 4GT/s)
@@ -253,4 +257,6 @@ def testMcdsPreAnlys(sampleDataSet_fxt):  # CtorSubmitGetResults
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
-    uivu.logEnd(what=what2Test)
+    if KFinalCleanup:
+        uivu.cleanupWorkDir()
+    uivu.logEnd(what=KWhat2Test)

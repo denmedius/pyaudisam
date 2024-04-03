@@ -33,15 +33,12 @@ import unintval_utils as uivu
 # Setup local logger.
 logger = uivu.setupLogger('val.pnr', level=ads.DEBUG, otherLoggers={'ads.eng': ads.INFO2})
 
-# Set to False to skip final cleanup (useful for debugging)
-KFinalCleanup = True
-
 
 @pytest.mark.parametrize("sampleSpecMode", ['implicit', 'explicit'])
 class TestMcdsPreAnalyser:
 
-    # The folder where all files are generated
-    KPreAnalyserWorkDir = uivu.pTmpDir / 'mcds-preanlr'
+    # Set to False to skip final cleanup (useful for debugging)
+    KFinalCleanup = True
 
     # Class and test function initializers / finalizers ###########################
     @pytest.fixture(autouse=True, scope='class')
@@ -51,19 +48,16 @@ class TestMcdsPreAnalyser:
 
         uivu.logBegin(what=what2Test)
 
-        # Make sure the ground is clear at start
-        logger.info('Removing work folder ' + self.KPreAnalyserWorkDir.as_posix())
-        if self.KPreAnalyserWorkDir.is_dir():
-            shutil.rmtree(self.KPreAnalyserWorkDir)
+        # Setup a clear ground before starting
+        uivu.setupWorkDir('val-mpanlr')
 
         # The code before yield is run before the first test function in this class
         yield
         # The code after yield is run after the last test function in this class
 
         # Let the ground clear after passing there
-        logger.info('Removing work folder ' + self.KPreAnalyserWorkDir.as_posix())
-        if KFinalCleanup and self.KPreAnalyserWorkDir.is_dir():
-            shutil.rmtree(self.KPreAnalyserWorkDir)
+        if self.KFinalCleanup:
+            uivu.cleanupWorkDir()
 
         uivu.logEnd(what=what2Test)
 
@@ -147,7 +141,7 @@ class TestMcdsPreAnalyser:
                                 resultsHeadCols=dict(before=[sampleNumCol], sample=sampleSelCols,
                                                      after=([] if areSpecsImplicit else [speciesAbbrevCol])
                                                            + [sampleAbbrevCol]),
-                                workDir=self.KPreAnalyserWorkDir, logProgressEvery=5)
+                                workDir=uivu.pWorkDir, logProgressEvery=5)
 
         assert preAnlysr.specs == {
             'Zone': 'ACDC',
@@ -421,8 +415,9 @@ class TestMcdsPreAnalyser:
     def testRun(self, sampleSpecMode, preAnalyser_fxt, refResults_fxt):
 
         # i. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
-        if self.KPreAnalyserWorkDir.is_dir():
-            shutil.rmtree(self.KPreAnalyserWorkDir)
+        preAnlysr, sampleSpecs = preAnalyser_fxt
+        if preAnlysr.workDir.exists():
+            shutil.rmtree(preAnlysr.workDir)
 
         # ii. Run and measure performance
         # Ruindows 10 laptop with PCI-e SSD, "optimal performances" power scheme, Python 3.8 :
@@ -646,8 +641,8 @@ class TestMcdsPreAnalyser:
         if build:
             logger.info('Checking analyser results presence ...')
             preAnlysrResFilePath = preAnlysr.workDir / 'valtests-preanalyses-results.xlsx'
-            assert self.KPreAnalyserWorkDir.is_dir() and preAnlysrResFilePath.is_file()
-            anlysFolders = [path for path in self.KPreAnalyserWorkDir.iterdir() if path.is_dir()]
+            assert preAnlysr.workDir.exists() and preAnlysrResFilePath.is_file()
+            anlysFolders = [path for path in preAnlysr.workDir.iterdir() if path.is_dir()]
             assert len(anlysFolders) == 12
             logger.info('Done checking analyser results presence: OK.')
 
@@ -805,7 +800,7 @@ class TestMcdsPreAnalyser:
         htmlRefRepLines = htmlRefReportLines_fxt
         self.compareHtmlReports(htmlRefRepLines, htmlActRepLines, cliMode=True)
 
-        # d. No cleanup: let the final test class cleaner operate: _inifinalizeClass()
+        # d. No cleanup: let the final cleaning code operate in _inifinalizeClass()
 
         # e. Done.
         logger.info(f'PASS testReports: main, MCDSResultsReport ctor, toExcel, toHtml (command line mode)')

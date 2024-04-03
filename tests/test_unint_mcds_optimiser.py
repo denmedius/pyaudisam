@@ -34,14 +34,18 @@ import unintval_utils as uivu
 logger = uivu.setupLogger('unt.opr', level=ads.DEBUG,
                           otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO, 'ads.ans': ads.INFO2})
 
-what2Test = 'optimiser'
+# Set to False to skip final cleanup (useful for debugging)
+KFinalCleanup = True
+
+KWhat2Test = 'optimiser'
 
 
 ###############################################################################
 #                         Actions to be done before any test                  #
 ###############################################################################
 def testBegin():
-    uivu.logBegin(what=what2Test)
+    uivu.logBegin(what=KWhat2Test)
+    uivu.setupWorkDir('unt-opr')
 
 
 ###############################################################################
@@ -273,7 +277,7 @@ def testMcdsTruncOpterCtorGetParams(indivSightings_fxt):
              dfObsIndiv, effortConstVal=1, dSurveyArea=dSurveyArea,
              transectPlaceCols=transectPlaceCols, passIdCol=passIdCol, effortCol=effortCol,
              sampleSelCols=sampleSelCols, sampleDecCols=sampleDecCols, sampleDistCol=sampleDistCol,
-             workDir=uivu.pTmpDir / 'mcds-optr', runMethod='os.system', runTimeOut=120)
+             workDir=uivu.pWorkDir, runMethod='os.system', runTimeOut=120)
     except AssertionError as exc:
         if re.search("Can't care about .+s execution time limit", str(exc)):
             logger.info('Good: Expected refuse to work for incompatible params')
@@ -288,7 +292,7 @@ def testMcdsTruncOpterCtorGetParams(indivSightings_fxt):
          distanceUnit='Meter', areaUnit='Hectare',
          surveyType='Point', distanceType='Radial', clustering=False,
          resultsHeadCols=dict(before=[varIndCol], sample=sampleSelCols, after=[anlysAbbrevCol]),
-         abbrevCol=anlysAbbrevCol, workDir=uivu.pTmpDir / 'mcds-optr', logData=False,
+         abbrevCol=anlysAbbrevCol, workDir=uivu.pWorkDir, logData=False,
          defEstimKeyFn='HNO', defEstimAdjustFn='COS',
          defEstimCriterion='AIC', defCVInterval=95,
          defExpr2Optimise='chi2', defMinimiseExpr=False,
@@ -701,7 +705,7 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
                               distanceUnit='Meter', areaUnit='Hectare',
                               surveyType='Point', distanceType='Radial', clustering=False,
                               resultsHeadCols=dict(before=[varIndCol], sample=sampleSelCols, after=[anlysAbbrevCol]),
-                              workDir=uivu.pTmpDir / 'mcds-anlr', runMethod='subprocess.run', logProgressEvery=5)
+                              workDir=uivu.pWorkDir, runMethod='subprocess.run', logProgressEvery=5)
 
     anlysSpecFile = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
     dfAnlysExplSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols, verdict, reasons = \
@@ -763,7 +767,7 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
         surveyType='Point', distanceType='Radial', clustering=False,
         resultsHeadCols=dict(before=[optIndCol], sample=sampleSelCols,
                              after=optimParamsSpecsCols + [speAbbrevCol]),
-        workDir=uivu.pTmpDir / 'mcds-optr', runMethod='subprocess.run', runTimeOut=None,
+        workDir=uivu.pWorkDir, runMethod='subprocess.run', runTimeOut=None,
         logData=False, logProgressEvery=1, backupEvery=5,  # <= Need at least 6 runs for seeing a recovery file
         defEstimKeyFn='HAZ', defEstimAdjustFn='POLY', defEstimCriterion='AIC', defCVInterval=93,
         defExpr2Optimise='1-ks', defMinimiseExpr=True,
@@ -835,7 +839,7 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
         surveyType='Point', distanceType='Radial', clustering=False,
         resultsHeadCols=dict(before=[optIndCol], sample=sampleSelCols,
                              after=optimParamsSpecsCols + [speAbbrevCol]),
-        workDir=uivu.pTmpDir / 'mcds-optr', logProgressEvery=1,
+        workDir=uivu.pWorkDir, logProgressEvery=1,
         defEstimKeyFn='HAZ', defEstimAdjustFn='POLY', defEstimCriterion='AIC', defCVInterval=93,
         defExpr2Optimise='1-ks', defMinimiseExpr=True,
         defOutliersMethod='quant', defOutliersQuantCutPct=5.5,
@@ -870,4 +874,6 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
-    uivu.logEnd(what=what2Test)
+    if KFinalCleanup:
+        uivu.cleanupWorkDir()
+    uivu.logEnd(what=KWhat2Test)

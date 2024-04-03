@@ -33,14 +33,18 @@ import unintval_utils as uivu
 logger = uivu.setupLogger('unt.dat', level=ads.DEBUG,
                           otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO})
 
-what2Test = 'data'
+# Set to False to skip final cleanup (useful for debugging)
+KFinalCleanup = True
+
+KWhat2Test = 'data'
 
 
 ###############################################################################
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testBegin():
-    uivu.logBegin(what=what2Test)
+    uivu.logBegin(what=KWhat2Test)
+    uivu.setupWorkDir('unt-data')
 
 
 ###############################################################################
@@ -52,8 +56,8 @@ def sources():
 
     dfPapAlaArv = pd.read_excel(uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods')
 
-    dfPapAlaArv.to_csv(uivu.pTmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv', sep='\t', index=False)
-    dfPapAlaArv.to_excel(uivu.pTmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls', index=False)
+    dfPapAlaArv.to_csv(uivu.pWorkDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv', sep='\t', index=False)
+    dfPapAlaArv.to_excel(uivu.pWorkDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls', index=False)
 
     # DataSet from multiple sources from various formats (same columns).
     # For test, list of require to contain 1 DataFrame, and one or several
@@ -61,8 +65,8 @@ def sources():
     # DataFrame and all files need to contain the same data
     srcs = [uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.ods',  # Need for module odfpy
             uivu.pRefInDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xlsx',  # Need for module openpyxl (or xlrd)
-            uivu.pTmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls',  # No need for xlwt(openpyxl seems OK)
-            uivu.pTmpDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv',
+            uivu.pWorkDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.xls',  # No need for xlwt(openpyxl seems OK)
+            uivu.pWorkDir / 'ACDC2019-Papyrus-ALAARV-saisie-ttes-cols.csv',
             dfPapAlaArv]
     return srcs
 
@@ -345,7 +349,7 @@ def testDataSetToFiles(sources_fxt):
     # => toExcel, toOpenDoc, toPickle, compareDataFrames
     closenessThreshold = 15  # => max relative delta = 1e-15
     subsetCols = ['POINT', 'ESPECE', 'DISTANCE', 'INDIVIDUS', 'EFFORT']
-    filePathName = uivu.pTmpDir / 'dataset-uni.ods'
+    filePathName = uivu.pWorkDir / 'dataset-uni.ods'
     dfRef = ds.dfSubData(columns=subsetCols).reset_index(drop=True)
 
     for fpn in [filePathName, filePathName.with_suffix('.xlsx'), filePathName.with_suffix('.xls'),
@@ -806,4 +810,6 @@ def testMonoCategoryDataSet():
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
-    uivu.logEnd(what=what2Test)
+    if KFinalCleanup:
+        uivu.cleanupWorkDir()
+    uivu.logEnd(what=KWhat2Test)

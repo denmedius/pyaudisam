@@ -15,6 +15,7 @@
 # Common tools for automated unit, integration and validation tests
 
 import pathlib as pl
+import shutil
 import difflib
 from types import SimpleNamespace as DotDict
 
@@ -28,9 +29,12 @@ pTestDir = pl.Path(__file__).parent
 pRefInDir = pTestDir / 'refin'
 pRefOutDir = pTestDir / 'refout'
 
-# Temporary work folder.
+# Temporary work folder root.
 pTmpDir = pTestDir / 'tmp'
 pTmpDir.mkdir(exist_ok=True)
+
+# Temporary work folder default (see setupWorkFolder below).
+pWorkDir = pTmpDir / 'work'
 
 # Setup local logger
 _logger = ads.logger('uiv.tst')
@@ -69,6 +73,19 @@ def logEnd(what, rc=None):
     sts = {-1: 'Not run', 0: 'Success', None: None}.get(rc, 'Error')
     msg = 'see pytest report' if sts is None else f'{sts} (code: {rc})'
     _logger.info(f'Done testing pyaudisam: {what} => {msg}.')
+
+
+def setupWorkDir(dirName='work'):
+    global pWorkDir
+    pWorkDir = pTmpDir / dirName
+    if pWorkDir.is_dir():
+        shutil.rmtree(pWorkDir)  # Note: avoid any Ruindows shell or explorer inside this folder !
+    pWorkDir.mkdir(parents=True, exist_ok=True)
+
+
+def cleanupWorkDir():
+    if pWorkDir.is_dir():
+        shutil.rmtree(pWorkDir)  # Note: avoid any Ruindows shell or explorer inside this folder !
 
 
 # Short string for sample "identification"

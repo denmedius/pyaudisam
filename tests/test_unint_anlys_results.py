@@ -1,6 +1,5 @@
 # coding: utf-8
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
-
 # Copyright (C) 2021 Jean-Philippe Meuret
 
 # This program is free software: you can redistribute it and/or modify it under the terms
@@ -28,14 +27,18 @@ import unintval_utils as uivu
 logger = uivu.setupLogger('unt.ars', level=ads.DEBUG,
                           otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO, 'ads.anr': ads.INFO5})
 
-what2Test = 'analysis results set'
+# Set to False to skip final cleanup (useful for debugging)
+KFinalCleanup = True
+
+KWhat2Test = 'analysis results set'
 
 
 ###############################################################################
 #                         Actions to be done before any test                  #
 ###############################################################################
 def testBegin():
-    uivu.logBegin(what=what2Test)
+    uivu.logBegin(what=KWhat2Test)
+    uivu.setupWorkDir('unt-ares')
 
 
 ###############################################################################
@@ -232,15 +235,15 @@ def testArsCtorGettersSettersToFromFiles():
     # ### h. Imports and exports
     # #### i. Exports (with specs)
     # (see imports tests below for exported content checks)
-    rs.toExcel(uivu.pTmpDir / 'results-set-uni.xlsx', sheetName='utest')
+    rs.toExcel(uivu.pWorkDir / 'results-set-uni.xlsx', sheetName='utest')
 
-    rs.toExcel(uivu.pTmpDir / 'results-set-uni.xls', sheetName='utest')
+    rs.toExcel(uivu.pWorkDir / 'results-set-uni.xls', sheetName='utest')
 
-    rs.toOpenDoc(uivu.pTmpDir / 'results-set-uni.ods', sheetName='utest')
+    rs.toOpenDoc(uivu.pWorkDir / 'results-set-uni.ods', sheetName='utest')
 
-    rs.toPickle(uivu.pTmpDir / 'results-set-uni.pickle.xz')
+    rs.toPickle(uivu.pWorkDir / 'results-set-uni.pickle.xz')
 
-    rs.toPickle(uivu.pTmpDir / 'results-set-uni.pickle')
+    rs.toPickle(uivu.pWorkDir / 'results-set-uni.pickle')
 
     # ### h. Imports and exports
     # #### ii. Imports with explicit format (with specs)
@@ -248,11 +251,11 @@ def testArsCtorGettersSettersToFromFiles():
     rs1 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs1.fromExcel(uivu.pTmpDir / 'results-set-uni.xlsx', sheetName='utest')
+    rs1.fromExcel(uivu.pWorkDir / 'results-set-uni.xlsx', sheetName='utest')
     logger.info('rs1.dfData:\n' + rs1.dfData.to_string())
 
     # Data
-    rs1.toExcel(uivu.pTmpDir / 'results-set-uni-1.xlsx', sheetName='utest')
+    rs1.toExcel(uivu.pWorkDir / 'results-set-uni-1.xlsx', sheetName='utest')
     logger.info('rs1.dfData.compare(rs.dfData):\n' + rs1.dfData.compare(rs.dfData).to_string())
     assert rs1.dfData.equals(rs.dfData)  # == fails on NaNs in same places ...
 
@@ -270,7 +273,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs2 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs2.fromExcel(uivu.pTmpDir / 'results-set-uni.xls', sheetName='utest')
+    rs2.fromExcel(uivu.pWorkDir / 'results-set-uni.xls', sheetName='utest')
     logger.info('rs2.dfData:\n' + rs2.dfData.to_string())
 
     # Data
@@ -290,7 +293,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs3 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs3.fromOpenDoc(uivu.pTmpDir / 'results-set-uni.ods', sheetName='utest')
+    rs3.fromOpenDoc(uivu.pWorkDir / 'results-set-uni.ods', sheetName='utest')
     logger.info('rs3.dfData:\n' + rs3.dfData.to_string())
 
     # Data
@@ -309,7 +312,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs4 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs4.fromPickle(uivu.pTmpDir / 'results-set-uni.pickle.xz')
+    rs4.fromPickle(uivu.pWorkDir / 'results-set-uni.pickle.xz')
     logger.info('rs4.dfData:\n' + rs4.dfData.to_string())
 
     # Data
@@ -328,7 +331,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs5 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs5.fromPickle(uivu.pTmpDir / 'results-set-uni.pickle')
+    rs5.fromPickle(uivu.pWorkDir / 'results-set-uni.pickle')
     logger.info('rs5.dfData:\n' + rs5.dfData.to_string())
 
     # Data
@@ -348,7 +351,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs1 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs1.fromFile(uivu.pTmpDir / 'results-set-uni.xlsx', sheetName='utest')
+    rs1.fromFile(uivu.pWorkDir / 'results-set-uni.xlsx', sheetName='utest')
     logger.info('rs1.dfData:\n' + rs1.dfData.to_string())
 
     # Data
@@ -367,7 +370,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs2 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs2.fromFile(uivu.pTmpDir / 'results-set-uni.xls', sheetName='utest')
+    rs2.fromFile(uivu.pWorkDir / 'results-set-uni.xls', sheetName='utest')
     logger.info('rs2.dfData:\n' + rs2.dfData.to_string())
 
     # Data
@@ -386,7 +389,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs3 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs3.fromFile(uivu.pTmpDir / 'results-set-uni.ods', sheetName='utest')
+    rs3.fromFile(uivu.pWorkDir / 'results-set-uni.ods', sheetName='utest')
     logger.info('rs3.dfData:\n' + rs3.dfData.to_string())
 
     # Data
@@ -405,7 +408,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs4 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs4.fromFile(uivu.pTmpDir / 'results-set-uni.pickle.xz')
+    rs4.fromFile(uivu.pWorkDir / 'results-set-uni.pickle.xz')
     logger.info('rs4.dfData:\n' + rs4.dfData.to_string())
 
     # Data
@@ -424,7 +427,7 @@ def testArsCtorGettersSettersToFromFiles():
     rs5 = SpecialAnalysisResultsSet(miCustomCols=miCustCols, dfCustomColTrans=dfCustColTrans,
                                     dComputedCols=dCompCols, dfComputedColTrans=dfCompColTrans,
                                     dropNACols=True, miExemptNACols=miExemptNACols)
-    rs5.fromFile(uivu.pTmpDir / 'results-set-uni.pickle')
+    rs5.fromFile(uivu.pWorkDir / 'results-set-uni.pickle')
     logger.info('rs5.dfData:\n' + rs5.dfData.to_string())
 
     # Data
@@ -459,4 +462,6 @@ def testArsCtorGettersSettersToFromFiles():
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
-    uivu.logEnd(what=what2Test)
+    if KFinalCleanup:
+        uivu.cleanupWorkDir()
+    uivu.logEnd(what=KWhat2Test)

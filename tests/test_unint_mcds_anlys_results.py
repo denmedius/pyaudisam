@@ -33,14 +33,18 @@ logger = uivu.setupLogger('unt.ars', level=ads.DEBUG,
                           otherLoggers={'ads.eng': ads.INFO2, 'ads.dat': ads.INFO,
                                         'ads.anr': ads.INFO5})
 
-what2Test = 'MCDS analysis results set'
+# Set to False to skip final cleanup (useful for debugging)
+KFinalCleanup = True
+
+KWhat2Test = 'MCDS analysis results set'
 
 
 ###############################################################################
 #                         Actions to be done before any test                  #
 ###############################################################################
 def testBegin():
-    uivu.logBegin(what=what2Test)
+    uivu.logBegin(what=KWhat2Test)
+    # uivu.setupWorkDir('unt-mares')
 
 
 ###############################################################################
@@ -987,4 +991,6 @@ def testMcdsArsFilSorSchemeId():
 #                         Actions to be done after all tests                  #
 ###############################################################################
 def testEnd():
-    uivu.logEnd(what=what2Test)
+    # if KFinalCleanup:
+    #     uivu.cleanupWorkDir()
+    uivu.logEnd(what=KWhat2Test)
