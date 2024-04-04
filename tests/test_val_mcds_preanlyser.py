@@ -38,7 +38,7 @@ logger = uivu.setupLogger('val.pnr', level=ads.DEBUG, otherLoggers={'ads.eng': a
 class TestMcdsPreAnalyser:
 
     # Set to False to skip final cleanup (useful for debugging)
-    KFinalCleanup = True
+    KFinalCleanup = False
 
     # Class and test function initializers / finalizers ###########################
     @pytest.fixture(autouse=True, scope='class')
@@ -524,14 +524,35 @@ class TestMcdsPreAnalyser:
     def compareExcelReports(ddfRefReport, ddfActReport):
 
         # Compare "Synthesis" sheet
-        dfRef = ddfRefReport['Synthesis'].drop(columns=['RunFolder'])
-        dfAct = ddfActReport['Synthesis'].drop(columns=['RunFolder'])
-        assert dfRef.set_index('NumEchant').compare(dfAct.set_index('NumEchant')).empty
+        dfRef = ddfRefReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')
+        dfAct = ddfActReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')
+        assert dfRef.compare(dfAct).empty
 
-        # Compare "Details" sheet
+        # Compare "Details" sheet : not that simple ...
+        # * 11 more "No Doc" columns with MCDS 7.4 (the ref) compared to MCDS 6.2,
+        # * very small differences in "Qua" indicators between MCDS 7.4 compared to MCDS 6.2
         dfRef = ddfRefReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
         dfAct = ddfActReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
-        assert dfRef.set_index('NumEchant').compare(dfAct.set_index('NumEchant')).empty
+        # a. Compare all the string columns and a few "no precision issue" more.
+        idCols = ['NumEchant', 'Espèce', 'Passage', 'Adulte', 'Durée', 'AbrevEchant']
+        simpleCompCols = idCols
+        simpleCompCols += ['NTot Obs', 'Mod Key Fn', 'Mod Adj Ser', 'Mod Chc Crit', 'Conf Interv', 'Key Fn', 'Adj Ser']
+        assert dfRef[simpleCompCols].set_index('NumEchant').compare(dfAct[simpleCompCols].set_index('NumEchant')).empty
+        # b. Compare other (all numerical) columns with a small margin (1e-14 relative diff)
+        otherCompCols = [col for col in dfRef if col not in simpleCompCols]
+        if len(dfAct.columns) == len(dfRef.columns):  # MCDS 7.4 ?
+            assert ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
+                                                 subsetCols=otherCompCols, indexCols=idCols,
+                                                 noneIsNan=True, dropCloserCols=True,
+                                                 dropCloser=14, dropNans=True).empty
+        else:  # Last chance: MCDS 6.2 ?
+            spe74CompCols = [col for col in otherCompCols if col.startswith('SansDoc #')]  # 7.4-specifics
+            assert len(spe74CompCols) == 11
+            otherCompCols = [col for col in otherCompCols if col not in spe74CompCols]  # Remove 7.4-specifics
+            assert ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
+                                                 subsetCols=otherCompCols, indexCols=idCols,
+                                                 noneIsNan=True, dropCloserCols=True,
+                                                 dropCloser=15, dropNans=True).empty
 
         # Compare "Samples" sheet
         dfRef = ddfRefReport['Samples']
