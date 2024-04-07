@@ -22,7 +22,7 @@
   <meta name="copyright" content="Jean-Philippe Meuret 2021"/>
   <meta name="license" content="CC BY NC SA"/>
   <meta name="description" content="{{title}}"/>
-  <meta name="keywords" content="distance, sampling, mcds, {{keywords}}"/>
+  <meta name="keywords" content="distance, sampling, mcds, report, {{keywords}}"/>
   <meta name="datetime" content="{{genDateTime}}"/>
   
   <title>{{title}}</title>

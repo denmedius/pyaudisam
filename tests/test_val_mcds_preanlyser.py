@@ -19,6 +19,7 @@
 import time
 import pathlib as pl
 import shutil
+import re
 
 import numpy as np
 import pandas as pd
@@ -38,18 +39,18 @@ logger = uivu.setupLogger('val.pnr', level=ads.DEBUG, otherLoggers={'ads.eng': a
 class TestMcdsPreAnalyser:
 
     # Set to False to skip final cleanup (useful for debugging)
-    KFinalCleanup = False
+    KFinalCleanup = True
 
     # Class and test function initializers / finalizers ###########################
     @pytest.fixture(autouse=True, scope='class')
     def _inifinalizeClass(self):
 
-        what2Test = 'pre-analyser'
+        KWhat2Test = 'pre-analyser'
 
-        uivu.logBegin(what=what2Test)
+        uivu.logBegin(what=KWhat2Test)
 
         # Setup a clear ground before starting
-        uivu.setupWorkDir('val-mpanlr')
+        uivu.setupWorkDir('val-mpanlr', cleanup=self.KFinalCleanup)
 
         # The code before yield is run before the first test function in this class
         yield
@@ -59,7 +60,7 @@ class TestMcdsPreAnalyser:
         if self.KFinalCleanup:
             uivu.cleanupWorkDir()
 
-        uivu.logEnd(what=what2Test)
+        uivu.logEnd(what=KWhat2Test)
 
     @pytest.fixture(autouse=True, scope='function')
     def _inifinalizeFunction(self):
@@ -469,10 +470,12 @@ class TestMcdsPreAnalyser:
         self.compareResults(rsRef, rsAct)
 
         # f. Minimal check of pre-analysis folders
+        logger.info('Checking pre-analysis folders (minimal) ...')
         dfEnRes = rsAct.dfTransData('en')
         for anlysFolderPath in dfEnRes.RunFolder:
             assert {fpn.name for fpn in pl.Path(anlysFolderPath).iterdir()} \
                    == {'cmd.txt', 'data.txt', 'log.txt', 'output.txt', 'plots.txt', 'stats.txt'}
+        logger.info('... done checking pre-analysis folders (minimal).')
 
         # g. Cleanup pre-analyser (analysis folders)
         preAnlysr.cleanup()
@@ -509,9 +512,17 @@ class TestMcdsPreAnalyser:
         rsRef = refResults_fxt
         self.compareResults(rsRef, rsAct)
 
-        # e. Don't clean up work folder / analysis folders : needed for report generations below
+        # e. Minimal check of pre-analysis folders
+        logger.info('Checking pre-analysis folders (minimal) ...')
+        dfEnRes = rsAct.dfTransData('en')
+        for anlysFolderPath in dfEnRes.RunFolder:
+            assert {fpn.name for fpn in pl.Path(anlysFolderPath).iterdir()} \
+                   == {'cmd.txt', 'data.txt', 'log.txt', 'output.txt', 'plots.txt', 'stats.txt'}
+        logger.info('... done checking pre-analysis folders (minimal).')
 
-        # f. Done.
+        # f. Don't clean up work folder / analysis folders : needed for report generations below
+
+        # g. Done.
         logger.info(f'PASS testRunCli: main, run (command line mode)')
 
     @pytest.fixture()
@@ -555,9 +566,9 @@ class TestMcdsPreAnalyser:
                                                  dropCloser=15, dropNans=True).empty
 
         # Compare "Samples" sheet
-        dfRef = ddfRefReport['Samples']
-        dfAct = ddfActReport['Samples']
-        assert dfRef.set_index('NumEchant').compare(dfAct.set_index('NumEchant')).empty
+        dfRef = ddfRefReport['Samples'].set_index('NumEchant', drop=True)
+        dfAct = ddfActReport['Samples'].set_index('NumEchant', drop=True)
+        assert dfRef.compare(dfAct).empty
 
         # Compare "Models" sheet
         dfRef = ddfRefReport['Models']
@@ -580,71 +591,44 @@ class TestMcdsPreAnalyser:
     @staticmethod
     def compareHtmlReports(refReportLines, actReportLines, cliMode=False):
 
+        # Pre-process actual report lines
+        # * list unique analysis folders (keeping the original order) in both reports
+        KREAnlysDir = re.compile(r'="./([a-zA-Z0-9-_]+)/')
+        refAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, refReportLines)
+        actAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, actReportLines)
+        assert len(refAnlysDirs) == len(actAnlysDirs)
+
+        # * replace each analysis folder in the actual report by the corresponding ref. report one
+        uivu.replaceStrings(actAnlysDirs, refAnlysDirs, actReportLines)
+
+        # * remove specific lines in both reports:
+        #   - header meta "DateTime"
+        #   - footer "Generated on <date+time>"
+        KREDateTime = r'[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}'
+        KREMetaDateTime = re.compile(rf'<meta name="datetime" content="{KREDateTime}"/>')
+        uivu.removeLines(KREMetaDateTime, refReportLines)
+        uivu.removeLines(KREMetaDateTime, actReportLines)
+
+        KREGenDateTime = re.compile(rf'Generated on {KREDateTime}')
+        uivu.removeLines(KREGenDateTime, refReportLines)
+        uivu.removeLines(KREGenDateTime, actReportLines)
+
         # Build the list of unified diff blocks
         blocks = uivu.unifiedDiff(refReportLines, actReportLines, logger=logger)
 
         # Filter diff blocks to check (ignore some that are expected to change without any issue:
+        # * header meta "datetime" generation date,
         # * computation platform table, with component versions,
         # * generation date, credits to components with versions, sources)
         blocks_to_check = []
         for block in blocks:
-            if 555 <= block.startLines.expected <= 591 \
-               or 600 <= block.startLines.expected <= (609 if cliMode else 612):
+            if block.startLines.expected >= 519:
                 logger.info(f'Ignoring block @ -{block.startLines.expected} +{block.startLines.real} @')
                 continue
             blocks_to_check.append(block)
 
-        # Check filtered blocks.
-        assert len(blocks_to_check) == 14
-        assert blocks_to_check[0].startLines.expected == 26
-        assert blocks_to_check[-1].startLines.expected == 217
-
-        for block in blocks_to_check:
-
-            logger.info(f'Block @ -{block.startLines.expected} +{block.startLines.real} @')
-
-            if block.startLines.expected == 26:
-                assert block.startLines.real == 26, 'Wrong start line nums on first diff block'
-                assert len(block.expectedLines) == 1, 'Wrong num. of expected lines on first diff block'
-                assert len(block.realLines) == 1, 'Wrong num. of real lines on first diff block'
-                assert block.expectedLines[0].strip().startswith('<meta name="datetime" content="'), \
-                    'Wrong first diff block expected line'
-                assert block.realLines[0].strip().startswith('<meta name="datetime" content="'), \
-                    'Wrong first diff block real line'
-                continue
-
-            if block.startLines.expected == 114:
-                assert block.startLines.real == 114, 'Wrong start line nums on 2nd diff block'
-                assert len(block.expectedLines) == 1, 'Wrong num. of expected lines on 2nd diff block'
-                assert len(block.realLines) == 1, 'Wrong num. of real lines on 2nd diff block'
-                continue
-
-            if block.startLines.expected == 217:
-                assert block.startLines.real == 217, 'Wrong start line nums on last diff block'
-                assert len(block.expectedLines) == 3, 'Wrong num. of expected lines on diff block'
-                assert len(block.realLines) == 3, 'Wrong num. of real lines on diff block'
-                for line in block.expectedLines:
-                    line = line.strip()
-                    assert line.startswith('<td><img src="./'), f"Wrong diff block expected line: '{line}'"
-                for line in block.realLines:
-                    line = line.strip()
-                    assert line.startswith('<td><img src="./'), f"Wrong diff block real line: '{line}'"
-                continue
-
-            # All other blocks ...
-            assert block.startLines.expected == block.startLines.real, 'Wrong start line nums on last diff block'
-            assert len(block.expectedLines) == 6, 'Wrong num. of expected lines on diff block'
-            assert len(block.realLines) == 6, 'Wrong num. of real lines on diff block'
-            for line in block.expectedLines:
-                line = line.strip()
-                assert line.startswith('<tr>') or line.startswith('</tr>') \
-                       or line.startswith('<th><a href="./') or line.startswith('<td><img src="./'), \
-                    f"Wrong diff block expected line: '{line}'"
-            for line in block.realLines:
-                line = line.strip()
-                assert line.startswith('<tr>') or line.startswith('</tr>') \
-                       or line.startswith('<th><a href="./') or line.startswith('<td><img src="./'), \
-                    f"Wrong diff block real line: '{line}'"
+        # Check filtered blocks : should not be any left !
+        assert len(blocks_to_check) == 0
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam API
     def testReports(self, sampleSpecMode, preAnalyser_fxt, excelRefReport_fxt, htmlRefReportLines_fxt):

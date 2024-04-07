@@ -75,11 +75,11 @@ def logEnd(what, rc=None):
     _logger.info(f'Done testing pyaudisam: {what} => {msg}.')
 
 
-def setupWorkDir(dirName='work'):
+def setupWorkDir(dirName='work', cleanup=True):
     global pWorkDir
     pWorkDir = pTmpDir / dirName
-    if pWorkDir.is_dir():
-        shutil.rmtree(pWorkDir)  # Note: avoid any Ruindows shell or explorer inside this folder !
+    if cleanup:
+        cleanupWorkDir()
     pWorkDir.mkdir(parents=True, exist_ok=True)
 
 
@@ -90,6 +90,7 @@ def cleanupWorkDir():
 
 # Short string for sample "identification"
 def sampleAbbrev(sSample):
+    """Sample abbreviation"""
     abrvSpe = ''.join(word[:4].title() for word in sSample['Espèce'].split(' ')[:2])
     sampAbbrev = '{}-{}-{}-{}'.format(abrvSpe, sSample.Passage.replace('+', ''),
                                       sSample.Adulte.replace('+', ''), sSample['Durée'])
@@ -98,7 +99,7 @@ def sampleAbbrev(sSample):
 
 # Short string for analysis "identification"
 def analysisAbbrev(sAnlys):
-    # Sample abbreviation
+    """Analysis abbreviation"""
     abbrevs = [sampleAbbrev(sAnlys)]
 
     # Model + Parameters abbreviation
@@ -115,8 +116,38 @@ def analysisAbbrev(sAnlys):
     return '-'.join(abbrevs)
 
 
-def unifiedDiff(expectedLines, realLines, logger=None):
+def listUniqueStrings(reStrs, lines):
+    """List unique values of strings matching in a set of lines
+    with a given compiled regexp pattern with 1 capturing () couple
+    that defines the string values to search for and return through <pattern>.findall
+    (ex: r'xyz([2-7e-p]+).')"""
 
+    uniqStrs = []
+    for unStrsInLine in [set(reStrs.findall(line)) for line in lines]:
+        for strng in unStrsInLine:
+            if strng not in uniqStrs:
+                uniqStrs.append(strng)
+    return uniqStrs
+
+
+def replaceStrings(froms, tos, lines):
+    """Replace strings in text lines, inplace the list"""
+
+    froms2Tos = dict(zip(froms, tos))
+    for lineInd in range(len(lines)):
+        for from_, to_ in froms2Tos.items():
+            lines[lineInd] = lines[lineInd].replace(from_, to_)
+
+
+def removeLines(re2Search, lines):
+    """Remove lines where a give compiled pattern is found, inplace the list"""
+
+    ind2Remove = [ind for ind in range(len(lines)) if re2Search.search(lines[ind])]
+    for ind in reversed(ind2Remove):
+        del lines[ind]
+
+
+def unifiedDiff(expectedLines, realLines, logger=None):
     """Run difflib.unified_diff on 2 text line sets and extract resulting diff blocks
     as a list of DotDict(startLines=DotDict(expected=<line number>, real=<line number>),
                          expectedLines=list(<expected lines>), realLines=list(<actual lines>))"""

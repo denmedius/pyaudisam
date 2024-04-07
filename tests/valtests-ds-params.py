@@ -117,7 +117,7 @@ def analysisAbbrev(sAnlys):
                   'd': 'NbTrDiscr'}
     for trAbrv, name in dTroncAbrv.items():
         if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-            nmAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else int(sAnlys[name])
+            nmAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else str(sAnlys[name])
             abbrevs.append(trAbrv + nmAbrv)
     return '-'.join(abbrevs)
 
@@ -261,14 +261,14 @@ anlysFullReportStudyTitle = 'PyAuDiSam Validation: Analyses'
 anlysFullReportStudySubTitle = 'Global analysis full report'
 anlysFullReportAnlysSubTitle = 'Detailed report'
 anlysFullReportStudyDescr = 'Easy and parallel run through MCDSAnalyser'
-anlysFullReportStudyKeywords = 'pyaudisam, validation, analysis, full, report'
+anlysFullReportStudyKeywords = 'pyaudisam, validation, analysis'
 
 # 2. Specific to opt-analysis reports
 optAnlysFullReportStudyTitle = 'PyAuDiSam Validation: Opt-analyses'
 optAnlysFullReportStudySubTitle = 'Global opt-analysis full report'
 optAnlysFullReportAnlysSubTitle = 'Detailed report'
 optAnlysFullReportStudyDescr = 'Easy and parallel run through MCDSTruncationOptAnalyser'
-optAnlysFullReportStudyKeywords = 'pyaudisam, validation, opt-analysis, full, report'
+optAnlysFullReportStudyKeywords = 'pyaudisam, validation, opt-analysis'
 
 # 3. Common to analysis reports and opt-analysis reports
 # Plot parameters
@@ -341,7 +341,7 @@ anlysFilsorReportStudySubTitle = 'Global analysis auto-filtered report'
 anlysFilsorReportAnlysSubTitle = 'Detailed report'
 anlysFilsorReportStudyDescr = 'Automated filtering et sorting : method "{fsId}" ;' \
                               ' after easy and parallel run through MCDSAnalyser'
-anlysFilsorReportStudyKeywords = 'pyaudisam, validation, analysis, auto-filter, report'
+anlysFilsorReportStudyKeywords = 'pyaudisam, validation, analysis, auto-filter'
 
 # c. Specific to opt-analysis reports
 optAnlysFilsorReportStudyTitle = 'PyAuDiSam Validation: Opt-analyses'
@@ -349,7 +349,7 @@ optAnlysFilsorReportStudySubTitle = 'Global opt-analysis auto-filtered report'
 optAnlysFilsorReportAnlysSubTitle = 'Detailed report'
 optAnlysFilsorReportStudyDescr = 'Automated filtering et sorting : method "{fsId}" ;' \
                                  ' after easy and parallel run through MCDSTruncationOptAnalyser'
-optAnlysFilsorReportStudyKeywords = 'pyaudisam, validation, opt-analysis, auto-filter, report'
+optAnlysFilsorReportStudyKeywords = 'pyaudisam, validation, opt-analysis, auto-filter'
 
 # c. Common to analysis reports and opt-analysis reports
 filsorReportPlotParams = dict(plotImgSize=(640, 400), superSynthPlotsHeight=288,
