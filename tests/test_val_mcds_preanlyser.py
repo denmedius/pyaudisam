@@ -591,14 +591,18 @@ class TestMcdsPreAnalyser:
     @staticmethod
     def compareHtmlReports(refReportLines, actReportLines, cliMode=False):
 
+        logger.info('Preprocessing HTML pre-reports for comparison ...')
+
         # Pre-process actual report lines
         remRefLines = remActLines = 0
 
         # * list unique analysis folders (keeping the original order) in both reports
-        KREAnlysDir = re.compile(r'="./([a-zA-Z0-9-_]+)/')
+        KREAnlysDir = r'="./([a-zA-Z0-9-_]+)/'
         refAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, refReportLines)
         actAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, actReportLines)
         assert len(refAnlysDirs) == len(actAnlysDirs)
+
+        logger.info(f'* found {len(actAnlysDirs)} pre-analysis folders')
 
         # * replace each analysis folder in the actual report by the corresponding ref. report one
         uivu.replaceStrings(actAnlysDirs, refAnlysDirs, actReportLines)
@@ -606,16 +610,16 @@ class TestMcdsPreAnalyser:
         # * remove specific lines in both reports:
         #   - header meta "DateTime"
         KREDateTime = r'[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}'
-        KREMetaDateTime = re.compile(rf'<meta name="datetime" content="{KREDateTime}"/>')
+        KREMetaDateTime = rf'<meta name="datetime" content="{KREDateTime}"/>'
         remRefLines += uivu.removeLines(KREMetaDateTime, refReportLines)
         remActLines += uivu.removeLines(KREMetaDateTime, actReportLines)
 
         #   - footer "Generated on <date+time>"  => not needed, 'cause in final ignored blocks (see below)
-        # KREGenDateTime = re.compile(rf'Generated on {KREDateTime}')
+        # KREGenDateTime = rf'Generated on {KREDateTime}'
         # remRefLines += uivu.removeLines(KREGenDateTime, refReportLines)
         # remActLines += uivu.removeLines(KREGenDateTime, actReportLines)
 
-        logger.info(f'HTML pre-report preprocessing: removed {remRefLines} ref. and {remActLines} act. lines')
+        logger.info(f'* removed {remRefLines} ref. and {remActLines} act. lines')
 
         # Build the list of unified diff blocks
         blocks = uivu.unifiedDiff(refReportLines, actReportLines, logger=logger, subject='HTML pre-reports')
@@ -633,6 +637,8 @@ class TestMcdsPreAnalyser:
 
         # Check filtered blocks : should not be any left !
         assert len(blocks_to_check) == 0
+
+        logger.info('HTML pre-reports comparison: success !')
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam API
     def testReports(self, sampleSpecMode, preAnalyser_fxt, excelRefReport_fxt, htmlRefReportLines_fxt):

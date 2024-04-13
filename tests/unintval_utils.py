@@ -14,10 +14,11 @@
 
 # Common tools for automated unit, integration and validation tests
 
+from types import SimpleNamespace as DotDict
+import re
 import pathlib as pl
 import shutil
 import difflib
-from types import SimpleNamespace as DotDict
 
 import pandas as pd
 
@@ -116,31 +117,70 @@ def analysisAbbrev(sAnlys):
     return '-'.join(abbrevs)
 
 
-def listUniqueStrings(reStrs, lines):
+def listUniqueStrings(re2FindAll, lines):
     """List unique values of strings matching in a set of lines
-    with a given compiled regexp pattern with 1 capturing () couple
+    with a given regexp pattern with 1 capturing () couple
     that defines the string values to search for and return through <pattern>.findall
     (ex: r'xyz([2-7e-p]+).')"""
 
+    if isinstance(re2FindAll, str):
+        re2FindAll = re.compile(re2FindAll)
+
     uniqStrs = []
-    for unStrsInLine in [set(reStrs.findall(line)) for line in lines]:
+    for unStrsInLine in [set(re2FindAll.findall(line)) for line in lines]:
         for strng in unStrsInLine:
             if strng not in uniqStrs:
                 uniqStrs.append(strng)
+
     return uniqStrs
+
+
+def selectLines(re2Search, lines):
+    """Select lines matching (re.search) a regexp pattern"""
+
+    if isinstance(re2Search, str):
+        re2Search = re.compile(re2Search)
+
+    return [line for line in lines if re2Search.search(line)]
 
 
 def replaceStrings(froms, tos, lines):
     """Replace strings in text lines, inplace the list"""
 
     froms2Tos = dict(zip(froms, tos))
+    repLines = 0
     for lineInd in range(len(lines)):
+        line = lines[lineInd]
         for from_, to_ in froms2Tos.items():
             lines[lineInd] = lines[lineInd].replace(from_, to_)
+        if line != lines[lineInd]:
+            repLines += 1
+
+    return repLines
+
+
+def replaceRegExps(re2Search, repl, lines):
+    """Replace subtrings matching a regexp pattern by another string, in text lines,
+    inplace the list (the replacement can also be a function: see re.sub)"""
+
+    if isinstance(re2Search, str):
+        re2Search = re.compile(re2Search)
+
+    repLines = 0
+    for lineInd in range(len(lines)):
+        line = lines[lineInd]
+        lines[lineInd] = re2Search.sub(repl, line)
+        if line != lines[lineInd]:
+            repLines += 1
+
+    return repLines
 
 
 def removeLines(re2Search, lines):
-    """Remove lines where a give compiled pattern is found, inplace the list"""
+    """Remove lines where a given regexp pattern is found (re.search), inplace the list"""
+
+    if isinstance(re2Search, str):
+        re2Search = re.compile(re2Search)
 
     ind2Remove = [ind for ind in range(len(lines)) if re2Search.search(lines[ind])]
     for ind in reversed(ind2Remove):
