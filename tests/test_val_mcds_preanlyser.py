@@ -592,6 +592,8 @@ class TestMcdsPreAnalyser:
     def compareHtmlReports(refReportLines, actReportLines, cliMode=False):
 
         # Pre-process actual report lines
+        remRefLines = remActLines = 0
+
         # * list unique analysis folders (keeping the original order) in both reports
         KREAnlysDir = re.compile(r'="./([a-zA-Z0-9-_]+)/')
         refAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, refReportLines)
@@ -603,18 +605,20 @@ class TestMcdsPreAnalyser:
 
         # * remove specific lines in both reports:
         #   - header meta "DateTime"
-        #   - footer "Generated on <date+time>"
         KREDateTime = r'[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}'
         KREMetaDateTime = re.compile(rf'<meta name="datetime" content="{KREDateTime}"/>')
-        uivu.removeLines(KREMetaDateTime, refReportLines)
-        uivu.removeLines(KREMetaDateTime, actReportLines)
+        remRefLines += uivu.removeLines(KREMetaDateTime, refReportLines)
+        remActLines += uivu.removeLines(KREMetaDateTime, actReportLines)
 
-        KREGenDateTime = re.compile(rf'Generated on {KREDateTime}')
-        uivu.removeLines(KREGenDateTime, refReportLines)
-        uivu.removeLines(KREGenDateTime, actReportLines)
+        #   - footer "Generated on <date+time>"  => not needed, 'cause in final ignored blocks (see below)
+        # KREGenDateTime = re.compile(rf'Generated on {KREDateTime}')
+        # remRefLines += uivu.removeLines(KREGenDateTime, refReportLines)
+        # remActLines += uivu.removeLines(KREGenDateTime, actReportLines)
+
+        logger.info(f'HTML pre-report preprocessing: removed {remRefLines} ref. and {remActLines} act. lines')
 
         # Build the list of unified diff blocks
-        blocks = uivu.unifiedDiff(refReportLines, actReportLines, logger=logger)
+        blocks = uivu.unifiedDiff(refReportLines, actReportLines, logger=logger, subject='HTML pre-reports')
 
         # Filter diff blocks to check (ignore some that are expected to change without any issue:
         # * header meta "datetime" generation date,
@@ -622,7 +626,7 @@ class TestMcdsPreAnalyser:
         # * generation date, credits to components with versions, sources)
         blocks_to_check = []
         for block in blocks:
-            if block.startLines.expected >= 519:
+            if block.startLines.expected >= 552 - remRefLines:  # <h3>Computing platform</h3><table ...<tbody>
                 logger.info(f'Ignoring block @ -{block.startLines.expected} +{block.startLines.real} @')
                 continue
             blocks_to_check.append(block)

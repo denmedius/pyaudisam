@@ -146,14 +146,16 @@ def removeLines(re2Search, lines):
     for ind in reversed(ind2Remove):
         del lines[ind]
 
+    return len(ind2Remove)
 
-def unifiedDiff(expectedLines, realLines, logger=None):
+
+def unifiedDiff(expectedLines, realLines, logger=None, subject='text'):
     """Run difflib.unified_diff on 2 text line sets and extract resulting diff blocks
     as a list of DotDict(startLines=DotDict(expected=<line number>, real=<line number>),
                          expectedLines=list(<expected lines>), realLines=list(<actual lines>))"""
 
     if logger:
-        logger.info('Unified HTML pre-report diff:')
+        logger.info(f'Unified diff of {subject}:')
 
     blocks = []
     block = None
