@@ -81,6 +81,11 @@ class DSEngine(object):
 
         return exeFilePathName
     
+    # Find executable version.
+    @staticmethod
+    def findVersion():
+        raise NotImplementedError('Abstract DSEngine.findVersion method must no be called: see derived classes')
+
     # Specifications of output stats.
     DfStatRowSpecs, DfStatModSpecs, DfStatModNotes, MIStatModCols, DfStatModColTrans = None, None, None, None, None
     
@@ -244,7 +249,7 @@ class MCDSEngine(DSEngine):
 
     # MCDS Executable
     # * MCDS.exe is an autonomous executable: you can put a copy anywhere, or nearly ... see below
-    # * it'll be search first in the folders (separated by a ;) referenced in MCDS_PATH env. variable,
+    # * it'll be searched first in the folders (separated by a ;) referenced in the MCDS_PATH env. variable,
     # * then in a "Distance 7" sub-folder of ., then C:/PortableApps, C:/Program files (x86), C:/Program files,
     # * then in a "Distance 6" sub-folder of ., then C:/PortableApps, C:/Program files (x86), C:/Program files.
     # (if you install Distance 7 (or 6, or newer) the normal way, it will then of course be found :-)
@@ -253,7 +258,6 @@ class MCDSEngine(DSEngine):
                               for majorVersion in [7, 6]  # Latest first.
                               for rootFolder in ['.', 'C:/PortableApps', 'C:/Program files (x86)', 'C:/Program files']]
     ExeFilePathName = DSEngine.findExecutable('MCDS.exe', _ExeFileSearchPaths)
-    runtime.update({'DS engine': ExeFilePathName.as_posix()})
 
     # Output stats specs : load from external files (extracts from Distance doc).
     @classmethod
@@ -958,3 +962,58 @@ class MCDSEngine(DSEngine):
         logger.debug('Data Distance-exported to {}.'.format(tgtFilePathName))
         
         return tgtFilePathName
+
+    # Retrieve MCDS.exe version
+    @classmethod
+    def findVersion(cls):
+
+        logger.debug(f'Running {cls.ExeFilePathName} to discover its version ...')
+
+        versionStr = None
+        lastExc = None
+        for tmpDirRoot in [None, '.']:
+            try:
+                # Create an auto-cleanup temporary folder for running MCDS.
+                logger.debug(f'* trying {tmpDirRoot or "default"} root dir for temporary run folder ...')
+                with tempfile.TemporaryDirectory(dir=tmpDirRoot) as tmpDir:
+
+                    if ' ' in tmpDir:
+                        logger.debug(f'  => skipped {tmpDir}: some space(s) in path')
+                        continue  # No space in folder path, MCDS does not support it
+
+                    # Create an engine instance
+                    engine = cls(workDir=tmpDir)
+
+                    # Setup run folder
+                    runPath = engine.setupRunFolder()
+
+                    # Generate command file into this folder
+                    cmdFileName = engine.buildCmdFile(runPath)
+
+                    # Run executable as an OS sub-process.
+                    engine._run(engine.ExeFilePathName, cmdFileName)
+
+                    # Extract and decode results.
+                    with open(runPath / cls.LogFileName) as logFile:
+                        firstLine = logFile.readline().strip()
+                        versionStr = firstLine[len('This is mcds.exe version'):].strip()
+
+                    # Done, with success.
+                    logger.debug(f'Successfully determined MCDS version: {versionStr}')
+                    break
+
+            except OSError as exc:
+                lastExc = str(exc)
+                logger.debug(f'  => exception: {lastExc}')
+
+        if lastExc is not None:
+            logger.warning(f'Failed to determine MCDS version: {lastExc}')
+            logger.warning('Hints: Current folder must be writable and its path must not contain any space !')
+        if versionStr is None:
+            logger.warning('Failed to determine MCDS version: unsupported (new ?) log file format ?')
+
+        return versionStr
+
+
+# Discover and save MCDS engine version (can't do it in the class itself, contrary to ExePathName).
+MCDSEngine.ExeVersion = MCDSEngine.findVersion()

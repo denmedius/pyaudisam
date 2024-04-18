@@ -14,7 +14,7 @@
 # If not, see https://www.gnu.org/licenses/.
 
 # Module version
-__version__ = '1.0.3'
+__version__ = '1.0.3-b1'
 
 import os
 import sys
@@ -57,4 +57,4 @@ from .main import main
 
 # Sort and update runtime last bits
 runtime.update(pyaudisam=f'{__version__}')
-runtime.update({'DS engine': runtime.pop('DS engine')})
+runtime.update({'MCDS engine': MCDSEngine.ExeFilePathName.as_posix(), 'MCDS engine version': MCDSEngine.ExeVersion})
