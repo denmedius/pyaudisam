@@ -77,7 +77,7 @@ class SpecialAnalysisResultsSet(ads.analyser.AnalysisResultsSet):
         self._dfData[deltaAicColInd] = self._dfData[aicColInd] - self._dfData[deltaAicColInd]
 
 
-# 5. AnalysisResultsSet and ResultsSet classes (1/2, see test_unint_mcds_anlys_results.py for 2/2)
+# 5. AnalysisResultsSet and ResultsSet classes (1/2, see test_unint_mcds_analysis_results.py for 2/2)
 # TODO: Split this too long test function !
 def testArsCtorGettersSettersToFromFiles():
 

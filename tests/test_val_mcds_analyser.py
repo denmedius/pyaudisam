@@ -19,7 +19,6 @@
 import time
 import pathlib as pl
 import shutil
-import re
 
 import numpy as np
 import pandas as pd

@@ -51,7 +51,7 @@ def testBegin():
 #                                Test Cases                                   #
 ###############################################################################
 
-# 5. AnalysisResultsSet and ResultsSet classes (2/2, see test_unint_anlys_results.py for 1/2)
+# 5. AnalysisResultsSet and ResultsSet classes (2/2, see test_unint_analysis_results.py for 1/2)
 # i. Comparison
 def testMcdsArsCompare():
 
