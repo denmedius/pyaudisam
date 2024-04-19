@@ -11,8 +11,8 @@
 # You should have received a copy of the GNU General Public License along with this program.
 # If not, see https://www.gnu.org/licenses/.
 
-# Automated validation tests for "analyser" submodule, MCDSPreAnalyser class part
-# (adapted from valtest.ipynb notebook)
+# Automated validation tests for "analyser" submodule: MCDSPreAnalyser class,
+# and "reports" submodule: MCDSResultsPreReport class and bases (adapted from valtest.ipynb notebook)
 
 # To run : simply run "pytest" and see ./tmp/val.pnr.{datetime}.log for detailed test log
 
