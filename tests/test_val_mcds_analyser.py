@@ -47,7 +47,7 @@ class TestMcdsAnalyser:
 
         uivu.logBegin(what=KWhat2Test)
 
-        # Setup a clear ground before starting
+        # Set up a clear ground before starting
         uivu.setupWorkDir('val-anlr', cleanup=self.KFinalCleanup)
 
         # The code before yield is run before the first test function in this class
@@ -69,7 +69,7 @@ class TestMcdsAnalyser:
 
     # Test functions #############################################################
 
-    # II. Run and report analyses
+    # III. Run analyses with same real life field data
     @pytest.fixture()
     def inputDataSet_fxt(self):
 
@@ -90,7 +90,8 @@ class TestMcdsAnalyser:
         dfTransects = ads.DataSet(uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-ObsIndiv.ods',
                                   sheet='Inventaires').dfData
 
-        logger.info(f'Individual. sightings: n={len(dfObsIndiv)} =>\n' + dfTransects.to_string(min_rows=30, max_rows=30))
+        logger.info(f'Individual. sightings: n={len(dfObsIndiv)} =>\n'
+                    + dfTransects.to_string(min_rows=30, max_rows=30))
 
         logger.info(f'Done preparing individual. sightings.\n')
 
@@ -232,18 +233,21 @@ class TestMcdsAnalyser:
     @staticmethod
     def compareResults(rsRef, rsAct):
 
-        # * index = analysis "Id": sample Id columns and analysis indexes.
+        logger.info('Comparing reference to actual results ...')
+
+        # 1. Actual analysis results: "all-results" sheet
+        # 1a. Comparison index = analysis "Id": sample Id columns and analysis indexes.
         indexCols = [col for col in rsAct.miCustomCols.to_list() if '(sample)' in col[0]] \
                     + [('parameters', 'estimator key function', 'Value'),
                        ('parameters', 'estimator adjustment series', 'Value'),
                        ('parameters', 'left truncation distance', 'Value'),
                        ('parameters', 'right truncation distance', 'Value'),
                        ('parameters', 'model fitting distance cut points', 'Value')]
-        # * ignore:
-        #   - sample Id columns and analysis indexes (used as comparison index = analysis "Id"),
-        #   - 'run output' chapter results (start time, elapsed time, run folder ... always different),
-        #   - text columns (not supported by ResultsSet.compare),
-        #   - a few computed columns.
+        # 1b. Comparison columns: ignore ...
+        # - sample Id columns and analysis indexes (used as comparison index = analysis "Id"),
+        # - 'run output' chapter results (start time, elapsed time, run folder ... always different),
+        # - text columns (not supported by ResultsSet.compare),
+        # - a few computed columns.
         subsetCols = [col for col in rsAct.dfData.columns.to_list()
                       if col in rsRef.columns
                       and col not in (indexCols + [col for col in rsAct.miCustomCols.to_list()
@@ -258,6 +262,7 @@ class TestMcdsAnalyser:
                                          ('detection probability', 'Delta AIC', 'Value'),
                                          ('density/abundance', 'density of animals', 'Delta Cv')])]
 
+        # 1c. Compare
         dfDiff = rsRef.compare(rsAct, indexCols=indexCols, subsetCols=subsetCols,
                                noneIsNan=True, dropCloser=12, dropNans=True)
 
@@ -266,13 +271,44 @@ class TestMcdsAnalyser:
 
         assert dfDiff.empty, 'Oh oh ... some unexpected differences !'
 
-        # iv. To be perfectly honest ... there may be some 10**-14/-16 glitches (due to worksheet I/O ?) ... or not.
+        # 1d. To be perfectly honest ... there may be some 10**-14/-16 glitches (due to worksheet I/O ?) ... or not.
         dfComp = rsRef.compare(rsAct, indexCols=indexCols, subsetCols=subsetCols,
                                noneIsNan=True, dropNans=True)
         dfComp = dfComp[(dfComp != np.inf).all(axis='columns')]
 
         logger.info(f'Diff. to reference (absolute): n={len(dfComp)} =>\n'
                     + dfComp.to_string(min_rows=30, max_rows=30))
+
+        # 2. Specs: Analyses
+        dfRefAnlSpecs = rsRef.specs['analyses']
+        logger.info(f'Ref analyses specs: n={len(dfRefAnlSpecs)} =>\n'
+                    + dfRefAnlSpecs.to_string(min_rows=30, max_rows=30))
+        # Remove neutral pass-through column (from sample specs to results)
+        # from actual sample specs if there (not present in ref.)
+        dfActAnlSpecs = rsAct.specs['analyses']  # .drop(columns=['AbrevEsp'], errors='ignore')
+        logger.info(f'Actual analyses specs: n={len(dfActAnlSpecs)} =>\n'
+                    + dfActAnlSpecs.to_string(min_rows=30, max_rows=30))
+        assert dfRefAnlSpecs.compare(dfActAnlSpecs).empty
+
+        # 3. Specs: Analyser
+        dfRefAnrSpecs = rsRef.specs['analyser']
+        logger.info(f'Ref. analyser specs: n={len(dfRefAnrSpecs)} =>\n'
+                    + dfRefAnrSpecs.to_string(min_rows=30, max_rows=30))
+        dfActAnrSpecs = rsAct.specs['analyser']
+        logger.info(f'Actual analyser specs: n={len(dfActAnrSpecs)} =>\n'
+                    + dfActAnrSpecs.to_string(min_rows=30, max_rows=30))
+        assert dfRefAnrSpecs.compare(dfActAnrSpecs).empty
+
+        # 4. Specs: Run-time : whatever ref, expect a specific list of item names, no more (values may vary, it's OK)
+        sRefRunSpecs = rsRef.specs['runtime']
+        logger.info(f'Ref. runtime specs: n={len(sRefRunSpecs)} =>\n' + sRefRunSpecs.to_string())
+        sActRunSpecs = rsAct.specs['runtime']
+        logger.info(f'Actual runtime specs: n={len(sActRunSpecs)} =>\n' + sActRunSpecs.to_string())
+        assert set(sRefRunSpecs.index) \
+               == {'os', 'processor', 'python', 'numpy', 'pandas', 'zoopt', 'matplotlib',
+                   'jinja2', 'pyaudisam', 'MCDS engine', 'MCDS engine version'}
+
+        logger.info('Done comparing reference to actual results.')
 
     # ### d. Run analyses through pyaudisam API
     def testRun(self, analyser_fxt):
@@ -289,9 +325,9 @@ class TestMcdsAnalyser:
         # * 4-HT-core i5-8350U (python 3.8):
         #   * 2021-01: min=5.3, max=5.7s elapsed for 48 analyses, 6 threads ?
         #   * 2021-10-02: min=4.2s, max=5.7s (n=3) elapsed for 48 analyses, 6 threads ?
-        # * 6-core i7-10750H, HT disabled (python 3.8):
+        # * 6-core i7-10850H, HT disabled (python 3.8):
         #   * 2022-01-01: mean=3.4s (n=4) elapsed for 48 analyses, 6 threads
-        # * 6-HT-core i7-10750H, HT on (python 3.8):
+        # * 6-HT-core i7-10850H, HT on (python 3.8):
         #   * 2023-11-02: mean=3.1s (n=2) elapsed for 48 analyses, 6 threads
         threads = 6
         logger.info(f'Running analyses: {threads} parallel threads ...')
@@ -299,16 +335,18 @@ class TestMcdsAnalyser:
         # BE CAREFUL: time.process_time() uses relative time for comparison only of codes among the same environment
         # NOT A REAL TIME reference
         start = time.perf_counter()
+
         rsAct = anlysr.run(dfAnlysSpecs, threads=6)
+
         end = time.perf_counter()
 
         logger.info(f'Elapsed time={end - start:.2f}s')
 
-        # results.toExcel(anlysr.workDir / 'valtests-analyses-results-api.xlsx')
-        # results.toExcel(anlysr.workDir / 'valtests-analyses-results-api-fr.xlsx', lang='fr')
+        # Export results
+        rsAct.toOpenDoc(anlysr.workDir / 'valtests-analyses-results-api.ods')
+        # rsAct.toExcel(anlysr.workDir / 'valtests-analyses-results-api-fr.xlsx', lang='fr')
 
         # ### e. Check results: Compare to reference
-        # (reference generated with same kind of "long" code like in III above, but on another data set)
         # i. Load reference (prevent re-postComputation as this ref. file is old, with now missing computed cols)
         rsRef = self.loadResults(anlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-Resultats.ods',
                                  postComputed=True)
@@ -392,21 +430,32 @@ class TestMcdsAnalyser:
         simpleCompCols = idCols
         simpleCompCols += ['NTot Obs', 'Mod Key Fn', 'Mod Adj Ser', 'Mod Chc Crit', 'Conf Interv', 'Key Fn', 'Adj Ser']
         assert dfRef[simpleCompCols].set_index('NumAnlys').compare(dfAct[simpleCompCols].set_index('NumAnlys')).empty
+
         # b. Compare other (all numerical) columns with a small margin (1e-14 relative diff)
         otherCompCols = [col for col in dfRef if col not in simpleCompCols]
         if len(dfAct.columns) == len(dfRef.columns):  # MCDS 7.4 ?
-            assert ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
-                                                 subsetCols=otherCompCols, indexCols=idCols,
-                                                 noneIsNan=True, dropCloserCols=True,
-                                                 dropCloser=14, dropNans=True).empty
+            logger.info(str(otherCompCols))
+            dfDiff = ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
+                                                   subsetCols=otherCompCols, indexCols=idCols,
+                                                   noneIsNan=True, dropCloserCols=True,
+                                                   dropCloser=14, dropNans=True)
+            logger.info(f'MCDS 7.4 details sheet diff.: n={len(dfDiff)} =>\n'
+                        + dfDiff.to_string(min_rows=30, max_rows=30))
+            dfDiff.reset_index().to_excel(uivu.pWorkDir / 'results-details-mcds74-diff.xlsx')
+            assert dfDiff.empty
         else:  # Last chance: MCDS 6.2 ?
             spe74CompCols = [col for col in otherCompCols if col.startswith('SansDoc #')]  # 7.4-specifics
             assert len(spe74CompCols) == 11
             otherCompCols = [col for col in otherCompCols if col not in spe74CompCols]  # Remove 7.4-specifics
-            assert ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
-                                                 subsetCols=otherCompCols, indexCols=idCols,
-                                                 noneIsNan=True, dropCloserCols=True,
-                                                 dropCloser=15, dropNans=True).empty
+            logger.info(str(otherCompCols))
+            dfDiff = ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
+                                                   subsetCols=otherCompCols, indexCols=idCols,
+                                                   noneIsNan=True, dropCloserCols=True,
+                                                   dropCloser=14, dropNans=True)
+            logger.info(f'MCDS 6.2 details sheet diff.: n={len(dfDiff)} =>\n'
+                        + dfDiff.to_string(min_rows=30, max_rows=30))
+            dfDiff.reset_index().to_excel(uivu.pWorkDir / 'results-details-mcds62-diff.xlsx')
+            assert dfDiff.empty
 
         # Compare "Samples" sheet
         dfRef = ddfRefReport['Samples']

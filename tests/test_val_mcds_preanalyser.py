@@ -19,7 +19,6 @@
 import time
 import pathlib as pl
 import shutil
-import re
 
 import numpy as np
 import pandas as pd
@@ -49,7 +48,7 @@ class TestMcdsPreAnalyser:
 
         uivu.logBegin(what=KWhat2Test)
 
-        # Setup a clear ground before starting
+        # Set up a clear ground before starting
         uivu.setupWorkDir('val-mpanlr', cleanup=self.KFinalCleanup)
 
         # The code before yield is run before the first test function in this class
@@ -374,11 +373,15 @@ class TestMcdsPreAnalyser:
     @staticmethod
     def compareResults(rsRef, rsAct):
 
-        # * index = analysis "Id": sample Id columns and analysis indexes.
+        logger.info('Comparing reference to actual pre-results ...')
+
+        # 1. Actual pre-analysis results: "all-results" sheet
+        # 1a. Comparison index = analysis "Id": sample Id columns and analysis indexes.
         indexPreCols = [col for col in rsAct.miCustomCols.to_list() if '(sample)' in col[0]] \
                        + [('parameters', 'estimator key function', 'Value'),
                           ('parameters', 'estimator adjustment series', 'Value')]
-        # * ignore:
+
+        # 1b. Comparison columns: ignore ...
         #   - sample Id columns and analysis indexes (used as comparison index = analysis "Id")
         #   - 'run output' chapter results (start time, elapsed time, run folder ... always different)
         #   - text columns (not supported by ResultsSet.compare).
@@ -396,6 +399,7 @@ class TestMcdsPreAnalyser:
                             ('detection probability', 'Delta AIC', 'Value'),
                             ('density/abundance', 'density of animals', 'Delta Cv')]]
 
+        # 1c. Compare
         dfDiff = rsRef.compare(rsAct, indexCols=indexPreCols, subsetCols=subsetPreCols,
                                noneIsNan=True, dropCloser=13, dropNans=True)
 
@@ -404,13 +408,53 @@ class TestMcdsPreAnalyser:
 
         assert dfDiff.empty, 'Oh oh ... some unexpected differences !'
 
-        # iv. To be perfectly honest ... there may be some 10**-14/-16 glitches (due to worksheet I/O ?) ... or not.
+        # 1d. To be perfectly honest ... there may be some 10**-14/-16 glitches (due to worksheet I/O ?) ... or not.
         dfComp = rsRef.compare(rsAct, indexCols=indexPreCols, subsetCols=subsetPreCols,
                                noneIsNan=True, dropNans=True)
         dfComp = dfComp[(dfComp != np.inf).all(axis='columns')]
 
         logger.info(f'Diff. to reference (absolute): n={len(dfComp)} =>\n'
                     + dfComp.to_string(min_rows=30, max_rows=30))
+
+        # 2. Specs: Samples
+        dfRefSampSpecs = rsRef.specs['samples']
+        logger.info(f'Ref sample specs: n={len(dfRefSampSpecs)} =>\n'
+                    + dfRefSampSpecs.to_string(min_rows=30, max_rows=30))
+        # Remove neutral pass-through column (from sample specs to results)
+        # from actual sample specs if there (not present in ref.)
+        dfActSampSpecs = rsAct.specs['samples'].drop(columns=['AbrevEsp'], errors='ignore')
+        logger.info(f'Actual sample specs: n={len(dfActSampSpecs)} =>\n'
+                    + dfActSampSpecs.to_string(min_rows=30, max_rows=30))
+        assert dfRefSampSpecs.compare(dfActSampSpecs).empty
+
+        # 3. Specs: Models
+        dfRefModSpecs = rsRef.specs['models']
+        logger.info(f'Ref. model specs: n={len(dfRefModSpecs)} =>\n'
+                    + dfRefModSpecs.to_string(min_rows=30, max_rows=30))
+        dfActModSpecs = rsAct.specs['models']
+        logger.info(f'Actual model specs: n={len(dfActModSpecs)} =>\n'
+                    + dfActModSpecs.to_string(min_rows=30, max_rows=30))
+        assert dfRefModSpecs.compare(dfActModSpecs).empty
+
+        # 4. Specs: Analyser
+        dfRefAnrSpecs = rsRef.specs['analyser']
+        logger.info(f'Ref. analyser specs: n={len(dfRefAnrSpecs)} =>\n'
+                    + dfRefAnrSpecs.to_string(min_rows=30, max_rows=30))
+        dfActAnrSpecs = rsAct.specs['analyser']
+        logger.info(f'Actual analyser specs: n={len(dfActAnrSpecs)} =>\n'
+                    + dfActAnrSpecs.to_string(min_rows=30, max_rows=30))
+        assert dfRefAnrSpecs.compare(dfActAnrSpecs).empty
+
+        # 5. Specs: Run-time : whatever ref, expect a specific list of item names, no more (values may vary, it's OK)
+        sRefRunSpecs = rsRef.specs['runtime']
+        logger.info(f'Ref. runtime specs: n={len(sRefRunSpecs)} =>\n' + sRefRunSpecs.to_string())
+        sActRunSpecs = rsAct.specs['runtime']
+        logger.info(f'Actual runtime specs: n={len(sActRunSpecs)} =>\n' + sActRunSpecs.to_string())
+        assert set(sRefRunSpecs.index) \
+               == {'os', 'processor', 'python', 'numpy', 'pandas', 'zoopt', 'matplotlib',
+                   'jinja2', 'pyaudisam', 'MCDS engine', 'MCDS engine version'}
+
+        logger.info('Done comparing reference to actual pre-results.')
 
     # ### d. Run pre-analyses through pyaudisam API
     def testRun(self, sampleSpecMode, preAnalyser_fxt, refResults_fxt):
@@ -427,7 +471,7 @@ class TestMcdsPreAnalyser:
         # * 6-core i7-10750H (HT off):
         #   * 2022-01-17, 2023-11-02: 39-40s elapsed for 12 samples, 6-12 threads (N=5)
         # Ruindows 11 laptop with PCI-e SSD, "high performances" power scheme, Python 3.8 :
-        # * 6-HT-core i7-10750H:
+        # * 6-HT-core i7-10850H (HT on):
         #   * 2024-03-02: 40s elapsed for 12 samples, 6 threads (N=1)
         #   * 2024-03-02: 39s elapsed for 12 samples, 12 threads (N=1)
         threads = 6
@@ -454,11 +498,11 @@ class TestMcdsPreAnalyser:
 
         logger.info(f'Elapsed time={end - start:.2f}s')
 
-        # preResults.toExcel(preAnlysr.workDir / f'valtests-preanalyses-results-{specMode}api.xlsx')
-        # preResults.toExcel(preAnlysr.workDir / f'valtests-preanalyses-results-{specMode}api-fr.xlsx', lang='fr')
+        # Export results
+        rsAct.toOpenDoc(preAnlysr.workDir / f'valtests-preanalyses-results-{sampleSpecMode}api.ods')
+        # rsAct.toExcel(preAnlysr.workDir / f'valtests-preanalyses-results-{sampleSpecMode}api-fr.xlsx', lang='fr')
 
         # ### e. Check results: Compare to reference
-        # (reference generated with same kind of "long" code like in III above, but on another data set)
         # i. Check presence of neutral and pass-through column in explicit spec. mode
         #    (it should have effectively passed through :-)
         speciesAbbrevCol = 'AbrevEsp'
@@ -589,7 +633,7 @@ class TestMcdsPreAnalyser:
         return repLines
 
     @staticmethod
-    def compareHtmlReports(refReportLines, actReportLines, cliMode=False):
+    def compareHtmlReports(refReportLines, actReportLines):
 
         logger.info('Preprocessing HTML pre-reports for comparison ...')
 
@@ -769,7 +813,7 @@ class TestMcdsPreAnalyser:
         with open(htmlRep) as file:
             htmlActRepLines = file.readlines()
 
-        self.compareHtmlReports(htmlRefRepLines, htmlActRepLines, cliMode=False)
+        self.compareHtmlReports(htmlRefRepLines, htmlActRepLines)
 
         # e. Cleanup generated report (well ... partially at least)
         #    for clearing next function's ground
@@ -813,7 +857,7 @@ class TestMcdsPreAnalyser:
             htmlActRepLines = file.readlines()
 
         htmlRefRepLines = htmlRefReportLines_fxt
-        self.compareHtmlReports(htmlRefRepLines, htmlActRepLines, cliMode=True)
+        self.compareHtmlReports(htmlRefRepLines, htmlActRepLines)
 
         # d. No cleanup: let the final cleaning code operate in _inifinalizeClass()
 
