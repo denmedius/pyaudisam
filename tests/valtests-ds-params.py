@@ -133,13 +133,13 @@ resultsHeadCols = dict(before=[analysisIndCol, sampleIndCol],
 
 analysisParamCols = ['FonctionClé', 'SérieAjust', 'TrGche', 'TrDrte', 'NbTrchMod']
 
-defEstimKeyFn = 'HNORMAL'
-defEstimAdjustFn = 'COSINE'
+defEstimKeyFn = 'UNIFORM'
+defEstimAdjustFn = 'POLY'
 defEstimCriterion = 'AIC'
 defCVInterval = 95
 
 defMinDist = None
-defMaxDist = None,
+defMaxDist = None
 defFitDistCuts = None
 defDiscrDistCuts = None
 
