@@ -283,9 +283,7 @@ class TestMcdsAnalyser:
         dfRefAnlSpecs = rsRef.specs['analyses']
         logger.info(f'Ref analyses specs: n={len(dfRefAnlSpecs)} =>\n'
                     + dfRefAnlSpecs.to_string(min_rows=30, max_rows=30))
-        # Remove neutral pass-through column (from sample specs to results)
-        # from actual sample specs if there (not present in ref.)
-        dfActAnlSpecs = rsAct.specs['analyses']  # .drop(columns=['AbrevEsp'], errors='ignore')
+        dfActAnlSpecs = rsAct.specs['analyses']
         logger.info(f'Actual analyses specs: n={len(dfActAnlSpecs)} =>\n'
                     + dfActAnlSpecs.to_string(min_rows=30, max_rows=30))
         assert dfRefAnlSpecs.compare(dfActAnlSpecs).empty
