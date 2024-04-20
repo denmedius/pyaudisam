@@ -67,6 +67,10 @@ def logPlatform():
 def logBegin(what):
     """Log beginning of tests"""
     _logger.info(f'Testing pyaudisam: {what} ...')
+    _logger.info('Current folder: ' + pl.Path().absolute().as_posix())
+    _logger.info('Computation platform:')
+    for k, v in ads.runtime.items():
+        _logger.info(f'* {k}: {v}')
 
 
 def logEnd(what, rc=None):

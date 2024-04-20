@@ -1368,7 +1368,7 @@ class ResultsSet(object):
 
     def specs2Tables(self):
 
-        """Transform specs to tables
+        """Transform specs into tables
 
         :return: dict(name=DataFrame)
         """
@@ -1624,7 +1624,7 @@ class ResultsSet(object):
                  specs=True, specSheetsPrfx='sp-', postComputed=False,
                  acceptNewCols=False, dDefMissingCols=dict()):
         
-        """Load (overwrite) data data and eventually specs from a given file,
+        """Load (overwrite) data and eventually specs from a given file,
         (supported formats are .pickle, .pickle.xz, .ods, .xlsx, .xls, auto-detected from file name)
         assuming ctor params match with the results object used to generate source file,
         which can well be ensured by using the same ctor params as used for saving !
