@@ -253,7 +253,6 @@ class TestMcdsAnalyser:
                       and col not in (indexCols + [col for col in rsAct.miCustomCols.to_list()
                                                    if '(sample)' not in col[0]]
                                       + [('parameters', 'estimator selection criterion', 'Value'),
-                                         ('parameters', 'CV interval', 'Value'),
                                          ('run output', 'start time', 'Value'),
                                          ('run output', 'elapsed time', 'Value'),
                                          ('run output', 'run folder', 'Value'),
@@ -264,7 +263,7 @@ class TestMcdsAnalyser:
 
         # 1c. Compare
         dfDiff = rsRef.compare(rsAct, indexCols=indexCols, subsetCols=subsetCols,
-                               noneIsNan=True, dropCloser=12, dropNans=True)
+                               noneIsNan=True, dropCloser=14, dropNans=True)
 
         logger.info(f'Diff. to reference (relative): n={len(dfDiff)} =>\n'
                     + dfDiff.to_string(min_rows=30, max_rows=30))
@@ -272,8 +271,7 @@ class TestMcdsAnalyser:
         assert dfDiff.empty, 'Oh oh ... some unexpected differences !'
 
         # 1d. To be perfectly honest ... there may be some 10**-14/-16 glitches (due to worksheet I/O ?) ... or not.
-        dfComp = rsRef.compare(rsAct, indexCols=indexCols, subsetCols=subsetCols,
-                               noneIsNan=True, dropNans=True)
+        dfComp = rsRef.compare(rsAct, indexCols=indexCols, subsetCols=subsetCols, noneIsNan=True, dropNans=True)
         dfComp = dfComp[(dfComp != np.inf).all(axis='columns')]
 
         logger.info(f'Diff. to reference (absolute): n={len(dfComp)} =>\n'
@@ -309,7 +307,7 @@ class TestMcdsAnalyser:
         logger.info('Done comparing reference to actual results.')
 
     # ### d. Run analyses through pyaudisam API
-    def testRun(self, analyser_fxt):
+    def testRun(self, analyser_fxt, refResults_fxt):
 
         # i. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
         anlysr, dfAnlysSpecs = analyser_fxt
@@ -345,12 +343,7 @@ class TestMcdsAnalyser:
         # rsAct.toExcel(anlysr.workDir / 'valtests-analyses-results-api-fr.xlsx', lang='fr')
 
         # ### e. Check results: Compare to reference
-        # i. Load reference (prevent re-postComputation as this ref. file is old, with now missing computed cols)
-        rsRef = self.loadResults(anlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-Resultats.ods',
-                                 postComputed=True)
-        logger.info(f'Reference results: n={len(rsRef)} =>\n' + rsRef.dfData.to_string(min_rows=30, max_rows=30))
-
-        # ii. Compare
+        rsRef = refResults_fxt
         self.compareResults(rsRef, rsAct)
 
         # f. Minimal check of analysis folders
