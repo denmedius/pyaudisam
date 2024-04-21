@@ -85,11 +85,17 @@ class Interval:
             errors.append(f'max:{self.max} > {maxRange[1]}')
         
         return ', '.join(errors)
-        
+
+    def __eq__(self, right):
+
+        if not isinstance(right, Interval):
+            right = Interval(right)
+        return self.min == right.min and self.max == right.max
+
     def __repr__(self):
-    
-        return '[{}, {}]'.format(self.min, self.max)
-        
+
+        return f'[{self.min}, {self.max}]'
+
 
 class Error:
 
