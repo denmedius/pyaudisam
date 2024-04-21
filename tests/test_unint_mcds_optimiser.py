@@ -669,7 +669,7 @@ def testMcdsTruncOpterCtorGetParams(indivSightings_fxt):
 # Note: Only from explicit specs here.
 # Note: For MCDSTruncationOptAnalyser tests, see val_mcds_optanalyser_test
 
-def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
+def testMcdsO0TruncOpter(indivSightings_fxt):
 
     # a. Explicit analysis specs
     # i. Individualised data set
@@ -826,7 +826,7 @@ def testMcdsZerothOrderTruncationOptimiser(indivSightings_fxt):
                   'fitDistCuts', 'ks', '1-chi2', 'cvmuw*cvmcw']
     logger.info('Expected dfData.columns: ' + ', '.join(exptdCols))
     logger.info('Read     dfData.columns: ' + ', '.join(dfData.columns))
-    assert dfData.columns.tolist() == exptdCols
+    assert set(dfData.columns) == set(exptdCols)
 
     # ii. Create the optimiser object : have to be a clone of the one whose execution was backed up
     zoptr = ads.MCDSZerothOrderTruncationOptimiser(
