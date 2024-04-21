@@ -31,7 +31,7 @@ import unintval_utils as uivu
 
 
 # Setup local logger.
-logger = uivu.setupLogger('val.pnr', level=ads.DEBUG, otherLoggers={'ads.eng': ads.INFO2})
+logger = uivu.setupLogger('val.pnr', level=ads.DEBUG, otherLoggers={'ads.eng': ads.INFO})
 
 
 @pytest.mark.parametrize("sampleSpecMode", ['implicit', 'explicit'])
@@ -543,7 +543,8 @@ class TestMcdsPreAnalyser:
         shutil.rmtree(workPath)
 
         # b. Run "through the commande line"
-        argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()} -n --preanalyses -u'.split()
+        argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()}' \
+               ' -n --preanalyses -u'.split()
         rc = ads.main(argv, standaloneLogConfig=False)
         logger.info(f'CLI run: rc={rc}')
 
@@ -824,7 +825,7 @@ class TestMcdsPreAnalyser:
         logger.info(f'PASS testReports: MCDSResultsReport ctor, toExcel, toHtml')
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam command line
-    def testReportsCli(self, sampleSpecMode, preAnalyser_fxt, excelRefReport_fxt, htmlRefReportLines_fxt):
+    def testReportsCli(self, sampleSpecMode, excelRefReport_fxt, htmlRefReportLines_fxt):
 
         if sampleSpecMode != 'implicit':
             msg = 'testReportsCli(explicit): skipped, as not relevant'
@@ -833,9 +834,8 @@ class TestMcdsPreAnalyser:
 
         build = True  # Debug only: Set to False to avoid rebuilding the report
 
-        testPath = pl.Path(__file__).parent
-        preAnlysr, _ = preAnalyser_fxt
-        workPath = preAnlysr.workDir
+        testPath = uivu.pTestDir
+        workPath = uivu.pWorkDir
 
         # a. Report "through the commande line"
         if build:
@@ -845,8 +845,7 @@ class TestMcdsPreAnalyser:
             logger.info(f'CLI run: rc={rc}')
 
         # b. Load generated Excel report and compare it to reference one
-        ddfActRep = pd.read_excel(workPath / 'valtests-preanalyses-report.xlsx',
-                                  sheet_name=None, index_col=0)
+        ddfActRep = pd.read_excel(workPath / 'valtests-preanalyses-report.xlsx', sheet_name=None, index_col=0)
 
         ddfRefRep = excelRefReport_fxt
         self.compareExcelReports(ddfRefRep, ddfActRep)

@@ -31,7 +31,7 @@ import unintval_utils as uivu
 
 
 # Setup local logger.
-logger = uivu.setupLogger('val.anr', level=ads.DEBUG, otherLoggers={'ads.eng': ads.INFO2})
+logger = uivu.setupLogger('val.anr', level=ads.DEBUG, otherLoggers={'ads.eng': ads.INFO})
 
 
 class TestMcdsAnalyser:
@@ -360,7 +360,6 @@ class TestMcdsAnalyser:
         logger.info(f'PASS testRun: run, cleanup')
 
     # Run analyses through pyaudisam command line interface
-    # (implicit mode only, see valtests-ds-params.py)
     def testRunCli(self, analyser_fxt, refResults_fxt):
 
         testPath = pl.Path(__file__).parent
@@ -371,7 +370,8 @@ class TestMcdsAnalyser:
             shutil.rmtree(anlysr.workDir)
 
         # b. Run "through the commande line"
-        argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {anlysr.workDir.as_posix()} -n --analyses -u'.split()
+        argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {anlysr.workDir.as_posix()}' \
+               ' -n --analyses -u'.split()
         rc = ads.main(argv, standaloneLogConfig=False)
         logger.info(f'CLI run: rc={rc}')
 
@@ -600,8 +600,6 @@ class TestMcdsAnalyser:
             logger.info('Done checking analyser results presence: OK.')
 
             # a. Load results
-            # (the last generated one, through implicit or explicit sample specs:
-            #  never mind, they are the same as checked above)
             rsAct = self.loadResults(anlysr, anlysrResFilePath)
             logger.info(f'Actual results: n={len(rsAct)} =>\n' + rsAct.dfData.to_string(min_rows=30, max_rows=30))
 
@@ -727,13 +725,12 @@ class TestMcdsAnalyser:
         logger.info(f'PASS testReports: MCDSResultsFullReport ctor, toExcel, toHtml')
 
     # ## 7. Generate HTML and Excel analyses reports through pyaudisam command line
-    def testReportsCli(self, analyser_fxt, excelRefReport_fxt, htmlRefReportLines_fxt):
+    def testReportsCli(self, excelRefReport_fxt, htmlRefReportLines_fxt):
 
         build = True  # Debug only: Set to False to avoid rebuilding the report
 
-        testPath = pl.Path(__file__).parent
-        anlysr, _ = analyser_fxt
-        workPath = anlysr.workDir
+        testPath = uivu.pTestDir
+        workPath = uivu.pWorkDir
 
         # a. Report "through the commande line"
         if build:
@@ -743,8 +740,7 @@ class TestMcdsAnalyser:
             logger.info(f'CLI run: rc={rc}')
 
         # b. Load generated Excel report and compare it to reference one
-        ddfActRep = pd.read_excel(workPath / 'valtests-analyses-report.xlsx',
-                                  sheet_name=None, index_col=0)
+        ddfActRep = pd.read_excel(workPath / 'valtests-analyses-report.xlsx', sheet_name=None, index_col=0)
 
         ddfRefRep = excelRefReport_fxt
         self.compareExcelReports(ddfRefRep, ddfActRep)
