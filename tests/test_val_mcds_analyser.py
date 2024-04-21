@@ -57,6 +57,7 @@ class TestMcdsAnalyser:
         # Let the ground clear after passing there
         if self.KFinalCleanup:
             uivu.cleanupWorkDir()
+            (uivu.pTmpDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx').unlink()
 
         uivu.logEnd(what=KWhat2Test)
 
