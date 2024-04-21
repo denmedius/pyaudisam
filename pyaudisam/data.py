@@ -32,7 +32,7 @@ runtime.update(numpy=np.__version__, pandas=pd.__version__)
 logger = log.logger('ads.dat')
 
 
-class DataSet(object):
+class DataSet:
 
     """A tabular data set built by concatenating various-formatted source tables into one.
     
@@ -892,7 +892,7 @@ class SampleDataSet(DataSet):
                     .format(len(self), len(self) - nAbscRows, nAbscRows))
 
 
-class ResultsSet(object):
+class ResultsSet:
     
     """
     A tabular result set for some computation process repeated multiple times with different input / results,

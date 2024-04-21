@@ -128,7 +128,7 @@ class OptimisationResultsSet(ResultsSet):
         return [col for col in self.optimisationClass.SolutionDimensionNames if col in self.columns]
 
 
-class DSParamsOptimiser(object):
+class DSParamsOptimiser:
 
     """Run a bunch of DS analyses on samples extracted from a mono-category sightings data set,
        according to a user-friendly set of analysis specs (first set of fixed params),
@@ -292,7 +292,7 @@ class DSParamsOptimiser(object):
                                    r'mul[a-z]*[\.\-_ ]*opt', r'opt[a-z]*[\.\-_ ]*mul']}
 
     # Types for user specs parsing (see usage below)
-    class Auto(object):
+    class Auto:
 
         def __repr__(self):
             return 'Auto()'

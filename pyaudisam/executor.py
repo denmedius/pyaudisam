@@ -25,7 +25,7 @@ from . import log
 logger = log.logger('ads.exr')
 
 
-class ImmediateFuture(object):
+class ImmediateFuture:
     
     """Synchronous concurrent.futures.Future minimal and trivial implementation,
        for use with SequentialExecutor
@@ -82,7 +82,7 @@ class SequentialExecutor(cofu.Executor):
         pass
         
         
-class Executor(object):
+class Executor:
 
     """Wrapper class for simpler concurrent.futures.Executor interface,
        and access to added non-parallel SequentialExecutor

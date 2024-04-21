@@ -31,7 +31,7 @@ logger = log.logger('ads.ans')
 
 
 # Analysis (abstract) : Gather input params, data set, results, debug and log files
-class DSAnalysis(object):
+class DSAnalysis:
     
     EngineClass = DSEngine
     

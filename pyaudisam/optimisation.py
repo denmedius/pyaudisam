@@ -38,7 +38,7 @@ runtime.update({'zoopt': pkgrsc.get_distribution('zoopt').version})
 logger = log.logger('ads.opn')
 
 
-class Interval(object):
+class Interval:
 
     """A basic closed interval class for numbers"""
     
@@ -91,7 +91,7 @@ class Interval(object):
         return '[{}, {}]'.format(self.min, self.max)
         
 
-class Error(object):
+class Error:
 
     """Error class for shipping error messages to the end user"""
 
@@ -144,7 +144,7 @@ class Error(object):
         return any(err for err in self.errors)
 
 
-class DSOptimisation(object):
+class DSOptimisation:
     
     """DSOptimisation (abstract) : A distance sampling analysis optimisation
          possibly run in parallel with others, through an asynchronous "submit then getResults" scheme.

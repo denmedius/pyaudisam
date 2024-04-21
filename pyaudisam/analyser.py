@@ -96,7 +96,7 @@ class AnalysisResultsSet(ResultsSet):
         return clone
                 
 
-class Analyser(object):
+class Analyser:
 
     """Tools for building analysis variants specifications and explicitating them.
     
@@ -730,7 +730,7 @@ class DSAnalyser(Analyser):
             self._executor = None
 
 
-class _FilterSortSteps(object):
+class _FilterSortSteps:
 
     """Log = history of filter and sort steps for a given scheme"""
 
@@ -763,7 +763,7 @@ class _FilterSortSteps(object):
         return [[self.schemeId] + step for step in self.steps]
 
 
-class _FilterSortCache(object):
+class _FilterSortCache:
 
     def __init__(self):
         self.dResults = dict()
@@ -790,7 +790,7 @@ class _FilterSortCache(object):
         return None, None
 
 
-class FilterSortSchemeIdManager(object):
+class FilterSortSchemeIdManager:
 
     """Filter and sort scheme Id generator"""
 

@@ -50,7 +50,7 @@ KInstDirPath = pl.Path(__file__).parent.resolve()
 # An engine for running multiple DS analyses with same options (engine ctor params),
 # but various parameters (submitAnalysis() parameters), possibly as parallel threads / processes.
 # Warning: No option change allowed while started analyses are running / all their getResults() have returned.
-class DSEngine(object):
+class DSEngine:
     
     # Possible values for options.
     DistUnits = ['Meter', 'Kilometer', 'Mile', 'Inch', 'Feet', 'Yard', 'Nautical mile']
