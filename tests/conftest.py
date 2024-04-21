@@ -16,10 +16,23 @@
 # Pytest configuration file for all automated unit, integration and validation tests
 
 import sys
+import time
 import pathlib as pl
 
+pTestDir = pl.Path(__file__).parent
 
-_pTestDir = pl.Path(__file__).parent
+# Temporary work folder root.
+pTmpDir = pTestDir / 'tmp'
+pTmpDir.mkdir(exist_ok=True)
 
 # Update PYTHONPATH for pyaudisam package to be importable.
-sys.path.insert(0, _pTestDir.parent.as_posix())
+sys.path.insert(0, pTestDir.parent.as_posix())
+
+# Configure logging system.
+from pyaudisam import log
+
+_logLevels = [dict(name='matplotlib', level=log.WARNING),
+              dict(name='ads', level=log.INFO)]
+_dateTime = time.strftime('%y%m%d.%H%M', time.localtime())
+_fpnLogFile = pTmpDir / f'pytest.{_dateTime}.log'
+log.configure(loggers=_logLevels, handlers=[_fpnLogFile], reset=True)

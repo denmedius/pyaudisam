@@ -24,15 +24,12 @@ import pandas as pd
 
 import pyaudisam as ads
 
+from conftest import pTestDir, pTmpDir
 
-# Useful test folders
-pTestDir = pl.Path(__file__).parent
+
+# More useful test folders
 pRefInDir = pTestDir / 'refin'
 pRefOutDir = pTestDir / 'refout'
-
-# Temporary work folder root.
-pTmpDir = pTestDir / 'tmp'
-pTmpDir.mkdir(exist_ok=True)
 
 # Temporary work folder default (see setupWorkFolder below).
 pWorkDir = pTmpDir / 'work'
@@ -43,16 +40,12 @@ _logger = ads.logger('uiv.tst')
 
 def setupLogger(name, level=ads.DEBUG, otherLoggers={'ads': ads.INFO}):
     """Create logger for tests and configure logging"""
-    logLevels = [dict(name='matplotlib', level=ads.WARNING),
-                 dict(name='ads', level=otherLoggers.get('ads', ads.INFO))] \
-                + [dict(name=nm, level=lvl) for nm, lvl in otherLoggers.items() if nm != 'ads'] \
-                + [dict(name='uiv.tst', level=level),
-                   dict(name=name, level=level)]
-    dateTime = pd.Timestamp.now().strftime('%Y%m%d%H%M')
-    fpnLogFile = pTmpDir / f'{name}.{dateTime}.log'
-    ads.log.configure(loggers=logLevels, handlers=[fpnLogFile], reset=True)
+    logLevels = [dict(name=nm, level=lvl) for nm, lvl in otherLoggers.items()] \
+                + [dict(name='uiv.tst', level=level), dict(name=name, level=level)]
+    for dLvl in logLevels:
+        logr = ads.logger(dLvl['name'], level=dLvl['level'])
 
-    return ads.logger(name)
+    return logr
 
 
 def logPlatform():
@@ -77,7 +70,7 @@ def logEnd(what, rc=None):
     """Log end of tests"""
     sts = {-1: 'Not run', 0: 'Success', None: None}.get(rc, 'Error')
     msg = 'see pytest report' if sts is None else f'{sts} (code: {rc})'
-    _logger.info(f'Done testing pyaudisam: {what} => {msg}.')
+    _logger.info(f'Done testing pyaudisam: {what} => {msg}.\n')
 
 
 def setupWorkDir(dirName='work', cleanup=True):
