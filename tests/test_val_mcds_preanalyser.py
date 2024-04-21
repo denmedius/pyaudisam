@@ -144,25 +144,23 @@ class TestMcdsPreAnalyser:
                                                            + [sampleAbbrevCol]),
                                 workDir=uivu.pWorkDir, logProgressEvery=5)
 
-        assert preAnlysr.specs == {
-            'Zone': 'ACDC',
-            'Surface': '2400',
-            'distanceUnit': 'Meter',
-            'areaUnit': 'Hectare',
-            'runMethod': 'subprocess.run',
-            'runTimeOut': 300,
-            'surveyType': 'Point',
-            'distanceType': 'Radial',
-            'clustering': False,
-            'defEstimKeyFn': 'UNIFORM',
-            'defEstimAdjustFn': 'POLY',
-            'defEstimCriterion': 'AIC',
-            'defCVInterval': 95,
-            'defMinDist': None,
-            'defMaxDist': None,
-            'defFitDistCuts': None,
-            'defDiscrDistCuts': None
-        }
+        assert preAnlysr.specs == dict(Zone='ACDC',
+                                       Surface='2400',
+                                       distanceUnit='Meter',
+                                       areaUnit='Hectare',
+                                       runMethod='subprocess.run',
+                                       runTimeOut=300,
+                                       surveyType='Point',
+                                       distanceType='Radial',
+                                       clustering=False,
+                                       defEstimKeyFn='UNIFORM',
+                                       defEstimAdjustFn='POLY',
+                                       defEstimCriterion='AIC',
+                                       defCVInterval=95,
+                                       defMinDist=None,
+                                       defMaxDist=None,
+                                       defFitDistCuts=None,
+                                       defDiscrDistCuts=None)
 
         logger.info(f'Pre-analyser specs:\n{preAnlysr.specs}')
 

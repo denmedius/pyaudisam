@@ -158,25 +158,23 @@ class TestMcdsAnalyser:
 
         logger.info(f'analyser specs:\n{anlysr.specs}')
 
-        assert anlysr.specs == {
-            'Zone': 'ACDC',
-            'Surface': '2400',
-            'distanceUnit': 'Meter',
-            'areaUnit': 'Hectare',
-            'runMethod': 'subprocess.run',
-            'runTimeOut': 300,
-            'surveyType': 'Point',
-            'distanceType': 'Radial',
-            'clustering': False,
-            'defEstimKeyFn': 'UNIFORM',
-            'defEstimAdjustFn': 'POLY',
-            'defEstimCriterion': 'AIC',
-            'defCVInterval': 95,
-            'defMinDist': None,
-            'defMaxDist': None,
-            'defFitDistCuts': None,
-            'defDiscrDistCuts': None
-        }
+        assert anlysr.specs == dict(Zone='ACDC',
+                                    Surface='2400',
+                                    distanceUnit='Meter',
+                                    areaUnit='Hectare',
+                                    runMethod='subprocess.run',
+                                    runTimeOut=300,
+                                    surveyType='Point',
+                                    distanceType='Radial',
+                                    clustering=False,
+                                    defEstimKeyFn='UNIFORM',
+                                    defEstimAdjustFn='POLY',
+                                    defEstimCriterion='AIC',
+                                    defCVInterval=95,
+                                    defMinDist=None,
+                                    defMaxDist=None,
+                                    defFitDistCuts=None,
+                                    defDiscrDistCuts=None)
 
         logger.info(f'Done preparing analyser.\n')
 
@@ -280,7 +278,7 @@ class TestMcdsAnalyser:
 
         # 2. Specs: Analyses
         dfRefAnlSpecs = rsRef.specs['analyses']
-        logger.info(f'Ref analyses specs: n={len(dfRefAnlSpecs)} =>\n'
+        logger.info(f'Ref. analyses specs: n={len(dfRefAnlSpecs)} =>\n'
                     + dfRefAnlSpecs.to_string(min_rows=30, max_rows=30))
         dfActAnlSpecs = rsAct.specs['analyses']
         logger.info(f'Actual analyses specs: n={len(dfActAnlSpecs)} =>\n'
