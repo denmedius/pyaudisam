@@ -24,7 +24,7 @@ import pandas as pd
 
 import pyaudisam as ads
 
-from conftest import pTestDir, pTmpDir
+from conftest import pTestDir, pTmpDir, pLogFile
 
 
 # More useful test folders
@@ -69,7 +69,7 @@ def logBegin(what):
 def logEnd(what, rc=None):
     """Log end of tests"""
     sts = {-1: 'Not run', 0: 'Success', None: None}.get(rc, 'Error')
-    msg = 'see pytest report' if sts is None else f'{sts} (code: {rc})'
+    msg = f'see {pLogFile.as_posix()}' if sts is None else f'{sts} (code: {rc})'
     _logger.info(f'Done testing pyaudisam: {what} => {msg}.\n')
 
 
@@ -83,7 +83,7 @@ def setupWorkDir(dirName='work', cleanup=True):
 
 def cleanupWorkDir():
     if pWorkDir.is_dir():
-        shutil.rmtree(pWorkDir)  # Note: avoid any Ruindows shell or explorer inside this folder !
+        shutil.rmtree(pWorkDir, ignore_errors=True)  # Note: avoid any Ruindows shell or explorer inside this folder !
 
 
 # Short string for sample "identification"
@@ -105,10 +105,11 @@ def analysisAbbrev(sAnlys):
     dTroncAbrv = {'l': 'TrGche' if 'TrGche' in sAnlys.index else 'TroncGche',
                   'r': 'TrDrte' if 'TrDrte' in sAnlys.index else 'TroncDrte',
                   'm': 'NbTrches' if 'NbTrches' in sAnlys.index else 'NbTrModel'
-                  if 'NbTrModel' in sAnlys.index else 'NbTrchMod', 'd': 'NbTrDiscr'}
+                                  if 'NbTrModel' in sAnlys.index else 'NbTrchMod',
+                  'd': 'NbTrDiscr'}
     for trAbrv, name in dTroncAbrv.items():
         if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-            nmAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else str(sAnlys[name])
+            nmAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else str(int(sAnlys[name]))
             abbrevs.append(trAbrv + nmAbrv)
 
     return '-'.join(abbrevs)

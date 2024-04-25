@@ -34,5 +34,5 @@ from pyaudisam import log
 _logLevels = [dict(name='matplotlib', level=log.WARNING),
               dict(name='ads', level=log.INFO)]
 _dateTime = time.strftime('%y%m%d.%H%M', time.localtime())
-_fpnLogFile = pTmpDir / f'pytest.{_dateTime}.log'
-log.configure(loggers=_logLevels, handlers=[_fpnLogFile], reset=True)
+pLogFile = pTmpDir / f'pytest.{_dateTime}.log'
+log.configure(loggers=_logLevels, handlers=[pLogFile], reset=True)
