@@ -117,7 +117,7 @@ def analysisAbbrev(sAnlys):
                   'd': 'NbTrDiscr'}
     for trAbrv, name in dTroncAbrv.items():
         if name in sAnlys.index and not pd.isnull(sAnlys[name]):
-            nmAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else str(sAnlys[name])
+            nmAbrv = sAnlys[name][0].lower() if isinstance(sAnlys[name], str) else str(int(sAnlys[name]))
             abbrevs.append(trAbrv + nmAbrv)
     return '-'.join(abbrevs)
 

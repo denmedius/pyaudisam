@@ -86,21 +86,27 @@ def cleanupWorkDir():
         shutil.rmtree(pWorkDir, ignore_errors=True)  # Note: avoid any Ruindows shell or explorer inside this folder !
 
 
-# Short string for sample "identification"
 def sampleAbbrev(sSample):
-    """Sample abbreviation"""
+    """Short string for sample 'identification'
+
+    WARNING: Because we compare analysis results produced by API ou CLI runs
+             to others produced by CLI or API, for simplicity, this function MUST be exactly the same
+             as the one in valtests-de-params.py"""
+
     abrvSpe = ''.join(word[:4].title() for word in sSample['Espèce'].split(' ')[:2])
     sampAbbrev = '{}-{}-{}-{}'.format(abrvSpe, sSample.Passage.replace('+', ''),
                                       sSample.Adulte.replace('+', ''), sSample['Durée'])
     return sampAbbrev
 
 
-# Short string for analysis "identification"
 def analysisAbbrev(sAnlys):
-    """Analysis abbreviation"""
-    abbrevs = [sampleAbbrev(sAnlys)]
+    """Short string for analysis 'identification'
 
-    # Model + Parameters abbreviation
+    WARNING: Because we compare analysis results produced by API ou CLI runs
+             to others produced by CLI or API, for simplicity, this function MUST be exactly the same
+             as the one in valtests-de-params.py"""
+
+    abbrevs = [sampleAbbrev(sAnlys)]
     abbrevs += [sAnlys['FonctionClé'][:3].lower(), sAnlys['SérieAjust'][:3].lower()]
     dTroncAbrv = {'l': 'TrGche' if 'TrGche' in sAnlys.index else 'TroncGche',
                   'r': 'TrDrte' if 'TrDrte' in sAnlys.index else 'TroncDrte',
@@ -230,3 +236,11 @@ def unifiedDiff(expectedLines, realLines, logger=None, subject='text'):
         blocks.append(block)
 
     return blocks
+
+
+def checkAnalysisFolders(paths, anlysKind='analysis'):
+    _logger.info(f'Checking {anlysKind} folders (minimal) ...')
+    for path in paths:
+        assert {fpn.name for fpn in pl.Path(path).iterdir()} \
+               == {'cmd.txt', 'data.txt', 'log.txt', 'output.txt', 'plots.txt', 'stats.txt'}
+    _logger.info(f'... done checking {anlysKind} folders (minimal).')

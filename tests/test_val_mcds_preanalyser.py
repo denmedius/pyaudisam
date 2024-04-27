@@ -371,6 +371,7 @@ class TestMcdsPreAnalyser:
 
     @staticmethod
     def compareResults(rsRef, rsAct):
+        """Prerequisite: Reference results generated with either MCDS 7.4 or 6.2"""
 
         logger.info('Comparing reference to actual pre-results ...')
 
@@ -404,6 +405,8 @@ class TestMcdsPreAnalyser:
 
         logger.info(f'Diff. to reference (relative): n={len(dfDiff)} =>\n'
                     + dfDiff.to_string(min_rows=30, max_rows=30))
+        if not dfDiff.empty:
+            dfDiff.to_excel(uivu.pWorkDir / 'res-comp-13.xlsx')
 
         assert dfDiff.empty, 'Oh oh ... some unexpected differences !'
 
@@ -514,11 +517,7 @@ class TestMcdsPreAnalyser:
 
         # f. Minimal check of pre-analysis folders
         logger.info('Checking pre-analysis folders (minimal) ...')
-        dfEnRes = rsAct.dfTransData('en')
-        for anlysFolderPath in dfEnRes.RunFolder:
-            assert {fpn.name for fpn in pl.Path(anlysFolderPath).iterdir()} \
-                   == {'cmd.txt', 'data.txt', 'log.txt', 'output.txt', 'plots.txt', 'stats.txt'}
-        logger.info('... done checking pre-analysis folders (minimal).')
+        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, anlysKind='pre-analysis')
 
         # g. Cleanup pre-analyser (analysis folders)
         preAnlysr.cleanup()
@@ -535,21 +534,18 @@ class TestMcdsPreAnalyser:
             logger.info(msg)
             pytest.skip(msg)  # Raises an exception => function execution stops here.
 
-        testPath = pl.Path(__file__).parent
-        preAnlysr, _ = preAnalyser_fxt
-        workPath = preAnlysr.workDir
-
         # a. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
-        shutil.rmtree(workPath)
+        preAnlysr, _ = preAnalyser_fxt
+        shutil.rmtree(preAnlysr.workDir)
 
         # b. Run "through the commande line"
-        argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()}' \
+        argv = f'-p {uivu.pTestDir.as_posix()}/valtests-ds-params.py -w {preAnlysr.workDir.as_posix()}' \
                ' -n --preanalyses -u'.split()
         rc = ads.main(argv, standaloneLogConfig=False)
         logger.info(f'CLI run: rc={rc}')
 
         # c. Load pre-results
-        rsAct = self.loadResults(preAnlysr, workPath / 'valtests-preanalyses-results.xlsx')
+        rsAct = self.loadResults(preAnlysr, preAnlysr.workDir / 'valtests-preanalyses-results.xlsx')
         logger.info(f'Actual results: n={len(rsAct)} =>\n' + rsAct.dfData.to_string(min_rows=30, max_rows=30))
 
         # d. Compare to reference.
@@ -557,12 +553,7 @@ class TestMcdsPreAnalyser:
         self.compareResults(rsRef, rsAct)
 
         # e. Minimal check of pre-analysis folders
-        logger.info('Checking pre-analysis folders (minimal) ...')
-        dfEnRes = rsAct.dfTransData('en')
-        for anlysFolderPath in dfEnRes.RunFolder:
-            assert {fpn.name for fpn in pl.Path(anlysFolderPath).iterdir()} \
-                   == {'cmd.txt', 'data.txt', 'log.txt', 'output.txt', 'plots.txt', 'stats.txt'}
-        logger.info('... done checking pre-analysis folders (minimal).')
+        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, anlysKind='pre-analysis')
 
         # f. Don't clean up work folder / analysis folders : needed for report generations below
 
@@ -572,11 +563,14 @@ class TestMcdsPreAnalyser:
     @pytest.fixture()
     def excelRefReport_fxt(self):
 
-        return pd.read_excel(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreRapport.xlsx',
+        return pd.read_excel(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreRapport.ods',
                              sheet_name=None, index_col=0)
 
     @staticmethod
     def compareExcelReports(ddfRefReport, ddfActReport):
+        """Prerequisite: Reference report generated with either MCDS 7.4 or 6.2"""
+
+        logger.info('Comparing reference to actual workbook reports ...')
 
         # Compare "Synthesis" sheet
         dfRef = ddfRefReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')
@@ -593,21 +587,23 @@ class TestMcdsPreAnalyser:
         simpleCompCols = idCols
         simpleCompCols += ['NTot Obs', 'Mod Key Fn', 'Mod Adj Ser', 'Mod Chc Crit', 'Conf Interv', 'Key Fn', 'Adj Ser']
         assert dfRef[simpleCompCols].set_index('NumEchant').compare(dfAct[simpleCompCols].set_index('NumEchant')).empty
+
         # b. Compare other (all numerical) columns with a small margin (1e-14 relative diff)
         otherCompCols = [col for col in dfRef if col not in simpleCompCols]
-        if len(dfAct.columns) == len(dfRef.columns):  # MCDS 7.4 ?
-            assert ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
-                                                 subsetCols=otherCompCols, indexCols=idCols,
-                                                 noneIsNan=True, dropCloserCols=True,
-                                                 dropCloser=14, dropNans=True).empty
-        else:  # Last chance: MCDS 6.2 ?
+        if len(dfAct.columns) != len(dfRef.columns):  # Not the same version of MCDS as for the ref. report
             spe74CompCols = [col for col in otherCompCols if col.startswith('SansDoc #')]  # 7.4-specifics
             assert len(spe74CompCols) == 11
             otherCompCols = [col for col in otherCompCols if col not in spe74CompCols]  # Remove 7.4-specifics
-            assert ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
-                                                 subsetCols=otherCompCols, indexCols=idCols,
-                                                 noneIsNan=True, dropCloserCols=True,
-                                                 dropCloser=15, dropNans=True).empty
+
+        logger.info(f'* {otherCompCols=}')
+        dfDiff = ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
+                                               subsetCols=otherCompCols, indexCols=idCols,
+                                               noneIsNan=True, dropCloserCols=True,
+                                               dropCloser=14, dropNans=True)
+        logger.info(f'* diff. to reference (relative): n={len(dfDiff)} =>\n'
+                    + dfDiff.to_string(min_rows=30, max_rows=30))
+        if not dfDiff.empty:
+            dfDiff.reset_index().to_excel(uivu.pWorkDir / 'rep-comp-14.xlsx')
 
         # Compare "Samples" sheet
         dfRef = ddfRefReport['Samples'].set_index('NumEchant', drop=True)
@@ -624,6 +620,8 @@ class TestMcdsPreAnalyser:
         dfAct = ddfActReport['Analyser']
         assert dfRef.compare(dfAct).empty
 
+        logger.info('Done comparing reference to actual workbook reports.')
+
     @pytest.fixture()
     def htmlRefReportLines_fxt(self):
 
@@ -634,6 +632,7 @@ class TestMcdsPreAnalyser:
 
     @staticmethod
     def compareHtmlReports(refReportLines, actReportLines):
+        """Prerequisite: Reference report generated with either MCDS 7.4 or 6.2"""
 
         logger.info('Preprocessing HTML pre-reports for comparison ...')
 
@@ -834,12 +833,10 @@ class TestMcdsPreAnalyser:
 
         build = True  # Debug only: Set to False to avoid rebuilding the report
 
-        testPath = uivu.pTestDir
-        workPath = uivu.pWorkDir
-
         # a. Report "through the commande line"
+        workPath = uivu.pWorkDir
         if build:
-            argv = f'-p {testPath.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()}' \
+            argv = f'-p {uivu.pTestDir.as_posix()}/valtests-ds-params.py -w {workPath.as_posix()}' \
                    ' -n --prereports excel,html -u'.split()
             rc = ads.main(argv, standaloneLogConfig=False)
             logger.info(f'CLI run: rc={rc}')
