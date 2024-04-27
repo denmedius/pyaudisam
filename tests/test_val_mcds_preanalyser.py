@@ -447,12 +447,12 @@ class TestMcdsPreAnalyser:
                     + dfActAnrSpecs.to_string(min_rows=30, max_rows=30))
         assert dfRefAnrSpecs.compare(dfActAnrSpecs).empty
 
-        # 5. Specs: Run-time : whatever ref, expect a specific list of item names, no more (values may vary, it's OK)
+        # 5. Specs: Run-time : whatever ref, expect a specific up-to-date list of item names, but nothing more
         sRefRunSpecs = rsRef.specs['runtime']
         logger.info(f'Ref. runtime specs: n={len(sRefRunSpecs)} =>\n' + sRefRunSpecs.to_string())
         sActRunSpecs = rsAct.specs['runtime']
         logger.info(f'Actual runtime specs: n={len(sActRunSpecs)} =>\n' + sActRunSpecs.to_string())
-        assert set(sRefRunSpecs.index) \
+        assert set(sActRunSpecs.index) \
                == {'os', 'processor', 'python', 'numpy', 'pandas', 'zoopt', 'matplotlib',
                    'jinja2', 'pyaudisam', 'MCDS engine', 'MCDS engine version'}
 
@@ -519,7 +519,7 @@ class TestMcdsPreAnalyser:
         logger.info('Checking pre-analysis folders (minimal) ...')
         uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, anlysKind='pre-analysis')
 
-        # g. Cleanup pre-analyser (analysis folders)
+        # g. Cleanup pre-analyser (analysis folders, not results)
         preAnlysr.cleanup()
 
         # h. Done.
@@ -643,12 +643,12 @@ class TestMcdsPreAnalyser:
         KREAnlysDir = r'="./([a-zA-Z0-9-_]+)/'
         refAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, refReportLines)
         actAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, actReportLines)
+        logger.info(f'* found {len(refAnlysDirs)}/{len(actAnlysDirs)} ref./act. pre-analysis folder')
         assert len(refAnlysDirs) == len(actAnlysDirs)
 
-        logger.info(f'* found {len(actAnlysDirs)} pre-analysis folders')
-
         # * replace each analysis folder in the actual report by the corresponding ref. report one
-        uivu.replaceStrings(actAnlysDirs, refAnlysDirs, actReportLines)
+        repAnlysDirLines = uivu.replaceStrings(froms=actAnlysDirs, tos=refAnlysDirs, lines=actReportLines)
+        logger.info(f'* replaced analysis folder by ref. one in {repAnlysDirLines} act. lines')
 
         # * remove specific lines in both reports:
         #   - header meta "DateTime"

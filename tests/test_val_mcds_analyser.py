@@ -297,12 +297,12 @@ class TestMcdsAnalyser:
                     + dfActAnrSpecs.to_string(min_rows=30, max_rows=30))
         assert dfRefAnrSpecs.compare(dfActAnrSpecs).empty
 
-        # 4. Specs: Run-time : whatever ref, expect a specific list of item names, no more (values may vary, it's OK)
+        # 4. Specs: Run-time : whatever ref, expect a specific up-to-date list of item names, but nothing more
         sRefRunSpecs = rsRef.specs['runtime']
         logger.info(f'Ref. runtime specs: n={len(sRefRunSpecs)} =>\n' + sRefRunSpecs.to_string())
         sActRunSpecs = rsAct.specs['runtime']
         logger.info(f'Actual runtime specs: n={len(sActRunSpecs)} =>\n' + sActRunSpecs.to_string())
-        assert set(sRefRunSpecs.index) \
+        assert set(sActRunSpecs.index) \
                == {'os', 'processor', 'python', 'numpy', 'pandas', 'zoopt', 'matplotlib',
                    'jinja2', 'pyaudisam', 'MCDS engine', 'MCDS engine version'}
 
@@ -351,7 +351,7 @@ class TestMcdsAnalyser:
         # f. Minimal check of analysis folders
         uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, anlysKind='analysis')
 
-        # g. Cleanup analyser (analysis folders)
+        # g. Cleanup analyser (analysis folders, not results)
         anlysr.cleanup()
 
         # h. Done.
@@ -467,7 +467,7 @@ class TestMcdsAnalyser:
         remRefLines = remActLines = 0
 
         # * list unique cell ids (keeping the original order) in both reports
-        KRETableId = r'#T_([0-9a-f]{5})_'
+        KRETableId = r'#T(_[0-9a-f]{5}_)'
         refTableIds = uivu.listUniqueStrings(KRETableId, refReportLines)
         actTableIds = uivu.listUniqueStrings(KRETableId, actReportLines)
         assert len(refTableIds) == 2
@@ -478,16 +478,21 @@ class TestMcdsAnalyser:
         logger.info(f'* found table Ids: ref={refTableIds}, act={actTableIds}')
 
         # * replace each cell id in the actual report by the corresponding ref. report one
-        uivu.replaceStrings(actTableIds, refTableIds, actReportLines)
+        #   (note: the heading and trailing '_' of the Id make this replacement safe ;
+        #          without them, there are chances to also replace decimal figures in results !)
+        repIdLines = uivu.replaceStrings(froms=actTableIds, tos=refTableIds, lines=actReportLines)
+        logger.info(f'* replaced by ref. analysis Id in {repIdLines} act. lines')
 
         # * list unique analysis folders (keeping the original order) in both reports
         KREAnlysDir = r'="./([a-zA-Z0-9-_]+)/'
         refAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, refReportLines)
         actAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, actReportLines)
+        logger.info(f'* found {len(refAnlysDirs)}/{len(actAnlysDirs)} ref./act. analysis folders')
         assert len(refAnlysDirs) == len(actAnlysDirs)
 
         # * replace each analysis folder in the actual report by the corresponding ref. report one
-        uivu.replaceStrings(froms=actAnlysDirs, tos=refAnlysDirs, lines=actReportLines)
+        repAnlysDirLines = uivu.replaceStrings(froms=actAnlysDirs, tos=refAnlysDirs, lines=actReportLines)
+        logger.info(f'* replaced by ref. analysis folder in {repAnlysDirLines} act. lines')
 
         # * remove specific lines in both reports:
         #   - header meta "DateTime"
@@ -508,23 +513,23 @@ class TestMcdsAnalyser:
 
         #   - new undocumented MCDS 7.4 result columns in ref "Details" table
         #     => ignore them in ref. report when running MCDS 6.2
-        KREDetailsMcds74LastCol = rf'<td id="T_{refDetTableId}_row.+_col122"'  # No such column prior with MCDS 6.2
+        KREDetailsMcds74LastCol = rf'<td id="T{refDetTableId}row.+_col122"'  # No such column prior with MCDS 6.2
         if not uivu.selectLines(KREDetailsMcds74LastCol, actReportLines):
-            KREDetailsUndocCol = rf'<td id="T_{refDetTableId}_row.+_col(66|67|68|69|70|71|72|73|74|75|76)"'
+            KREDetailsUndocCol = rf'<td id="T{refDetTableId}row.+_col(66|67|68|69|70|71|72|73|74|75|76)"'
             remRefLines += uivu.removeLines(KREDetailsUndocCol, refReportLines)
 
         #   - header and style lines in ref "Details" table (simpler report comparison, at the price of not checking
         #     cell styling ... but this is not really useful / much examined after all,
         #     and column headers, which is a bit more annoying ...)
-        KREDetailsLine2Drop = rf'^#T_{refDetTableId}_row0_col0,'
+        KREDetailsLine2Drop = rf'^#T{refDetTableId}row0_col0,'
         remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
         remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
 
-        KREDetailsLine2Drop = rf'^ +}}#T_{refDetTableId}_row'
+        KREDetailsLine2Drop = rf'^ +}}#T{refDetTableId}row'
         remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
         remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
 
-        KREDetailsLine2Drop = rf'<table id="T_{refDetTableId}_" ><thead>'
+        KREDetailsLine2Drop = rf'<table id="T{refDetTableId}" ><thead>'
         remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
         remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
 
@@ -533,14 +538,14 @@ class TestMcdsAnalyser:
         # * remove cell id/class in "Details" table (simpler report comparison, at the price of not checking
         #   cell styling ... but this is not really useful / much examined after all)
         KDetailsConstCellIdClass = '<td>'
-        KREDetailsCellIdClass = rf'<td id="T_{refDetTableId}_row.+_col.+" class=".+" >'
+        KREDetailsCellIdClass = rf'<td id="T{refDetTableId}row.+_col.+" class=".+" >'
         repRefLines = uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
                                           lines=refReportLines)
         repActLines = uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
                                           lines=actReportLines)
 
         KDetailsConstCellIdClass = '<th>'
-        KREDetailsCellIdClass = rf'<th id="T_{refDetTableId}_level.+_row.+" class=".+" >'
+        KREDetailsCellIdClass = rf'<th id="T{refDetTableId}level.+_row.+" class=".+" >'
         repRefLines += uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
                                            lines=refReportLines)
         repActLines += uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
