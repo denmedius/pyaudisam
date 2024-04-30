@@ -200,7 +200,8 @@ class _Application:
                                  ' => use it only for few and simple args like switches and simple names')
         argser.add_argument('-w', '--workdir', dest='workDir', type=str, default='.',
                             help='Work folder = where to store DS analyses sub-folders and output files'
-                                 ' (Note: a timestamp sub-folder YYMMDD-HHMMSS is auto-appended, if not already such)')
+                                 ' (Note: a timestamp sub-folder YYMMDD-HHMMSS is auto-appended,'
+                                 ' if not already such, and not -n/--notimestamp)')
         argser.add_argument('-n', '--notimestamp', dest='noTimestamp', action='store_true', default=False,
                             help='Inhibit auto-timestamped work sub-folder creation (under work folder)')
         argser.add_argument('-x', '--distexport', dest='distExport', action='store_true', default=False,
