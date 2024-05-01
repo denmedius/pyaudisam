@@ -2,7 +2,7 @@
 
 """Parameter module for command line validation tests of pyaudisam (for -p option)
 
-(as far as possible same data and parameters than in valtests.ipynb)
+(same data and parameters than in test_val_*.py test modules, and obsolete valtests.ipynb notebook)
 
 Parameters (pass them through -k key1=value1,key2=value2,... options to pyaudisam main command-line script):
 :param lang: report language, en or fr
@@ -30,7 +30,6 @@ import pathlib as pl
 
 import pandas as pd
 
-# from pyaudisam import log
 from pyaudisam.optimisation import Interval
 from pyaudisam.optanalyser import MCDSTruncOptanalysisResultsSet as RS
 
@@ -152,7 +151,7 @@ runAnalysisTimeOut = 300
 logAnalysisData = False
 logAnalysisProgressEvery = 5
 
-# c. Analyses to run (reuse valtests notebook spec. file)
+# c. Analyses to run (reuse val-tests spec. file)
 _ddfAnlysSpecs = pd.read_excel(instDir / 'refin/ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx', sheet_name=None)
 analysisSpecFile = instDir / 'tmp/ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
 with pd.ExcelWriter(analysisSpecFile) as xlWrtr:
@@ -178,7 +177,7 @@ logOptAnalysisProgressEvery = 5
 logOptimisationProgressEvery = 3
 backupOptimisationsEvery = 5
 
-defExpr2Optimise = 'chi2'
+defExpr2Optimise = 'balq3'  # Usable variables defined in MCDSTruncationOptimisation.AnlysResultsIndex
 defMinimiseExpr = False
 defOutliersMethod = 'tucquant'
 defOutliersQuantCutPct = 7
