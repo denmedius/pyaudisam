@@ -31,7 +31,7 @@ import unintval_utils as uivu
 
 
 # Setup local logger.
-logger = uivu.setupLogger('val.anr', level=ads.DEBUG, otherLoggers={'ads.eng': ads.INFO})
+logger = uivu.setupLogger('val.anr', level=ads.DEBUG)
 
 
 class TestMcdsAnalyser:

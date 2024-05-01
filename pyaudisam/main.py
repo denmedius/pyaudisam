@@ -43,7 +43,7 @@ class _Logger:
             * logNamePrefix str: prefix for the session log file name
             * runTimestamp str: extension prefix for the session log file name
             * mainLevel: logging level for the 'ads.main' logger (the one for this main module) ;
-            otherwise, no reconfiguration will be achieved, thus inheriting the currently in place logging configuration
+            otherwise, no reconfiguration will be achieved, thus inheriting the currently-in-place logging configuration
         """
 
         self.standaloneConfig = standaloneConfig
@@ -72,9 +72,6 @@ class _Logger:
                               dict(name='ads', level=log.INFO2),
                               dict(name='ads.eng', level=log.INFO),
                               dict(name='ads.exr', level=log.INFO),
-                              # dict(name='ads.dat', level=log.DEBUG),
-                              # dict(name='ads.rep', level=log.DEBUG),
-                              dict(name='ads.anr', level=log.INFO1),
                               dict(name='ads.main', level=mainLevel)]
             log.configure(handlers=[sys.stdout, self.runLogFileName], reset=True, loggers=self.logLevels)
 

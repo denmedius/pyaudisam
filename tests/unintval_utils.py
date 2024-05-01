@@ -38,14 +38,15 @@ pWorkDir = pTmpDir / 'work'
 _logger = ads.logger('uiv.tst')
 
 
-def setupLogger(name, level=ads.DEBUG, otherLoggers={'ads': ads.INFO}):
+def setupLogger(name, level=ads.DEBUG, otherLoggers=None):
     """Create logger for tests and configure logging"""
-    logLevels = [dict(name=nm, level=lvl) for nm, lvl in otherLoggers.items()] \
-                + [dict(name='uiv.tst', level=level), dict(name=name, level=level)]
-    for dLvl in logLevels:
-        logr = ads.logger(dLvl['name'], level=dLvl['level'])
+    otherLoggers = otherLoggers or {'ads': ads.INFO2, 'ads.eng': ads.INFO, 'ads.exr': ads.INFO}
+    for dLvl in [dict(name='matplotlib', level=ads.WARNING)] \
+                + [dict(name=nm, level=lvl) for nm, lvl in otherLoggers.items()] \
+                + [dict(name='uiv.tst', level=level)]:
+        _ = ads.logger(dLvl['name'], level=dLvl['level'])
 
-    return logr
+    return ads.logger(name, level)
 
 
 def logPlatform():
