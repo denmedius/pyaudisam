@@ -852,13 +852,39 @@ def testMcdsO0TruncOpter(indivSightings_fxt):
 
     zoptr.shutdown()
 
-    # iv. Quickly check results
-    assert len(results2) == 20  # Given the ParExec column of dfOptimExplSpecs
-
     dfFrRes2 = results2.dfTransData('fr')
     logger.info(f'Optim. results (fr, recovery run): n={len(dfFrRes2)} =>\n' + dfFrRes2.to_string())
+    results2.toExcel(pl.Path(zoptr.workDir) / 'unintst-mcds-optimiser-results2-fr.xlsx', lang='fr')
 
-    # results2.toExcel(pl.Path(zoptr.workDir) / 'unintst-mcds-optimiser-results2-fr.xlsx', lang='fr')
+    # iv. Quickly check results
+    #  - total number of results
+    assert len(results2) == 20  # Given the ParExec column of dfOptimExplSpecs
+
+    #  - more detailed conformance to ParExec
+    parExecUniqVals = set(dfFrRes2.ParExec.unique())
+    logger.info(f'ParExec unique values: {parExecUniqVals}')
+    assert parExecUniqVals == {None, 'times(2)', 'times(3, b=2)'}
+
+    noOptParamCols = ['Espèce', 'Passage', 'Adulte', 'Durée', 'FonctionClé', 'SérieAjust']
+    dfTimes = dfFrRes2[['IndOptim', 'ParExec'] + noOptParamCols] \
+                .groupby(['IndOptim'] + noOptParamCols).count().replace(0, 1)
+    dfTimes.rename(columns=dict(ParExec='actualNTimes'), inplace=True)
+    dfFrRes2 = dfFrRes2.set_index(['IndOptim'] + noOptParamCols).join(dfTimes)
+
+    def nTimes(mOpt):  # Rough decoding: will need to be updated if opt. analysis specs are changed !
+        return 1 if pd.isnull(mOpt) else 2 if 'b=2' in mOpt or '(2)' in mOpt else 0
+    dfFrRes2['exptdNTimes'] = dfFrRes2.ParExec.apply(nTimes)
+
+    df2Log = dfFrRes2[['MultiOpt', 'actualNTimes', 'exptdNTimes']]
+    logger.info(f'Compared expected and actual optimisation times: n={len(df2Log)} =>\n'
+                + df2Log.to_string(min_rows=30, max_rows=30))
+    assert dfFrRes2.actualNTimes.eq(dfFrRes2.exptdNTimes).all()
+
+    #  - truncation distances and distance cuts conformity to optimisation specs
+    # TODO !
+
+    #  - more checks "easily" feasible ?
+    # TODO: think about it ! (and then do it)
 
     # v. Check equality of 1st 17 results in `results` and `results2`, + added num of results
     # (20 results at the end, 1st 17 ones in backup file, so only reloaded => only 3 left to be recomputed)
