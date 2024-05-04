@@ -2605,7 +2605,8 @@ class MCDSAnalyser(DSAnalyser):
         
         """Cleanup analyser:
         * remove analysis folders if any run,
-        * reset results."""
+        * reset results set,
+        * don't remove any other file (like those produced with the results set toXxx methods)"""
         
         if not self.results:
             logger.info('Nothing to cleanup: no result available')
@@ -2951,8 +2952,9 @@ class MCDSPreAnalyser(MCDSAnalyser):
 
         """Cleanup pre-analyser:
         * remove analysis folders if any run,
-        * reset results,
-        * remove files exported in self.workDir (not those exported elsewhere)"""
+        * reset results set,
+        * remove Distance-format files exported in self.workDir
+          (but neither those exported elsewhere, nor those produced with the results set toXxx methods)"""
         
         super().cleanup()
         
