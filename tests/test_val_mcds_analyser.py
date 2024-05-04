@@ -449,6 +449,14 @@ class TestMcdsAnalyser:
         dfAct = ddfActReport['Analyser']
         assert dfRef.compare(dfAct).empty
 
+        # Compare "Computing platform" sheet
+        # (whatever ref, expect a specific up-to-date list of item names, but nothing more ;
+        #  values may vary, 'cause they are mostly software versions: it's OK)
+        dfAct = ddfActReport['Computing platform']
+        assert set(dfAct.index) \
+               == {'os', 'processor', 'python', 'numpy', 'pandas', 'zoopt', 'matplotlib',
+                   'jinja2', 'pyaudisam', 'MCDS engine', 'MCDS engine version'}
+
         logger.info('Done comparing reference to actual workbook reports.')
 
     @pytest.fixture()
@@ -581,7 +589,7 @@ class TestMcdsAnalyser:
     # ## 7. Generate HTML and Excel analyses reports through pyaudisam API
     def testReports(self, analyser_fxt, excelRefReport_fxt, htmlRefReportLines_fxt):
 
-        build = True  # Debug only: Set to False to avoid rebuilding the report, and only check it
+        build = True  # Debug only: Set to False to avoid rebuilding the reports, and only check them
         cleanup = True  # Debug only: Set to False to prevent cleaning at the end
 
         # Pre-requisites : uncleaned analyser work dir (we need the results file and analysis folders).

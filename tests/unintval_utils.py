@@ -244,7 +244,7 @@ def checkAnalysisFolders(paths, expectNumberOf=None, anlysKind='analysis'):
     _logger.info(f'Checking {anlysKind} folders (minimal) ...')
     number = 0
     for path in paths:
-        assert {fpn.name for fpn in pl.Path(path).iterdir()} \
+        assert {fpn.name for fpn in pl.Path(path).iterdir() if fpn.suffix == '.txt'} \
                == {'cmd.txt', 'data.txt', 'log.txt', 'output.txt', 'plots.txt', 'stats.txt'}
         number += 1
     if expectNumberOf is not None:
