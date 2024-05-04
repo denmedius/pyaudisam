@@ -57,7 +57,9 @@ class TestMcdsAnalyser:
         # Let the ground clear after passing there
         if self.KFinalCleanup:
             uivu.cleanupWorkDir()
-            (uivu.pTmpDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx').unlink()
+            fpnAutogenAnlysSpecs = uivu.pTmpDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
+            if fpnAutogenAnlysSpecs.is_file():
+                fpnAutogenAnlysSpecs.unlink()
 
         uivu.logEnd(what=KWhat2Test)
 
@@ -349,7 +351,7 @@ class TestMcdsAnalyser:
         self.compareResults(rsRef, rsAct)
 
         # f. Minimal check of analysis folders
-        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, anlysKind='analysis')
+        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectNumberOf=48, anlysKind='analysis')
 
         # g. Cleanup analyser (analysis folders, not results)
         anlysr.cleanup()
@@ -380,7 +382,7 @@ class TestMcdsAnalyser:
         self.compareResults(rsRef, rsAct)
 
         # e. Minimal check of analysis folders
-        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, anlysKind='analysis')
+        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectNumberOf=48, anlysKind='analysis')
 
         # f. Don't clean up work folder / analysis folders : needed for report generations below
 

@@ -239,9 +239,14 @@ def unifiedDiff(expectedLines, realLines, logger=None, subject='text'):
     return blocks
 
 
-def checkAnalysisFolders(paths, anlysKind='analysis'):
+def checkAnalysisFolders(paths, expectNumberOf=None, anlysKind='analysis'):
+    """Minimal checks of a lit of analysis folders: expected number, and presence of MCDS output files after run"""
     _logger.info(f'Checking {anlysKind} folders (minimal) ...')
+    number = 0
     for path in paths:
         assert {fpn.name for fpn in pl.Path(path).iterdir()} \
                == {'cmd.txt', 'data.txt', 'log.txt', 'output.txt', 'plots.txt', 'stats.txt'}
+        number += 1
+    if expectNumberOf is not None:
+        assert number == expectNumberOf
     _logger.info(f'... done checking {anlysKind} folders (minimal).')
