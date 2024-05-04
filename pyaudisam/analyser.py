@@ -830,7 +830,7 @@ class FilterSortSchemeIdManager:
 
         Built on the scheme name format and an additional int suffix when needed.
 
-        Definition: 2 equal schemes (dict ==) have the same Id
+        By definition: 2 equal schemes (dict ==) have the same Id
 
         Parameters:
         :param scheme: the scheme to identify
@@ -855,17 +855,17 @@ class FilterSortSchemeIdManager:
         # Check scheme specification (1st level properties: presence of mandatory ones, authorised list, ...)
         props = scheme.keys()
         assert all(prop in self.MainSchSpecNames for prop in props), \
-               'Unknown filter and sort scheme property/ies: {}' \
-                .format(', '.join(prop for prop in props if prop not in self.MainSchSpecNames))
+               'Unknown filter and sort scheme property/ies: ' \
+               + ', '.join(prop for prop in props if prop not in self.MainSchSpecNames)
         mandProps = ['method']
         assert all(prop in props for prop in mandProps), \
-               'Missing filter and sort scheme mandatory property/ies: {}' \
-                .format(', '.join(prop for prop in mandProps if prop not in props))
+               'Missing filter and sort scheme mandatory property/ies: ' \
+               + ', '.join(prop for prop in mandProps if prop not in props)
         method = scheme['method']
         assert callable(method), 'Filter and sort scheme method must be callable'
         assert method is MCDSAnalysisResultsSet.filterSortOnExecCode \
                or method is MCDSAnalysisResultsSet.filterSortOnExCAicMulQua, \
-               'Unsupported filter and sort scheme method: ' + str(method)
+               f'Unsupported filter and sort scheme method: {method}'
 
         # Compute the heading "name" part of the Id
         schemeId = 'ExCode' if method is MCDSAnalysisResultsSet.filterSortOnExecCode else 'ExAicMQua'
