@@ -2024,7 +2024,7 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
                                                  columns=self.synthCols, lang=self.lang)
 
                 # Store results in workbook
-                ddfWbk['-'.join([self.tr('AFSM'), filSorSchId])] = (dfFilSorRes, False)
+                ddfWbk[self.tr('AFSM') + '-' + filSorSchId] = (dfFilSorRes, False)
 
                 # Update all-scheme log
                 repLog += filSorSteps
@@ -2032,12 +2032,10 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
             # Log of opérations, for traceability.
             logger.info1('* filter & sort steps ...')
 
-            indexCols = [self.tr(col) for col in ['Scheme', 'Step']]
-            dataCols = [self.tr(col) for col in ['Property', 'Value']]
-            dfFilSorHist = pd.DataFrame(repLog, columns=indexCols + dataCols)
-            dfFilSorHist.set_index(indexCols, inplace=True)
+            repTransCols = [self.tr(col) for col in ['Scheme', 'Step', 'Property', 'Value']]
+            dfFilSorHist = pd.DataFrame(repLog, columns=repTransCols)
 
-            ddfWbk['-'.join([self.tr('AFS'), self.tr('Steps')])] = (dfFilSorHist, True)
+            ddfWbk[self.tr('AFS') + '-' + self.tr('Steps')] = (dfFilSorHist, True)
 
         # Append inherited worksheets.
         ddfWbk.update(super().asWorkbook(subset=subset, rebuild=rebuild))
