@@ -242,7 +242,7 @@ class _Application:
         if self.logger.standaloneConfig:
             argser.add_argument('-l', '--logprefix', dest='logPrefix', type=str, default=None,
                                 help='Target log file path-name prefix'
-                                     ' (will be postfixed by .<YYMMDD-HHMMSS timestamp>.log)'
+                                     ' (will be post-fixed by .<YYMMDD-HHMMSS timestamp>.log)'
                                      f" (Default: <work folder>/{self.logger.standaloneConfig['logNamePrefix']}"
                                      " if -u/--run, else 'none' ; if special value 'none', no log saved)")
         argser.add_argument('-m', '--threads', dest='threads', type=int, default=0,
@@ -415,7 +415,7 @@ class _Application:
         # 5. Now we can set up the final session log file path-name prefix (iif standalone log config mode) !
         if self.logger.standaloneConfig:
             if any(arg in self.rawArgs for arg in ['-h', '--help']):
-                self.args.logPrefix = None # No need for a log file at the end here !
+                self.args.logPrefix = None  # No need for a log file at the end here !
             elif self.args.logPrefix is None:
                 if self.args.realRun:  # Default
                     self.args.logPrefix = workDir.as_posix() + f'/{pars.studyName}{pars.subStudyName}'
