@@ -57,9 +57,6 @@ class TestMcdsAnalyser:
         # Let the ground clear after passing there
         if self.KFinalCleanup:
             uivu.cleanupWorkDir()
-            fpnAutogenAnlysSpecs = uivu.pTmpDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
-            if fpnAutogenAnlysSpecs.is_file():
-                fpnAutogenAnlysSpecs.unlink()
 
         uivu.logEnd(what=KWhat2Test)
 
@@ -126,7 +123,7 @@ class TestMcdsAnalyser:
 
         # ## 3. Analysis specs
         dfAnlysSpecs = \
-            ads.Analyser.explicitVariantSpecs(uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx',
+            ads.Analyser.explicitVariantSpecs(uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.ods',
                                               keep=['Echant1_impl', 'Echant2_impl', 'Modl_impl',
                                                     'Params1_expl', 'Params2_expl'],
                                               varIndCol=varIndCol,

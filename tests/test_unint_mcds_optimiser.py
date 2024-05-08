@@ -707,7 +707,7 @@ def testMcdsO0TruncOpter(indivSightings_fxt):
                               resultsHeadCols=dict(before=[varIndCol], sample=sampleSelCols, after=[anlysAbbrevCol]),
                               workDir=uivu.pWorkDir, runMethod='subprocess.run', logProgressEvery=5)
 
-    anlysSpecFile = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
+    anlysSpecFile = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.ods'
     dfAnlysExplSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols, verdict, reasons = \
         anlysr.explicitParamSpecs(implParamSpecs=anlysSpecFile, dropDupes=True, check=True)
 
@@ -875,7 +875,7 @@ def testMcdsO0TruncOpter(indivSightings_fxt):
         return 1 if pd.isnull(mOpt) else 2 if 'b=2' in mOpt or '(2)' in mOpt else 0
     dfFrRes2['exptdNTimes'] = dfFrRes2.ParExec.apply(nTimes)
 
-    df2Log = dfFrRes2[['MultiOpt', 'actualNTimes', 'exptdNTimes']]
+    df2Log = dfFrRes2[['ParExec', 'actualNTimes', 'exptdNTimes']]
     logger.info(f'Compared expected and actual optimisation times: n={len(df2Log)} =>\n'
                 + df2Log.to_string(min_rows=30, max_rows=30))
     assert dfFrRes2.actualNTimes.eq(dfFrRes2.exptdNTimes).all()

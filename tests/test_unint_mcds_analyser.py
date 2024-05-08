@@ -106,7 +106,7 @@ def testAnalyser(indivdSightings_fxt):
 
     # c. Direct explicitation of all variants from user specs (implicit and explicit)
     # i. Specs from a dict of DataFrame
-    wbpnUserVariantSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
+    wbpnUserVariantSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.ods'
     ddfUserVariantSpecs = pd.read_excel(wbpnUserVariantSpecs, sheet_name=None)
     logger.info('Implicit user specs:')
     for spName, spData in ddfUserVariantSpecs.items():
@@ -207,7 +207,7 @@ def testDsAnalyser():
     anlysAbbrevCol = 'AbrevAnlys'
 
     # i. Through file specified implicit combinations
-    implParamSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
+    implParamSpecs = uivu.pRefInDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.ods'
     dfExplParamSpecs, userParamSpecCols, intParamSpecCols, unmUserParamSpecCols = \
         ads.DSAnalyser._explicitParamSpecs(implParamSpecs=implParamSpecs,
                                            int2UserSpecREs=int2UserSpecREs,

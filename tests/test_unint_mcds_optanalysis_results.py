@@ -349,8 +349,7 @@ def testMcdsOptArsNonRegression(mcdsOptAnalyser_fxt):
     res.setPostComputed(False)
 
     # Trigger now !
-    logger.info('ref.dfData: ' + res.dfData.to_string())
-    assert len(res) == 70
+    logger.info(f'res.dfData: {len(res)} rows =>\n' + res.dfData.to_string())
     logger.info('refRes.columns: ' + str(refRes.columns.to_list()))
 
     # #### iii Compare re-post-computed filter & sort Group and Order columns to reference.

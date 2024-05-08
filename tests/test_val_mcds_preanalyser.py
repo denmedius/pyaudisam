@@ -38,7 +38,7 @@ logger = uivu.setupLogger('val.pnr', level=ads.DEBUG)
 class TestMcdsPreAnalyser:
 
     # Set to False to skip final cleanup (useful for debugging)
-    KFinalCleanup = True
+    KFinalCleanup = False
 
     # Class and test function initializers / finalizers ###########################
     @pytest.fixture(autouse=True, scope='class')
@@ -49,7 +49,7 @@ class TestMcdsPreAnalyser:
         uivu.logBegin(what=KWhat2Test)
 
         # Set up a clear ground before starting
-        uivu.setupWorkDir('val-mpanlr', cleanup=self.KFinalCleanup)
+        uivu.setupWorkDir('val-panlr', cleanup=self.KFinalCleanup)
 
         # The code before yield is run before the first test function in this class
         yield
@@ -58,9 +58,6 @@ class TestMcdsPreAnalyser:
         # Let the ground clear after passing there
         if self.KFinalCleanup:
             uivu.cleanupWorkDir()
-            fpnAutogenAnlysSpecs = uivu.pTmpDir / 'ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
-            if fpnAutogenAnlysSpecs.is_file():
-                fpnAutogenAnlysSpecs.unlink()
 
         uivu.logEnd(what=KWhat2Test)
 

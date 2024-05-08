@@ -152,11 +152,7 @@ logAnalysisData = False
 logAnalysisProgressEvery = 5
 
 # c. Analyses to run (reuse val-tests spec. file)
-_ddfAnlysSpecs = pd.read_excel(instDir / 'refin/ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx', sheet_name=None)
-analysisSpecFile = instDir / 'tmp/ACDC2019-Naturalist-extrait-SpecsAnalyses.xlsx'
-with pd.ExcelWriter(analysisSpecFile) as xlWrtr:
-    for sn in ['Echant1_impl', 'Echant2_impl', 'Modl_impl', 'Params1_expl', 'Params2_expl']:
-        _ddfAnlysSpecs[sn].to_excel(xlWrtr, sheet_name=sn, index=False)
+analysisSpecFile = instDir / 'refin/ACDC2019-Naturalist-extrait-SpecsAnalyses.ods'
 
 # DS opt-analysis parameters ########################################################
 # a. Input / output data
@@ -195,8 +191,8 @@ defCoreTermExprValue = None
 defCoreAlgorithm = 'racos'
 defCoreMaxRetries = 0
 
-# c. Opt-analyses to run (reuse valtests notebook spec. file)
-optAnalysisSpecFile = instDir / 'refin/ACDC2019-Naturalist-extrait-SpecsOptanalyses.xlsx'
+# c. Opt-analyses to run (reuse valtests spec. file)
+optAnalysisSpecFile = instDir / 'refin/ACDC2019-Naturalist-extrait-SpecsOptAnalyses.ods'
 
 
 # Reports (all types) ##############################################################
