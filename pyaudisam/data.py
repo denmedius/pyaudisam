@@ -2,7 +2,7 @@
 
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
-# Copyright (C) 2021 Jean-Philippe Meuret
+# Copyright (C) 2021 Jean-Philippe Meuret, Sylvain Sainnier
 
 # This program is free software: you can redistribute it and/or modify it under the terms
 # of the GNU General Public License as published by the Free Software Foundation,
