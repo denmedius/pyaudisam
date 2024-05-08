@@ -33,6 +33,9 @@ import pyaudisam as ads
 import unintval_utils as uivu
 
 
+# Mark module
+pytestmark = pytest.mark.unintests
+
 # Setup local logger.
 logger = uivu.setupLogger('unt.eng', level=ads.DEBUG, otherLoggers={'ads.dat': ads.INFO})
 

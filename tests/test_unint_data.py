@@ -19,8 +19,8 @@
 
 import time
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 import pytest
 
@@ -28,6 +28,9 @@ import pyaudisam as ads
 
 import unintval_utils as uivu
 
+
+# Mark module
+pytestmark = pytest.mark.unintests
 
 # Setup local logger.
 logger = uivu.setupLogger('unt.dat', level=ads.DEBUG,
