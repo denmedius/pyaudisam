@@ -33,7 +33,22 @@ import unintval_utils as uivu
 # Setup local logger.
 logger = uivu.setupLogger('val.pnr', level=ads.DEBUG)
 
+# Some constants
+RS = ads.MCDSPreAnalysisResultsSet
+KResLogCols = [
+    ('header (head)', 'NumEchant', 'Value'),
+    ('header (head)', 'NumAnlys', 'Value'),
+    ('header (tail)', 'AbrevAnlys', 'Value'),
+    RS.CLNTotObs,
+    RS.CLMinObsDist, RS.CLMaxObsDist,
+    RS.CLNObs,
+    RS.CLRunStatus,
+    RS.CLCmbQuaBal3,
+    RS.CLDensity, RS.CLDensityMin, RS.CLDensityMax,
+]
 
+
+@pytest.mark.valtests
 @pytest.mark.parametrize("sampleSpecMode", ['implicit', 'explicit'])
 class TestMcdsPreAnalyser:
 
@@ -349,10 +364,12 @@ class TestMcdsPreAnalyser:
 
         logger.info(f'Loading pre-results from {filePath.as_posix()} ...')
 
-        rsPreRes = preAnlysr.setupResults()
-        rsPreRes.fromFile(filePath, postComputed=postComputed)
+        rsRes = preAnlysr.setupResults()
+        rsRes.fromFile(filePath, postComputed=postComputed)
 
-        return rsPreRes
+        assert isinstance(rsRes, ads.MCDSPreAnalysisResultsSet)
+
+        return rsRes
 
     @pytest.fixture()
     def refResults_fxt(self, sampleSpecMode, preAnalyser_fxt):
@@ -364,7 +381,8 @@ class TestMcdsPreAnalyser:
         rsRef = self.loadResults(preAnlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreResultats.ods',
                                  postComputed=True)
 
-        logger.info(f'Reference results: n={len(rsRef)} =>\n' + rsRef.dfData.to_string(min_rows=30, max_rows=30))
+        logger.info(f'Reference results: n={len(rsRef)} =>\n'
+                    + rsRef.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
 
         return rsRef
 
@@ -498,6 +516,8 @@ class TestMcdsPreAnalyser:
         end = time.perf_counter()
 
         logger.info(f'Elapsed time={end - start:.2f}s')
+        logger.info(f'Actual results: n={len(rsAct)} =>\n'
+                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
 
         # Export results
         rsAct.toOpenDoc(preAnlysr.workDir / f'valtests-preanalyses-results-{sampleSpecMode}api.ods')
@@ -545,7 +565,8 @@ class TestMcdsPreAnalyser:
 
         # c. Load pre-results
         rsAct = self.loadResults(preAnlysr, preAnlysr.workDir / 'valtests-preanalyses-results.xlsx')
-        logger.info(f'Actual results: n={len(rsAct)} =>\n' + rsAct.dfData.to_string(min_rows=30, max_rows=30))
+        logger.info(f'Actual results: n={len(rsAct)} =>\n'
+                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
 
         # d. Compare to reference.
         rsRef = refResults_fxt
@@ -718,7 +739,6 @@ class TestMcdsPreAnalyser:
             logger.info(f'Actual results: n={len(rsAct)} =>\n' + rsAct.dfData.to_string(min_rows=30, max_rows=30))
 
             # # b. Generate Excel and HTML reports
-            R = rsAct.__class__
             # b.i. Super-synthesis sub-report : Selected analysis results columns for the 3 textual columns of the table
             sampleRepCols = [
                 ('header (head)', 'NumEchant', 'Value'),
@@ -726,25 +746,25 @@ class TestMcdsPreAnalyser:
                 ('header (sample)', 'Passage', 'Value'),
                 ('header (sample)', 'Adulte', 'Value'),
                 ('header (sample)', 'Durée', 'Value'),
-                R.CLNTotObs, R.CLMinObsDist, R.CLMaxObsDist
+                RS.CLNTotObs, RS.CLMinObsDist, RS.CLMaxObsDist,
             ]
 
             paramRepCols = [
-                R.CLParEstKeyFn, R.CLParEstAdjSer
-                # R.CLParEstSelCrit, R.CLParEstCVInt
+                RS.CLParEstKeyFn, RS.CLParEstAdjSer,
+                # RS.CLParEstSelCrit, RS.CLParEstCVInt
             ]
 
             resultRepCols = [
-                R.CLRunStatus,
-                R.CLNObs, R.CLEffort,
-                R.CLAic, R.CLChi2, R.CLKS, R.CLDCv,
+                RS.CLRunStatus,
+                RS.CLNObs, RS.CLEffort,
+                RS.CLAic, RS.CLChi2, RS.CLKS, RS.CLDCv,
 
-                R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
+                RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3,
 
-                R.CLPDetec,
-                R.CLEswEdr,
-                R.CLDensity, R.CLDensityMin, R.CLDensityMax,
-                R.CLNumber, R.CLNumberMin, R.CLNumberMax
+                RS.CLPDetec,
+                RS.CLEswEdr,
+                RS.CLDensity, RS.CLDensityMin, RS.CLDensityMax,
+                RS.CLNumber, RS.CLNumberMin, RS.CLNumberMax,
             ]
 
             # b.ii. Synthesis sub-report : Selected analysis results columns for the
@@ -754,24 +774,19 @@ class TestMcdsPreAnalyser:
                 ('header (sample)', 'Passage', 'Value'),
                 ('header (sample)', 'Adulte', 'Value'),
                 ('header (sample)', 'Durée', 'Value'),
-                R.CLParEstKeyFn,
-                R.CLParEstAdjSer,
-                # R.CLParEstSelCrit,
-                # R.CLParEstCVInt,
-                # R.CLParTruncLeft,
-                # R.CLParTruncRight,
-                # R.CLParModFitDistCuts,
+                RS.CLParEstKeyFn,
+                RS.CLParEstAdjSer,
 
-                R.CLNTotObs, R.CLNObs, R.CLNTotPars, R.CLEffort, R.CLDeltaAic,
-                R.CLChi2, R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv,
+                RS.CLNTotObs, RS.CLNObs, RS.CLNTotPars, RS.CLEffort, RS.CLDeltaAic,
+                RS.CLChi2, RS.CLKS, RS.CLCvMUw, RS.CLCvMCw, RS.CLDCv,
 
-                R.CLSightRate,
-                R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
-                R.CLCmbQuaChi2, R.CLCmbQuaKS, R.CLCmbQuaDCv,
+                RS.CLSightRate,
+                RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3,
+                RS.CLCmbQuaChi2, RS.CLCmbQuaKS, RS.CLCmbQuaDCv,
 
-                R.CLPDetec, R.CLPDetecMin, R.CLPDetecMax,
-                R.CLDensity, R.CLDensityMin, R.CLDensityMax,
-                R.CLNumber, R.CLNumberMin, R.CLNumberMax
+                RS.CLPDetec, RS.CLPDetecMin, RS.CLPDetecMax,
+                RS.CLDensity, RS.CLDensityMin, RS.CLDensityMax,
+                RS.CLNumber, RS.CLNumberMin, RS.CLNumberMax,
             ]
 
             # b.iii. Sorting columns for all the sub-reports

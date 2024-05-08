@@ -33,7 +33,22 @@ import unintval_utils as uivu
 # Setup local logger.
 logger = uivu.setupLogger('val.anr', level=ads.DEBUG)
 
+# Some constants
+RS = ads.MCDSAnalysisResultsSet
+KResLogCols = [
+    ('header (head)', 'NumEchant', 'Value'),
+    ('header (head)', 'NumAnlys', 'Value'),
+    ('header (tail)', 'AbrevAnlys', 'Value'),
+    RS.CLNTotObs,
+    RS.CLParTruncLeft, RS.CLParTruncRight, RS.CLParModFitDistCuts,
+    RS.CLNObs,
+    RS.CLRunStatus,
+    RS.CLCmbQuaBal3,
+    RS.CLDensity, RS.CLDensityMin, RS.CLDensityMax,
+]
 
+
+@pytest.mark.valtests
 class TestMcdsAnalyser:
 
     # Set to False to skip final cleanup (useful for debugging)
@@ -212,6 +227,8 @@ class TestMcdsAnalyser:
         rsRes = anlysr.setupResults()
         rsRes.fromFile(filePath, postComputed=postComputed)
 
+        assert isinstance(rsRes, ads.MCDSAnalysisResultsSet)
+
         return rsRes
 
     @pytest.fixture()
@@ -224,7 +241,8 @@ class TestMcdsAnalyser:
         rsRef = self.loadResults(anlysr, uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-Resultats.ods',
                                  postComputed=True)
 
-        logger.info(f'Reference results: n={len(rsRef)} =>\n' + rsRef.dfData.to_string(min_rows=30, max_rows=30))
+        logger.info(f'Reference results: n={len(rsRef)} =>\n'
+                    + rsRef.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
 
         return rsRef
 
@@ -338,6 +356,8 @@ class TestMcdsAnalyser:
         end = time.perf_counter()
 
         logger.info(f'Elapsed time={end - start:.2f}s')
+        logger.info(f'Actual results: n={len(rsAct)} =>\n'
+                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
 
         # Export results
         rsAct.toOpenDoc(anlysr.workDir / 'valtests-analyses-results-api.ods')
@@ -372,7 +392,8 @@ class TestMcdsAnalyser:
 
         # c. Load results
         rsAct = self.loadResults(anlysr, anlysr.workDir / 'valtests-analyses-results.xlsx')
-        logger.info(f'Actual results: n={len(rsAct)} =>\n' + rsAct.dfData.to_string(min_rows=30, max_rows=30))
+        logger.info(f'Actual results: n={len(rsAct)} =>\n'
+                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
 
         # d. Compare to reference.
         rsRef = refResults_fxt
@@ -604,7 +625,6 @@ class TestMcdsAnalyser:
             logger.info(f'Actual results: n={len(rsAct)} =>\n' + rsAct.dfData.to_string(min_rows=30, max_rows=30))
 
             # b. Generate Excel and HTML reports
-            R = rsAct.__class__
             # b.i. Super-synthesis sub-report : Selected analysis results columns for the 3 textual columns of the table
             sampleRepCols = [
                 ('header (head)', 'NumEchant', 'Value'),
@@ -612,24 +632,24 @@ class TestMcdsAnalyser:
                 ('header (sample)', 'Passage', 'Value'),
                 ('header (sample)', 'Adulte', 'Value'),
                 ('header (sample)', 'Durée', 'Value'),
-                R.CLNTotObs, R.CLMinObsDist, R.CLMaxObsDist
+                RS.CLNTotObs, RS.CLMinObsDist, RS.CLMaxObsDist
             ]
 
             paramRepCols = [
-                R.CLParEstKeyFn, R.CLParEstAdjSer,
-                # R.CLParEstSelCrit, R.CLParEstCVInt,
-                R.CLParTruncLeft, R.CLParTruncRight, R.CLParModFitDistCuts
+                RS.CLParEstKeyFn, RS.CLParEstAdjSer,
+                # RS.CLParEstSelCrit, RS.CLParEstCVInt,
+                RS.CLParTruncLeft, RS.CLParTruncRight, RS.CLParModFitDistCuts
             ]
 
             resultRepCols = [
                 ('header (head)', 'NumAnlys', 'Value'),
-                R.CLRunStatus,
-                R.CLNObs, R.CLEffort, R.CLSightRate, R.CLNAdjPars,
-                R.CLAic, R.CLChi2, R.CLKS, R.CLDCv,
-                R.CLCmbQuaBal3, R.CLCmbQuaBal2, R.CLCmbQuaBal1,
-                R.CLDensity, R.CLDensityMin, R.CLDensityMax,
-                R.CLNumber, R.CLNumberMin, R.CLNumberMax,
-                R.CLEswEdr, R.CLPDetec
+                RS.CLRunStatus,
+                RS.CLNObs, RS.CLEffort, RS.CLSightRate, RS.CLNAdjPars,
+                RS.CLAic, RS.CLChi2, RS.CLKS, RS.CLDCv,
+                RS.CLCmbQuaBal3, RS.CLCmbQuaBal2, RS.CLCmbQuaBal1,
+                RS.CLDensity, RS.CLDensityMin, RS.CLDensityMax,
+                RS.CLNumber, RS.CLNumberMin, RS.CLNumberMax,
+                RS.CLEswEdr, RS.CLPDetec
             ]
 
             # b.ii. Synthesis sub-report : Selected analysis results columns for the table
@@ -641,35 +661,35 @@ class TestMcdsAnalyser:
                 ('header (sample)', 'Durée', 'Value'),
                 ('header (head)', 'NumAnlys', 'Value'),
 
-                R.CLParEstKeyFn, R.CLParEstAdjSer,
-                # R.CLParEstSelCrit, R.CLParEstCVInt,
-                R.CLParTruncLeft, R.CLParTruncRight, R.CLParModFitDistCuts,
+                RS.CLParEstKeyFn, RS.CLParEstAdjSer,
+                # RS.CLParEstSelCrit, RS.CLParEstCVInt,
+                RS.CLParTruncLeft, RS.CLParTruncRight, RS.CLParModFitDistCuts,
 
-                R.CLNTotObs, R.CLNObs, R.CLNTotPars, R.CLEffort, R.CLDeltaAic,
-                R.CLChi2, R.CLKS, R.CLCvMUw, R.CLCvMCw, R.CLDCv,
-                R.CLPDetec, R.CLPDetecMin, R.CLPDetecMax, R.CLDensity, R.CLDensityMin, R.CLDensityMax,
+                RS.CLNTotObs, RS.CLNObs, RS.CLNTotPars, RS.CLEffort, RS.CLDeltaAic,
+                RS.CLChi2, RS.CLKS, RS.CLCvMUw, RS.CLCvMCw, RS.CLDCv,
+                RS.CLPDetec, RS.CLPDetecMin, RS.CLPDetecMax, RS.CLDensity, RS.CLDensityMin, RS.CLDensityMax,
 
-                R.CLSightRate,
-                R.CLCmbQuaBal1, R.CLCmbQuaBal2, R.CLCmbQuaBal3,
-                R.CLCmbQuaChi2, R.CLCmbQuaKS, R.CLCmbQuaDCv,
+                RS.CLSightRate,
+                RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3,
+                RS.CLCmbQuaChi2, RS.CLCmbQuaKS, RS.CLCmbQuaDCv,
 
-                R.CLGrpOrdSmTrAic,
-                R.CLGrpOrdClTrChi2KSDCv,  # R.CLGrpOrdClTrChi2,
-                R.CLGrpOrdClTrDCv,
-                R.CLGrpOrdClTrQuaBal1, R.CLGrpOrdClTrQuaBal2, R.CLGrpOrdClTrQuaBal3, R.CLGrpOrdClTrQuaChi2,
-                R.CLGrpOrdClTrQuaKS, R.CLGrpOrdClTrQuaDCv,
-                R.CLGblOrdChi2KSDCv, R.CLGblOrdQuaBal1, R.CLGblOrdQuaBal2, R.CLGblOrdQuaBal3,
-                R.CLGblOrdQuaChi2, R.CLGblOrdQuaKS, R.CLGblOrdQuaDCv,
-                R.CLGblOrdDAicChi2KSDCv,
-                R.CLRunFolder,
+                RS.CLGrpOrdSmTrAic,
+                RS.CLGrpOrdClTrChi2KSDCv,  # RS.CLGrpOrdClTrChi2,
+                RS.CLGrpOrdClTrDCv,
+                RS.CLGrpOrdClTrQuaBal1, RS.CLGrpOrdClTrQuaBal2, RS.CLGrpOrdClTrQuaBal3, RS.CLGrpOrdClTrQuaChi2,
+                RS.CLGrpOrdClTrQuaKS, RS.CLGrpOrdClTrQuaDCv,
+                RS.CLGblOrdChi2KSDCv, RS.CLGblOrdQuaBal1, RS.CLGblOrdQuaBal2, RS.CLGblOrdQuaBal3,
+                RS.CLGblOrdQuaChi2, RS.CLGblOrdQuaKS, RS.CLGblOrdQuaDCv,
+                RS.CLGblOrdDAicChi2KSDCv,
+                RS.CLRunFolder,
             ]
 
             # b.iii. Sorting columns for all the sub-reports
             sortRepCols = \
                 [('header (head)', 'NumEchant', 'Value')] \
-                + [R.CLParTruncLeft, R.CLParTruncRight,
-                   R.CLDeltaAic,
-                   R.CLCmbQuaBal3]
+                + [RS.CLParTruncLeft, RS.CLParTruncRight,
+                   RS.CLDeltaAic,
+                   RS.CLCmbQuaBal3]
 
             sortRepAscend = [True] * (len(sortRepCols) - 1) + [False]
 
