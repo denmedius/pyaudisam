@@ -70,9 +70,12 @@ def inifinalizeFunction(request):
     report = request.node.stash[_phase_report_key]
     if report['setup'].failed:
         status = 'NOT SETUP'
+        details = report['setup'].longreprtext + '\n'
     elif 'call' not in report:
         status = 'SKIPPED'
+        details = ''
     else:
         status = report['call'].outcome.upper()
+        details = report['call'].longreprtext + '\n'
 
-    _logr.info(f'Done with {request.node.nodeid}: {status}.\n')
+    _logr.info(f'Done with {request.node.nodeid}: {status}.\n{details}')
