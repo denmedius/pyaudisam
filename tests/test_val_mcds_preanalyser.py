@@ -53,7 +53,7 @@ KResLogCols = [
 class TestMcdsPreAnalyser:
 
     # Set to False to skip final cleanup (useful for debugging)
-    KFinalCleanup = False
+    KFinalCleanup = True
 
     # Class and test function initializers / finalizers ###########################
     @pytest.fixture(autouse=True, scope='class')
@@ -536,7 +536,7 @@ class TestMcdsPreAnalyser:
 
         # f. Minimal check of pre-analysis folders
         logger.info('Checking pre-analysis folders (minimal) ...')
-        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectNumberOf=12, anlysKind='pre-analysis')
+        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectedCount=12, anlysKind='pre-analysis')
 
         # g. Cleanup pre-analyser (analysis folders, not results)
         preAnlysr.cleanup()
@@ -573,7 +573,7 @@ class TestMcdsPreAnalyser:
         self.compareResults(rsRef, rsAct)
 
         # e. Minimal check of pre-analysis folders
-        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectNumberOf=12, anlysKind='pre-analysis')
+        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectedCount=12, anlysKind='pre-analysis')
 
         # f. Don't clean up work folder / analysis folders : needed for report generations below
 

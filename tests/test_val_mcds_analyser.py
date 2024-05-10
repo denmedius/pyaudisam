@@ -368,7 +368,7 @@ class TestMcdsAnalyser:
         self.compareResults(rsRef, rsAct)
 
         # f. Minimal check of analysis folders
-        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectNumberOf=48, anlysKind='analysis')
+        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectedCount=48, anlysKind='analysis')
 
         # g. Cleanup analyser (analysis folders, not results)
         anlysr.cleanup()
@@ -400,7 +400,7 @@ class TestMcdsAnalyser:
         self.compareResults(rsRef, rsAct)
 
         # e. Minimal check of analysis folders
-        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectNumberOf=48, anlysKind='analysis')
+        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectedCount=48, anlysKind='analysis')
 
         # f. Don't clean up work folder / analysis folders : needed for report generations below
 
