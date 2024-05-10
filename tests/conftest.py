@@ -78,4 +78,4 @@ def inifinalizeFunction(request):
         status = report['call'].outcome.upper()
         details = report['call'].longreprtext + '\n'
 
-    _logr.info(f'Done with {request.node.nodeid}: {status}.\n{details}')
+    _logr.info(f'Done ({status}) with {request.node.nodeid}\n{details}')
