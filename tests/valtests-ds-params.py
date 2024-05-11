@@ -167,7 +167,7 @@ optResultsHeadCols = dict(before=[analysisIndCol, sampleIndCol],
                                 + [analysisAbbrevCol] + optAnalysisSpecCustCols)
 
 runOptAnalysisMethod = 'subprocess.run'
-runOptAnalysisTimeOut = 300
+runOptAnalysisTimeOut = 120
 logOptAnalysisData = False
 logOptAnalysisProgressEvery = 5
 logOptimisationProgressEvery = 3
@@ -180,13 +180,13 @@ defOutliersQuantCutPct = 7
 defFitDistCutsFctr = Interval(min=0.6, max=1.4)
 defDiscrDistCutsFctr = Interval(min=0.5, max=1.2)
 
-defSubmitTimes = 1
+defSubmitTimes = 2
 defSubmitOnlyBest = None
 
 dDefSubmitOtherParams = dict()
 
 defCoreEngine = 'zoopt'
-defCoreMaxIters = 100
+defCoreMaxIters = 150
 defCoreTermExprValue = None
 defCoreAlgorithm = 'racos'
 defCoreMaxRetries = 0
@@ -373,26 +373,20 @@ filsorReportSchemes = \
           preselAscs=False, preselThrhs=0.2, preselNum=4),
      dict(method=RS.filterSortOnExCAicMulQua,
           deduplicate=dict(dupSubset=_dupSubset, dDupRounds=_dDupRounds),
-          filterSort=dict(sightRate=90, nBestAIC=4, nBestQua=2, whichBestQua=_whichBestQua,
+          filterSort=dict(sightRate=87.5, nBestAIC=5, nBestQua=4, whichBestQua=_whichBestQua,
+                          nFinalRes=18, whichFinalQua=_whichFinalQua, ascFinalQua=_ascFinalQua),
+          preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
+          preselAscs=False, preselThrhs=0.2, preselNum=5),
+     dict(method=RS.filterSortOnExCAicMulQua,
+          deduplicate=dict(dupSubset=_dupSubset, dDupRounds=_dDupRounds),
+          filterSort=dict(sightRate=90, nBestAIC=4, nBestQua=3, whichBestQua=_whichBestQua,
                           nFinalRes=15, whichFinalQua=_whichFinalQua, ascFinalQua=_ascFinalQua),
           preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
-          preselAscs=False, preselThrhs=0.2, preselNum=3),
+          preselAscs=False, preselThrhs=0.2, preselNum=4),
      dict(method=RS.filterSortOnExCAicMulQua,
           deduplicate=dict(dupSubset=_dupSubset, dDupRounds=_dDupRounds),
-          filterSort=dict(sightRate=92, nBestAIC=3, nBestQua=2, whichBestQua=_whichBestQua,
+          filterSort=dict(sightRate=92.5, nBestAIC=3, nBestQua=2, whichBestQua=_whichBestQua,
                           nFinalRes=12, whichFinalQua=_whichFinalQua, ascFinalQua=_ascFinalQua),
-          preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
-          preselAscs=False, preselThrhs=0.2, preselNum=3),
-     dict(method=RS.filterSortOnExCAicMulQua,
-          deduplicate=dict(dupSubset=_dupSubset, dDupRounds=_dDupRounds),
-          filterSort=dict(sightRate=94, nBestAIC=2, nBestQua=1, whichBestQua=_whichBestQua,
-                          nFinalRes=10, whichFinalQua=_whichFinalQua, ascFinalQua=_ascFinalQua),
-          preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
-          preselAscs=False, preselThrhs=0.2, preselNum=3),
-     dict(method=RS.filterSortOnExCAicMulQua,
-          deduplicate=dict(dupSubset=_dupSubset, dDupRounds=_dDupRounds),
-          filterSort=dict(sightRate=96, nBestAIC=2, nBestQua=1, whichBestQua=_whichBestQua,
-                          nFinalRes=8, whichFinalQua=_whichFinalQua, ascFinalQua=_ascFinalQua),
           preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
           preselAscs=False, preselThrhs=0.2, preselNum=3)]
 
@@ -425,6 +419,7 @@ filsorReportSynthCols = \
     [('header (head)', sampleIndCol, 'Value')] \
     + [('header (sample)', col, 'Value') for col in sampleSelCols] \
     + filsorReportParamCols \
+    + [RS.CLOptimTruncFlag] \
     + [RS.CLNTotObs, RS.CLNObs, RS.CLNTotPars, RS.CLEffort,
        RS.CLDeltaAic, RS.CLChi2, RS.CLKS, RS.CLCvMUw, RS.CLCvMCw, RS.CLDCv,
        RS.CLSightRate,
