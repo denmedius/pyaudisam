@@ -836,12 +836,12 @@ class TestMcdsTruncOptAnalyser:
         KSDeltaResThresh = pd.Series({
             'before': 10,
             'run status': 10,
-            'duplicates on params': 5,
-            'best AIC': 5,
-            'best results for >= 1 indicator': 5,
+            'duplicates on params': 10,
+            'best AIC': 10,
+            'best results for >= 1 indicator': 10,
             'non-outlier sightings': 10,
             'final best results': 5,
-            'after': 5,
+            'after': 10,  # <=> final best results for or quality filtering schemes, but not for ExCode one.
         }, name='Threshold')
         dfCompRes = dfCompRes.reset_index().join(KSDeltaResThresh, on='Step').set_index(indexCols)
         dfCompRes['IsCorrect'] = dfCompRes.Delta <= dfCompRes.Threshold
