@@ -53,7 +53,7 @@ KResLogCols = [
 class TestMcdsTruncOptAnalyser:
 
     # Set to False to skip final cleanup (useful for debugging)
-    KFinalCleanup = False
+    KFinalCleanup = True
 
     # Class and test function initializers / finalizers ###########################
     @pytest.fixture(autouse=True, scope='class')
@@ -655,7 +655,7 @@ class TestMcdsTruncOptAnalyser:
     def testRun(self, optAnalyser_fxt, refResults_fxt):
 
         postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
-        restart = False  # Debug only: Set to False to prevent restart
+        restart = True  # Debug only: Set to False to prevent restart
 
         # a. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
         optanlr, dfOptAnlysSpecs, optAnlysSpecFile = optAnalyser_fxt
@@ -728,7 +728,7 @@ class TestMcdsTruncOptAnalyser:
     # Run analyses through pyaudisam command line interface
     def testRunCli(self, optAnalyser_fxt, refResults_fxt):
 
-        restart = False  # Debug only: Set to False to prevent restart
+        restart = True  # Debug only: Set to False to prevent restart
 
         optanlr, _, _ = optAnalyser_fxt
 
