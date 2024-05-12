@@ -332,17 +332,17 @@ fullReportRebuild = False
 # Auto-filtered reports ######################################################################
 # a. Specific to analysis reports
 anlysFilsorReportStudyTitle = 'PyAuDiSam Validation: Analyses'
-anlysFilsorReportStudySubTitle = 'Global analysis auto-filtered report'
+anlysFilsorReportStudySubTitle = 'Auto-selection of best analysis results'
 anlysFilsorReportAnlysSubTitle = 'Detailed report'
-anlysFilsorReportStudyDescr = 'Automated filtering et sorting : method "{fsId}" ;' \
+anlysFilsorReportStudyDescr = 'Automated filtering and sorting: method "{fsId}" ;' \
                               ' after easy and parallel run through MCDSAnalyser'
 anlysFilsorReportStudyKeywords = 'pyaudisam, validation, analysis, auto-filter'
 
 # c. Specific to opt-analysis reports
-optAnlysFilsorReportStudyTitle = 'PyAuDiSam Validation: Opt-analyses'
-optAnlysFilsorReportStudySubTitle = 'Global opt-analysis auto-filtered report'
+optAnlysFilsorReportStudyTitle = 'PyAuDiSam Validation: Analyses with optimised truncations'
+optAnlysFilsorReportStudySubTitle = 'Auto-selection of best opt-analysis results'
 optAnlysFilsorReportAnlysSubTitle = 'Detailed report'
-optAnlysFilsorReportStudyDescr = 'Automated filtering et sorting : method "{fsId}" ;' \
+optAnlysFilsorReportStudyDescr = 'Automated filtering and sorting: method "{fsId}" ;' \
                                  ' after easy and parallel run through MCDSTruncationOptAnalyser'
 optAnlysFilsorReportStudyKeywords = 'pyaudisam, validation, opt-analysis, auto-filter'
 

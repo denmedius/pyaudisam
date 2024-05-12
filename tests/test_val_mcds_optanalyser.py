@@ -301,13 +301,13 @@ class TestMcdsTruncOptAnalyser:
     @staticmethod
     def compareUnoptResultTables(dfRef, dfAct, mode='api', source='results', table='all'):
         """Prerequisite: Reference results generated with either MCDS 7.4 or 6.2
-        Note: Used for result sheets comparison, but also for some report sheets comparison"""
+        Note: Used for result tables comparison, but also for some report tables comparison"""
 
         assert source in {'results', 'report'}
         assert mode in {'api', 'cli'}
         table = table.lower()
 
-        # a. Actual "unoptimised" analysis results ("all-results" sheet)
+        # a. Actual "unoptimised" analysis results ("all-results" table)
         logger.info(f'* non truncation-optimised analyses {source} ({table}):')
         dfRefUnopt = dfRef[dfRef[KOptTruncFlagCol] == 0].copy()
         logger.info(f'  - found {len(dfRefUnopt)} reference unopt. result rows')
@@ -336,14 +336,16 @@ class TestMcdsTruncOptAnalyser:
         #    thus changing the row order by an amount of at least 1, which would imply another comparison method,
         #  - "pre-selection" columns in filter & sort reports, for the same reason as the "Order" columns
         #    (they hold an integer index that can slightly change with optimised results,
-        #     but slight changes for integers are at least of 1 unit, which is not suitable for the diff tool used).
+        #     but slight changes for integers are at least of 1 unit, which is not suitable for the diff tool used),
+        #  - new undocumented results columns appeared between MCDS 6.2 and 7.4.
         anlysAbrevCol = 'AbrevAnlys'
         compCols = [col for col in dfActUnopt.columns
                     if col not in indexCols
                        and col not in [anlysAbrevCol, 'Mod Chc Crit', 'StartTime', 'ElapsedTime', 'RunFolder',
                                        'FonctionClé', 'SérieAjust', 'Key Fn', 'Adj Ser']  # , 'Delta AIC']
                        and not col.startswith('Order')
-                       and not col.startswith('Pre-selection')]
+                       and not col.startswith('Pre-selection')
+                       and not col.startswith('SansDoc #')]
         compColsStr = '\n    . '.join(str(t) for t in compCols)
         logger.info(f'  - data columns for comparison:\n    . ' + compColsStr)
 
@@ -377,7 +379,7 @@ class TestMcdsTruncOptAnalyser:
     @staticmethod
     def compareOptResultTables(dfRef, dfAct, mode='api', source='results', table='all'):
         """Prerequisite: Reference results generated with either MCDS 7.4 or 6.2
-        Note: Used for result sheets comparison, but also for some report sheets comparison"""
+        Note: Used for result tables comparison, but also for some report tables comparison"""
 
         assert source in {'results', 'report'}
         assert mode in {'api', 'cli'}
@@ -424,6 +426,7 @@ class TestMcdsTruncOptAnalyser:
         dfMrgdOpt.sort_values(by=[anlysNumCol, 'Source'], inplace=True)
         dfMrgdOpt.to_excel(uivu.pWorkDir / f'valtst-optanlys-{mode}-{source}-{table}-opt-raw-comp.xlsx')
 
+        # c.ii. If there's an analysis abbrev. column, use it to check presence of unique optim. param. sets
         anlysAbrevCol = 'AbrevAnlys'
         if anlysAbrevCol in dfRefOpt:
             logger.info(f'  - comparing optimisation param. specs ...')
@@ -492,7 +495,6 @@ class TestMcdsTruncOptAnalyser:
 
             dfRefSmpSpecs = dsdfRefSpecs['analyser']
             logger.info(f'  - ref. sample specs: n={len(dfRefSmpSpecs)} =>\n' + dfRefSmpSpecs.to_string())
-
             dfActSmpSpecs = dsdfActSpecs['analyser']
             logger.info(f'  - actual sample specs: n={len(dfActSmpSpecs)} =>\n' + dfActSmpSpecs.to_string())
 
@@ -652,7 +654,7 @@ class TestMcdsTruncOptAnalyser:
     #   * 18 threads, runMethod: subprocess.run => mean 24mn (n=7)
     def testRun(self, optAnalyser_fxt, refResults_fxt):
 
-        cleanup = True  # Debug only: Set to False to prevent cleaning at the end
+        postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
         restart = False  # Debug only: Set to False to prevent restart
 
         # a. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
@@ -711,9 +713,14 @@ class TestMcdsTruncOptAnalyser:
             rsAct.toExcel(optanlr.workDir / 'valtests-optanalyses-restart-results-api-en.xlsx', lang='en')
             self.compareResults(rsRef, rsAct, mode='api')
 
+        else:
+            logger.warning('NOT restarting: this is not the normal testing scheme !')
+
         # g. Cleanup analyser (analysis folders, not workbook results files)
-        if cleanup:
+        if postCleanup:
             optanlr.cleanup()
+        else:
+            logger.warning('NOT cleaning up the opt-analyser: this is not the normal testing scheme !')
 
         # h. Done.
         logger.info(f'PASS testRun: run (first, restart), cleanup')
@@ -781,22 +788,28 @@ class TestMcdsTruncOptAnalyser:
                                       expectedCount=(KExptdMinAnlysFolders, KExptdMaxAnlysFolders),
                                       anlysKind='opt-analysis')
 
+        else:
+            logger.warning('NOT restarting: this is not the normal testing scheme !')
+
         # g. Don't clean up work folder / analysis folders : needed for report generations below
 
         # h. Done.
         logger.info(f'PASS testRunCli: main, run (command line mode)')
 
+    @staticmethod
+    def loadWorkbookReport(filePath):
+
+        logger.info(f'Loading workbook report from {filePath.as_posix()} ...')
+
+        return pd.read_excel(filePath, sheet_name=None, index_col=0)
+
     @pytest.fixture()
     def excelRefReport_fxt(self):
 
-        return pd.read_excel(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-OptRapport.ods',
-                             sheet_name=None, index_col=0)
-
-    KRep2SpecNames = {'Samples': 'samples', 'Analyses': 'analyses', 'Analyser': 'analyser',
-                      'Computing platform': 'runtime'}
+        return self.loadWorkbookReport(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-OptRapport.ods')
 
     @staticmethod
-    def compareAFSStepsTables(dfRef, dfAct, mode='api'):
+    def compareAFSStepsTables(dfRef, dfAct, mode='api', kind='workbook'):
 
         # Remove timestamps (always changing)
         dfRef = dfRef[dfRef.Property != 'datetime'].reset_index(drop=True)
@@ -804,19 +817,19 @@ class TestMcdsTruncOptAnalyser:
 
         # Comparing parameters: should not change
         indexCols = ['Scheme', 'Step', 'Property']
-        logger.info(f'* auto filter & sort report steps (afs-steps): parameters ...')
+        logger.info(f'* auto filter & sort {kind} report steps (afs-steps): parameters ...')
         dfRefPars = dfRef[dfRef.Property != 'results'].set_index(indexCols)
         logger.info(f'  - found {len(dfRefPars)} ref. rows')
         dfActPars = dfAct[dfAct.Property != 'results'].set_index(indexCols)
         logger.info(f'  - found {len(dfActPars)} actual rows')
 
-        assert len(dfRefPars) == len(dfActPars), 'Unexpected actual number of step parameters'
+        assert len(dfRefPars) == len(dfActPars), f'Unexpected actual number of {kind} step parameters'
 
         dfComp = dfRefPars.compare(dfActPars)
         logger.info(f'  - differences (compare): n={len(dfComp)} =>\n' + dfComp.to_string())
 
         if not dfComp.empty:
-            fpn = uivu.pWorkDir / f'valtst-optanlys-{mode}-side-by-side-steps.xlsx'
+            fpn = uivu.pWorkDir / f'valtst-optanlys-{mode}-side-by-side-{kind}-steps.xlsx'
             logger.info(f'  - side by side visual comparison => {fpn.as_posix()}')
             dfComp.to_excel(fpn)
 
@@ -831,6 +844,8 @@ class TestMcdsTruncOptAnalyser:
         assert len(dfRefRes) == len(dfActRes), 'Unexpected actual number of step results'
 
         dfCompRes = dfRefRes.join(dfActRes, lsuffix=' Ref', rsuffix=' Act')
+        dfCompRes['Value Ref'] = dfCompRes['Value Ref'].astype(int)  # When kind=html, all strings
+        dfCompRes['Value Act'] = dfCompRes['Value Act'].astype(int)  # Idem
         dfCompRes['Delta'] = dfCompRes['Value Ref'].subtract(dfCompRes['Value Act']).abs()
 
         KSDeltaResThresh = pd.Series({
@@ -848,26 +863,27 @@ class TestMcdsTruncOptAnalyser:
 
         logger.info(f'  - side by side comparison and verdict =>\n' + dfCompRes.to_string())
 
-        assert dfCompRes.IsCorrect.all(), 'Some step results are over the thresholds'
+        assert dfCompRes.IsCorrect.all(), f'Some {kind} step results are over the thresholds'
 
     @staticmethod
-    def compareAFSMTables(dfRef, dfAct, mode='api', table='all'):
+    def compareAFSMTables(dfRef, dfAct, mode='api', table='all', kind='workbook'):
         """Prerequisite: Reference results generated with either MCDS 7.4 or 6.2
-        Note: Used for result sheets comparison, but also for some report sheets comparison"""
+        Note: Used for result tables comparison, but also for some report tables comparison"""
 
         source = 'report'
         assert mode in {'api', 'cli'}
+        assert kind in {'workbook', 'html'}
         table = table.lower()
 
         # a. Number of ref. and actual rows (may show some limited difference)
-        logger.info(f'* auto filter & sort {source} ({table}):')
+        logger.info(f'* auto filter & sort {kind} {source} ({table}):')
         dfRef = dfRef.copy()
         logger.info(f'  - found {len(dfRef)} reference result rows')
         dfAct = dfAct.copy()
         logger.info(f'  - found {len(dfAct)} actual result rows')
 
         KMaxTotalRowDelta = 10
-        assert abs(len(dfRef) - len(dfAct)) <= KMaxTotalRowDelta
+        assert abs(len(dfRef) - len(dfAct)) <= KMaxTotalRowDelta, 'Unexpected number of filtered & sorted results'
 
         # b. Number of ref. and actual rows per sample (may show some very limited difference)
         sampleNumCol = 'NumEchant'
@@ -882,7 +898,8 @@ class TestMcdsTruncOptAnalyser:
                     + dfActSampCnts.to_string())
 
         KMaxPerSampleRowDelta = 3
-        assert dfRefSampCnts.subtract(dfActSampCnts).number.abs().le(KMaxPerSampleRowDelta).all()
+        assert dfRefSampCnts.subtract(dfActSampCnts).number.abs().le(KMaxPerSampleRowDelta).all(), \
+               'Some number of results per sample are too different (delta over the threshold)'
 
         # c. Export a table to manually check that optimisation param. specs are the same as for the ref. results,
         #    at least for the "common" rows
@@ -896,7 +913,9 @@ class TestMcdsTruncOptAnalyser:
         dfAct.insert(0, 'Source', 'act')
         dfMrgdOpt = pd.concat([dfRef, dfAct], sort=False)
         dfMrgdOpt.sort_values(by=sortCols, inplace=True)
-        dfMrgdOpt.to_excel(uivu.pWorkDir / f'valtst-optanlys-{mode}-{source}-{table}-opt-raw-comp.xlsx')
+        dfMrgdOpt.to_excel(uivu.pWorkDir / f'valtst-optanlys-{mode}-{kind}-{source}-{table}-opt-raw-comp.xlsx')
+
+        # TODO: Set up an auto-test for this (inspired by compareOptResultTables ?) !
 
         # d. Compare a small and simple subset of analyses results columns,
         #    via simple statistics on fitting statistics + functional results, by sample
@@ -911,7 +930,7 @@ class TestMcdsTruncOptAnalyser:
 
         dfDiffStats = ads.DataSet.compareDataFrames(dfRefStats.reset_index(), dfActStats.reset_index(),
                                                     indexCols=sampleCols, subsetCols=dfRefStats.columns.to_list())
-        with pd.ExcelWriter(uivu.pWorkDir / f'valtst-optanlys-{mode}-{source}-{table}-stats-and-diff.xlsx') as xlWrtr:
+        with pd.ExcelWriter(uivu.pWorkDir / f'valtst-optanlys-{mode}-{kind}-{source}-{table}-stats-and-diff.xlsx') as xlWrtr:
             dfRefStats.to_excel(xlWrtr, sheet_name='ref')
             dfActStats.to_excel(xlWrtr, sheet_name='act')
             dfDiffStats.to_excel(xlWrtr, sheet_name='diff')
@@ -941,38 +960,63 @@ class TestMcdsTruncOptAnalyser:
 
         logger.info(f'... done with auto filter & sort {source} ({table}).')
 
+    KRep2SpecNames = {'Samples': 'samples', 'Analyses': 'analyses', 'Analyser': 'analyser',
+                      'Computing platform': 'runtime'}
+
     @classmethod
-    def compareExcelReports(cls, ddfRefReport, ddfActReport, mode='api'):
+    def compareReports(cls, ddfRefReport, ddfActReport, filSorSchemeId=None, expectTables=None,
+                       mode='api', kind='workbook'):
         """Prerequisite: Reference report generated with either MCDS 7.4 or 6.2"""
 
-        logger.info(f'Comparing reference to actual opt-analysis workbook reports ({mode}) ...')
+        assert kind in {'workbook', 'html'}
+
+        logger.info(f'Comparing reference to actual opt-analysis {kind} reports ({mode}) ...')
+
+        logger.info(f'* {kind} report tables ...')
+        logger.info('  - expected tables: ' + ', '.join(expectTables or [None]))
+        logger.info('  - ref. report tables: ' + ', '.join(ddfRefReport.keys()))
+        logger.info('  - actual report tables: ' + ', '.join(ddfActReport.keys()))
+
+        assert set(ddfRefReport.keys()) == set(ddfActReport), 'Missing ref. tables in actual report'
+        assert expectTables is None \
+               or set(expectTables).issubset(ddfActReport.keys()), 'Some expected tables are missing'
+
+        # Compare "Title" if there
+        if 'Title' in ddfRefReport:
+            logger.info(f'* {kind} report title ...')
+            logger.info(f'  - ref. : n={len(ddfRefReport["Title"])} =>\n' + ddfRefReport['Title'].to_string())
+            logger.info(f'  - actual : n={len(ddfActReport["Title"])} =>\n' + ddfActReport['Title'].to_string())
+            assert ddfRefReport['Title'].compare(ddfActReport['Title']).empty
+            assert any(filSorSchemeId in line for line in ddfActReport['Title'].values[:, 0])
 
         # Compare "AFS-Steps"
         dfRef = ddfRefReport['AFS-Steps']
         dfAct = ddfActReport['AFS-Steps']
-        cls.compareAFSStepsTables(dfRef, dfAct, mode=mode)
+        cls.compareAFSStepsTables(dfRef, dfAct, mode=mode, kind=kind)
 
-        # Compare "AFSM-<filter & sort scheme>" sheets
-        for sheetName in ddfRefReport:
-            if not sheetName.startswith('AFSM-'):
+        # Compare "AFSM-<filter & sort scheme>" tables
+        for tableName in ddfRefReport:
+            if not tableName.startswith('AFSM-'):
                 continue
-            dfRef = ddfRefReport[sheetName].reset_index()  # Restore NumEchant column (loaded as index)
-            dfAct = ddfActReport[sheetName].reset_index()  # Idem
-            cls.compareAFSMTables(dfRef, dfAct, mode=mode, table=sheetName)
+            dfRef = ddfRefReport[tableName].reset_index()  # Restore NumEchant column (loaded as index)
+            dfAct = ddfActReport[tableName].reset_index()  # Idem
+            cls.compareAFSMTables(dfRef, dfAct, mode=mode, table=tableName, kind=kind)
 
-        # Compare "Synthesis" sheet
-        dfRef = ddfRefReport['Synthesis']
-        dfAct = ddfActReport['Synthesis']
-        cls.compareUnoptResultTables(dfRef, dfAct, mode=mode, source='report', table='Synthesis')
-        cls.compareOptResultTables(dfRef, dfAct, mode=mode, source='report', table='Synthesis')
+        # Compare "Synthesis" table
+        if 'Synthesis' in ddfRefReport:  # "Replaced" by AFSM-Synthesis when kind is HTML
+            dfRef = ddfRefReport['Synthesis']
+            dfAct = ddfActReport['Synthesis']
+            cls.compareUnoptResultTables(dfRef, dfAct, mode=mode, source='report', table='Synthesis')
+            cls.compareOptResultTables(dfRef, dfAct, mode=mode, source='report', table='Synthesis')
 
-        # Compare "Details" sheet :
-        dfRef = ddfRefReport['Details']
-        dfAct = ddfActReport['Details']
-        cls.compareUnoptResultTables(dfRef, dfAct, mode=mode, source='report', table='Details')
-        cls.compareOptResultTables(dfRef, dfAct, mode=mode, source='report', table='Details')
+        # Compare "Details" table :
+        if 'Synthesis' in ddfRefReport:  # "Replaced" by AFSM-Details when kind is HTML
+            dfRef = ddfRefReport['Details']
+            dfAct = ddfActReport['Details']
+            cls.compareUnoptResultTables(dfRef, dfAct, mode=mode, source='report', table='Details')
+            cls.compareOptResultTables(dfRef, dfAct, mode=mode, source='report', table='Details')
 
-        # Compare "Samples" (if there), and "Analyses", "Analyser" and "Computing platform" sheets
+        # Compare "Samples" (if there), and "Analyses", "Analyser" and "Computing platform" tables
         # (+ some preliminary tweaks to convert workbook to results specs "format")
         ddfRefSpecs = {cls.KRep2SpecNames[n]: sdf.copy() for n, sdf in ddfRefReport.items() if n in cls.KRep2SpecNames}
         ddfRefSpecs['analyser'] = ddfRefSpecs['analyser']['Value']
@@ -982,133 +1026,71 @@ class TestMcdsTruncOptAnalyser:
         ddfActSpecs['runtime'] = ddfActSpecs['runtime']['Version']
         cls.compareResultSpecs(ddfRefSpecs, ddfActSpecs, source='report')
 
-        logger.info(f'Done comparing reference to actual opt-analysis workbook reports ({mode}).')
-
-    @pytest.fixture()
-    def htmlRefReportLines_fxt(self):
-
-        with open(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-OptRapport.ExAicMQua-r900m6q3d15.html') as file:
-            repLines = file.readlines()
-
-        return repLines
+        logger.info(f'Done comparing reference to actual opt-analysis {kind} reports ({mode}).')
 
     @staticmethod
-    def compareHtmlReports(refReportLines, actReportLines):
-        """Prerequisite: Reference report generated with either MCDS 7.4 or 6.2"""
+    def loadHtmlReport(filePath):
+        """Produce a dict of DataFrames with exact same layout as loadWorkbookReport"""
 
-        logger.info('Preprocessing HTML reports for comparison ...')
+        assert filePath.is_file(), f'Expected HTML report file not found {filePath.as_posix()}'
 
-        # Pre-process actual report lines
-        remRefLines = remActLines = 0
+        logger.info(f'Loading Html report from {filePath.as_posix()} ...')
 
-        # * list unique cell ids (keeping the original order) in both reports
-        KRETableId = r'#T(_[0-9a-f]{5}_)'
-        refTableIds = uivu.listUniqueStrings(KRETableId, refReportLines)
-        actTableIds = uivu.listUniqueStrings(KRETableId, actReportLines)
-        assert len(refTableIds) == 2
-        assert len(actTableIds) == len(refTableIds)
+        ldfTables = pd.read_html(filePath)
 
-        refDetTableId = refTableIds[1]  # "Details" table Id
+        nResults = (len(ldfTables) - 1 - 8) // 3
 
-        logger.info(f'* found table Ids: ref={refTableIds}, act={actTableIds}')
+        # Get the title table
+        ddfRep = {'Title': ldfTables[0]}
 
-        # * replace each cell id in the actual report by the corresponding ref. report one
-        #   (note: the heading and trailing '_' of the Id make this replacement safe ;
-        #    without them, there are chances to also replace decimal figures in results !)
-        repIdLines = uivu.replaceStrings(froms=actTableIds, tos=refTableIds, lines=actReportLines)
-        logger.info(f'* replaced by analysis Id by ref. one in {repIdLines} act. lines')
+        # Build the auto-filtered-and-sorted multi-qua. super-synthesis table
+        # from the sub-tables (columns 1, 2, and 3) of the HTML super-synthesis table (1 row per analysis)
+        ddfRep['AFSM-SuperSynthesis'] = pd.DataFrame([pd.concat([ldfTables[subTblInd]
+                                                                 for subTblInd in range(resInd, resInd + 3)])
+                                                        .set_index(0).loc[:, 1]
+                                                      for resInd in range(2, 2 + 3 * nResults, 3)])
+        ddfRep['AFSM-SuperSynthesis'].set_index('NumEchant', inplace=True)
 
-        # * list unique analysis folders (keeping the original order) in both reports
-        KREAnlysDir = r'="./([a-zA-Z0-9-_]+)/'
-        refAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, refReportLines)
-        actAnlysDirs = uivu.listUniqueStrings(KREAnlysDir, actReportLines)
-        assert len(refAnlysDirs) == len(actAnlysDirs)
+        # Get and format the auto-filtered-and-sorted multi-qua. synthesis and details tables (1 row per analysis)
+        synthTableInd = 2 + 3 * nResults
+        ddfRep['AFSM-Synthesis'] = ldfTables[synthTableInd]
+        ddfRep['AFSM-Synthesis'].drop(columns=[ddfRep['AFSM-Synthesis'].columns[0]], inplace=True)
+        ddfRep['AFSM-Synthesis'].set_index('NumEchant', inplace=True)
 
-        # * replace each analysis folder in the actual report by the corresponding ref. report one
-        repAnlysDirLines = uivu.replaceStrings(froms=actAnlysDirs, tos=refAnlysDirs, lines=actReportLines)
-        logger.info(f'* replaced analysis folder by ref. one in {repAnlysDirLines} act. lines')
+        ddfRep['AFSM-Details'] = ldfTables[synthTableInd + 1]
+        ddfRep['AFSM-Details'].drop(columns=[ddfRep['AFSM-Details'].columns[0]], inplace=True)
+        ddfRep['AFSM-Details'].set_index('NumEchant', inplace=True)
 
-        # * remove specific lines in both reports:
-        #   - header meta "DateTime"
-        KREDateTime = r'[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}'
-        KREMetaDateTime = rf'<meta name="datetime" content="{KREDateTime}"/>'
-        remRefLines += uivu.removeLines(KREMetaDateTime, refReportLines)
-        remActLines += uivu.removeLines(KREMetaDateTime, actReportLines)
+        # Get and format the steps, samples, analyses, analyser and runtime tables
+        ddfRep['AFS-Steps'] = ldfTables[synthTableInd + 2]
+        ddfRep['AFS-Steps'].columns = ['Scheme', 'Step', 'Property', 'Value']
 
-        #   - run time and duration table cells
-        KRERunTimeDuration = r'<td id="T_.+_row.+_col(19|20)" class="data row.+ col(19|20)" >'
-        remRefLines += uivu.removeLines(KRERunTimeDuration, refReportLines)
-        remActLines += uivu.removeLines(KRERunTimeDuration, actReportLines)
+        ddfRep['Samples'] = ldfTables[synthTableInd + 3]
+        ddfRep['Samples'].columns = ['NumEchant', 'Espèce', 'Passage', 'Adulte', 'Durée']
+        ddfRep['Samples'].set_index('NumEchant', inplace=True)
 
-        #   - footer "Generated on <date+time>" => not needed, 'cause in final ignored blocks (see below)
-        # KREGenDateTime = rf'Generated on {KREDateTime}'
-        # remRefLines += uivu.removeLines(KREGenDateTime, refReportLines)
-        # remActLines += uivu.removeLines(KREGenDateTime, actReportLines)
+        ddfRep['Analyses'] = ldfTables[synthTableInd + 4]
+        ddfRep['Analyses'].set_index(ddfRep['Analyses'].columns[0], inplace=True)
+        ddfRep['Analyses'].index.name = None
 
-        #   - new undocumented MCDS 7.4 result columns in ref "Details" table
-        #     => ignore them in ref. report when running MCDS 6.2
-        KREDetailsMcds74LastCol = rf'<td id="T{refDetTableId}row.+_col122"'  # No such column prior with MCDS 6.2
-        if not uivu.selectLines(KREDetailsMcds74LastCol, actReportLines):
-            KREDetailsUndocCol = rf'<td id="T{refDetTableId}row.+_col(66|67|68|69|70|71|72|73|74|75|76)"'
-            remRefLines += uivu.removeLines(KREDetailsUndocCol, refReportLines)
+        ddfRep['Analyser'] = ldfTables[synthTableInd + 5]
+        ddfRep['Analyser'].set_index(ddfRep['Analyser'].columns[0], inplace=True)
+        ddfRep['Analyser'].index.name = None
 
-        #   - header and style lines in ref "Details" table (simpler report comparison, at the price of not checking
-        #     cell styling ... but this is not really useful / much examined after all,
-        #     and column headers, which is a bit more annoying ...)
-        KREDetailsLine2Drop = rf'^#T{refDetTableId}row0_col0,'
-        remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
-        remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
+        ddfRep['Computing platform'] = ldfTables[synthTableInd + 6]
+        ddfRep['Computing platform'].set_index(ddfRep['Computing platform'].columns[0], inplace=True)
+        ddfRep['Computing platform'].index.name = None
 
-        KREDetailsLine2Drop = rf'^ +}}#T{refDetTableId}row'
-        remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
-        remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
+        return ddfRep
 
-        KREDetailsLine2Drop = rf'<table id="T{refDetTableId}" ><thead>'
-        remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
-        remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
+    KHtmlFilSorSchemeId = 'ExAicMQua-r900m6q3d15'
 
-        logger.info(f'* removed {remRefLines} ref. and {remActLines} act. lines')
+    @pytest.fixture()
+    def htmlRefReport_fxt(self):
 
-        # * remove cell id/class in "Details" table (simpler report comparison, at the price of not checking
-        #   cell styling ... but this is not really useful / much examined after all)
-        KDetailsConstCellIdClass = '<td>'
-        KREDetailsCellIdClass = rf'<td id="T{refDetTableId}row.+_col.+" class=".+" >'
-        repRefLines = uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
-                                          lines=refReportLines)
-        repActLines = uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
-                                          lines=actReportLines)
+        fpnRep = uivu.pRefOutDir / f'ACDC2019-Naturalist-extrait-OptRapport.{self.KHtmlFilSorSchemeId}.html'
 
-        KDetailsConstCellIdClass = '<th>'
-        KREDetailsCellIdClass = rf'<th id="T{refDetTableId}level.+_row.+" class=".+" >'
-        repRefLines += uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
-                                           lines=refReportLines)
-        repActLines += uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
-                                           lines=actReportLines)
-
-        logger.info(f'* cleaned up "Details" table: {repRefLines} ref. and {repActLines} act. lines')
-
-        # with open(uivu.pTmpDir / 'report-ref-after.html', 'w') as file:
-        #     file.writelines(refReportLines)
-        # with open(uivu.pTmpDir / 'report-act-after.html', 'w') as file:
-        #     file.writelines(actReportLines)
-
-        # Build the list of unified diff blocks
-        blocks = uivu.unifiedDiff(refReportLines, actReportLines, logger=logger, subject='HTML reports')
-
-        # Filter diff blocks to check (ignore some that are expected to change without any issue:
-        # * computation platform table, with component versions,
-        # * generation date, credits to components with versions, sources)
-        blocks_to_check = []
-        for block in blocks:
-            if block.startLines.expected >= 10274 - remRefLines:  # <h3>Computing platform</h3><table ...<tbody>
-                logger.info(f'Ignoring block @ -{block.startLines.expected} +{block.startLines.real} @')
-                continue
-            blocks_to_check.append(block)
-
-        # Check filtered blocks: none should remain.
-        assert len(blocks_to_check) == 0
-
-        logger.info('HTML reports comparison: success !')
+        return self.loadHtmlReport(fpnRep)
 
     @pytest.fixture()
     def filSorSchemes_fxt(self):
@@ -1125,45 +1107,55 @@ class TestMcdsTruncOptAnalyser:
         dDupRounds = {RS.CLDeltaAic: 1, RS.CLChi2: 2, RS.CLKS: 2, RS.CLCvMUw: 2, RS.CLCvMCw: 2, RS.CLDCv: 2,
                       RS.CLPDetec: 3, RS.CLPDetecMin: 3, RS.CLPDetecMax: 3, RS.CLDensity: 2, RS.CLDensityMin: 2, RS.CLDensityMax: 2}
 
-        filSorSchemes = [dict(method=RS.filterSortOnExecCode,
-                              deduplicate=dict(dupSubset=dupSubset, dDupRounds=dDupRounds),
-                              filterSort=dict(whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua),
-                              preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
-                              preselAscs=False, preselThrhs=0.2, preselNum=4),
-                         dict(method=RS.filterSortOnExCAicMulQua,
-                              deduplicate=dict(dupSubset=dupSubset, dDupRounds=dDupRounds),
-                              filterSort=dict(sightRate=87.5, nBestAIC=5, nBestQua=4, whichBestQua=whichBestQua,
-                                              nFinalRes=18, whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua),
-                              preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
-                              preselAscs=False, preselThrhs=0.2, preselNum=5),
-                         dict(method=RS.filterSortOnExCAicMulQua,
-                              deduplicate=dict(dupSubset=dupSubset, dDupRounds=dDupRounds),
-                              filterSort=dict(sightRate=90, nBestAIC=4, nBestQua=3, whichBestQua=whichBestQua,
-                                              nFinalRes=15, whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua),
-                              preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
-                              preselAscs=False, preselThrhs=0.2, preselNum=4),
-                         dict(method=RS.filterSortOnExCAicMulQua,
-                              deduplicate=dict(dupSubset=dupSubset, dDupRounds=dDupRounds),
-                              filterSort=dict(sightRate=92.5, nBestAIC=3, nBestQua=2, whichBestQua=whichBestQua,
-                                              nFinalRes=12, whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua),
-                              preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
-                              preselAscs=False, preselThrhs=0.2, preselNum=3)]
+        schemes = [dict(method=RS.filterSortOnExecCode,
+                        deduplicate=dict(dupSubset=dupSubset, dDupRounds=dDupRounds),
+                        filterSort=dict(whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua),
+                        preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
+                        preselAscs=False, preselThrhs=0.2, preselNum=4),
+                   dict(method=RS.filterSortOnExCAicMulQua,
+                        deduplicate=dict(dupSubset=dupSubset, dDupRounds=dDupRounds),
+                        filterSort=dict(sightRate=87.5, nBestAIC=5, nBestQua=4, whichBestQua=whichBestQua,
+                                        nFinalRes=18, whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua),
+                        preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
+                        preselAscs=False, preselThrhs=0.2, preselNum=5),
+                   dict(method=RS.filterSortOnExCAicMulQua,
+                        deduplicate=dict(dupSubset=dupSubset, dDupRounds=dDupRounds),
+                        filterSort=dict(sightRate=90, nBestAIC=4, nBestQua=3, whichBestQua=whichBestQua,
+                                        nFinalRes=15, whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua),
+                        preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
+                        preselAscs=False, preselThrhs=0.2, preselNum=4),
+                   dict(method=RS.filterSortOnExCAicMulQua,
+                        deduplicate=dict(dupSubset=dupSubset, dDupRounds=dDupRounds),
+                        filterSort=dict(sightRate=92.5, nBestAIC=3, nBestQua=2, whichBestQua=whichBestQua,
+                                        nFinalRes=12, whichFinalQua=whichFinalQua, ascFinalQua=ascFinalQua),
+                        preselCols=[RS.CLCmbQuaBal1, RS.CLCmbQuaBal2, RS.CLCmbQuaBal3],
+                        preselAscs=False, preselThrhs=0.2, preselNum=3)]
 
         # The selected one for HTML report
-        htmlFilSorScheme = next(sch for sch in filSorSchemes if sch['method'] is RS.filterSortOnExCAicMulQua
-                                                                and sch['filterSort']['sightRate'] == 90)
+        htmlScheme = next(sch for sch in schemes if sch['method'] is RS.filterSortOnExCAicMulQua
+                                                    and sch['filterSort']['sightRate'] == 90)
+        schemeMgr = ads.FilterSortSchemeIdManager()
+        schemeIds = [schemeMgr.schemeId(sch) for sch in schemes]
+        htmlSchemeId = schemeMgr.schemeId(htmlScheme)
+        assert htmlSchemeId == self.KHtmlFilSorSchemeId,\
+            'Inconsistent choice of HTML report filter & sort scheme: ' \
+            f'ref = {self.KHtmlFilSorSchemeId}, chosen = {htmlSchemeId}'
 
-        return filSorSchemes, htmlFilSorScheme, whichFinalQua
+        return schemes, schemeIds, htmlScheme, htmlSchemeId, whichFinalQua
+
+    KExpectedWorkbookFixedTables = ['AFS-Steps', 'Synthesis', 'Details', 'Analyses', 'Analyser', 'Computing platform']
+    KExpectedHtmlTables = ['Title', 'AFSM-SuperSynthesis', 'AFSM-Synthesis', 'AFSM-Details', 'AFS-Steps',
+                           'Samples', 'Analyses', 'Analyser', 'Computing platform']
 
     # 7a. Generate HTML and Excel analyses reports through pyaudisam API
-    def testReports(self, optAnalyser_fxt, filSorSchemes_fxt, excelRefReport_fxt, htmlRefReportLines_fxt):
+    def testReports(self, optAnalyser_fxt, filSorSchemes_fxt, excelRefReport_fxt, htmlRefReport_fxt):
 
         build = True  # Debug only: Set to False to avoid rebuilding the reports, and only check them
-        cleanup = True  # Debug only: Set to False to prevent cleaning at the end
+        postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
 
         # Pre-requisites : uncleaned analyser work dir (we need the results file and analysis folders).
         optanlr, _, _ = optAnalyser_fxt
-        filSorSchemes, htmlFilSorScheme, whichFinalQua = filSorSchemes_fxt
+        fsSchemes, fsSchemeIds, htmlFSScheme, htmlFSSchemeId, whichFinalQua = filSorSchemes_fxt
         KExptdMaxAnlysFolders = 120 + 48
         KExptdMinAnlysFolders = KExptdMaxAnlysFolders - 20  # Note: No real theoretical min, less may occur !
 
@@ -1256,9 +1248,9 @@ class TestMcdsTruncOptAnalyser:
             # b.v. Report object
             report = ads.MCDSResultsFilterSortReport(
                              resultsSet=rsAct,
-                             title="PyAuDiSam Validation : Analyses with optimised truncations",
-                             subTitle="Auto-selection of best results",
-                             description='Automated filtering et sorting : method "{fsId}" ; after '
+                             title="PyAuDiSam Validation: Analyses with optimised truncations",
+                             subTitle="Auto-selection of best opt-analysis results",
+                             description='Automated filtering and sorting: method "{fsId}" ; after '
                                          'easy and parallel run through MCDSTruncationOptAnalyser',
                              anlysSubTitle='Analyses details',
                              lang='en', keywords='pyaudisam, validation, optimisation',
@@ -1266,24 +1258,23 @@ class TestMcdsTruncOptAnalyser:
                              sampleCols=sampleCols, paramCols=paramCols,
                              resultCols=resultCols, synthCols=synthCols,
                              sortCols=sortCols, sortAscend=sortAscend,
-                             filSorSchemes=filSorSchemes,
+                             filSorSchemes=fsSchemes,
                              tgtFolder=optanlr.workDir,
                              tgtPrefix='valtests-optanalyses-report')
 
             # b.vi. Excel report
-            xlsxRep = report.toExcel()
-            logger.info('Excel report: ' + pl.Path(xlsxRep).resolve().as_posix())
+            xlsxRep = pl.Path(report.toExcel())
+            logger.info('Excel report: ' + xlsxRep.resolve().as_posix())
 
             # b.vii. HTML report
-            logger.info(', '.join(rsAct.filSorIdMgr.dFilSorSchemes.keys()) + '\n=> ' + rsAct.filSorSchemeId(htmlFilSorScheme))
-            htmlRep = report.toHtml(htmlFilSorScheme, rebuild=False)
-            logger.info('HTML report: ' + pl.Path(htmlRep).resolve().as_posix())
+            logger.info(', '.join(rsAct.filSorIdMgr.dFilSorSchemes.keys()) + '\n=> ' + htmlFSSchemeId)
+            htmlRep = pl.Path(report.toHtml(htmlFSScheme, rebuild=False))
+            logger.info('HTML report: ' + htmlRep.resolve().as_posix())
 
         else:
+            logger.warning('NOT building reports: this is not the normal testing scheme !')
             xlsxRep = optanlr.workDir / 'valtests-optanalyses-report.xlsx'
-
-            schemeId = ads.FilterSortSchemeIdManager().schemeId(htmlFilSorScheme)
-            htmlRep = optanlr.workDir / f'valtests-optanalyses-report.{schemeId}.html'
+            htmlRep = optanlr.workDir / f'valtests-optanalyses-report.{htmlFSSchemeId}.html'
 
             logger.info('Checking opt-analyser reports presence (build=False => you must once have run with True !)')
             assert optanlr.workDir.is_dir() and xlsxRep.is_file() and htmlRep.is_file()
@@ -1293,27 +1284,29 @@ class TestMcdsTruncOptAnalyser:
 
         # c. Load generated Excel report and compare it to reference one
         ddfRefRep = excelRefReport_fxt
-
-        ddfActRep = pd.read_excel(xlsxRep, sheet_name=None, index_col=0)
-        self.compareExcelReports(ddfRefRep, ddfActRep, mode='api')
+        ddfActRep = self.loadWorkbookReport(xlsxRep)
+        expctdAFSMTables = ['AFSM-' + fsId for fsId in fsSchemeIds]
+        self.compareReports(ddfRefRep, ddfActRep, expectTables=expctdAFSMTables + self.KExpectedWorkbookFixedTables,
+                            mode='api', kind='workbook')
 
         # c. Load generated HTML report and compare it to reference one
-        htmlRefRepLines = htmlRefReportLines_fxt
-
-        with open(htmlRep) as file:
-            htmlActRepLines = file.readlines()
-        # TODO self.compareHtmlReports(htmlRefRepLines, htmlActRepLines)
+        ddfRefHtmlRep = htmlRefReport_fxt
+        ddfActHtmlRep = self.loadHtmlReport(htmlRep)
+        self.compareReports(ddfRefHtmlRep, ddfActHtmlRep, expectTables=self.KExpectedHtmlTables,
+                            filSorSchemeId=htmlFSSchemeId, mode='api', kind='html')
 
         # e. Cleanup generated report (well ... partially at least) for clearing next function's ground
-        if cleanup:
+        if postCleanup:
             pl.Path(xlsxRep).unlink()
             pl.Path(htmlRep).unlink()
+        else:
+            logger.warning('NOT cleaning up the reports: this is not the normal testing scheme !')
 
         # f. Done.
         logger.info(f'PASS testReports: MCDSResultsFilterSortReport ctor, toExcel, toHtml')
 
     # 7b. Generate HTML and Excel analyses reports through pyaudisam command line
-    def testReportsCli(self, excelRefReport_fxt, filSorSchemes_fxt, htmlRefReportLines_fxt):
+    def testReportsCli(self, excelRefReport_fxt, filSorSchemes_fxt, htmlRefReport_fxt):
 
         build = True  # Debug only: Set to False to avoid rebuilding the report (only compare)
 
@@ -1323,22 +1316,23 @@ class TestMcdsTruncOptAnalyser:
                    ' -n --optreports excel,html:mqua-r90 -u'.split()
             rc = ads.main(argv, standaloneLogConfig=False)
             logger.info(f'CLI run: rc={rc}')
+        else:
+            logger.warning('NOT building reports: this is not the normal testing scheme !')
 
         # b. Load generated Excel report and compare it to the reference one
-        ddfActRep = pd.read_excel(uivu.pWorkDir / 'valtests-optanalyses-report.xlsx', sheet_name=None, index_col=0)
-
         ddfRefRep = excelRefReport_fxt
-        self.compareExcelReports(ddfRefRep, ddfActRep, mode='cli')
+        ddfActRep = self.loadWorkbookReport(uivu.pWorkDir / 'valtests-optanalyses-report.xlsx')
+        _, fsSchemeIds, _, htmlFSSchemeId, _ = filSorSchemes_fxt
+        expctdAFSMTables = ['AFSM-' + fsId for fsId in fsSchemeIds]
+        self.compareReports(ddfRefRep, ddfActRep, expectTables=expctdAFSMTables + self.KExpectedWorkbookFixedTables,
+                            mode='cli', kind='workbook')
 
         # c. Load generated HTML report and compare it to reference one
-        _, htmlFilSorScheme, _ = filSorSchemes_fxt
-        schemeId = ads.FilterSortSchemeIdManager().schemeId(htmlFilSorScheme)
-        htmlRep = uivu.pWorkDir / f'valtests-optanalyses-report.{schemeId}.html'
-        with open(htmlRep) as file:
-            htmlActRepLines = file.readlines()
-
-        htmlRefRepLines = htmlRefReportLines_fxt
-        # TODO self.compareHtmlReports(htmlRefRepLines, htmlActRepLines)
+        ddfRefHtmlRep = htmlRefReport_fxt
+        htmlRep = uivu.pWorkDir / f'valtests-optanalyses-report.{htmlFSSchemeId}.html'
+        ddfActHtmlRep = self.loadHtmlReport(htmlRep)
+        self.compareReports(ddfRefHtmlRep, ddfActHtmlRep, expectTables=self.KExpectedHtmlTables,
+                            filSorSchemeId=htmlFSSchemeId, mode='cli', kind='html')
 
         # d. No cleanup: let the final test class cleaner operate: _inifinalizeClass()
 
