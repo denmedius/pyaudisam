@@ -328,6 +328,8 @@ class TestMcdsAnalyser:
     # ### d. Run analyses through pyaudisam API
     def testRun(self, analyser_fxt, refResults_fxt):
 
+        postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
+
         # i. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
         anlysr, dfAnlysSpecs = analyser_fxt
         if anlysr.workDir.exists():
@@ -370,8 +372,11 @@ class TestMcdsAnalyser:
         # f. Minimal check of analysis folders
         uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectedCount=48, anlysKind='analysis')
 
-        # g. Cleanup analyser (analysis folders, not results)
-        anlysr.cleanup()
+        # g. Cleanup analyser (analysis folders, not workbook results files)
+        if postCleanup:
+            anlysr.cleanup()
+        else:
+            logger.warning('NOT cleaning up the analyser: this is not the normal testing scheme !')
 
         # h. Done.
         logger.info(f'PASS testRun: run, cleanup')
@@ -608,7 +613,7 @@ class TestMcdsAnalyser:
     def testReports(self, analyser_fxt, excelRefReport_fxt, htmlRefReportLines_fxt):
 
         build = True  # Debug only: Set to False to avoid rebuilding the reports, and only check them
-        cleanup = True  # Debug only: Set to False to prevent cleaning at the end
+        postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
 
         # Pre-requisites : uncleaned analyser work dir (we need the results file and analysis folders).
         anlysr, _ = analyser_fxt
@@ -717,6 +722,7 @@ class TestMcdsAnalyser:
             logger.info('HTML report: ' + pl.Path(htmlRep).resolve().as_posix())
 
         else:
+            logger.warning('NOT building the reports: this is not the normal testing scheme !')
             xlsxRep = anlysr.workDir / 'valtests-analyses-report.xlsx'
             htmlRep = anlysr.workDir / 'valtests-analyses-report.html'
 
@@ -737,9 +743,11 @@ class TestMcdsAnalyser:
 
         # e. Cleanup generated report (well ... partially at least)
         #    for clearing next function's ground
-        if cleanup:
+        if postCleanup:
             pl.Path(xlsxRep).unlink()
             pl.Path(htmlRep).unlink()
+        else:
+            logger.warning('NOT cleaning up reports: this is not the normal testing scheme !')
 
         # f. Done.
         logger.info(f'PASS testReports: MCDSResultsFullReport ctor, toExcel, toHtml')
@@ -756,6 +764,8 @@ class TestMcdsAnalyser:
                    ' -n --reports excel:full,html:full -u'.split()
             rc = ads.main(argv, standaloneLogConfig=False)
             logger.info(f'CLI run: rc={rc}')
+        else:
+            logger.warning('NOT building the reports: this is not the normal testing scheme !')
 
         # b. Load generated Excel report and compare it to reference one
         ddfActRep = pd.read_excel(workPath / 'valtests-analyses-report.xlsx', sheet_name=None, index_col=0)

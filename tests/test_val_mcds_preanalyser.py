@@ -476,7 +476,19 @@ class TestMcdsPreAnalyser:
         logger.info('Done comparing reference to actual pre-results.')
 
     # ### d. Run pre-analyses through pyaudisam API
+    # Performance figures:
+    # Ruindows 10 laptop with PCI-e SSD, "optimal performances" power scheme, Python 3.8 :
+    # * 4-HT-core i5-8350U:
+    #   * 2021 (precise date ?): 50s to ~1mn10s elapsed for 12 samples, 6-12 threads (N=?)
+    # * 6-core i7-10750H (HT off):
+    #   * 2022-01-17, 2023-11-02: 39-40s elapsed for 12 samples, 6-12 threads (N=5)
+    # Ruindows 11 laptop with PCI-e SSD, "high performances" power scheme, Python 3.8 :
+    # * 6-HT-core i7-10850H (HT on):
+    #   * 2024-03-02: 40s elapsed for 12 samples, 6 threads (N=1)
+    #   * 2024-03-02: 39s elapsed for 12 samples, 12 threads (N=1)
     def testRun(self, sampleSpecMode, preAnalyser_fxt, refResults_fxt):
+
+        postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
 
         # i. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
         preAnlysr, sampleSpecs = preAnalyser_fxt
@@ -484,15 +496,6 @@ class TestMcdsPreAnalyser:
             shutil.rmtree(preAnlysr.workDir)
 
         # ii. Run and measure performance
-        # Ruindows 10 laptop with PCI-e SSD, "optimal performances" power scheme, Python 3.8 :
-        # * 4-HT-core i5-8350U:
-        #   * 2021 (precise date ?): 50s to ~1mn10s elapsed for 12 samples, 6-12 threads (N=?)
-        # * 6-core i7-10750H (HT off):
-        #   * 2022-01-17, 2023-11-02: 39-40s elapsed for 12 samples, 6-12 threads (N=5)
-        # Ruindows 11 laptop with PCI-e SSD, "high performances" power scheme, Python 3.8 :
-        # * 6-HT-core i7-10850H (HT on):
-        #   * 2024-03-02: 40s elapsed for 12 samples, 6 threads (N=1)
-        #   * 2024-03-02: 39s elapsed for 12 samples, 12 threads (N=1)
         threads = 6
         logger.info(f'Running pre-analyses: {sampleSpecMode} sample specs, {threads} parallel threads ...')
 
@@ -538,8 +541,11 @@ class TestMcdsPreAnalyser:
         logger.info('Checking pre-analysis folders (minimal) ...')
         uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectedCount=12, anlysKind='pre-analysis')
 
-        # g. Cleanup pre-analyser (analysis folders, not results)
-        preAnlysr.cleanup()
+        # g. Cleanup analyser (analysis folders, not workbook results files)
+        if postCleanup:
+            preAnlysr.cleanup()
+        else:
+            logger.warning('NOT cleaning up the pre-analyser: this is not the normal testing scheme !')
 
         # h. Done.
         logger.info(f'PASS testRun: run({sampleSpecMode} sample specs), cleanup')
@@ -720,7 +726,7 @@ class TestMcdsPreAnalyser:
             pytest.skip(msg)  # Raises an exception => function execution stops here.
 
         build = True  # Debug only: Set to False to avoid rebuilding the reports, and only check them
-        cleanup = True  # Debug only: Set to False to prevent cleaning at the end
+        postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
 
         # Pre-requisites : uncleaned pre-analyser work dir (we need the results file and analysis folders).
         preAnlysr, _ = preAnalyser_fxt
@@ -818,6 +824,7 @@ class TestMcdsPreAnalyser:
             logger.info('HTML pre-report: ' + pl.Path(htmlRep).resolve().as_posix())
 
         else:
+            logger.warning('NOT building the reports: this is not the normal testing scheme !')
             xlsxRep = preAnlysr.workDir / 'valtests-preanalyses-report.xlsx'
             htmlRep = preAnlysr.workDir / 'valtests-preanalyses-report.html'
 
@@ -838,9 +845,11 @@ class TestMcdsPreAnalyser:
 
         # e. Cleanup generated report (well ... partially at least)
         #    for clearing next function's ground
-        if cleanup:
+        if postCleanup:
             pl.Path(xlsxRep).unlink()
             pl.Path(htmlRep).unlink()
+        else:
+            logger.warning('NOT cleaning up reports: this is not the normal testing scheme !')
 
         # f. Done.
         logger.info(f'PASS testReports: MCDSResultsReport ctor, toExcel, toHtml')
@@ -862,6 +871,8 @@ class TestMcdsPreAnalyser:
                    ' -n --prereports excel,html -u'.split()
             rc = ads.main(argv, standaloneLogConfig=False)
             logger.info(f'CLI run: rc={rc}')
+        else:
+            logger.warning('NOT building the reports: this is not the normal testing scheme !')
 
         # b. Load generated Excel report and compare it to reference one
         ddfActRep = pd.read_excel(workPath / 'valtests-preanalyses-report.xlsx', sheet_name=None, index_col=0)
