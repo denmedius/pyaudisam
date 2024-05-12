@@ -14,7 +14,7 @@
 # If not, see https://www.gnu.org/licenses/.
 
 # Module version
-__version__ = '1.0.3-b1'
+__version__ = '1.1.0'
 
 import os
 import sys
