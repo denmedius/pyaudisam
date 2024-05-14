@@ -130,6 +130,12 @@ def testDSOpterParseUserSpecs():
         assert r[0] is None and r[1] == 'rien'
         logger.info(f'{spec} => ' + ', '.join(str(x) for x in r))
 
+    # Parse spec : empty and error.
+    for spec in [None, np.nan, '', '   ']:
+        r = adspo._parseUserSpec(spec)
+        assert r[1] is None
+        logger.info(f'{spec} => ' + ', '.join(str(x) for x in r))
+
     # Parse spec : oneStrArg and no error.
     for spec in ['min(ks*chi2/12)']:
         r = adspo._parseUserSpec(spec,
@@ -334,17 +340,17 @@ def testMcdsTruncOpterCtorGetParams(indivSightings_fxt):
     logger.info0('testMcdsTruncOpterCtorGetXxxParams: getAnalysisFixedParams ...')
 
     # All specs present
-    sAnIntSpec = pd.Series({adsto.IntSpecEstimKeyFn: 'HNO', adsto.IntSpecEstimAdjustFn: 'POLY',
+    sAnIntSpec = pd.Series({adsto.IntSpecEstimKeyFn: 'HAZ', adsto.IntSpecEstimAdjustFn: 'POLY',
                             adsto.IntSpecEstimCriterion: 'AIC', adsto.IntSpecCVInterval: 97})
     r = optr.getAnalysisFixedParams(sAnIntSpec)
     logger.info(f'All specs present: status={r[0]}, parsedValue={r[1]}')
-    assert r[0] is None and r[1] == dict(estimKeyFn='HNO', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=97)
+    assert r[0] is None and r[1] == dict(estimKeyFn='HAZ', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=97)
 
-    # Some specs absent => default values
-    sAnIntSpec = pd.Series({adsto.IntSpecEstimKeyFn: 'UNI', adsto.IntSpecEstimAdjustFn: 'POLY'})
+    # All specs absent => default values
+    sAnIntSpec = pd.Series(dtype=float)
     r = optr.getAnalysisFixedParams(sAnIntSpec)
-    logger.info(f'Some specs absent => default values: status={r[0]}, parsedValue={r[1]}')
-    assert r[0] is None and r[1] == dict(estimKeyFn='UNI', estimAdjustFn='POLY', estimCriterion='AIC', cvInterval=95)
+    logger.info(f'All or some specs absent => default values: status={r[0]}, parsedValue={r[1]}')
+    assert r[0] is None and r[1] == dict(estimKeyFn='HNO', estimAdjustFn='COS', estimCriterion='AIC', cvInterval=95)
 
     logger.info0('PASS testMcdsTruncOpterCtorGetXxxParams: getAnalysisFixedParams')
 
@@ -896,7 +902,12 @@ def testMcdsO0TruncOpter(indivSightings_fxt):
 
     assert len(dfComp) <= 3
 
-    logger.info0('PASS testMcdsZerothOrderTruncationOptimiser: Constructor, explicitParamSpecs, run, recovery')
+    # vi. Other checks
+    #  - updateSpecs(reset=True)
+    zoptr.updateSpecs(reset=True, dummy='really nothing')
+    assert zoptr.specs == {'dummy': 'really nothing'}
+
+    logger.info0('PASS testMcdsZerothOrderTruncationOptimiser: Constructor, explicitParamSpecs, run, recovery, ... etc')
 
 
 ###############################################################################

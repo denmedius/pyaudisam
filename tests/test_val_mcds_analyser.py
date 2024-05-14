@@ -384,30 +384,36 @@ class TestMcdsAnalyser:
     # Run analyses through pyaudisam command line interface
     def testRunCli(self, analyser_fxt, refResults_fxt):
 
-        # a. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
         anlysr, _ = analyser_fxt
-        if anlysr.workDir.exists():
-            shutil.rmtree(anlysr.workDir)
 
-        # b. Run "through the commande line"
-        argv = f'-p {uivu.pTestDir.as_posix()}/valtests-ds-params.py -w {anlysr.workDir.as_posix()}' \
-               ' -n --analyses -u'.split()
-        rc = ads.main(argv, standaloneLogConfig=False)
-        logger.info(f'CLI run: rc={rc}')
+        # Run a parallel (auto-number of workers) and then a sequential execution
+        for nThreads in [0, 1]:
 
-        # c. Load results
-        rsAct = self.loadResults(anlysr, anlysr.workDir / 'valtests-analyses-results.xlsx')
-        logger.info(f'Actual results: n={len(rsAct)} =>\n'
-                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
+            # a. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
+            if anlysr.workDir.exists():
+                shutil.rmtree(anlysr.workDir)
 
-        # d. Compare to reference.
-        rsRef = refResults_fxt
-        self.compareResults(rsRef, rsAct)
+            # b. Run "through the commande line"
+            argv = f'-p {uivu.pTestDir.as_posix()}/valtests-ds-params.py -w {anlysr.workDir.as_posix()}' \
+                   ' -n --analyses -u'.split()
+            if nThreads != 0:
+                argv += ['--threads', str(nThreads)]
+            rc = ads.main(argv, standaloneLogConfig=False)
+            logger.info(f'CLI run: rc={rc}')
 
-        # e. Minimal check of analysis folders
-        uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectedCount=48, anlysKind='analysis')
+            # c. Load results
+            rsAct = self.loadResults(anlysr, anlysr.workDir / 'valtests-analyses-results.xlsx')
+            logger.info(f'Actual results: n={len(rsAct)} =>\n'
+                        + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
 
-        # f. Don't clean up work folder / analysis folders : needed for report generations below
+            # d. Compare to reference.
+            rsRef = refResults_fxt
+            self.compareResults(rsRef, rsAct)
+
+            # e. Minimal check of analysis folders
+            uivu.checkAnalysisFolders(rsAct.dfTransData('en').RunFolder, expectedCount=48, anlysKind='analysis')
+
+        # f. Don't clean up work folder / analysis folders at the end: needed for report generations below
 
         # g. Done.
         logger.info(f'PASS testRunCli: main, run (command line mode)')

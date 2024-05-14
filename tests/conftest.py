@@ -38,7 +38,7 @@ _logLevels = [dict(name='matplotlib', level=log.WARNING),
               dict(name='ads', level=log.INFO)]
 _dateTime = time.strftime('%y%m%d.%H%M', time.localtime())
 pLogFile = pTmpDir / f'pytest.{_dateTime}.log'
-log.configure(loggers=_logLevels, handlers=[pLogFile], reset=True)
+log.configure(loggers=_logLevels, handlers=[pLogFile], reset=True, verbose=True)
 
 # A plugin to make test report available to fixture ini/finalisation
 _phase_report_key = pytest.StashKey[typing.Dict[str, pytest.CollectReport]]()
