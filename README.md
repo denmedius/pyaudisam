@@ -21,7 +21,7 @@ The module itself was actually tested extensively with:
 * zoopt 0.4.0
 * xlrd 2.0 (only for .xls format support)
 
-You will get no support outside of this (but porting to python 3.12 is planned for 2024).
+You will get no support outside of this (but porting to python 3.12 & pandas 2.x is planned for 2024 or 2025).
 
 As for testing:
 * pytest, pytest-cov
@@ -35,15 +35,15 @@ You can install **pyaudisam** from [PyPI](https://pypi.org/project/pyaudisam/) i
 
 Or from a downloaded source package:
 
-`pip install pyaudisam-1.0.2.tar.gz`
+`pip install pyaudisam-1.1.0.tar.gz`
 
 Or from a downloaded wheel package:
 
-`pip install pyaudisam-1.0.2-py3-none-any.whl`
+`pip install pyaudisam-1.1.0-py3-none-any.whl`
 
 Or even directly from GitHub:
 
-* `pip install git+https://github.com/pypa/sampleproject.git@1.0.2`
+* `pip install git+https://github.com/pypa/sampleproject.git@1.1.0`
 * `pip install git+https://github.com/pypa/sampleproject.git@main`
 
 ## Usage
@@ -98,9 +98,9 @@ Then, it's as simple as:
 
 `python -m build`
 
-You'll get 2 files in the `dist` folder (ex. for version 1.0.2) :
-* the wheel package: `pyaudisam-1.0.2-py3-none-any.whl`
-* the source package: `pyaudisam-1.0.2.tar.gz`
+You'll get 2 files in the `dist` folder (ex. for version 1.1.0) :
+* the wheel package: `pyaudisam-1.1.0-py3-none-any.whl`
+* the source package: `pyaudisam-1.1.0.tar.gz`
 
 ## Contributing
 
@@ -114,15 +114,17 @@ And if you are lacking ideas, here are some good ones below ;-)
   * complete the quick start guides above by other small and focused articles to explain some mandatory details:
     * how to build a sample or analysis specification workbook (see a short draft in [analyser.py:273](https://github.com/denmedius/pyaudisam/blob/main/pyaudisam/analyser.py)),
     * ...
-  * write a technical documentation of the whole module,
+  * write a technical documentation of the whole module and sub-modules,
   * write a guide for building the module API documentation ([sphinx](https://www.sphinx-doc.org/) should work out of the box as [reStructured text](https://en.wikipedia.org/wiki/ReStructuredText) has been used in docstrings),
-* tests:
-  * finish moving (and completing) [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) notebooks code to pytest scripts,
-    (after checking the state of this work-in-progress in tests/\*\_test.py scripts),
+* code quality and tests:
   * add more tests for improving code coverage (thanks to HTML coverage report),
+  * configure and run pylint, and follow its useful advices, 
+  * main: split \_Application.\_run in feature sub-functions for clarity,
 * features:
   * add support for line transects (only point transects for the moment),
   * add support for the co-variates feature of MCDS,
+  * integrate the notebook prototype of "final reports" (workbook, HTML, and OpenDoc text formats) to automate most of the work of producing a publication-grade "full results appendix" for a Distance Sampling study (based on the auto-filtered report, but with semi-automated diagnosis at sample and analysis level in order to help in the final choice for each sample),
+  * add more features for selecting sample data before running analyses (to avoid the need of creating multiple data sets, run multiple analysis sessions, and then re-aggregate results and reports manually): exclude some specific transects, pre-truncate data above some fixed distance, ...
 * packaging:
   * publish also pyaudisam on [Conda Forge](https://conda-forge.org/), probably following [this recipe](https://jacobtomlinson.dev/posts/2020/publishing-open-source-python-packages-on-github-pypi-and-conda-forge/#conda-forge),
 * platform support:
@@ -136,6 +138,18 @@ And if you are lacking ideas, here are some good ones below ;-)
 * user interface:
   * build a GUI for pyaudisam command-line (with some kind of "project" concept, and parameter set template, and ...),
 * ...
+
+### Known issues
+
+* AnalysisResultsSet.toOpenDoc sometimes produces broken header rows (the 3-row multi-index header is not rendered as it is on the right side),
+* The new undocumented MCDS 7.4 result column names are not translated correctly (switched fr and en translations) (minor, as not used actually for the moment),
+* The "Details" table header is not translated in auto-filtered reports (whereas the "Synthesis" one is),
+* Too many decimals rendered for the Max/Min dist figures in HTML reports when the distance unit is "meter",
+* The colorisation of HTML and workbook auto-filtered reports is of no use as it is now (need for a full rework).
+
+### Release notes
+
+You can [read them here](https://github.com/denmedius/pyaudisam/blob/main/docs/release-notes.md) :-)
 
 ### Some hints
 
