@@ -1,7 +1,8 @@
 include README.md
 include LICENSE.txt
 include requirements.txt
-
+include .coveragerc
+include pytest.ini
 include pyaudisam/mcds/*.htpl
 include pyaudisam/mcds/*.txt
 include pyaudisam/report/*.css
@@ -20,7 +21,10 @@ include tests/refin/*.odt
 include tests/refout/*.txt
 include tests/refout/*.xlsx
 include tests/refout/*.ods
+include tests/refout/*.html
 prune tests/refout/dist-order-sens-min
+
+include docs/release-notes.md
 
 include docs/howto-acdc19-nat/*.md
 include docs/howto-acdc19-nat/*.xlsx
