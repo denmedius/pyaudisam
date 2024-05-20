@@ -827,13 +827,13 @@ class MCDSEngine(DSEngine):
         # 7. Remove so-called N/A figures
         dfStats.drop(dfStats[sFigs2Drop].index, inplace=True)
         
-        # 8. Make some values more readable.
-        lblKeyFn = (dfStats.Module == 2) & (dfStats.Statistic == 13)
-        dfStats.loc[lblKeyFn, 'Value'] = \
-            dfStats.loc[lblKeyFn, 'Value'].astype(int).apply(lambda n: cls.EstKeyFns[n-1])
-        lblAdjFn = (dfStats.Module == 2) & (dfStats.Statistic == 14)
-        dfStats.loc[lblAdjFn, 'Value'] = \
-            dfStats.loc[lblAdjFn, 'Value'].astype(int).apply(lambda n: cls.EstAdjustFns[n-1])
+        # 8. Make some values more readable (1/2): Get and convert the values.
+        # Note: Since after pandas 2.2, we can't update the values in-place, as it would imply writing
+        #       strings in a float column, and pandas 2 does no more accepts it ; hence the 2-step process.
+        lblKeyFn = (dfStats.modDesc == 'detection probability') & (dfStats.statDesc == 'key function type')
+        keyFnName = cls.EstKeyFns[int(dfStats.loc[lblKeyFn, 'Value'].iloc[0]) - 1]
+        lblAdjFn = (dfStats.modDesc == 'detection probability') & (dfStats.statDesc == 'adjustment series type')
+        adjFnName = cls.EstAdjustFns[int(dfStats.loc[lblAdjFn, 'Value'].iloc[0]) - 1]
 
         # 9. Check if any unexpected module / statistic present, and if so, warn and fix
         #    (like after MCDS.exe changed version ... as an example)
@@ -844,14 +844,19 @@ class MCDSEngine(DSEngine):
                            f'\n{dfUnexptdStats.to_string(min_rows=30, max_rows=30)}')
             dfStats.drop(dfUnexptdStats.index, inplace=True)
 
-        # 10. Final indexing
+        # 10. Final indexing and transposition
         dfStats = dfStats.reindex(columns=['modDesc', 'statDesc', 'Figure', 'Value'])
         dfStats.set_index(['modDesc', 'statDesc', 'Figure'], inplace=True)
+        dfStats = dfStats.T
+
+        # 11. Make some values more readable (2/2): Update them in the final frame.
+        dfStats[('detection probability', 'key function type', 'Value')] = keyFnName
+        dfStats[('detection probability', 'adjustment series type', 'Value')] = adjFnName
 
         # That's all folks !
         logger.debug('Done decoding from {}.'.format(statsFileName))
         
-        return dfStats.T.iloc[0]
+        return dfStats.iloc[0]
 
     # Decode output log file to a string
     # Precondition: self.runAnalysis(...) was called and took place in :param:runDir
