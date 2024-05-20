@@ -191,7 +191,10 @@ class Analyser:
         # First columns kept (nearly) as is (actually an explicit one !) :
         # keep 1 heading NaN if any, drop trailing ones, and drop duplicates if any.
         def cleanup(s):
-            return s if s.empty else s.iloc[0:1].append(s.iloc[1:].dropna()).drop_duplicates()
+            if s.empty:
+                return s
+            return pd.concat([s.iloc[0:1], s.iloc[1:].dropna()]).drop_duplicates()
+
         dfExplSpecs = cleanup(dfImplSpecs[dfImplSpecs.columns[0]]).to_frame()
 
         # For each implicit specs column (but the first)
@@ -2569,7 +2572,7 @@ class MCDSAnalyser(DSAnalyser):
                 continue
 
             # Build analysis params specs series with parameters internal names.
-            sAnIntSpec = sAnSpec[userParamSpecCols].set_axis(intParamSpecCols, inplace=False)
+            sAnIntSpec = sAnSpec[userParamSpecCols].set_axis(intParamSpecCols)
             
             # Get analysis parameters from user specs and default values.
             dAnlysParams = self._getAnalysisParams(sAnIntSpec)

@@ -158,7 +158,7 @@ def testMcdsOptArsCtorFromOpenDocGetData(mcdsOptAnalyser_fxt):
             if colAlias not in dRefGroupNums:
                 dRefGroupNums[colAlias] = sGroupNums
             else:
-                dRefGroupNums[colAlias] = dRefGroupNums[colAlias].append(sGroupNums)
+                dRefGroupNums[colAlias] = pd.concat([dRefGroupNums[colAlias], sGroupNums])
 
     logger.info0('PASS testMcdsOptArsCtorFromOpenDocGetData(1): Constructor, fromOpenDoc, getData')
 

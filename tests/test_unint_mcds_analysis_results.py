@@ -678,7 +678,7 @@ def testMcdsArsSampleDistTruncGroups(mcdsAnalyser_fxt):
             if colAlias not in dRefGroupNums:
                 dRefGroupNums[colAlias] = sGroupNums
             else:
-                dRefGroupNums[colAlias] = dRefGroupNums[colAlias].append(sGroupNums)
+                dRefGroupNums[colAlias] = pd.concat([dRefGroupNums[colAlias], sGroupNums])
 
     logger.info0('PASS testMcdsArsSampleDistTruncGroups(1): constructor, getData, fromOpenDoc, _sampleDistTruncGroups')
 
@@ -801,7 +801,7 @@ def testMcdsArsFilterSortKeys(mcdsAnalyser_fxt):
             if colLbl not in dRefFilSorKeys:
                 dRefFilSorKeys[colLbl] = sFSKeys
             else:
-                dRefFilSorKeys[colLbl] = dRefFilSorKeys[colLbl].append(sFSKeys)
+                dRefFilSorKeys[colLbl] = pd.concat([dRefFilSorKeys[colLbl], sFSKeys])
 
     logger.info0('PASS testMcdsArsFilterSortKeys(1): constructor, fromOpenDoc, fromOpenDoc, _sampleFilterSortKeys')
 

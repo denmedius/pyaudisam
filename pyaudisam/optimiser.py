@@ -1325,7 +1325,7 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                 continue
 
             # Build optimisation params specs series with parameters internal names.
-            sOptimIntSpec = sOptimSpec[userParamSpecCols].set_axis(intParamSpecCols, inplace=False)
+            sOptimIntSpec = sOptimSpec[userParamSpecCols].set_axis(intParamSpecCols)
             
             # Compute optimisation setup parameters from user specs and default values.
             setupError, dSetupParams = \

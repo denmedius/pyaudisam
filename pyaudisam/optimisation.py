@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 
 import zoopt
-import pkg_resources as pkgrsc  # zoopt has no standard __version__ !
+import importlib  # zoopt has no standard __version__ !
 
 from . import log, runtime
 from .executor import Executor
@@ -33,7 +33,7 @@ from .engine import MCDSEngine
 from .analysis import MCDSAnalysis
 from .analyser import MCDSAnalysisResultsSet
 
-runtime.update({'zoopt': pkgrsc.get_distribution('zoopt').version})
+runtime.update({'zoopt': importlib.metadata.version('zoopt')})
 
 logger = log.logger('ads.opn')
 

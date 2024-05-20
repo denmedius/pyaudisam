@@ -753,7 +753,7 @@ def testMcdsO0TruncOpter(indivSightings_fxt):
     dfOptimExplSpecs[speAbbrevCol] = dfOptimExplSpecs['Espèce'].apply(lambda s: ''.join(m[:4] for m in s.split()))
 
     # v. Artificially generate some duplicates (for testing auto-removal later :-)
-    dfOptimExplSpecs = dfOptimExplSpecs.append(dfOptimExplSpecs, ignore_index=True)
+    dfOptimExplSpecs = pd.concat([dfOptimExplSpecs, dfOptimExplSpecs], ignore_index=True)
     logger.info("Explicit specs (concat'd + neutral col. + artificial duplicates):"
                 f" n={len(dfOptimExplSpecs)}\n" + dfOptimExplSpecs.to_string())
 

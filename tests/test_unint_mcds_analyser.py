@@ -230,7 +230,7 @@ def testDsAnalyser():
     # ii. Through DataFrame-specified explicit combinations, with cleaned up duplicates and neutral traversing columns
     dfExplParamSpecs.drop(columns=[varIndCol, anlysAbbrevCol, sampleIndCol], inplace=True)
     # Add many duplicates
-    dfExplParamSpecs = dfExplParamSpecs.append(dfExplParamSpecs, ignore_index=True)
+    dfExplParamSpecs = pd.concat([dfExplParamSpecs, dfExplParamSpecs], ignore_index=True)
     # Add 2 neutral pass-through columns
     dfExplParamSpecs['AvecTronc'] = \
         dfExplParamSpecs[['TrGche', 'TrDrte']].apply(lambda s: s.isnull().all(), axis='columns')

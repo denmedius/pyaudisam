@@ -18,6 +18,7 @@
 import types
 import runpy
 import pathlib as pl
+import pandas as pd
 
 
 def loadPythonData(path, **kwargs):
@@ -49,3 +50,11 @@ def loadPythonData(path, **kwargs):
             if not key.startswith('_') and key not in usualModules}
 
     return path, types.SimpleNamespace(**data)
+
+
+KIsDeprecatedDataFrameApplyMap = pd.__version__ > '2.1'
+
+def mapDataFrame(df, func, na_action=None, **kwargs):
+    """Wrapper to pandas DataFrame.applymap renamed to map from 2.1"""
+    return df.map(func, na_action, **kwargs) if KIsDeprecatedDataFrameApplyMap \
+        else df.applymap(func, na_action, **kwargs)

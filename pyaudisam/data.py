@@ -25,7 +25,7 @@ import pickle
 import numpy as np
 import pandas as pd
 
-from . import log, runtime
+from . import log, runtime, utils
 
 runtime.update(numpy=np.__version__, pandas=pd.__version__)
 
@@ -427,11 +427,11 @@ class DataSet:
                     raise KeyError(f'{colsSetName} {col} not in right result set')
         
         # Set specified cols as the index (after making them hashable) and sort it.
-        dfLeft[indexCols] = dfLeft[indexCols].applymap(cls._toHashable)
+        dfLeft[indexCols] = utils.mapDataFrame(dfLeft[indexCols], cls._toHashable)
         dfLeft.set_index(indexCols, inplace=True)
         dfLeft = dfLeft.sort_index()  # Not inplace: don't modify a copy/slice
 
-        dfRight[indexCols] = dfRight[indexCols].applymap(cls._toHashable)
+        dfRight[indexCols] = utils.mapDataFrame(dfRight[indexCols], cls._toHashable)
         dfRight.set_index(indexCols, inplace=True)
         dfRight = dfRight.sort_index()  # Idem
 
@@ -477,7 +477,8 @@ class DataSet:
         dfRelDiff.loc[dfRight[~dfRight.index.isin(dfLeft.index)].index, :] = 0
         
         # Drop rows (and maybe columns) with closeness over the threshold (or of NaN value if authorized)
-        dfCells2Drop = dfRelDiff.applymap(lambda v: v > dropCloser or (dropNans and pd.isnull(v)))
+        dfCells2Drop = utils.mapDataFrame(dfRelDiff,
+                                          lambda v: v > dropCloser or (dropNans and pd.isnull(v)))
         dfRelDiff.drop(dfRelDiff[dfCells2Drop.all(axis='columns')].index, inplace=True)
         if dropCloserCols:
             # dfRelDiff.drop(columns=dfRelDiff.T[dfCells2Drop.all(axis='index')].index, axis='index', inplace=True)
@@ -808,7 +809,7 @@ class MonoCategoryDataSet(DataSet):
             ldAbscSights.append(dAbscSight)
 
         # Add them to the input sightings
-        return dfInSights.append(pd.DataFrame(pd.DataFrame(ldAbscSights)))
+        return pd.concat([dfInSights, pd.DataFrame(ldAbscSights)])
 
     # Add survey area information to sightings data (in-place modification)
     # * dfInSights : input data table
@@ -1046,7 +1047,7 @@ class ResultsSet:
         # Update columns translation table also.
         dfNewColTrans = pd.DataFrame(index=newCols,
                                      data={lang: newColTrans for lang in self.dfColTrans.columns})
-        self.dfColTrans = self.dfColTrans.append(dfNewColTrans)
+        self.dfColTrans = pd.concat([self.dfColTrans, dfNewColTrans])
 
     def append(self, sdfResult, sCustomHead=None, acceptNewCols=False):
         
@@ -1088,14 +1089,14 @@ class ResultsSet:
         # Prepend header columns to results (on the left) if any.
         if sCustomHead is not None:
             if isinstance(sdfResult, pd.Series):
-                sdfResult = sCustomHead.append(sdfResult)
+                sdfResult = pd.concat([sCustomHead, sdfResult])
             else:  # DataFrame
                 dfCustomHead = pd.DataFrame([sCustomHead]*len(sdfResult)).reset_index(drop=True)
                 sdfResult = pd.concat([dfCustomHead, sdfResult], axis='columns')
         
         # Append results rows to the already present ones (at the end)
         if self._dfData.columns.empty:
-            # In order to preserve types, we can't use self._dfData.append(sdfResult),
+            # In order to preserve types, we can't use pd.concat([self._dfData, sdfResult]),
             # because it doesn't preserve original types (int => float)
             if isinstance(sdfResult, pd.Series):
                 # self._dfData = sdfResult.to_frame().T  # This doesn't preserve types (=> all object)
@@ -1103,7 +1104,10 @@ class ResultsSet:
             else:  # DataFrame
                 self._dfData = sdfResult
         else:
-            self._dfData = self._dfData.append(sdfResult, ignore_index=True)
+            if isinstance(sdfResult, pd.Series):
+                # self._dfData = sdfResult.to_frame().T  # This doesn't preserve types (=> all object)
+                sdfResult = pd.DataFrame([sdfResult])
+            self._dfData = pd.concat([self._dfData, sdfResult], ignore_index=True)
         
         # Appending (or concat'ing) often changes columns order
         self.rightColOrder = False
@@ -1241,7 +1245,7 @@ class ResultsSet:
         
         dfColTrans = self.dfColTrans
         if self.dfCustomColTrans is not None:
-            dfColTrans = self.dfCustomColTrans.append(dfColTrans, sort=False)
+            dfColTrans = pd.concat([self.dfCustomColTrans, dfColTrans], sort=False)
             
         return dfColTrans
         

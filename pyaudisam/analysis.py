@@ -242,9 +242,9 @@ class MCDSAnalysis(DSAnalysis):
                              index=self.MIRunColumns)
         
         # Append the run results (if any usable) to the analysis sample stats and run data for output.
-        sSampStatsRunData = self.sSampleStats.append(sRunData)
+        sSampStatsRunData = pd.concat([self.sSampleStats, sRunData])
         if self.engine.success(self.runStatus) or self.engine.warnings(self.runStatus):
-            self.sResults = sSampStatsRunData.append(self.sResults)
+            self.sResults = pd.concat([sSampStatsRunData, self.sResults])
         else:
             self.sResults = sSampStatsRunData
             

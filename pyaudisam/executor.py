@@ -150,11 +150,11 @@ class Executor:
 
         Warning: Fully reports what's in the actual implementation of concurrent.futures.ThreadPoolExecutor
                  and concurrent.futures.ProcessPoolExecutor : figures are verified only for python versions
-                 from 3.0 to 3.10pre
+                 from 3.0 to 3.12
         """
 
-        if sys.version_info.major < 3 or sys.version_info.minor < 5 or sys.version_info.minor > 10:
-            warnings.warn('Executor.expectedWorkers() may not report accurate figures as Python < 3.5 or > 3.10',
+        if sys.version_info.major < 3 or sys.version_info.minor < 5 or sys.version_info.minor > 12:
+            warnings.warn('Executor.expectedWorkers() may not report accurate figures as Python < 3.5 or > 3.12',
                           RuntimeWarning)
 
         if self.threads is None:

@@ -227,18 +227,21 @@ def testMcdsBuildDataFile(dfShortSdsData_fxt):
     runDir = eng.setupRunFolder(runPrefix='uni')
     dfData = dfShortSdsData_fxt  # load source test data
 
-    # export data to file
+    # Export data to file
     dataFileName = eng.buildDataFile(runDir, ads.SampleDataSet(dfData))
-    # gather exported data, with columns indexed
+
+    # Gather exported data, with columns indexed
     dfFiled = pd.read_csv(dataFileName, sep='\t', header=None)
-    dfFiled.set_axis(['Region', 'Surface', 'Point', 'Effort', 'Distance'], axis=1, inplace=True)
-    # prepare dfData for comparison - change type of 'Surface' to integer (due to data type as read by pd.read_csv)
+    dfFiled = dfFiled.set_axis(['Region', 'Surface', 'Point', 'Effort', 'Distance'], axis='columns')
+
+    # Prepare dfData for comparison - change type of 'Surface' to integer (due to data type as read by pd.read_csv)
     dfData.Surface = dfData.Surface.apply(int)
-    # test exported data match to source
+
+    # Test exported data match to source
     assert dfFiled.compare(dfData[['Region', 'Surface', 'Point', 'Effort', 'Distance']]).empty, \
         'Error: test_buildDataFile: data exported to file do not match to source data'
 
-    # clean-up: 'mcds-out' directory and content deleted
+    # Clean-up: 'mcds-out' directory and content deleted
     shutil.rmtree(uivu.pWorkDir / 'mcds-out')
 
     logger.info0('PASS testMcdsBuildDataFile: buildDataFile"')

@@ -22,7 +22,7 @@
 import numpy as np
 import pandas as pd
 
-from . import log
+from . import log, utils
 from .engine import MCDSEngine
 from .analysis import MCDSAnalysis
 from .analyser import MCDSAnalyser, MCDSAnalysisResultsSet
@@ -460,7 +460,8 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
             optimTgtUserSpecCols = self.zoptr.optimisationTargetColumnUserNames()
             dfOptimRes.rename(columns=dict(zip(optimResults.optimisationTargetColumns(),
                                                optimTgtUserSpecCols)), inplace=True)
-            bdfToBeKeptSpecCells = ~dfExplCompdParamSpecs[optimTgtUserSpecCols].applymap(lambda v: isinstance(v, str))
+            bdfToBeKeptSpecCells = ~utils.mapDataFrame(dfExplCompdParamSpecs[optimTgtUserSpecCols],
+                                                       lambda v: isinstance(v, str))
             dfExplCompdParamSpecs[optimTgtUserSpecCols] = \
                 dfExplCompdParamSpecs[optimTgtUserSpecCols].where(bdfToBeKeptSpecCells,
                                                                   other=dfOptimRes[optimTgtUserSpecCols])
@@ -476,7 +477,7 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
             dfExplCompdParamSpecs.reset_index(inplace=True)
             dfExplCompdParamSpecs[self.OptimTruncFlagCol] = 1  # Computed = "optimised" truncation params.
 
-            dfExplParamSpecs = dfExplConstParamSpecs.append(dfExplCompdParamSpecs, ignore_index=True)
+            dfExplParamSpecs = pd.concat([dfExplConstParamSpecs, dfExplCompdParamSpecs], ignore_index=True)
             dfExplParamSpecs.sort_values(by=self.anlysIndCol, inplace=True)
 
         else:
