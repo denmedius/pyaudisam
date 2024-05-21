@@ -52,9 +52,15 @@ def loadPythonData(path, **kwargs):
     return path, types.SimpleNamespace(**data)
 
 
-KIsDeprecatedDataFrameApplyMap = pd.__version__ > '2.1'
-
 def mapDataFrame(df, func, na_action=None, **kwargs):
-    """Wrapper to pandas DataFrame.applymap renamed to map from 2.1"""
-    return df.map(func, na_action, **kwargs) if KIsDeprecatedDataFrameApplyMap \
+    """Wrapper to pandas DataFrame.applymap renamed to map from 2.1.0"""
+    return df.map(func, na_action, **kwargs) if pd.__version__ >= '2.1.0' \
         else df.applymap(func, na_action, **kwargs)
+
+
+KPandasFreqAliases = {} if pd.__version__ < '2.2.0' \
+                     else {'H': 'h', 'T': 'min', 'S': 's', 'L': 'ms', 'U': 'us', 'N': 'ns'}
+
+def pandasFreqAlias(freq):
+    """Pandas freq alias wrapper managing deprecations"""
+    return KPandasFreqAliases.get(freq, freq)

@@ -25,7 +25,7 @@ from packaging import version
 import numpy as np
 import pandas as pd
 
-from . import log, runtime
+from . import log, runtime, utils
 from .data import MonoCategoryDataSet, ResultsSet
 from .executor import Executor
 from .engine import MCDSEngine
@@ -2512,8 +2512,9 @@ class MCDSAnalyser(DSAnalyser):
                     endOfMsg = 'should end around ' + expectedEnd
                 else:
                     endOfMsg = 'done'
+                elapsedTilNowS = elapsedTilNow.round(utils.pandasFreqAlias('S'))
                 logger.info1('{}/{} analyses in {} (mean {:.3f}s): {}.'
-                             .format(nDone, len(dAnlyses), str(elapsedTilNow.round('S')).replace('0 days ', ''),
+                             .format(nDone, len(dAnlyses), str(elapsedTilNowS).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nDone, endOfMsg))
 
         # Terminate analysis executor

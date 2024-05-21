@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as pltt
 # import seaborn as sb
 
-from . import log, runtime, __version__
+from . import log, runtime, utils, __version__
 from .executor import Executor
 from .analyser import MCDSAnalysisResultsSet
 
@@ -832,8 +832,9 @@ class DSResultsDistanceReport(ResultsReport):
                 expectedEnd = now
                 if nDone < len(pages):
                     expectedEnd += pd.Timedelta(elapsedTilNow.value * (len(pages) - nDone) / nDone)
+                elapsedTilNowS = elapsedTilNow.round(utils.pandasFreqAlias('S'))
                 logger.info1('{}/{} pages in {} (mean {:.2f}s){}'
-                             .format(nDone, len(pages), str(elapsedTilNow.round('S')).replace('0 days ', ''),
+                             .format(nDone, len(pages), str(elapsedTilNowS).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nDone,
                                      ': done.' if nDone == len(pages)
                                                else ': should end around ' + expectedEnd.strftime('%Y-%m-%d %H:%M:%S')

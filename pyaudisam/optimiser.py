@@ -24,7 +24,7 @@ from collections import namedtuple as ntuple
 import numpy as np
 import pandas as pd
 
-from . import log
+from . import log, utils
 from .data import MonoCategoryDataSet, ResultsSet
 from .executor import Executor
 from .engine import MCDSEngine
@@ -1243,8 +1243,9 @@ class MCDSTruncationOptimiser(DSParamsOptimiser):
                     endOfMsg = 'should end around ' + expectedEnd
                 else:
                     endOfMsg = 'done'
+                elapsedTilNowS = elapsedTilNow.round(utils.pandasFreqAlias('S'))
                 logger.info1('{}/{} optimisations in {} (mean {:.2f}s): {}.'
-                             .format(nDone, len(dOptims), str(elapsedTilNow.round('S')).replace('0 days ', ''),
+                             .format(nDone, len(dOptims), str(elapsedTilNowS).replace('0 days ', ''),
                                      elapsedTilNow.total_seconds() / nDone, endOfMsg))
 
         # Terminate analysis executor
