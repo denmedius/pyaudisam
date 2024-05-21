@@ -13,19 +13,26 @@ As for now, only the Windows MCDS.exe 6.x (Distance 6 to 7.3) and 7.4 (Distance 
 ## Requirements
 
 The module itself was actually tested extensively with:
-* python 3.8 only
-* pandas 0.25 to 1.2.5
-* openpyxl 3.0 to 3.1.2
-* matplotlib 3.1 to 3.7
-* jinja2 2.10 to 3.1
-* zoopt 0.4.0
-* xlrd 2.0 (only for .xls format support)
+* python 3.12.3
+* numpy 1.26.4
+* pandas 2.2.2
+* openpyxl 3.1.2
+* xlrd 2.0.1 (only for .xls format support)
+* odfpy 1.4.1
+* jinja2 3.1.4
+* matplotlib 3.8.4
+* packaging 24.0
+* zoopt 0.4.2
 
-You will get no support outside of this (but porting to python 3.12 & pandas 2.x is planned for 2024 or 2025).
+It probably works as is with downward versions, as specified in [requirements.txt](https://github.com/denmedius/pyaudisam/blob/main/requirements.txt), mostly due to pandas 2.1  (but you'll need to run the whole test suite first to make sure).
+
+If you need Python 3.8 compatibility, you can:
+* use release 1.1.0 (but you'll be limited to pandas 1.x),
+* use this release, but at your own risks, with likely some changes to do in code (hint: run the whole test suite to see what's happening).
 
 As for testing:
-* pytest, pytest-cov
-* plotly (sometimes)
+* pytest, pytest-cov,
+* plotly (sometimes, in old notebooks).
 
 ## Installation
 
