@@ -584,7 +584,7 @@ class MCDSTruncationOptimisation(DSOptimisation):
                           index=self.RunColumns)
         
         # Build final table of optimisation results : header then results, for each optimisation.
-        dfOptimResults = pd.DataFrame(data=[sHead.append(pd.Series(optRes)) for optRes in ldOptimResults])
+        dfOptimResults = pd.DataFrame(data=[pd.concat([sHead, pd.Series(optRes)]) for optRes in ldOptimResults])
         
         # Done
         return dfOptimResults
