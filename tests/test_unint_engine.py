@@ -141,7 +141,7 @@ def testDsSetupRunFolder():
 
     # i. Non-empty run prefix with spaces and special chars
     runDir = ads.MCDSEngine().setupRunFolder(runPrefix=' t,e.s:t; ( )_setupRunFolder')
-    assert not re.search('[ ,.:;()/]', str(runDir)), \
+    assert not re.search('[ ,.:;()/]', runDir.stem), \
         'Error: test_MCDS_setupRunFolder: Setup directory: unsupported chars should have been cleaned up'
     assert runDir.exists(), 'Error: test_MCDS_setupRunFolder: temporary directory not created'
     runDir.rmdir()  # clean-up
