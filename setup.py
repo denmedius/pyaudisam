@@ -55,11 +55,11 @@ sut.setup(name='pyaudisam', version=version, url='https://github.com/denmedius/p
                        'Development Status :: 3 - Alpha',
                        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
                        'Programming Language :: Python :: 3 :: Only',
-                       'Programming Language :: Python :: 3.8',
+                       'Programming Language :: Python :: 3.9',
                        'Environment :: Win32 (MS Windows)'],
           packages=['pyaudisam', 'pyaudisam.mcds', 'pyaudisam.report'],
           include_package_data=True,
-          python_requires='~=3.8',
+          python_requires='>=3.9',
           install_requires=requirements,
           extras_require={'test': test_requirements},
           entry_points={'console_scripts': []})

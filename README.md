@@ -24,13 +24,13 @@ The module itself was actually tested extensively with:
 * packaging 24.0
 * zoopt 0.4.2
 
-It probably works as is with downward versions, as specified in [requirements.txt](https://github.com/denmedius/pyaudisam/blob/main/requirements.txt), mostly due to pandas 2.1  (but you'll need to run the whole test suite first to make sure).
+It probably works as is with earlier versions, but not below 3.9, as specified in [setup.py](https://github.com/denmedius/pyaudisam/blob/main/setup.py), mostly due to pandas 2.1  (but you'll need to run the whole test suite first to make sure).
 
 If you need Python 3.8 compatibility, you can:
-* use release 1.1.0 (but you'll be limited to pandas 1.x),
-* use this release, but at your own risks, with likely some changes to do in code (hint: run the whole test suite to see what's happening).
+* use the 1.1.0 release (but you'll be limited to pandas 1.x),
+* tweak this (source) release, but at your own risks, because for sure you'll have to do some fixes (hint: run the whole test suite to see what's happening).
 
-As for testing:
+As for testing dependencies:
 * pytest, pytest-cov,
 * plotly (sometimes, in old notebooks).
 
