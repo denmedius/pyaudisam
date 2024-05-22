@@ -14,14 +14,14 @@
 # If not, see https://www.gnu.org/licenses/.
 
 # Module version
-__version__ = '1.1.0'
+__version__ = '1.2.0-dev'
 
 import os
 import sys
 import platform
 
 
-# Infos about run-time (Python version, dependency library versions, ... + also updated by submodules)
+# Infos about run-time (Python version, dependency library versions, ...), updated right below by submodules imports.
 _osEdition = (' ' + platform.win32_edition()) if sys.platform.startswith('win32') else ''
 runtime = dict(os=f'{platform.system()}{_osEdition} {platform.version()} ({platform.architecture()[0]})',
                processor=f'{platform.processor()}, {os.cpu_count()} CPUs',
