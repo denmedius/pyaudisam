@@ -1,5 +1,5 @@
 # coding: utf-8
-
+import shutil
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
 
 # Copyright (C) 2021 Jean-Philippe Meuret
@@ -790,6 +790,7 @@ class MCDSEngine(DSEngine):
         # 1. Load table (text format, with space separated and fixed width columns,
         #    columns headers from cls.DfStatRowSpecs)
         dfStats = pd.read_csv(statsFileName, sep=' +', engine='python', names=cls.DfStatRowSpecs.index)
+        dfInitStats = dfStats.copy()
         
         # 2. Remove Stratum, Sample and Estimator columns (no support for multiple ones for the moment)
         dfStats.drop(columns=['Stratum', 'Sample', 'Estimator'], inplace=True)
@@ -829,11 +830,11 @@ class MCDSEngine(DSEngine):
         
         # 8. Make some values more readable (1/2): Get and convert the values.
         # Note: Since after pandas 2.2, we can't update the values in-place, as it would imply writing
-        #       strings in a float column, and pandas 2 does no more accepts it ; hence the 2-step process.
+        #       strings in a float column, and pandas 2 does no more accept it ; hence the 2-step process.
         lblKeyFn = (dfStats.modDesc == 'detection probability') & (dfStats.statDesc == 'key function type')
-        keyFnName = cls.EstKeyFns[int(dfStats.loc[lblKeyFn, 'Value'].iloc[0]) - 1]
+        keyFnName = cls.EstKeyFns[int(dfStats.loc[lblKeyFn, 'Value'].iloc[0]) - 1] if lblKeyFn.any() else None
         lblAdjFn = (dfStats.modDesc == 'detection probability') & (dfStats.statDesc == 'adjustment series type')
-        adjFnName = cls.EstAdjustFns[int(dfStats.loc[lblAdjFn, 'Value'].iloc[0]) - 1]
+        adjFnName = cls.EstAdjustFns[int(dfStats.loc[lblAdjFn, 'Value'].iloc[0]) - 1] if lblAdjFn.any() else None
 
         # 9. Check if any unexpected module / statistic present, and if so, warn and fix
         #    (like after MCDS.exe changed version ... as an example)
@@ -849,9 +850,11 @@ class MCDSEngine(DSEngine):
         dfStats.set_index(['modDesc', 'statDesc', 'Figure'], inplace=True)
         dfStats = dfStats.T
 
-        # 11. Make some values more readable (2/2): Update them in the final frame.
-        dfStats[('detection probability', 'key function type', 'Value')] = keyFnName
-        dfStats[('detection probability', 'adjustment series type', 'Value')] = adjFnName
+        # 11. Make some values more readable (2/2): Update them in the final frame, if found in stats.
+        if keyFnName:
+            dfStats[('detection probability', 'key function type', 'Value')] = keyFnName
+        if adjFnName:
+            dfStats[('detection probability', 'adjustment series type', 'Value')] = adjFnName
 
         # That's all folks !
         logger.debug('Done decoding from {}.'.format(statsFileName))
