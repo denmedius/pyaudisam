@@ -700,8 +700,8 @@ class DSResultsDistanceReport(ResultsReport):
         genDateTime = dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
         tmpl = self.getTemplateEnv().get_template('mcds/top.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
-        html = tmpl.render(synthesis=dfsSyn.render(),  # escape=False, index=False),
-                           details=dfsDet.render(),  # escape=False, index=False),
+        html = tmpl.render(synthesis=dfsSyn.to_html(),
+                           details=dfsDet.to_html(),
                            traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle.replace('\n', '<br>'),
@@ -775,7 +775,7 @@ class DSResultsDistanceReport(ResultsReport):
             logger.info(f'... through at most {nExpWorkers} parallel generators ...')
 
         # 1. 1st pass : Generate previous / next list (for navigation buttons) with the sorted order if any
-        dfSynthRes = self.finalformatEachAnalysisData(dfSynthRes, sort=True, indexer=True,
+        dfSynthRes = self.finalFormatEachAnalysisData(dfSynthRes, sort=True, indexer=True,
                                                       convert=False, round_=False, style=False).data
         sCurrUrl = dfSynthRes[self.trRunFolderCol]
         sCurrUrl = sCurrUrl.apply(lambda path: self.targetFilePathName(tgtFolder=path, prefix='index', suffix='.html'))
@@ -783,7 +783,7 @@ class DSResultsDistanceReport(ResultsReport):
         dfAnlysUrls = pd.DataFrame(dict(current=sCurrUrl, previous=np.roll(sCurrUrl, 1), next=np.roll(sCurrUrl, -1)))
 
         # And don't forget to sort & index detailed results the same way as synthesis ones.
-        dfDetRes = self.finalformatEachAnalysisData(dfDetRes, sort=True, indexer=True,
+        dfDetRes = self.finalFormatEachAnalysisData(dfDetRes, sort=True, indexer=True,
                                                     convert=False, round_=False, style=False).data
 
         # 2. 2nd pass : Generate
@@ -802,7 +802,7 @@ class DSResultsDistanceReport(ResultsReport):
         for lblRes in dfSynthRes.index:
             
             logger.info1(f'#{lblRes}/{len(dfSynthRes)}: '
-                         + ' '.join(f'{k}={v}' for k, v in dfDetRes.loc[lblRes, trCustCols].iteritems()))
+                         + ' '.join(f'{k}={v}' for k, v in dfDetRes.loc[lblRes, trCustCols].items()))
 
             pgFut = executor.submit(self._toHtmlAnalysis, lblRes, dfSynthRes.loc[lblRes],
                                     dfDetRes.loc[lblRes], dfAnlysUrls.loc[lblRes],
@@ -854,14 +854,14 @@ class DSResultsDistanceReport(ResultsReport):
         idxFmt = '{{:0{}d}}'.format(1+max(int(math.log10(len(dfSyn))), 1))
         dfSyn[self.trRunFolderCol] = dfSyn[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         dfSyn.index = dfSyn.index.map(lambda n: idxFmt.format(n))
-        dfsSyn = self.finalformatEachAnalysisData(dfSyn, sort=False, indexer=None,
+        dfsSyn = self.finalFormatEachAnalysisData(dfSyn, sort=False, indexer=None,
                                                   convert=True, round_=True, style=True)
         
         # Post-process detailed table :
         dfDet = pd.DataFrame([sDetRes])
         dfDet[self.trRunFolderCol] = dfDet[self.trRunFolderCol].apply(self.relativeRunFolderUrl)
         dfDet.index = dfDet.index.map(lambda n: idxFmt.format(n))
-        dfsDet = self.finalformatEachAnalysisData(dfDet, sort=False, indexer=None,
+        dfsDet = self.finalFormatEachAnalysisData(dfDet, sort=False, indexer=None,
                                                   convert=False, round_=False, style=True)
         
         # Generate analysis report page.
@@ -870,8 +870,8 @@ class DSResultsDistanceReport(ResultsReport):
         engineClass = self.resultsSet.engineClass
         anlysFolder = sDetRes[self.trRunFolderCol]
         tmpl = self.getTemplateEnv().get_template('mcds/anlys.htpl')
-        html = tmpl.render(synthesis=dfsSyn.render(),
-                           details=dfsDet.render(),
+        html = tmpl.render(synthesis=dfsSyn.to_html(),
+                           details=dfsDet.to_html(),
                            log=engineClass.decodeLog(anlysFolder),
                            output=engineClass.decodeOutput(anlysFolder),
                            plots=self.generatePlots(plotsData=engineClass.decodePlots(anlysFolder), 
@@ -1279,8 +1279,8 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
                 dfs.set_properties(subset=pd.IndexSlice[df[~df[col].isin([1, 2])].index, :],
                                    **{'color': self.CChrGray})
             
-            # NaN cells are set to transparent foreground / no shadow (to hide NaNs).
-            dfs.where(self.isNull, 'color: transparent').where(self.isNull, 'text-shadow: none')
+            # All NaN cells are set to transparent foreground & no shadow (=> hide all NaNs).
+            dfs.map(lambda v: 'color: transparent; text-shadow: none' if self.isNull(v) else None)
         
         return dfs
 
@@ -1289,7 +1289,7 @@ class MCDSResultsDistanceReport(DSResultsDistanceReport):
     # (sort, convert units, round values, and style).
     # Note: Use trEnColNames method to pass from EN-translated columns names to self.lang-ones
     # Return a pd.DataFrame.Styler
-    def finalformatEachAnalysisData(self, dfTrData, sort=True, indexer=None, convert=True, round_=True, style=True):
+    def finalFormatEachAnalysisData(self, dfTrData, sort=True, indexer=None, convert=True, round_=True, style=True):
     
         return self.finalFormatAllAnalysesData(dfTrData, sort=sort, indexer=indexer,
                                                convert=convert, round_=round_, style=style)
@@ -1859,8 +1859,8 @@ class MCDSResultsFullReport(MCDSResultsDistanceReport):
         tmpl = self.getTemplateEnv().get_template('mcds/fulltop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
-                           synthesis=dfsSyn.render(),  # escape=False, index=False),
-                           details=dfsDet.render(),  # escape=False, index=False),
+                           synthesis=dfsSyn.to_html(),
+                           details=dfsDet.to_html(),
                            traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, subtitle=self.subTitle.replace('\n', '<br>'),
@@ -2178,8 +2178,8 @@ class MCDSResultsFilterSortReport(MCDSResultsFullReport):
         tmpl = self.getTemplateEnv().get_template('mcds/fulltop.htpl')
         xlFileUrl = os.path.basename(self.targetFilePathName(suffix='.xlsx')).replace(os.sep, '/')
         html = tmpl.render(supersynthesis=dfSupSyn.to_html(escape=False),
-                           synthesis=dfsSyn.render(),  # escape=False, index=False),
-                           details=dfsDet.render(),  # escape=False, index=False),
+                           synthesis=dfsSyn.to_html(),
+                           details=dfsDet.to_html(),
                            traceability={trcName: dfTrcTable.to_html(escape=False, na_rep='')
                                          for trcName, (dfTrcTable, _) in ddfTrc.items()},
                            title=self.title, keywords=self.keywords,
