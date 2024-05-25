@@ -389,6 +389,8 @@ class TestMcdsAnalyser:
         # Run a parallel (auto-number of workers) and then a sequential execution
         for nThreads in [0, 1]:
 
+            logger.info(f'CLI run with {nThreads} workers ...')
+
             # a. Cleanup test folder (Note: avoid any Ruindows shell or explorer inside this folder !)
             if anlysr.workDir.exists():
                 shutil.rmtree(anlysr.workDir)
@@ -488,39 +490,58 @@ class TestMcdsAnalyser:
 
         logger.info('Done comparing reference to actual workbook reports.')
 
+    @staticmethod
+    def loadHtmlReportLines(filePath):
+
+        logger.info(f'Loading HTML report from {filePath.as_posix()} ...')
+
+        return uivu.loadPrettyHtmlLines(filePath)
+
     @pytest.fixture()
     def htmlRefReportLines_fxt(self):
 
-        with open(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-Rapport.html') as file:
-            repLines = file.readlines()
-
-        return repLines
+        return self.loadHtmlReportLines(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-Rapport.html')
 
     @staticmethod
     def compareHtmlReports(refReportLines, actReportLines, cliMode=False):
         """Prerequisite: Reference report generated with either MCDS 7.4 or 6.2"""
 
+        DEBUG = True
+
         logger.info('Preprocessing HTML reports for comparison ...')
+
+        if DEBUG:
+            with open(uivu.pTmpDir / 'report-ref-before.html', 'w') as file:
+                file.write('\n'.join(refReportLines))
+            with open(uivu.pTmpDir / 'report-act-before.html', 'w') as file:
+                file.write('\n'.join(actReportLines))
 
         # Pre-process actual report lines
         remRefLines = remActLines = 0
 
         # * list unique cell ids (keeping the original order) in both reports
-        KRETableId = r'#T(_[0-9a-f]{5}_)'
+        KRETableId = r'#T(_[0-9a-f]{5})'
         refTableIds = uivu.listUniqueStrings(KRETableId, refReportLines)
         actTableIds = uivu.listUniqueStrings(KRETableId, actReportLines)
+        logger.info(f'* found table Ids: ref={refTableIds}, act={actTableIds}')
         assert len(refTableIds) == 2
         assert len(actTableIds) == len(refTableIds)
 
         refDetTableId = refTableIds[1]  # "Details" table Id
 
-        logger.info(f'* found table Ids: ref={refTableIds}, act={actTableIds}')
-
         # * replace each cell id in the actual report by the corresponding ref. report one
-        #   (note: the heading and trailing '_' of the Id make this replacement safe ;
-        #          without them, there are chances to also replace decimal figures in results !)
-        repIdLines = uivu.replaceStrings(froms=actTableIds, tos=refTableIds, lines=actReportLines)
-        logger.info(f'* replaced by ref. analysis Id in {repIdLines} act. lines')
+        #   (note: the heading '_' of the Id makes this replacement safe ;
+        #          without it, there are chances to also replace numerical figures in results !)
+        repActIdLines = uivu.replaceStrings(froms=actTableIds, tos=refTableIds, lines=actReportLines)
+        logger.info(f'* replaced by ref. analysis Ids in {repActIdLines} act. lines')
+
+        # * fix a trailing _ in table Ids before pandas 2
+        repRefIdLines = 0
+        for refTableId in refTableIds:
+            reCellFrom = rf'<table id="T{refTableId}_">'
+            reCellTo = rf'<table id="T{refTableId}">'
+            repRefIdLines += uivu.replaceRegExps(re2Search=reCellFrom, repl=reCellTo, lines=refReportLines)
+        logger.info(f'* fixed ref. table Ids in {repRefIdLines} ref. lines')
 
         # * list unique analysis folders (keeping the original order) in both reports
         KREAnlysDir = r'="./([a-zA-Z0-9-_]+)/'
@@ -536,78 +557,104 @@ class TestMcdsAnalyser:
         # * remove specific lines in both reports:
         #   - header meta "DateTime"
         KREDateTime = r'[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}'
-        KREMetaDateTime = rf'<meta name="datetime" content="{KREDateTime}"/>'
+        KREMetaDateTime = rf'<meta content="{KREDateTime}" name="datetime"/>'
         remRefLines += uivu.removeLines(KREMetaDateTime, refReportLines)
         remActLines += uivu.removeLines(KREMetaDateTime, actReportLines)
 
         #   - run time and duration table cells
-        KRERunTimeDuration = r'<td id="T_.+_row.+_col(19|20)" class="data row.+ col(19|20)" >'
-        remRefLines += uivu.removeLines(KRERunTimeDuration, refReportLines)
-        remActLines += uivu.removeLines(KRERunTimeDuration, actReportLines)
+        KRERunTimeDuration = r'<td class="data row(.+) col(19|20)" id="T_.+_row(\1)_col(19|20)">'
+        remRefLines += uivu.removeLines(KRERunTimeDuration, refReportLines, after=2)
+        remActLines += uivu.removeLines(KRERunTimeDuration, actReportLines, after=2)
+
+        #   - new undocumented MCDS 7.4 result columns (and headers) in ref "Details" table
+        #     => ignore them in ref. report when running MCDS 6.2
+        KREDetailsMcds74LastCol = rf'<td class=".+" id="T{refDetTableId}_row.+_col122"'
+        if not uivu.selectLines(KREDetailsMcds74LastCol, actReportLines):
+            KREDetailsUndocColHd = rf'<th class="col_heading level0 col(66|67|68|69|70|71|72|73|74|75|76)"'
+            remRefLines += uivu.removeLines(KREDetailsUndocColHd, refReportLines, after=2)
+            KREDetailsUndocCol = rf'<td class=".+" id="T{refDetTableId}_row.+_col(66|67|68|69|70|71|72|73|74|75|76)"'
+            remRefLines += uivu.removeLines(KREDetailsUndocCol, refReportLines, after=2)
+
+        #   - style lines in ref "Synthesis" and "Details" table,
+        #     + because of the possibly present undoc. cols of MCDS 7.4,
+        #     + different formatting by beautifulsoup for ref and act sometimes (WTF !?),
+        #     + some spaces added by pandas 2
+        #     (at the price of not checking cell styling ... but this is not really useful / much examined after all)
+        for refTableId in refTableIds:
+            reDetailsLine2Drop = rf'^ *}}?#T{refTableId}_row'
+            remRefLines += uivu.removeLines(reDetailsLine2Drop, refReportLines)
+            remActLines += uivu.removeLines(reDetailsLine2Drop, actReportLines)
 
         #   - footer "Generated on <date+time>" => not needed, 'cause in final ignored blocks (see below)
         # KREGenDateTime = rf'Generated on {KREDateTime}'
         # remRefLines += uivu.removeLines(KREGenDateTime, refReportLines)
         # remActLines += uivu.removeLines(KREGenDateTime, actReportLines)
 
-        #   - new undocumented MCDS 7.4 result columns in ref "Details" table
-        #     => ignore them in ref. report when running MCDS 6.2
-        KREDetailsMcds74LastCol = rf'<td id="T{refDetTableId}row.+_col122"'  # No such column prior with MCDS 6.2
-        if not uivu.selectLines(KREDetailsMcds74LastCol, actReportLines):
-            KREDetailsUndocCol = rf'<td id="T{refDetTableId}row.+_col(66|67|68|69|70|71|72|73|74|75|76)"'
-            remRefLines += uivu.removeLines(KREDetailsUndocCol, refReportLines)
-
-        #   - header and style lines in ref "Details" table (simpler report comparison, at the price of not checking
-        #     cell styling ... but this is not really useful / much examined after all,
-        #     and column headers, which is a bit more annoying ...)
-        KREDetailsLine2Drop = rf'^#T{refDetTableId}row0_col0,'
-        remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
-        remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
-
-        KREDetailsLine2Drop = rf'^ +}}#T{refDetTableId}row'
-        remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
-        remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
-
-        KREDetailsLine2Drop = rf'<table id="T{refDetTableId}" ><thead>'
-        remRefLines += uivu.removeLines(KREDetailsLine2Drop, refReportLines)
-        remActLines += uivu.removeLines(KREDetailsLine2Drop, actReportLines)
-
         logger.info(f'* removed {remRefLines} ref. and {remActLines} act. lines')
 
-        # * remove cell id/class in "Details" table (simpler report comparison, at the price of not checking
-        #   cell styling ... but this is not really useful / much examined after all)
-        KDetailsConstCellIdClass = '<td>'
-        KREDetailsCellIdClass = rf'<td id="T{refDetTableId}row.+_col.+" class=".+" >'
-        repRefLines = uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
-                                          lines=refReportLines)
-        repActLines = uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
-                                          lines=actReportLines)
+        # * remove cell ids and column number in the header and data cells of the "Synthesis" and "Details" tables
+        #   (Ids present with pandas 2.2, not with 1.2 (likely a bug fix ...), that was used to build the reference,
+        #    + workaround possible presence of undoc. cols of MCDS 7.4)
+        #   Warning: This will become useless if the reference report is rebuilt with pyaudisam 1.1 or later
+        repRefLines = repActLines = 0
+        reCellFrom = r'<th class="col_heading level0 col.+"'
+        reCellTo = '<th>'
+        repRefLines += uivu.replaceRegExps(re2Search=reCellFrom, repl=reCellTo, lines=refReportLines)
+        repActLines += uivu.replaceRegExps(re2Search=reCellFrom, repl=reCellTo, lines=actReportLines)
 
-        KDetailsConstCellIdClass = '<th>'
-        KREDetailsCellIdClass = rf'<th id="T{refDetTableId}level.+_row.+" class=".+" >'
-        repRefLines += uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
-                                           lines=refReportLines)
-        repActLines += uivu.replaceRegExps(re2Search=KREDetailsCellIdClass, repl=KDetailsConstCellIdClass,
-                                           lines=actReportLines)
+        reCellFrom = r'<td class="data row.+ col.+"'
+        reCellTo = '<td>'
+        repRefLines += uivu.replaceRegExps(re2Search=reCellFrom, repl=reCellTo, lines=refReportLines)
+        repActLines += uivu.replaceRegExps(re2Search=reCellFrom, repl=reCellTo, lines=actReportLines)
 
-        logger.info(f'* cleaned up "Details" table: {repRefLines} ref. and {repActLines} act. lines')
+        logger.info('* cleaned up header and data cell class/id in tables:'
+                    f' {repRefLines} ref. and {repActLines} act. lines')
 
-        # with open(uivu.pTmpDir / 'report-ref-after.html', 'w') as file:
-        #     file.writelines(refReportLines)
-        # with open(uivu.pTmpDir / 'report-act-after.html', 'w') as file:
-        #     file.writelines(actReportLines)
+        if DEBUG:
+            with open(uivu.pTmpDir / 'report-ref-after.html', 'w') as file:
+                file.write('\n'.join(refReportLines))
+            with open(uivu.pTmpDir / 'report-act-after.html', 'w') as file:
+                file.write('\n'.join(actReportLines))
 
         # Build the list of unified diff blocks
         blocks = uivu.unifiedDiff(refReportLines, actReportLines, logger=logger, subject='HTML reports')
 
-        # Filter diff blocks to check (ignore some that are expected to change without any issue:
-        # * computation platform table, with component versions,
-        # * generation date, credits to components with versions, sources)
+        # Filter diff blocks to check:
+        # * ignore some that are expected to change without any issue:
+        #   - computation platform table, with component versions,
+        #   - generation date, credits to components with versions, sources,
+        # * ignore identical blocks after some final post-processing (remove extra spaces and other pandas 2 stuffing),
+        # * ...
+        ignoreFrom = uivu.selectLineIndices('Computing platform', refReportLines)
+        assert len(ignoreFrom) == 1
+        ignoreFrom = ignoreFrom[0]
+
         blocks_to_check = []
         for block in blocks:
-            if block.startLines.expected >= 10274 - remRefLines:  # <h3>Computing platform</h3><table ...<tbody>
+
+            # Ignore all terminating blocks after 'Computing platform' (versions subject to normal changes)
+            if block.startLines.expected >= ignoreFrom:
                 logger.info(f'Ignoring block @ -{block.startLines.expected} +{block.startLines.real} @')
                 continue
+
+            # Try and cleanup blocks from pandas 2 extra stuffing (vs pandas 1.2)
+            exptdLines = [line.replace(' ', '') for line in block.expectedLines
+                          if line.strip() != '}' and 'td' not in line]
+            realLines = [line.replace(' ', '') for line in block.realLines
+                         if line.strip() != '}' and 'td' not in line]
+
+            # Ignore identical blocks after cleanup.
+            if exptdLines == realLines:
+                logger.info(f'Ignoring block @ -{block.startLines.expected} +{block.startLines.real} @')
+                continue
+
+            # Warn about of a little change with pandas 2 float integer formating => but no a big issue actually !
+            if realLines == [line + '.0' for line in exptdLines]:
+                logger.warning('Some figure rounding differences:'
+                               f' see block @ -{block.startLines.expected} +{block.startLines.real} @')
+                continue
+
+            # Otherwise, keep the block :-(
             blocks_to_check.append(block)
 
         # Check filtered blocks: none should remain.
@@ -720,11 +767,11 @@ class TestMcdsAnalyser:
                                                tgtFolder=anlysr.workDir, tgtPrefix='valtests-analyses-report')
 
             # b.iv. Excel report
-            xlsxRep = report.toExcel()
+            xlsxRep = pl.Path(report.toExcel())
             logger.info('Excel report: ' + pl.Path(xlsxRep).resolve().as_posix())
 
             # b.v. HTML report
-            htmlRep = report.toHtml()
+            htmlRep = pl.Path(report.toHtml())
             logger.info('HTML report: ' + pl.Path(htmlRep).resolve().as_posix())
 
         else:
@@ -734,24 +781,19 @@ class TestMcdsAnalyser:
 
         # c. Load generated Excel report and compare it to reference one
         ddfRefRep = excelRefReport_fxt
-
         ddfActRep = pd.read_excel(xlsxRep, sheet_name=None, index_col=0)
-
         self.compareExcelReports(ddfRefRep, ddfActRep)
 
         # c. Load generated HTML report and compare it to reference one
         htmlRefRepLines = htmlRefReportLines_fxt
-
-        with open(htmlRep) as file:
-            htmlActRepLines = file.readlines()
-
+        htmlActRepLines = self.loadHtmlReportLines(htmlRep)
         self.compareHtmlReports(htmlRefRepLines, htmlActRepLines, cliMode=False)
 
         # e. Cleanup generated report (well ... partially at least)
         #    for clearing next function's ground
         if postCleanup:
-            pl.Path(xlsxRep).unlink()
-            pl.Path(htmlRep).unlink()
+            xlsxRep.unlink()
+            htmlRep.unlink()
         else:
             logger.warning('NOT cleaning up reports: this is not the normal testing scheme !')
 
@@ -780,9 +822,7 @@ class TestMcdsAnalyser:
         self.compareExcelReports(ddfRefRep, ddfActRep)
 
         # c. Load generated HTML report and compare it to reference one
-        with open(workPath / 'valtests-analyses-report.html') as file:
-            htmlActRepLines = file.readlines()
-
+        htmlActRepLines = self.loadHtmlReportLines(workPath / 'valtests-analyses-report.html')
         htmlRefRepLines = htmlRefReportLines_fxt
         self.compareHtmlReports(htmlRefRepLines, htmlActRepLines, cliMode=True)
 

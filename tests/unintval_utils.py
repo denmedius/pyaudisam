@@ -1,6 +1,6 @@
 # coding: utf-8
 # PyAuDiSam: Automation of Distance Sampling analyses with Distance software (http://distancesampling.org/)
-
+from logging import root
 # Copyright (C) 2021 Jean-Philippe Meuret, Sylvain Sainnier
 
 # This program is free software: you can redistribute it and/or modify it under the terms
@@ -21,6 +21,8 @@ import shutil
 import difflib
 
 import pandas as pd
+
+import bs4
 
 import pyaudisam as ads
 
@@ -122,6 +124,19 @@ def analysisAbbrev(sAnlys):
     return '-'.join(abbrevs)
 
 
+def loadPrettyHtmlLines(filePath):
+
+    # Load the whole HTML code from the file to a string
+    with open(filePath) as uglyFile:
+        uglyRoot = uglyFile.read()
+
+    # Prettify it
+    rootSoup = bs4.BeautifulSoup(uglyRoot, features="html.parser")
+    prettyRoot = rootSoup.prettify()
+
+    return prettyRoot.splitlines()
+
+
 def listUniqueStrings(re2FindAll, lines):
     """List unique values of strings matching in a set of lines
     with a given regexp pattern with 1 capturing () couple
@@ -149,6 +164,15 @@ def selectLines(re2Search, lines):
     return [line for line in lines if re2Search.search(line)]
 
 
+def selectLineIndices(re2Search, lines):
+    """Select indices of lines matching (re.search) a regexp pattern"""
+
+    if isinstance(re2Search, str):
+        re2Search = re.compile(re2Search)
+
+    return [ind for ind, line in enumerate(lines) if re2Search.search(line)]
+
+
 def replaceStrings(froms, tos, lines):
     """Replace strings in text lines, inplace the list"""
 
@@ -172,8 +196,7 @@ def replaceRegExps(re2Search, repl, lines):
         re2Search = re.compile(re2Search)
 
     repLines = 0
-    for lineInd in range(len(lines)):
-        line = lines[lineInd]
+    for lineInd, line in enumerate(lines):
         lines[lineInd] = re2Search.sub(repl, line)
         if line != lines[lineInd]:
             repLines += 1
@@ -181,15 +204,13 @@ def replaceRegExps(re2Search, repl, lines):
     return repLines
 
 
-def removeLines(re2Search, lines):
-    """Remove lines where a given regexp pattern is found (re.search), inplace the list"""
+def removeLines(re2Search, lines, before=0, after=0):
+    """Remove lines where a given regexp pattern is found (re.search), inplace the list ;
+    also removes lines before and after, in specified numbers"""
 
-    if isinstance(re2Search, str):
-        re2Search = re.compile(re2Search)
-
-    ind2Remove = [ind for ind in range(len(lines)) if re2Search.search(lines[ind])]
+    ind2Remove = selectLineIndices(re2Search, lines)
     for ind in reversed(ind2Remove):
-        del lines[ind]
+        del lines[ind - before: ind + after + 1]
 
     return len(ind2Remove)
 
