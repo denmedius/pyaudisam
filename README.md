@@ -24,7 +24,7 @@ The module itself was actually tested extensively with:
 * packaging 24.0
 * zoopt 0.4.2
 
-It probably works as is with earlier versions, but not below 3.9, as specified in [setup.py](https://github.com/denmedius/pyaudisam/blob/main/setup.py), mostly due to pandas 2.1  (but you'll need to run the whole test suite first to make sure).
+It probably works as is with earlier versions, but not below python 3.9 as specified in [setup.py](https://github.com/denmedius/pyaudisam/blob/main/setup.py) and pandas 2.1 (but you'll need to run the whole test suite first to make sure).
 
 If you need Python 3.8 compatibility, you can:
 * use the 1.1.0 release (but you'll be limited to pandas 1.x),
@@ -92,7 +92,14 @@ Or even, if you want an HTML report with annotated code coverage:
 
 `pytest --cov --cov-report html`
 
-Note: Some other tests are not yet automated: they are implemented as [jupyter notebooks](https://jupyter.org/) (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb) that you must run step by step, as long as no one has fully automated them :-).
+Notes:
+* With pandas 2.2, you'll face the following warning a few times when running some tests: as the future behaviour is unknown, we don't know how to fix this, so we left things as is => when using later versions of pandas, when the current behavior is really deprecated, you may have to fix things yourself.
+  ```
+  FutureWarning: The behavior of DataFrame concatenation with empty or all-NA entries is deprecated.
+  In a future version, this will no longer exclude empty or all-NA columns when determining the result dtypes.
+  To retain the old behavior, exclude the relevant entries before the concat operation.
+  ```
+* All the test suite has been fully automated (even if not 100% covering code) ; but the old test suite implemented as [jupyter notebooks](https://jupyter.org/) is still available (see [tests/unintests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/unintests.ipynb) and [tests/valtests.ipynb](https://github.com/denmedius/pyaudisam/blob/main/tests/valtests.ipynb)).
 
 ## Building
 
