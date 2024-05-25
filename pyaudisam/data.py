@@ -1557,39 +1557,40 @@ class ResultsSet:
         
         # Load results data.
         logger.info1(f'Loading {fileName}:')
-        xlReader = pd.ExcelFile(fileName, engine=engine)
-        logger.info2(f'* {sheetName or xlReader.sheet_names[0]} ...')
-        dfData = pd.read_excel(xlReader, sheet_name=sheetName or 0, header=header,
-                               skiprows=skipRows, index_col=indexCol)
+        with pd.ExcelFile(fileName, engine=engine) as xlReader:
 
-        # Complete missing columns if any.
-        for colName, colDefVal in dDefMissingCols.items():
-            if colName not in dfData.columns:
-                dfData[colName] = colDefVal
+            logger.info2(f'* {sheetName or xlReader.sheet_names[0]} ...')
+            dfData = pd.read_excel(xlReader, sheet_name=sheetName or 0, header=header,
+                                   skiprows=skipRows, index_col=indexCol)
 
-        # Set data.
-        self.setData(dfData, postComputed=postComputed)
+            # Complete missing columns if any.
+            for colName, colDefVal in dDefMissingCols.items():
+                if colName not in dfData.columns:
+                    dfData[colName] = colDefVal
 
-        # If specified, update results columns list (self.miCols) dynamically 
-        # if unexpected columns appear in loaded data.
-        if acceptNewCols:
-            self._acceptNewColumns(dfData.columns)
+            # Set data.
+            self.setData(dfData, postComputed=postComputed)
 
-        # Load specs
-        self.specs = dict()
-        if specs:
-            ddfSpecs = dict()
-            for shName in xlReader.sheet_names:
-                if shName.startswith(specSheetsPrfx):
-                    logger.info2(f'* {shName} ...')
-                    ddfSpecs[shName[len(specSheetsPrfx):]] = \
-                        pd.read_excel(xlReader, sheet_name=shName, index_col=0)
-            self.specs = self.specsFromTables(ddfSpecs)
+            # If specified, update results columns list (self.miCols) dynamically
+            # if unexpected columns appear in loaded data.
+            if acceptNewCols:
+                self._acceptNewColumns(dfData.columns)
 
-        logger.info('{}x{} results rows x columns and {} specs loaded from {} in {:.3f}s'
-                    .format(len(dfData), len(dfData.columns),
-                            len(self.specs) if specs else 'no', fileName,
-                            (pd.Timestamp.now() - start).total_seconds()))
+            # Load specs
+            self.specs = dict()
+            if specs:
+                ddfSpecs = dict()
+                for shName in xlReader.sheet_names:
+                    if shName.startswith(specSheetsPrfx):
+                        logger.info2(f'* {shName} ...')
+                        ddfSpecs[shName[len(specSheetsPrfx):]] = \
+                            pd.read_excel(xlReader, sheet_name=shName, index_col=0)
+                self.specs = self.specsFromTables(ddfSpecs)
+
+            logger.info('{}x{} results rows x columns and {} specs loaded from {} in {:.3f}s'
+                        .format(len(dfData), len(dfData.columns),
+                                len(self.specs) if specs else 'no', fileName,
+                                (pd.Timestamp.now() - start).total_seconds()))
 
     def fromOpenDoc(self, fileName, sheetName=None, header=[0, 1, 2], skipRows=[3], indexCol=0,
                     specs=True, specSheetsPrfx='sp-', postComputed=False,
