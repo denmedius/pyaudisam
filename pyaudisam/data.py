@@ -448,9 +448,12 @@ class DataSet:
         dfRight.drop(columns=dfRight.columns[-1], inplace=True)
 
         # Replace None by NaNs if specified
+        # Note: As for the option_context and infer_objects stuff ... it silents the warning
+        #       with pandas 2.2, but not sure if it works when the new behaviour is enforced ...
         if noneIsNan:
-            dfLeft.replace({None: np.nan}, inplace=True)
-            dfRight.replace({None: np.nan}, inplace=True)
+            with pd.option_context("future.no_silent_downcasting", True):
+                dfLeft = dfLeft.replace({None: np.nan}).infer_objects(copy=False)
+                dfRight = dfRight.replace({None: np.nan}).infer_objects(copy=False)
 
         # Compare : Compute closeness
         nColLevels = dfLeft.columns.nlevels
