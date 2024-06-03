@@ -503,7 +503,7 @@ class TestMcdsTruncOptAnalyser:
             logger.info(f'  - analyser specs comparison: n={len(dfComp)} =>\n' + dfComp.to_string())
             assert dfComp.empty
 
-        # a. Analyses (DataFrames)
+        # b. Analyses (DataFrames)
         dfRefAnlSpecs = dsdfRefSpecs['analyses'].set_index('NumAnlys')
         dfActAnlSpecs = dsdfActSpecs['analyses'].set_index('NumAnlys')
 
@@ -546,7 +546,7 @@ class TestMcdsTruncOptAnalyser:
 
         logger.info(f'  - comparison of optimised columns: not here, see test_unint_mcds_optimiser')
 
-        # b. Analyser (Series)
+        # c. Analyser (Series)
         # Note: Need to fix some actual analyser specs, of some type when produced
         #       through the API, but of str type when read from result file.
         logger.info(f'* {source} specs: analyser ...')
@@ -566,7 +566,7 @@ class TestMcdsTruncOptAnalyser:
         logger.info(f'  - analyser specs comparison: n={len(dfComp)} =>\n' + dfComp.to_string())
         assert dfComp.empty
 
-        # c. Run-time (Series) : whatever ref, expect a specific up-to-date list of item names, but nothing more
+        # d. Run-time (Series) : whatever ref, expect a specific up-to-date list of item names, but nothing more
         # (values may vary, 'cause they are mostly software versions: it's OK)
         logger.info(f'* {source} specs: run platform ...')
 
@@ -804,7 +804,7 @@ class TestMcdsTruncOptAnalyser:
         return pd.read_excel(filePath, sheet_name=None, index_col=0)
 
     @pytest.fixture()
-    def excelRefReport_fxt(self):
+    def workbookRefReport_fxt(self):
 
         return self.loadWorkbookReport(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-OptRapport.ods')
 
@@ -977,7 +977,7 @@ class TestMcdsTruncOptAnalyser:
         logger.info('  - ref. report tables: ' + ', '.join(ddfRefReport.keys()))
         logger.info('  - actual report tables: ' + ', '.join(ddfActReport.keys()))
 
-        assert set(ddfRefReport.keys()) == set(ddfActReport), 'Missing ref. tables in actual report'
+        assert set(ddfRefReport.keys()) == set(ddfActReport.keys()), 'Missing ref. tables in actual report'
         assert expectTables is None \
                or set(expectTables).issubset(ddfActReport.keys()), 'Some expected tables are missing'
 
@@ -1034,7 +1034,7 @@ class TestMcdsTruncOptAnalyser:
 
         assert filePath.is_file(), f'Expected HTML report file not found {filePath.as_posix()}'
 
-        logger.info(f'Loading Html report from {filePath.as_posix()} ...')
+        logger.info(f'Loading Html report tables from {filePath.as_posix()} ...')
 
         ldfTables = pd.read_html(filePath)
 
@@ -1148,7 +1148,7 @@ class TestMcdsTruncOptAnalyser:
                            'Samples', 'Analyses', 'Analyser', 'Computing platform']
 
     # 7a. Generate HTML and Excel analyses reports through pyaudisam API
-    def testReports(self, optAnalyser_fxt, filSorSchemes_fxt, excelRefReport_fxt, htmlRefReport_fxt):
+    def testReports(self, optAnalyser_fxt, filSorSchemes_fxt, workbookRefReport_fxt, htmlRefReport_fxt):
 
         build = True  # Debug only: Set to False to avoid rebuilding the reports, and only check them
         postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
@@ -1283,7 +1283,7 @@ class TestMcdsTruncOptAnalyser:
             logger.info('Done checking opt-analyser reports presence: OK.')
 
         # c. Load generated Excel report and compare it to reference one
-        ddfRefRep = excelRefReport_fxt
+        ddfRefRep = workbookRefReport_fxt
         ddfActRep = self.loadWorkbookReport(xlsxRep)
         expctdAFSMTables = ['AFSM-' + fsId for fsId in fsSchemeIds]
         self.compareReports(ddfRefRep, ddfActRep, expectTables=expctdAFSMTables + self.KExpectedWorkbookFixedTables,
@@ -1306,7 +1306,7 @@ class TestMcdsTruncOptAnalyser:
         logger.info(f'PASS testReports: MCDSResultsFilterSortReport ctor, toExcel, toHtml')
 
     # 7b. Generate HTML and Excel analyses reports through pyaudisam command line
-    def testReportsCli(self, excelRefReport_fxt, filSorSchemes_fxt, htmlRefReport_fxt):
+    def testReportsCli(self, workbookRefReport_fxt, filSorSchemes_fxt, htmlRefReport_fxt):
 
         build = True  # Debug only: Set to False to avoid rebuilding the report (only compare)
 
@@ -1320,7 +1320,7 @@ class TestMcdsTruncOptAnalyser:
             logger.warning('NOT building reports: this is not the normal testing scheme !')
 
         # b. Load generated Excel report and compare it to the reference one
-        ddfRefRep = excelRefReport_fxt
+        ddfRefRep = workbookRefReport_fxt
         ddfActRep = self.loadWorkbookReport(uivu.pWorkDir / 'valtests-optanalyses-report.xlsx')
         _, fsSchemeIds, _, htmlFSSchemeId, _ = filSorSchemes_fxt
         expctdAFSMTables = ['AFSM-' + fsId for fsId in fsSchemeIds]
