@@ -386,8 +386,64 @@ class TestMcdsPreAnalyser:
 
         return rsRef
 
-    @staticmethod
-    def compareResults(rsRef, rsAct):
+    @classmethod
+    def compareResultSpecs(cls, dsdfRefSpecs, dsdfActSpecs, source='results'):
+        """dsdfXxx : dict(DataFrame | Series)
+        => expecting Series for 'analyser' and 'runtime' keys, DataFrames otherwise"""
+
+        # a. Samples (DataFrame)
+        #    Note: Remove neutral pass-through column (from sample specs to results)
+        #          from actual sample specs if here and not present in ref.
+        logger.info(f'* {source} specs: samples ...')
+
+        dfRefSmpSpecs = dsdfRefSpecs['samples']
+        logger.info(f'  - ref. sample specs: n={len(dfRefSmpSpecs)} =>\n' + dfRefSmpSpecs.to_string())
+        dfActSmpSpecs = dsdfActSpecs['samples']
+        if 'AbrevEsp' not in dfRefSmpSpecs:
+            dfActSmpSpecs.drop(columns=['AbrevEsp'], inplace=True, errors='ignore')
+        logger.info(f'  - actual sample specs: n={len(dfActSmpSpecs)} =>\n' + dfActSmpSpecs.to_string())
+
+        dfComp = dfRefSmpSpecs.compare(dfActSmpSpecs)
+        logger.info(f'  - sample specs comparison: n={len(dfComp)} =>\n' + dfComp.to_string())
+        assert dfComp.empty
+
+        # b. Specs: Models (DataFrame)
+        logger.info(f'* {source} specs: models ...')
+
+        dfRefModSpecs = dsdfRefSpecs['models']
+        logger.info(f'Ref. model specs: n={len(dfRefModSpecs)} =>\n' + dfRefModSpecs.to_string())
+        dfActModSpecs = dsdfActSpecs['models']
+        logger.info(f'Actual model specs: n={len(dfActModSpecs)} =>\n' + dfActModSpecs.to_string())
+        assert dfRefModSpecs.compare(dfActModSpecs).empty
+
+        # c. Analyser (Series)
+        logger.info(f'* {source} specs: analyser ...')
+
+        sRefAnrSpecs = dsdfRefSpecs['analyser']
+        logger.info(f'  - ref. analyser specs: n={len(sRefAnrSpecs)} =>\n' + sRefAnrSpecs.to_string())
+        sActAnrSpecs = dsdfActSpecs['analyser']
+        logger.info(f'  - actual analyser specs: n={len(sActAnrSpecs)} =>\n' + sActAnrSpecs.to_string())
+        dfComp = sRefAnrSpecs.compare(sActAnrSpecs)
+
+        logger.info(f'  - analyser specs comparison: n={len(dfComp)} =>\n' + dfComp.to_string())
+        assert dfComp.empty
+
+        # d. Run-time (Series): whatever ref, expect a specific up-to-date list of item names, but nothing more
+        # (values may vary, 'cause they are mostly software versions: it's OK)
+        logger.info(f'* {source} specs: run platform ...')
+
+        sRefRunSpecs = dsdfRefSpecs['runtime']
+        logger.info(f'  - ref. runtime specs: n={len(sRefRunSpecs)} =>\n' + sRefRunSpecs.to_string())
+        sActRunSpecs = dsdfActSpecs['runtime']
+        logger.info(f'  - actual runtime specs: n={len(sActRunSpecs)} =>\n' + sActRunSpecs.to_string())
+        assert set(sActRunSpecs.index) \
+               == {'os', 'processor', 'python', 'numpy', 'pandas', 'zoopt', 'matplotlib',
+                   'jinja2', 'pyaudisam', 'MCDS engine', 'MCDS engine version'}
+
+        logger.info(f'  ... done with pre-analyses {source} specs.')
+
+    @classmethod
+    def compareResults(cls, rsRef, rsAct):
         """Prerequisite: Reference results generated with either MCDS 7.4 or 6.2"""
 
         logger.info('Comparing reference to actual pre-results ...')
@@ -435,45 +491,8 @@ class TestMcdsPreAnalyser:
         logger.info(f'Diff. to reference (absolute): n={len(dfComp)} =>\n'
                     + dfComp.to_string(min_rows=30, max_rows=30))
 
-        # 2. Specs: Samples
-        dfRefSampSpecs = rsRef.specs['samples']
-        logger.info(f'Ref sample specs: n={len(dfRefSampSpecs)} =>\n'
-                    + dfRefSampSpecs.to_string(min_rows=30, max_rows=30))
-        # Remove neutral pass-through column (from sample specs to results)
-        # from actual sample specs if there (not present in ref.)
-        dfActSampSpecs = rsAct.specs['samples'].drop(columns=['AbrevEsp'], errors='ignore')
-        logger.info(f'Actual sample specs: n={len(dfActSampSpecs)} =>\n'
-                    + dfActSampSpecs.to_string(min_rows=30, max_rows=30))
-        assert dfRefSampSpecs.compare(dfActSampSpecs).empty
-
-        # 3. Specs: Models
-        dfRefModSpecs = rsRef.specs['models']
-        logger.info(f'Ref. model specs: n={len(dfRefModSpecs)} =>\n'
-                    + dfRefModSpecs.to_string(min_rows=30, max_rows=30))
-        dfActModSpecs = rsAct.specs['models']
-        logger.info(f'Actual model specs: n={len(dfActModSpecs)} =>\n'
-                    + dfActModSpecs.to_string(min_rows=30, max_rows=30))
-        assert dfRefModSpecs.compare(dfActModSpecs).empty
-
-        # 4. Specs: Analyser
-        dfRefAnrSpecs = rsRef.specs['analyser']
-        logger.info(f'Ref. analyser specs: n={len(dfRefAnrSpecs)} =>\n'
-                    + dfRefAnrSpecs.to_string(min_rows=30, max_rows=30))
-        dfActAnrSpecs = rsAct.specs['analyser']
-        logger.info(f'Actual analyser specs: n={len(dfActAnrSpecs)} =>\n'
-                    + dfActAnrSpecs.to_string(min_rows=30, max_rows=30))
-        assert dfRefAnrSpecs.compare(dfActAnrSpecs).empty
-
-        # 5. Specs: Run-time : whatever ref, expect a specific up-to-date list of item names, but nothing more
-        sRefRunSpecs = rsRef.specs['runtime']
-        logger.info(f'Ref. runtime specs: n={len(sRefRunSpecs)} =>\n' + sRefRunSpecs.to_string())
-        sActRunSpecs = rsAct.specs['runtime']
-        logger.info(f'Actual runtime specs: n={len(sActRunSpecs)} =>\n' + sActRunSpecs.to_string())
-        assert set(sActRunSpecs.index) \
-               == {'os', 'processor', 'python', 'numpy', 'pandas', 'zoopt', 'matplotlib',
-                   'jinja2', 'pyaudisam', 'MCDS engine', 'MCDS engine version'}
-
-        logger.info('Done comparing reference to actual pre-results.')
+        # 2. Specs
+        cls.compareResultSpecs(rsRef.specs, rsAct.specs, source='results')
 
     # ### d. Run pre-analyses through pyaudisam API
     # Performance figures:
@@ -572,7 +591,7 @@ class TestMcdsPreAnalyser:
         # c. Load pre-results
         rsAct = self.loadResults(preAnlysr, preAnlysr.workDir / 'valtests-preanalyses-results.xlsx')
         logger.info(f'Actual results: n={len(rsAct)} =>\n'
-                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
+                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string())
 
         # d. Compare to reference.
         rsRef = refResults_fxt
@@ -586,89 +605,195 @@ class TestMcdsPreAnalyser:
         # g. Done.
         logger.info(f'PASS testRunCli: main, run (command line mode)')
 
-    @pytest.fixture()
-    def excelRefReport_fxt(self):
-
-        return pd.read_excel(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreRapport.ods',
-                             sheet_name=None, index_col=0)
-
     @staticmethod
-    def compareExcelReports(ddfRefReport, ddfActReport):
+    def loadWorkbookReport(filePath):
+
+        logger.info(f'Loading workbook pre-report from {filePath.as_posix()} ...')
+
+        return pd.read_excel(filePath, sheet_name=None, index_col=0)
+
+    @pytest.fixture()
+    def workbookRefReport_fxt(self):
+
+        return self.loadWorkbookReport(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreRapport.ods')
+
+    KRep2SpecNames = {'Samples': 'samples', 'Models': 'models', 'Analyser': 'analyser',
+                      'Computing platform': 'runtime'}
+
+    @classmethod
+    def compareReports(cls, ddfRefReport, ddfActReport, mode='api', kind='workbook'):
         """Prerequisite: Reference report generated with either MCDS 7.4 or 6.2"""
 
-        logger.info('Comparing reference to actual workbook reports ...')
+        assert kind in {'workbook', 'html'}
 
-        # Compare "Synthesis" sheet
-        dfRef = ddfRefReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')
-        dfAct = ddfActReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')
-        assert dfRef.compare(dfAct).empty
+        logger.info(f'Comparing reference to actual pre-analysis {kind} report ({mode}) ...')
 
-        # Compare "Details" sheet : not that simple ...
-        # * 11 more "No Doc" columns with MCDS 7.4 (the ref) compared to MCDS 6.2,
-        # * very small differences in "Qua" indicators between MCDS 7.4 compared to MCDS 6.2
-        dfRef = ddfRefReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
-        dfAct = ddfActReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
-        # a. Compare all the string columns and a few "no precision issue" more.
-        idCols = ['NumEchant', 'Espèce', 'Passage', 'Adulte', 'Durée', 'AbrevEchant']
-        simpleCompCols = idCols
-        simpleCompCols += ['NTot Obs', 'Mod Key Fn', 'Mod Adj Ser', 'Mod Chc Crit', 'Conf Interv', 'Key Fn', 'Adj Ser']
-        assert dfRef[simpleCompCols].set_index('NumEchant').compare(dfAct[simpleCompCols].set_index('NumEchant')).empty
+        logger.info(f'* {kind} report tables ...')
+        # logger.info('  - expected tables: ' + ', '.join(expectTables or [None]))
+        logger.info('  - ref. report tables: ' + ', '.join(ddfRefReport.keys()))
+        logger.info('  - actual report tables: ' + ', '.join(ddfActReport.keys()))
 
-        # b. Compare other (all numerical) columns with a small margin (1e-14 relative diff)
-        otherCompCols = [col for col in dfRef if col not in simpleCompCols]
-        if len(dfAct.columns) != len(dfRef.columns):  # Not the same version of MCDS as for the ref. report
-            spe74CompCols = [col for col in otherCompCols if col.startswith('SansDoc #')]  # 7.4-specifics
-            assert len(spe74CompCols) == 11
-            otherCompCols = [col for col in otherCompCols if col not in spe74CompCols]  # Remove 7.4-specifics
+        assert set(ddfRefReport.keys()) == set(ddfActReport.keys()), 'Missing ref. tables in actual pre-report'
 
-        logger.info(f'* {otherCompCols=}')
-        dfDiff = ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
-                                               subsetCols=otherCompCols, indexCols=idCols,
-                                               noneIsNan=True, dropCloserCols=True,
-                                               dropCloser=14, dropNans=True)
-        logger.info(f'* diff. to reference (relative): n={len(dfDiff)} =>\n'
-                    + dfDiff.to_string(min_rows=30, max_rows=30))
-        if not dfDiff.empty:
-            dfDiff.reset_index().to_excel(uivu.pWorkDir / 'rep-comp-14.xlsx')
+        if kind == 'html':
 
-        # Compare "Samples" sheet
-        dfRef = ddfRefReport['Samples'].set_index('NumEchant', drop=True)
-        dfAct = ddfActReport['Samples'].set_index('NumEchant', drop=True)
-        assert dfRef.compare(dfAct).empty
+            # Compare "Title" table when html kind
+            logger.info(f'* {kind} pre-report title ...')
+            logger.info(f'  - ref. : n={len(ddfRefReport["Title"])} =>\n' + ddfRefReport['Title'].to_string())
+            logger.info(f'  - actual : n={len(ddfActReport["Title"])} =>\n' + ddfActReport['Title'].to_string())
+            assert ddfRefReport['Title'].compare(ddfActReport['Title']).empty
 
-        # Compare "Models" sheet
-        dfRef = ddfRefReport['Models']
-        dfAct = ddfActReport['Models']
-        assert dfRef.compare(dfAct).empty
+            # Compare "SuperSynthesis" table when html kind
+            logger.info(f'* {kind} super-synthesis table ...')
+            dfRef = ddfRefReport['SuperSynthesis'].reset_index()  # Restore NumEchant column (loaded as index)
+            dfAct = ddfActReport['SuperSynthesis'].reset_index()  # Idem
 
-        # Compare "Analyser" sheet
-        dfRef = ddfRefReport['Analyser']
-        dfAct = ddfActReport['Analyser']
-        assert dfRef.compare(dfAct).empty
+            # a. Compare all the string columns and a few "no precision issue" more.
+            idCols = ['NumEchant', 'Espèce', 'Passage', 'Adulte', 'Durée']
+            simpleCompCols = idCols
+            simpleCompCols += ['NTot Obs', 'Mod Key Fn', 'Mod Adj Ser']
+            assert dfRef[simpleCompCols].set_index('NumEchant') \
+                     .compare(dfAct[simpleCompCols].set_index('NumEchant')).empty
 
-        # Compare "Computing platform" sheet
-        # (whatever ref, expect a specific up-to-date list of item names, but nothing more ;
-        #  values may vary, 'cause they are mostly software versions: it's OK)
-        dfAct = ddfActReport['Computing platform']
-        assert set(dfAct.index) \
-               == {'os', 'processor', 'python', 'numpy', 'pandas', 'zoopt', 'matplotlib',
-                   'jinja2', 'pyaudisam', 'MCDS engine', 'MCDS engine version'}
+            # b. Compare other (all numerical) columns with a small margin (1e-14 relative diff)
+            otherCompCols = [col for col in dfRef if col not in simpleCompCols]
+            otherCompColsStr = '\n    . '.join(str(t) for t in otherCompCols)
+            logger.info(f'  - data columns for comparison:\n    . ' + otherCompColsStr)
+            dfDiff = ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
+                                                   subsetCols=otherCompCols, indexCols=idCols,
+                                                   noneIsNan=True, dropCloserCols=True,
+                                                   dropCloser=14, dropNans=True)
+            logger.info(f'  - diff. to reference (relative): n={len(dfDiff)} =>\n' + dfDiff.to_string())
+            dfDiff.reset_index().to_excel(uivu.pWorkDir / f'super-synth-{kind}-{mode}-comp-14.xlsx')
+            assert dfDiff.empty
 
-        logger.info('Done comparing reference to actual workbook reports.')
+        else:
+
+            # Compare "Synthesis" sheet when workbook kind
+            dfRef = ddfRefReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')
+            dfAct = ddfActReport['Synthesis'].drop(columns=['RunFolder']).set_index('NumEchant')
+            assert dfRef.compare(dfAct).empty
+
+            # Compare "Details" sheet when workbook kind: not that simple ...
+            # * 11 more "No Doc" columns with MCDS 7.4 (the ref) compared to MCDS 6.2,
+            # * very small differences in "Qua" indicators between MCDS 7.4 compared to MCDS 6.2
+            dfRef = ddfRefReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
+            dfAct = ddfActReport['Details'].drop(columns=['StartTime', 'ElapsedTime', 'RunFolder'])
+            # a. Compare all the string columns and a few "no precision issue" more.
+            idCols = ['NumEchant', 'Espèce', 'Passage', 'Adulte', 'Durée', 'AbrevEchant']
+            simpleCompCols = idCols
+            simpleCompCols += ['NTot Obs', 'Mod Key Fn', 'Mod Adj Ser', 'Mod Chc Crit',
+                               'Conf Interv', 'Key Fn', 'Adj Ser']
+            assert dfRef[simpleCompCols].set_index('NumEchant') \
+                      .compare(dfAct[simpleCompCols].set_index('NumEchant')).empty
+
+            # b. Compare other (all numerical) columns with a small margin (1e-14 relative diff)
+            otherCompCols = [col for col in dfRef if col not in simpleCompCols]
+            if len(dfAct.columns) != len(dfRef.columns):  # Not the same version of MCDS as for the ref. report
+                spe74CompCols = [col for col in otherCompCols if col.startswith('SansDoc #')]  # 7.4-specifics
+                assert len(spe74CompCols) == 11
+                otherCompCols = [col for col in otherCompCols if col not in spe74CompCols]  # Remove 7.4-specifics
+
+            logger.info(f'* {otherCompCols=}')
+            dfDiff = ads.DataSet.compareDataFrames(dfLeft=dfRef, dfRight=dfAct,
+                                                   subsetCols=otherCompCols, indexCols=idCols,
+                                                   noneIsNan=True, dropCloserCols=True,
+                                                   dropCloser=14, dropNans=True)
+            logger.info(f'* diff. to reference (relative): n={len(dfDiff)} =>\n'
+                        + dfDiff.to_string(min_rows=30, max_rows=30))
+            if not dfDiff.empty:
+                dfDiff.reset_index().to_excel(uivu.pWorkDir / 'rep-comp-14.xlsx')
+
+        # Compare "Samples", "Models", "Analyser" and "Computing platform" tables
+        # (+ some preliminary tweaks to convert workbook to results specs "format")
+        ddfRefSpecs = {cls.KRep2SpecNames[n]: sdf.copy() for n, sdf in ddfRefReport.items() if n in cls.KRep2SpecNames}
+        ddfRefSpecs['analyser'] = ddfRefSpecs['analyser']['Value']
+        ddfRefSpecs['runtime'] = ddfRefSpecs['runtime']['Version']
+        ddfActSpecs = {cls.KRep2SpecNames[n]: sdf.copy() for n, sdf in ddfActReport.items() if n in cls.KRep2SpecNames}
+        ddfActSpecs['analyser'] = ddfActSpecs['analyser']['Value']
+        ddfActSpecs['runtime'] = ddfActSpecs['runtime']['Version']
+        cls.compareResultSpecs(ddfRefSpecs, ddfActSpecs, source='report')
+
+        logger.info(f'Done comparing reference to actual pre-analysis {kind} report ({mode}).')
+
+    @pytest.fixture()
+    def htmlRefReport_fxt(self):
+
+        fpnRep = uivu.pRefOutDir / f'ACDC2019-Naturalist-extrait-PreRapport.html'
+
+        return self.loadHtmlReport(fpnRep)
+
+    @staticmethod
+    def loadHtmlReport(filePath):
+        """Produce a dict of DataFrames with exact same layout as loadWorkbookReport"""
+
+        assert filePath.is_file(), f'Expected HTML report file not found {filePath.as_posix()}'
+
+        logger.info(f'Loading Html report tables from {filePath.as_posix()} ...')
+
+        ldfTables = pd.read_html(filePath)
+
+        nResults = (len(ldfTables) - 1 - 5) // 3
+
+        # Get the title table
+        ddfRep = {'Title': ldfTables[0]}
+
+        # Build the super-synthesis table
+        # from the sub-tables (columns 1, 2, and 3) of the HTML super-synthesis table (1 row per analysis)
+        ddfRep['SuperSynthesis'] = pd.DataFrame([pd.concat([ldfTables[subTblInd]
+                                                            for subTblInd in range(resInd, resInd + 3)])
+                                                   .set_index(0).loc[:, 1]
+                                                 for resInd in range(2, 2 + 3 * nResults, 3)])
+        ddfRep['SuperSynthesis'].set_index('NumEchant', inplace=True)
+        # Fix some float columns, strangely loaded as string
+        for col in ['Min Dist', 'Max Dist']:
+            ddfRep['SuperSynthesis'][col] = ddfRep['SuperSynthesis'][col].astype(float)
+
+        # Get and format the analyses, analyser and runtime tables
+        sampTableInd = 2 + 3 * nResults
+        ddfRep['Samples'] = ldfTables[sampTableInd]
+        ddfRep['Samples'].set_index(ddfRep['Samples'].columns[0], inplace=True)
+        ddfRep['Samples'].index.name = None
+
+        ddfRep['Models'] = ldfTables[sampTableInd + 1]
+        ddfRep['Models'].set_index(ddfRep['Models'].columns[0], inplace=True)
+        ddfRep['Models'].index.name = None
+
+        ddfRep['Analyser'] = ldfTables[sampTableInd + 2]
+        ddfRep['Analyser'].set_index(ddfRep['Analyser'].columns[0], inplace=True)
+        ddfRep['Analyser'].index.name = None
+
+        ddfRep['Computing platform'] = ldfTables[sampTableInd + 3]
+        ddfRep['Computing platform'].set_index(ddfRep['Computing platform'].columns[0], inplace=True)
+        ddfRep['Computing platform'].index.name = None
+
+        return ddfRep
+
+    @staticmethod
+    def loadHtmlReportLines(filePath):
+
+        logger.info(f'Loading HTML pre-report lines from {filePath.as_posix()} ...')
+
+        return uivu.loadPrettyHtmlLines(filePath)
 
     @pytest.fixture()
     def htmlRefReportLines_fxt(self):
 
-        with open(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreRapport.html') as file:
-            repLines = file.readlines()
-
-        return repLines
+        return self.loadHtmlReportLines(uivu.pRefOutDir / 'ACDC2019-Naturalist-extrait-PreRapport.html')
 
     @staticmethod
     def compareHtmlReports(refReportLines, actReportLines):
         """Prerequisite: Reference report generated with either MCDS 7.4 or 6.2"""
 
+        DEBUG = False
+
         logger.info('Preprocessing HTML pre-reports for comparison ...')
+
+        if DEBUG:
+            with open(uivu.pTmpDir / 'prereport-ref-before.html', 'w') as file:
+                file.write('\n'.join(refReportLines))
+            with open(uivu.pTmpDir / 'prereport-act-before.html', 'w') as file:
+                file.write('\n'.join(actReportLines))
 
         # Pre-process actual report lines
         remRefLines = remActLines = 0
@@ -687,7 +812,7 @@ class TestMcdsPreAnalyser:
         # * remove specific lines in both reports:
         #   - header meta "DateTime"
         KREDateTime = r'[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}:[0-9]{2}'
-        KREMetaDateTime = rf'<meta name="datetime" content="{KREDateTime}"/>'
+        KREMetaDateTime = rf'<meta content="{KREDateTime}" name="datetime"/>'
         remRefLines += uivu.removeLines(KREMetaDateTime, refReportLines)
         remActLines += uivu.removeLines(KREMetaDateTime, actReportLines)
 
@@ -707,7 +832,7 @@ class TestMcdsPreAnalyser:
         # * generation date, credits to components with versions, sources)
         blocks_to_check = []
         for block in blocks:
-            if block.startLines.expected >= 552 - remRefLines:  # <h3>Computing platform</h3><table ...<tbody>
+            if block.startLines.expected >= 3955 - remRefLines:  # <h3>Computing platform</h3><table ...<tbody>
                 logger.info(f'Ignoring block @ -{block.startLines.expected} +{block.startLines.real} @')
                 continue
             blocks_to_check.append(block)
@@ -718,7 +843,8 @@ class TestMcdsPreAnalyser:
         logger.info('HTML pre-reports comparison: success !')
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam API
-    def testReports(self, sampleSpecMode, preAnalyser_fxt, excelRefReport_fxt, htmlRefReportLines_fxt):
+    def testReports(self, sampleSpecMode, preAnalyser_fxt,
+                    workbookRefReport_fxt, htmlRefReport_fxt, htmlRefReportLines_fxt):
 
         if sampleSpecMode != 'implicit':
             msg = 'testReports(explicit): skipped, as not relevant'
@@ -816,12 +942,12 @@ class TestMcdsPreAnalyser:
                                               tgtPrefix='valtests-preanalyses-report-api')
 
             # b.iv. Excel report
-            xlsxRep = report.toExcel()
-            logger.info('Excel pre-report: ' + pl.Path(xlsxRep).resolve().as_posix())
+            xlsxRep = pl.Path(report.toExcel())
+            logger.info('Excel pre-report: ' + xlsxRep.resolve().as_posix())
 
             # b.v. HTML report
-            htmlRep = report.toHtml()
-            logger.info('HTML pre-report: ' + pl.Path(htmlRep).resolve().as_posix())
+            htmlRep = pl.Path(report.toHtml())
+            logger.info('HTML pre-report: ' + htmlRep.resolve().as_posix())
 
         else:
             logger.warning('NOT building the reports: this is not the normal testing scheme !')
@@ -829,25 +955,28 @@ class TestMcdsPreAnalyser:
             htmlRep = preAnlysr.workDir / 'valtests-preanalyses-report.html'
 
         # c. Load generated Excel report and compare it to reference one
-        ddfRefRep = excelRefReport_fxt
+        ddfRefRep = workbookRefReport_fxt
+        ddfActRep = self.loadWorkbookReport(xlsxRep)
+        self.compareReports(ddfRefRep, ddfActRep, mode='api', kind='workbook')
 
-        ddfActRep = pd.read_excel(xlsxRep, sheet_name=None, index_col=0)
+        # d. Load generated HTML report and compare it to reference one
+        #    (results only = only tables)
+        ddfRefHtmlRep = htmlRefReport_fxt
+        ddfActHtmlRep = self.loadHtmlReport(htmlRep)
+        self.compareReports(ddfRefHtmlRep, ddfActHtmlRep, mode='api', kind='html')
 
-        self.compareExcelReports(ddfRefRep, ddfActRep)
-
+        # e. Load generated HTML report and compare it to reference one
+        #    (results + layout)
         # c. Load generated HTML report and compare it to reference one
         htmlRefRepLines = htmlRefReportLines_fxt
-
-        with open(htmlRep) as file:
-            htmlActRepLines = file.readlines()
-
+        htmlActRepLines = self.loadHtmlReportLines(htmlRep)
         self.compareHtmlReports(htmlRefRepLines, htmlActRepLines)
 
         # e. Cleanup generated report (well ... partially at least)
         #    for clearing next function's ground
         if postCleanup:
-            pl.Path(xlsxRep).unlink()
-            pl.Path(htmlRep).unlink()
+            xlsxRep.unlink()
+            htmlRep.unlink()
         else:
             logger.warning('NOT cleaning up reports: this is not the normal testing scheme !')
 
@@ -855,7 +984,7 @@ class TestMcdsPreAnalyser:
         logger.info(f'PASS testReports: MCDSResultsReport ctor, toExcel, toHtml')
 
     # ## 7. Generate HTML and Excel pre-analyses reports through pyaudisam command line
-    def testReportsCli(self, sampleSpecMode, excelRefReport_fxt, htmlRefReportLines_fxt):
+    def testReportsCli(self, sampleSpecMode, workbookRefReport_fxt, htmlRefReportLines_fxt):
 
         if sampleSpecMode != 'implicit':
             msg = 'testReportsCli(explicit): skipped, as not relevant'
@@ -875,16 +1004,13 @@ class TestMcdsPreAnalyser:
             logger.warning('NOT building the reports: this is not the normal testing scheme !')
 
         # b. Load generated Excel report and compare it to reference one
-        ddfActRep = pd.read_excel(workPath / 'valtests-preanalyses-report.xlsx', sheet_name=None, index_col=0)
-
-        ddfRefRep = excelRefReport_fxt
-        self.compareExcelReports(ddfRefRep, ddfActRep)
+        ddfRefRep = workbookRefReport_fxt
+        ddfActRep = self.loadWorkbookReport(workPath / 'valtests-preanalyses-report.xlsx')
+        self.compareReports(ddfRefRep, ddfActRep)
 
         # c. Load generated HTML report and compare it to reference one
-        with open(workPath / 'valtests-preanalyses-report.html') as file:
-            htmlActRepLines = file.readlines()
-
         htmlRefRepLines = htmlRefReportLines_fxt
+        htmlActRepLines = self.loadHtmlReportLines(workPath / 'valtests-preanalyses-report.html')
         self.compareHtmlReports(htmlRefRepLines, htmlActRepLines)
 
         # d. No cleanup: let the final cleaning code operate in _inifinalizeClass()

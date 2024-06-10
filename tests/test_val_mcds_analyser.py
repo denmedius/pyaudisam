@@ -337,7 +337,7 @@ class TestMcdsAnalyser:
 
         logger.info(f'Diff. to reference (absolute): n={len(dfComp)} =>\n' + dfComp.to_string())
 
-        # 2. Specs: Analyses
+        # 2. Specs
         cls.compareResultSpecs(rsRef.specs, rsAct.specs, source='results')
 
         logger.info('Done comparing reference to actual results.')
@@ -465,8 +465,6 @@ class TestMcdsAnalyser:
         logger.info('  - actual report tables: ' + ', '.join(ddfActReport.keys()))
 
         assert set(ddfRefReport.keys()) == set(ddfActReport.keys()), 'Missing ref. tables in actual report'
-        # assert expectTables is None \
-        #        or set(expectTables).issubset(ddfActReport.keys()), 'Some expected tables are missing'
 
         # Compare "Title" table when html kind
         if kind == 'html':
@@ -608,11 +606,9 @@ class TestMcdsAnalyser:
         synthTableInd = 2 + 3 * nResults
         ddfRep['Synthesis'] = ldfTables[synthTableInd]
         ddfRep['Synthesis'].drop(columns=[ddfRep['Synthesis'].columns[0]], inplace=True)
-        #ddfRep['Synthesis'].set_index('NumEchant', inplace=True)
 
         ddfRep['Details'] = ldfTables[synthTableInd + 1]
         ddfRep['Details'].drop(columns=[ddfRep['Details'].columns[0]], inplace=True)
-        #ddfRep['Details'].set_index('NumEchant', inplace=True)
 
         # Get and format the analyses, analyser and runtime tables
         ddfRep['Analyses'] = ldfTables[synthTableInd + 3]
@@ -632,7 +628,7 @@ class TestMcdsAnalyser:
     @staticmethod
     def loadHtmlReportLines(filePath):
 
-        logger.info(f'Loading HTML report from {filePath.as_posix()} ...')
+        logger.info(f'Loading HTML report lines from {filePath.as_posix()} ...')
 
         return uivu.loadPrettyHtmlLines(filePath)
 
@@ -645,7 +641,7 @@ class TestMcdsAnalyser:
     def compareHtmlReports(refReportLines, actReportLines):
         """Prerequisite: Reference report generated with either MCDS 7.4 or 6.2"""
 
-        DEBUG = True
+        DEBUG = False
 
         logger.info('Preprocessing HTML reports for comparison ...')
 
@@ -802,7 +798,8 @@ class TestMcdsAnalyser:
         logger.info('HTML reports comparison: success !')
 
     # ## 7. Generate HTML and Excel analyses reports through pyaudisam API
-    def testReports(self, analyser_fxt, workbookRefReport_fxt, htmlRefReport_fxt, htmlRefReportLines_fxt):
+    def testReports(self, analyser_fxt, workbookRefReport_fxt,
+                    htmlRefReport_fxt, htmlRefReportLines_fxt):
 
         build = True  # Debug only: Set to False to avoid rebuilding the reports, and only check them
         postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
@@ -935,7 +932,7 @@ class TestMcdsAnalyser:
         htmlActRepLines = self.loadHtmlReportLines(htmlRep)
         self.compareHtmlReports(htmlRefRepLines, htmlActRepLines)
 
-        # e. Cleanup generated report (well ... partially at least)
+        # f. Cleanup generated report (well ... partially at least)
         #    for clearing next function's ground
         if postCleanup:
             xlsxRep.unlink()
@@ -943,7 +940,7 @@ class TestMcdsAnalyser:
         else:
             logger.warning('NOT cleaning up reports: this is not the normal testing scheme !')
 
-        # f. Done.
+        # g. Done.
         logger.info(f'PASS testReports: MCDSResultsFullReport ctor, toExcel, toHtml')
 
     # ## 7. Generate HTML and Excel analyses reports through pyaudisam command line
