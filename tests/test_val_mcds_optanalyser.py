@@ -652,6 +652,8 @@ class TestMcdsTruncOptAnalyser:
     #   * max 168 final analyses = results, but often around 10 less
     #     (max of 120 with distance optimisations, but often around 10 dupl. specs + 48 with fixed analysis specs),
     #   * 18 threads, runMethod: subprocess.run => mean 24mn (n=7)
+    #
+    # Note: Elapsed times above are given only for the run, not for the restarted run (see restart below) 
     def testRun(self, optAnalyser_fxt, refResults_fxt):
 
         postCleanup = True  # Debug only: Set to False to prevent cleaning at the end
@@ -679,7 +681,7 @@ class TestMcdsTruncOptAnalyser:
         logger.info(f'* opt-analysis elapsed time: {end - start:.2f}s')
 
         logger.info(f'Actual results(first): n={len(rsAct)} =>\n'
-                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
+                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string())
 
         # c. Export results
         # Note: Broken multi-index columns with toOpenDoc !? => use toExcel.
@@ -706,9 +708,9 @@ class TestMcdsTruncOptAnalyser:
 
             # f. Restart from last backup + export and compare results
             logger.info(f'Restarting opt-analyses from last backup ...')
-            rsAct = optanlr.run(implParamSpecs=optAnlysSpecFile, recoverOptims=True, threads=12)
+            rsAct = optanlr.run(implParamSpecs=optAnlysSpecFile, recoverOptims=True, threads=threads)
             logger.info(f'Actual results(restart): n={len(rsAct)} =>\n'
-                        + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
+                        + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string())
             rsAct.toExcel(optanlr.workDir / 'valtests-optanalyses-results.xlsx')
             rsAct.toExcel(optanlr.workDir / 'valtests-optanalyses-restart-results-api-en.xlsx', lang='en')
             self.compareResults(rsRef, rsAct, mode='api')
@@ -747,7 +749,7 @@ class TestMcdsTruncOptAnalyser:
         # c. Load results
         rsAct = self.loadResults(optanlr, optanlr.workDir / 'valtests-optanalyses-results.xlsx')
         logger.info(f'Actual results(first): n={len(rsAct)} =>\n'
-                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
+                    + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string())
 
         # d. Compare to reference.
         rsRef = refResults_fxt
@@ -778,7 +780,7 @@ class TestMcdsTruncOptAnalyser:
             rsAct = self.loadResults(optanlr, optanlr.workDir / 'valtests-optanalyses-results.xlsx')
             rsAct.toExcel(optanlr.workDir / 'valtests-optanalyses-results-cli-en.xlsx', lang='en')
             logger.info(f'Actual results(restart): n={len(rsAct)} =>\n'
-                        + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string(min_rows=99, max_rows=99))
+                        + rsAct.dfTransData(columns=KResLogCols, lang='en').to_string())
             self.compareResults(rsRef, rsAct, mode='cli')
 
             anlysFolders = rsAct.dfTransData('en').RunFolder
