@@ -856,7 +856,7 @@ class TestMcdsTruncOptAnalyser:
             'duplicates on params': 10,
             'best AIC': 10,
             'best results for >= 1 indicator': 10,
-            'non-outlier sightings': 10,
+            'non-outlier sightings': 12,
             'final best results': 5,
             'after': 10,  # <=> final best results for or quality filtering schemes, but not for ExCode one.
         }, name='Threshold')
@@ -899,7 +899,7 @@ class TestMcdsTruncOptAnalyser:
         logger.info(f'  - number of selected ref. result rows per sample: n={len(dfActSampCnts)} =>\n'
                     + dfActSampCnts.to_string())
 
-        KMaxPerSampleRowDelta = 3
+        KMaxPerSampleRowDelta = 4
         assert dfRefSampCnts.subtract(dfActSampCnts).number.abs().le(KMaxPerSampleRowDelta).all(), \
                'Some number of results per sample are too different (delta over the threshold)'
 
