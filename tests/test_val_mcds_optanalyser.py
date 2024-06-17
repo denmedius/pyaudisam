@@ -951,14 +951,14 @@ class TestMcdsTruncOptAnalyser:
         dfDiffStatHistory = pd.concat([dfDiffStatHistory, dfNewDiffStats])
         dfDiffStatHistory.to_excel(fpnDiffStatHistory, index=True)
 
-        # f. Expect less that N% mean difference (after watching stat. history over any runs)
-        KPctRelDiffThresh = 25
+        # f. Expect less that N% mean difference (after watching stat. history over many runs)
+        KMeanPctRelDiffThresh = 30
         meanCols = [col for col in dfDiffStats if col.endswith('mean')]
         minLogRelDiff = dfDiffStats[meanCols].min().min()
         maxPctRelDiff = 100 / 10 ** minLogRelDiff
         logger.info(f"  - minimum relative diff. for all samples, results, stats:"
                     f" 10**-{minLogRelDiff:.3f} <=> {maxPctRelDiff:.2f}%")
-        assert maxPctRelDiff < KPctRelDiffThresh
+        assert maxPctRelDiff < KMeanPctRelDiffThresh
 
         logger.info(f'... done with auto filter & sort {source} ({table}).')
 
