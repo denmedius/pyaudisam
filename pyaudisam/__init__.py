@@ -14,7 +14,7 @@
 # If not, see https://www.gnu.org/licenses/.
 
 # Module version
-__version__ = '1.2.0-dev'
+__version__ = '1.2.0'
 
 import os
 import sys

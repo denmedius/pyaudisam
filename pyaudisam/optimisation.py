@@ -24,8 +24,8 @@ import math
 import numpy as np
 import pandas as pd
 
+import importlib.metadata  # zoopt has no standard __version__ !
 import zoopt
-import importlib  # zoopt has no standard __version__ !
 
 from . import log, runtime
 from .executor import Executor
