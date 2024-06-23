@@ -1,25 +1,27 @@
 PyAuDiSam release notes
 =======================
 
-# 1.2.0 (june ??? 2024)
+# 1.2.0 (June 2024)
 
-* python 3.12 + pandas 2.2 migration (probably compatible with python 3.9, but for sure not earlier)
-  * silent a pandas 2.2 future warning about down casting and try to fix it for when it comes true (hope)
+* python 3.12 + pandas 2.2 migration (probably compatible with python 3.9, but for sure not earlier):
   * fix pandas 2 deprecations:
     * DataFrame/Series.append -> concat, applymap -> map, Series.iteritems -> items,
-    * Styler.render -> to_html, Styler.where -> map
-    * 'S' freq alias deprecation from pandas 2.1
-    * pandas 2 not accepting strings in float-dtype columns
-    * fix a pandas future deprecation warning (setting an item of incompatible dtype)
-    * warn about some Pandas 2 warnings to be fixed later
-  * fix special chars verification only in temp dir name (tempfile.mkdtemp returns an absolute path from python 3.12)
-  * fix minimal python version specification
-  * update requirements.txt to new actually tested versions and pandas 2.2 minimum supported versions
-* analyser & pre-analyser valtests: added 2nd HTML report test method, through pandas.read_html
-* fix full HTML report comparison with prior BeautifulSoup prettification
-* fix ResultSet.fromExcel not closing the ExcelFile object
+    * Styler.render -> to_html, Styler.where -> map,
+    * 'S' freq alias deprecation from pandas 2.1,
+    * pandas 2 not accepting strings in float-dtype columns,
+    * fix a pandas future deprecation warning (setting an item of incompatible dtype),
+    * warn about some Pandas 2 warnings to be fixed later,
+  * silent a pandas 2.2 future warning about down casting and try to fix it for when it comes true (hope),
+  * python 3.12 compatibility fixes:
+    * fix ResultSet.fromExcel not closing the ExcelFile object,
+    * fix special chars verification only in temp dir name (tempfile.mkdtemp returns an absolute path from python 3.12),
+  * update python minimal version specification, and modules versions in requirements.txt
+    (to new actually tested versions and pandas 2.2 minimum supported versions),
+* non-regression valtests for analyser & pre-analyser:
+  * added a 2nd HTML report test method, through pandas.read_html,
+  * improve HTML report comparison with prior BeautifulSoup prettification.
 
-# 1.1.0 (may 2024)
+# 1.1.0 (May 2024)
 
 * full non-regression pytest-automated suite (90% coverage),
 * added support for MCDS 7.4 / Distance 7.5 (backward-compatible with MCDS 6.2 / Distance 6.x - 7.3),
