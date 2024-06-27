@@ -1288,7 +1288,9 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
 
         # Common computations (October 2021)
         nAdjPars2 = np.square(aRes[:, cls.CINAdjPars]).astype(float)
+        # print(f'{cls.CIKeyFn=}, {aRes[:, cls.CIKeyFn]=}')
         normKeyFn = cls._ufnNormKeyFn(aRes[:, cls.CIKeyFn])
+        # print(f'{normKeyFn=}')
         normChi2KsCvMsNObsKFn = chi2KsCvMs * normNObs * normKeyFn
 
         # QualBal2 (August 2021)
@@ -1336,6 +1338,7 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
     KilrNPars = 1e3
     KilrNTotObs = 1e9
     KilrBalQua = 0
+    KilrKeyFn = ''
 
     def _postComputeQualityIndicators(self):
 
@@ -1367,7 +1370,8 @@ class MCDSAnalysisResultsSet(AnalysisResultsSet):
                            cls.CLDCv: cls.KilrDensCv,  # Usually considered good under 0.3
                            cls.CLNTotObs: cls.KilrNTotObs,  # Should slap down _normObs whatever NObs
                            cls.CLNAdjPars: cls.KilrNPars,  # Should slap down _normNAdjPars whatever NObs
-                           cls.CLNTotPars: cls.KilrNPars},
+                           cls.CLNTotPars: cls.KilrNPars,
+                           cls.CLKeyFn: cls.KilrKeyFn},
                           inplace=True)
 
         logger.info3('* Balanced quality 2, 3, Chi2+, KS+, DCv+')

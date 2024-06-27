@@ -465,7 +465,8 @@ class MCDSTruncationOptimisation(DSOptimisation):
                          RSClass.CLDCv: RSClass.KilrDensCv,  # Usually considered good under 0.3
                          RSClass.CLNTotObs: RSClass.KilrNTotObs,  # Should slap down _normObs whatever NObs
                          RSClass.CLNAdjPars: RSClass.KilrNPars,  # Should slap down _normNAdjPars whatever NObs
-                         RSClass.CLNTotPars: RSClass.KilrNPars},
+                         RSClass.CLNTotPars: RSClass.KilrNPars,
+                         RSClass.CLKeyFn: RSClass.KilrKeyFn},
                         inplace=True)
 
         # c. Compute indicators at last !
