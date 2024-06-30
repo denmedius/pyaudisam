@@ -142,7 +142,6 @@ And if you are lacking ideas, here are some good ones below ;-)
 * packaging:
   * publish also pyaudisam on [Conda Forge](https://conda-forge.org/), probably following [this recipe](https://jacobtomlinson.dev/posts/2020/publishing-open-source-python-packages-on-github-pypi-and-conda-forge/#conda-forge),
 * platform support:
-  * add support for newer Python versions (probably 3.12 now) and updated pandas (2+) and zoopt dependencies,
   * make pyaudisam work under Linux / macOS (all python: OK, but ... calling MCDS.exe, that runs exclusively under Windows):
     * or: through some kind of external client-server interface to MCDS.exe (that runs only under Windows),
     * or: by porting MCDS to Linux (closed Fortran source, but old, so might be obtained through a polite request to [this Distance Sampling forum](https://groups.google.com/g/distance-sampling) ;
