@@ -27,8 +27,8 @@ The module itself was actually tested extensively with:
 It probably works as is with earlier versions, but not below python 3.9 as specified in [setup.py](https://github.com/denmedius/pyaudisam/blob/main/setup.py) and pandas 2.1 (but you'll need to run the whole test suite first to make sure).
 
 If you need Python 3.8 compatibility, you can:
-* use the 1.1.0 release (but you'll be limited to pandas 1.x),
-* tweak this (source) release, but at your own risks, because for sure you'll have to do some fixes (hint: run the whole test suite to see what's happening).
+* or: use the 1.1.0 release (but you'll be limited to pandas 1.x),
+* or: tweak the latest source release, but at your own risks, because for sure you'll have to do some fixes (hint: run the whole test suite to see what's happening).
 
 As for testing dependencies:
 * pytest, pytest-cov,
@@ -42,15 +42,15 @@ You can install **pyaudisam** from [PyPI](https://pypi.org/project/pyaudisam/) i
 
 Or from a downloaded source package:
 
-`pip install pyaudisam-1.1.0.tar.gz`
+`pip install pyaudisam-1.2.0.tar.gz`
 
 Or from a downloaded wheel package:
 
-`pip install pyaudisam-1.1.0-py3-none-any.whl`
+`pip install pyaudisam-1.2.0-py3-none-any.whl`
 
 Or even directly from GitHub:
 
-* `pip install git+https://github.com/pypa/sampleproject.git@1.1.0`
+* `pip install git+https://github.com/pypa/sampleproject.git@1.2.0`
 * `pip install git+https://github.com/pypa/sampleproject.git@main`
 
 ## Usage
@@ -112,9 +112,9 @@ Then, it's as simple as:
 
 `python -m build`
 
-You'll get 2 files in the `dist` folder (ex. for version 1.1.0) :
-* the wheel package: `pyaudisam-1.1.0-py3-none-any.whl`
-* the source package: `pyaudisam-1.1.0.tar.gz`
+You'll get 2 files in the `dist` folder (ex. for version 1.2.0) :
+* the wheel package: `pyaudisam-1.2.0-py3-none-any.whl`
+* the source package: `pyaudisam-1.2.0.tar.gz`
 
 ## Contributing
 
