@@ -8,7 +8,7 @@ This module interfaces **distance sampling** analysis engines from [Distance sof
 * to produce partly customisable reports in spreadsheet (numerical results only) and HTML formats
   (more complete, with full-featured plots like in Distance, and more).
 
-As for now, only the Windows MCDS.exe 6.x (Distance 6 to 7.3) and 7.4 (Distance 7.4 and 7.5 at least) engine and Point Transect analyses are supported, and so, it runs only under Windows.
+As for now, only the Windows MCDS.exe 6.x (Distance 6 to 7.3) and 7.4 (Distance 7.4, 7.5 and 8.0 at least) engine and Point Transect analyses are supported, and so, it runs only under Windows.
 
 ## Requirements
 
@@ -154,6 +154,17 @@ And if you are lacking ideas, here are some good ones below ;-)
 
 ### Known issues
 
+* only seen twice since early 2021, the minimization in zoopt 0.4.2 sometimes crashes
+  ```
+  File "<python env folder>\Lib\site-packages\zoopt\solution.py", line 211, in find_maximum
+    return sol_set[max_index], max_index
+           ~~~~~~~^^^^^^^^^^^
+  IndexError: list index out of range
+  ```
+  thus yielding no solution if no retry authorised (maxRetries=0), and a consecutive crash of the whole opt-analyzer run at the end
+  (failure to merge opt-analyses results in analyses specs: see optanalyser.py:442-463);
+  - up to now, restarting the same opt-analyses in 'recover mode' (-c CLI option) always resulted successful,
+  - anyway, we recommend to set the 'defCoreMaxRetries' parameter to some low non-null value, like 2 or 3 to lower the likelihood of this event,
 * AnalysisResultsSet.toOpenDoc sometimes produces broken header rows (the 3-row multi-index header is not rendered as it is on the right side),
 * The new undocumented MCDS 7.4 result column names are not translated correctly (switched fr and en translations) (minor, as not used actually for the moment),
 * The "Details" table header is not translated in auto-filtered reports (whereas the "Synthesis" one is),

@@ -439,9 +439,11 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
             dfOptimRes.set_index(self.anlysIndCol, inplace=True)
             dfOptimRes.sort_index(inplace=True)
 
-            # Debug code for 2021-01-16 PM exception on np.repeat (l451 below) :
+            # Debug code for 2021-01-16 PM exception on np.repeat (l468 below) :
             # ValueError: operands could not be broadcast together with shape (2520,) (2516,)
-            # Not reproduced after restart from last backup
+            # Not reproduced after restarting (aka "recovering") from last backup
+            # 2025-07-14 Reproduced on a ABT RVL 21-22 extract (4 species): zoopt.Opt.min failed,
+            # yielding no solution in absence of optanalyser retry (algorithm='racos', maxRetries=0)
             optimResults.toExcel(self.workDir / 'optim-res.debug.xlsx')
             dfOptimRes.to_excel(self.workDir / 'optim-res-opt.debug.xlsx')
             dfExplOptimParamSpecs.to_excel(self.workDir / 'optim-specs.debug.xlsx')
@@ -449,6 +451,16 @@ class MCDSTruncationOptanalyser(MCDSAnalyser):
 
             # * Replicate optimisation specs as much as there are associated results
             #   (optimisation may keep more than 1 "best" result row)
+            # Warning: If some optimisation failed (no solution) after requested retries, the relevant analysis
+            #          index will be missing in dfOptimRes, and so np.repeat will fail below for:
+            #          "ValueError: operands could not be broadcast together with shape (n1,) (n2,)"
+            #          But what can be done if no solution found ? no actual idea !
+            #          So the advice is:
+            #          1. Make retries (on failure) possible, up to some reasonable number (may be 2 or 3 ?)
+            #             for the 'maxRetries' of the core optimisation engine parameter,
+            #          2. If not enough (failure after all retries), there's the restart (aka "recover") solution !
+            #          => Not that bad actually: you only lose the time of the unsaved optimisations
+            #             (see the 'backupOptimEvery' of the opt-analyser to tweak this)
             dfExplCompdParamSpecs = dfExplOptimParamSpecs.copy()
             dfExplCompdParamSpecs.set_index(self.anlysIndCol, inplace=True)
             dfExplCompdParamSpecs.sort_index(inplace=True)
