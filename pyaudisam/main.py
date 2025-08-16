@@ -193,7 +193,7 @@ class _Application:
         argser.add_argument('-s', '--speparams', dest='speParams', type=str, default='',
                             help='Comma-separated key=value items specifying "special" parameters'
                                  'defined before the parameter file is loaded, just as overridable built-in variables'
-                                 r' (syntax and limitations: string-only values, with no space or ,;\'"$&! inside'
+                                 ' (syntax and limitations: string-only values, with no space or =,;\'"$&! inside'
                                  ' => use it only for few and simple args like switches and simple names')
         argser.add_argument('-w', '--workdir', dest='workDir', type=str, default='.',
                             help='Work folder = where to store DS analyses sub-folders and output files'
@@ -336,7 +336,7 @@ class _Application:
         speParamItems = self.args.speParams.split(',') if self.args.speParams else list()
         if any(item.count('=') != 1 for item in speParamItems):
             self.logger.error(f'Syntax error in pre-parameters: "{self.args.speParams}"'
-                              ' (should be "name1=value1,name2=value2,...")')
+                              ' (should be "name1=value1,name2=value2,...", values without any space or =,;\'"$&!)')
             return self.RC_ERROR
         
         speParams = dict([item.split('=') for item in speParamItems])
@@ -578,8 +578,6 @@ class _Application:
             preAnlysr.shutdown()
         
             # d. Save results to disk.
-            # if 'dfSampleStats' in dir(): # Qq specs supplémentaires
-            #    preResults.updateSpecs(sampleStats=dfSampleStats)
             if self.args.realRun:
                 preResults.toExcel(preAnlysResFilePath)
         

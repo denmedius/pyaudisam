@@ -781,9 +781,10 @@ class MonoCategoryDataSet(DataSet):
     # Add "absence" sightings to field data collected on transects for a given sample
     # * dfInSights : input data table
     # * sampleCols : the names of the sample identification columns
-    # * dfExpdTransects : the expected transects, as a data frame indexed by the transectPlace,
-    #     an index with same name as the corresponding column in dfInSights,
-    #     and with other info columns to duplicate in absence sightings (at least the effort value)
+    # * dfExpdTransects : the expected transects, as a data frame
+    #   - indexed by the transectPlace ID column(s),
+    #   - such columns also in dfInSights,
+    #   - with other info ones to duplicate in absence sightings (at least the effort value).
     @staticmethod
     def _addAbsenceSightings(dfInSights, sampleCols, dfExpdTransects):
         
@@ -795,7 +796,7 @@ class MonoCategoryDataSet(DataSet):
         dAbscSightTmpl.update({k: None for k in dAbscSightTmpl.keys() if k not in sampleCols})
 
         # Determine missing transects for the sample
-        transectPlaceCols = dfExpdTransects.index.name
+        transectPlaceCols = dfExpdTransects.index.names  # .names works also in multi-index cases, not .name (None)
         dfSampTransects = dfInSights.drop_duplicates(subset=transectPlaceCols)
         dfSampTransects.set_index(transectPlaceCols, inplace=True)
         dfSampTransects = dfSampTransects[dfExpdTransects.columns]
