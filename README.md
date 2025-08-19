@@ -116,6 +116,8 @@ You'll get 2 files in the `dist` folder (ex. for version 1.2.0) :
 * the wheel package: `pyaudisam-1.2.0-py3-none-any.whl`
 * the source package: `pyaudisam-1.2.0.tar.gz`
 
+N.B. If you don't have an internet connexion, or you are confident about the build dependencies installed in your python environment, you can speed up you build with the `--no-isolation` option to the build command. 
+
 ## Contributing
 
 Merge requests are very welcome !
